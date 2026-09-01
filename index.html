@@ -70,7 +70,7 @@
       border: 1px solid #334155;
       background: #0f172a;
       color: #f8fafc;
-      font-size: 16px; /* Mencegah auto-zoom di iOS Safari */
+      font-size: 16px; /* Mencegah auto-zoom di iOS */
       outline: none;
       transition: border-color 0.2s;
     }
@@ -79,7 +79,6 @@
       border-color: #38bdf8;
     }
 
-    /* Grid Durasi 2 Kolom untuk Mobile */
     .duration-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -140,7 +139,6 @@
       background: #1d4ed8;
     }
 
-    /* Output Section */
     .result {
       margin-top: 16px;
       background: #0f172a;
@@ -190,7 +188,6 @@
       transform: scale(0.92);
     }
 
-    /* Modal Warning/Alert Kustom */
     .toast-alert {
       position: fixed;
       top: 16px;
@@ -220,7 +217,7 @@
 </head>
 <body>
 
-  <!-- Toast Alert Pengganti alert() Browser -->
+  <!-- Toast Alert -->
   <div id="toast" class="toast-alert"></div>
 
   <div class="container">
@@ -231,7 +228,7 @@
 
     <div class="field-group">
       <label for="deviceId">Device ID Pembeli:</label>
-      <input type="text" id="deviceId" placeholder="Contoh: DEV-XXXX-XXXX">
+      <input type="text" id="deviceId" placeholder="Format: DEV-XXXX-XXXX" style="text-transform: uppercase;">
     </div>
 
     <div class="field-group">
@@ -268,7 +265,7 @@
       toast.classList.add('show');
       setTimeout(() => {
         toast.classList.remove('show');
-      }, 2500);
+      }, 2800);
     }
 
     function formatTanggalIndo(tanggalStr) {
@@ -304,11 +301,24 @@
     }
 
     function generateLicense() {
-      const deviceId = document.getElementById('deviceId').value.trim();
+      const deviceId = document.getElementById('deviceId').value.trim().toUpperCase();
       const client = document.getElementById('clientId').value.trim() || 'CLIENT';
 
-      if (!deviceId) return showToast('Masukkan Device ID milik pembeli!');
-      if (!selectedExpDate) return showToast('Pilih salah satu durasi lisensi!');
+      // 1. Cek apakah Device ID diisi
+      if (!deviceId) {
+        return showToast('Masukkan Device ID milik pembeli!');
+      }
+
+      // 2. Validasi Format Device ID (Format: DEV-XXXX-XXXX, contoh: DEV-A1B2-C3D4)
+      const regexDeviceId = /^DEV-[0-9A-F]{4}-[0-9A-F]{4}$/;
+      if (!regexDeviceId.test(deviceId)) {
+        return showToast('Format Device ID tidak valid! (Contoh yang benar: DEV-A1B2-C3D4)');
+      }
+
+      // 3. Cek apakah durasi sudah dipilih
+      if (!selectedExpDate) {
+        return showToast('Pilih salah satu durasi lisensi!');
+      }
 
       const payload = `${selectedExpDate}|${deviceId}|${client}|${SECRET_SALT}`;
       const encoded = btoa(payload).split('').reverse().join('');
@@ -328,7 +338,6 @@
         </div>
       `;
 
-      // Auto scroll lembut ke bagian hasil jika di HP layar pendek
       out.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
 

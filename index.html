@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Generator Lisensi - Mindspace Studio</title>
+  <style>
+    body { font-family: sans-serif; background: #0f172a; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+    .card { background: #1e293b; padding: 24px; border-radius: 12px; width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #334155; }
+    label { font-size: 12px; color: #cbd5e1; margin-top: 12px; display: block; }
+    input { width: 100%; box-sizing: border-box; padding: 10px; margin-top: 4px; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 13px; }
+    
+    /* Grid Tombol Durasi (3 Kolom) */
+    .duration-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 6px; }
+    .btn-durasi { padding: 8px; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: #cbd5e1; font-size: 11px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    .btn-durasi:hover { border-color: #38bdf8; color: #38bdf8; }
+    .btn-durasi.active { background: #1e3a8a; border-color: #3b82f6; color: white; }
+
+    .btn-generate { width: 100%; padding: 10px; border-radius: 6px; border: none; background: #2563eb; color: white; font-weight: bold; cursor: pointer; margin-top: 18px; font-size: 13px; }
+    .btn-generate:hover { background: #1d4ed8; }
+    
+    .result { margin-top: 16px; background: #0f172a; padding: 12px; border-radius: 6px; word-break: break-all; font-family: monospace; font-size: 11px; color: #38bdf8; border: 1px dashed #38bdf8; }
+    
+    /* Box Flex untuk Lisensi dan Tombol Copy Kecil */
+    .license-box { display: flex; align-items: center; justify-content: space-between; background: #1e293b; padding: 8px 10px; border-radius: 6px; border: 1px solid #334155; margin-top: 6px; margin-bottom: 8px; }
+    .license-text { color: #facc15; font-weight: bold; font-size: 11px; word-break: break-all; margin-right: 8px; }
+    
+    /* Tombol Ikon Copy Kecil */
+    .btn-copy-icon { background: #334155; border: none; color: #f8fafc; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; transition: 0.2s; flex-shrink: 0; }
+    .btn-copy-icon:hover { background: #475569; color: #38bdf8; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h3 style="margin-top:0; text-align:center; color: #f8fafc;">Generator Lisensi SIPGN</h3>
+    
+    <label>Device ID Pembeli (dari popup Userscript):</label>
+    <input type="text" id="deviceId" placeholder="Contoh: DEV-XXXX-XXXX">
+
+    <label>Pilih Durasi Lisensi:</label>
+    <div class="duration-grid">
+      <button class="btn-durasi" onclick="pilihDurasi(1, this)">1 Hari</button>
+      <button class="btn-durasi" onclick="pilihDurasi(3, this)">3 Hari</button>
+      <button class="btn-durasi" onclick="pilihDurasi(7, this)">7 Hari</button>
+      <button class="btn-durasi" onclick="pilihDurasi(14, this)">14 Hari</button>
+      <button class="btn-durasi" onclick="pilihDurasi(30, this)">30 Hari</button>
+      <button class="btn-durasi" onclick="pilihDurasi(9999, this)">Permanent</button>
+    </div>
+
+    <!-- Info tanggal aktif terpilih -->
+    <div id="infoExp" style="font-size: 11px; color: #38bdf8; margin-top: 8px; font-weight: bold; display: none;"></div>
+    
+    <label>Nama / ID Client (Opsional):</label>
+    <input type="text" id="clientId" placeholder="Contoh: SMAN 1 MEDAN">
+
+    <button class="btn-generate" onclick="generateLicense()">Generate License Key</button>
+
+    <div id="output" class="result" style="display:none;"></div>
+  </div>
+
+  <script>
+    const SECRET_SALT = 'MINDSTUDIO2026';
+    let selectedExpDate = '';
+    let generatedKey = '';
+
+    function formatTanggalIndo(tanggalStr) {
+      if (!tanggalStr || !/^\d{4}-\d{2}-\d{2}$/.test(tanggalStr)) return tanggalStr;
+      const namaBulan = [
+        'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+      ];
+      const [yyyy, mm, dd] = tanggalStr.split('-');
+      return `${dd} ${namaBulan[parseInt(mm, 10) - 1]} ${yyyy}`;
+    }
+
+    function pilihDurasi(jumlahHari, btn) {
+      document.querySelectorAll('.btn-durasi').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      if (jumlahHari === 9999) {
+        selectedExpDate = '2099-12-31';
+      } else {
+        const target = new Date();
+        target.setDate(target.getDate() + jumlahHari);
+
+        const yyyy = target.getFullYear();
+        const mm = String(target.getMonth() + 1).padStart(2, '0');
+        const dd = String(target.getDate()).padStart(2, '0');
+
+        selectedExpDate = `${yyyy}-${mm}-${dd}`;
+      }
+
+      const infoExp = document.getElementById('infoExp');
+      infoExp.style.display = 'block';
+      infoExp.textContent = `Masa Aktif s/d: ${formatTanggalIndo(selectedExpDate)} ${jumlahHari === 9999 ? '(Permanent)' : ''}`;
+    }
+
+    function generateLicense() {
+      const deviceId = document.getElementById('deviceId').value.trim();
+      const client = document.getElementById('clientId').value.trim() || 'CLIENT';
+
+      if (!deviceId) return alert('Masukkan Device ID milik pembeli!');
+      if (!selectedExpDate) return alert('Pilih salah satu durasi lisensi!');
+
+      const payload = `${selectedExpDate}|${deviceId}|${client}|${SECRET_SALT}`;
+      const encoded = btoa(payload).split('').reverse().join('');
+      generatedKey = `MIND-${encoded}`;
+
+      const out = document.getElementById('output');
+      out.style.display = 'block';
+      out.innerHTML = `
+        <b>License Key:</b>
+        <div class="license-box">
+          <span class="license-text">${generatedKey}</span>
+          <button class="btn-copy-icon" title="Salin License Key" onclick="copyToClipboard(this)">📋</button>
+        </div>
+        <small style="color:#94a3b8">Kadaluarsa: ${formatTanggalIndo(selectedExpDate)}<br>Kirim lisensi ini ke pembeli.</small>
+      `;
+    }
+
+    function copyToClipboard(btn) {
+      if (!generatedKey) return;
+      navigator.clipboard.writeText(generatedKey).then(() => {
+        btn.innerHTML = '✅';
+        btn.style.background = '#16a34a';
+        setTimeout(() => {
+          btn.innerHTML = '📋';
+          btn.style.background = '#334155';
+        }, 1200);
+      }).catch(err => {
+        alert('Gagal menyalin lisensi: ' + err);
+      });
+    }
+  </script>
+</body>
+</html>

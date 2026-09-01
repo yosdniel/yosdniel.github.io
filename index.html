@@ -223,7 +223,7 @@
   <div class="container">
     <div class="header">
       <h1>Generator Lisensi SIPGN</h1>
-      <p>Mindspace Studio Manager</p>
+      <p>Mindspace Studio Dashboard</p>
     </div>
 
     <div class="field-group">
@@ -312,7 +312,7 @@
       // 2. Validasi Format Device ID (Format: DEV-XXXX-XXXX, contoh: DEV-A1B2-C3D4)
       const regexDeviceId = /^DEV-[0-9A-F]{4}-[0-9A-F]{4}$/;
       if (!regexDeviceId.test(deviceId)) {
-        return showToast('Format Device ID tidak valid!\nContoh: DEV-A1B2-C3D4');
+        return showToast('Format Device ID tidak valid!');
       }
 
       // 3. Cek apakah durasi sudah dipilih

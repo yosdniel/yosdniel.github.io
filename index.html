@@ -132,6 +132,7 @@
       margin-top: 12px;
       box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
       transition: background 0.2s, transform 0.1s;
+      user-select: none;
     }
 
     .btn-generate:active {
@@ -213,6 +214,12 @@
       transform: translateX(-50%) translateY(0);
       opacity: 1;
     }
+
+    .toast-alert.info {
+      background: #065f46;
+      color: #a7f3d0;
+      border-color: #047857;
+    }
   </style>
 </head>
 <body>
@@ -249,7 +256,7 @@
       <input type="text" id="clientId" placeholder="Contoh: SMAN 1 MEDAN">
     </div>
 
-    <button class="btn-generate" onclick="generateLicense()">Generate License Key</button>
+    <button id="btnGenerate" class="btn-generate">Generate License Key</button>
 
     <div id="output" class="result"></div>
   </div>
@@ -260,9 +267,14 @@
     let selectedDays = 0;
     let generatedKey = '';
 
-    function showToast(message) {
+    function showToast(message, isInfo = false) {
       const toast = document.getElementById('toast');
       toast.textContent = message;
+      if (isInfo) {
+        toast.classList.add('info');
+      } else {
+        toast.classList.remove('info');
+      }
       toast.classList.add('show');
       setTimeout(() => {
         toast.classList.remove('show');
@@ -288,7 +300,6 @@
         selectedExpDate = '2099-12-31';
       } else {
         const target = new Date();
-        // Hitung eksak: 1 hari = expDate hari ini (selisih 0 + 1 hari di client)
         target.setDate(target.getDate() + (jumlahHari - 1));
 
         const yyyy = target.getFullYear();
@@ -303,7 +314,7 @@
       infoExp.textContent = `Masa Aktif Key s/d: ${formatTanggalIndo(selectedExpDate)} ${jumlahHari === 9999 ? '(Permanent)' : `(+${jumlahHari} Hari)`}`;
     }
 
-    function generateLicense() {
+    function generateLicense(isReGenerate = false) {
       const deviceId = document.getElementById('deviceId').value.trim().toUpperCase();
       const client = document.getElementById('clientId').value.trim() || 'CLIENT';
 
@@ -320,14 +331,22 @@
         return showToast('Pilih salah satu durasi lisensi!');
       }
 
-      const payload = `${selectedExpDate}|${deviceId}|${client}|${SECRET_SALT}`;
+      // Jika klik 2x / re-generate, sisipkan nonce acak agar bentuk string License Key berubah
+      let payload = `${selectedExpDate}|${deviceId}|${client}|${SECRET_SALT}`;
+      if (isReGenerate) {
+        const randomNonce = Math.floor(Math.random() * 16777215).toString(16).toUpperCase();
+        payload += `|${randomNonce}`;
+      }
+
       const encoded = btoa(payload).split('').reverse().join('');
       generatedKey = `MIND-${encoded}`;
 
       const out = document.getElementById('output');
       out.style.display = 'block';
       out.innerHTML = `
-        <span style="font-size:11px; color:#cbd5e1; font-weight:600;">License Key Berhasil Dibuat:</span>
+        <span style="font-size:11px; color:#cbd5e1; font-weight:600;">
+          ${isReGenerate ? '🔄 License Key Di-generate Ulang (Key Baru):' : 'License Key Berhasil Dibuat:'}
+        </span>
         <div class="license-box">
           <span class="license-text">${generatedKey}</span>
           <button class="btn-copy-icon" title="Salin License Key" onclick="copyToClipboard(this)">📋</button>
@@ -337,6 +356,10 @@
           Kirim lisensi di atas ke pembeli.
         </div>
       `;
+
+      if (isReGenerate) {
+        showToast('🔄 License Key berhasil di-generate ulang!', true);
+      }
 
       out.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
@@ -354,6 +377,37 @@
         showToast('Gagal menyalin lisensi: ' + err);
       });
     }
+
+    // Event Handler untuk mendeteksi Klik Tunggal & Double-Click (Termasuk Layar Sentuh Mobile)
+    const btnGen = document.getElementById('btnGenerate');
+    let clickTimer = null;
+    let touchLastTime = 0;
+
+    btnGen.addEventListener('click', function (e) {
+      if (clickTimer === null) {
+        clickTimer = setTimeout(() => {
+          clickTimer = null;
+          generateLicense(false); // Single Click
+        }, 300);
+      } else {
+        clearTimeout(clickTimer);
+        clickTimer = null;
+        generateLicense(true); // Double Click
+      }
+    });
+
+    // Handler tambahan agar responsive pada double tap di layar HP / Touchscreen
+    btnGen.addEventListener('touchend', function (e) {
+      const currentTime = new Date().getTime();
+      const tapLength = currentTime - touchLastTime;
+      if (tapLength < 300 && tapLength > 0) {
+        e.preventDefault();
+        if (clickTimer) clearTimeout(clickTimer);
+        clickTimer = null;
+        generateLicense(true); // Double Tap
+      }
+      touchLastTime = currentTime;
+    });
   </script>
 </body>
 </html>

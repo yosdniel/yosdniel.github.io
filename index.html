@@ -70,7 +70,7 @@
       border: 1px solid #334155;
       background: #0f172a;
       color: #f8fafc;
-      font-size: 16px; /* Mencegah auto-zoom di iOS */
+      font-size: 16px;
       outline: none;
       transition: border-color 0.2s;
     }
@@ -257,6 +257,7 @@
   <script>
     const SECRET_SALT = 'MINDSTUDIO2026';
     let selectedExpDate = '';
+    let selectedDays = 0;
     let generatedKey = '';
 
     function showToast(message) {
@@ -281,12 +282,14 @@
     function pilihDurasi(jumlahHari, btn) {
       document.querySelectorAll('.btn-durasi').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
+      selectedDays = jumlahHari;
 
       if (jumlahHari === 9999) {
         selectedExpDate = '2099-12-31';
       } else {
         const target = new Date();
-        target.setDate(target.getDate() + jumlahHari);
+        // Hitung eksak: 1 hari = expDate hari ini (selisih 0 + 1 hari di client)
+        target.setDate(target.getDate() + (jumlahHari - 1));
 
         const yyyy = target.getFullYear();
         const mm = String(target.getMonth() + 1).padStart(2, '0');
@@ -297,25 +300,22 @@
 
       const infoExp = document.getElementById('infoExp');
       infoExp.style.display = 'block';
-      infoExp.textContent = `Masa Aktif s/d: ${formatTanggalIndo(selectedExpDate)} ${jumlahHari === 9999 ? '(Permanent)' : ''}`;
+      infoExp.textContent = `Masa Aktif Key s/d: ${formatTanggalIndo(selectedExpDate)} ${jumlahHari === 9999 ? '(Permanent)' : `(+${jumlahHari} Hari)`}`;
     }
 
     function generateLicense() {
       const deviceId = document.getElementById('deviceId').value.trim().toUpperCase();
       const client = document.getElementById('clientId').value.trim() || 'CLIENT';
 
-      // 1. Cek apakah Device ID diisi
       if (!deviceId) {
         return showToast('Masukkan Device ID milik pembeli!');
       }
 
-      // 2. Validasi Format Device ID (Format: DEV-XXXX-XXXX, contoh: DEV-A1B2-C3D4)
       const regexDeviceId = /^DEV-[0-9A-F]{4}-[0-9A-F]{4}$/;
       if (!regexDeviceId.test(deviceId)) {
         return showToast('Format Device ID tidak valid!');
       }
 
-      // 3. Cek apakah durasi sudah dipilih
       if (!selectedExpDate) {
         return showToast('Pilih salah satu durasi lisensi!');
       }
@@ -333,7 +333,7 @@
           <button class="btn-copy-icon" title="Salin License Key" onclick="copyToClipboard(this)">📋</button>
         </div>
         <div style="font-size:10px; color:#94a3b8; line-height: 1.4;">
-          Kadaluarsa: <b style="color:#38bdf8">${formatTanggalIndo(selectedExpDate)}</b><br>
+          Kadaluarsa Payload: <b style="color:#38bdf8">${formatTanggalIndo(selectedExpDate)}</b> (${selectedDays === 9999 ? 'Permanent' : `+${selectedDays} Hari`})<br>
           Kirim lisensi di atas ke pembeli.
         </div>
       `;

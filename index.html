@@ -256,7 +256,7 @@
       <input type="text" id="clientId" placeholder="Contoh: SMAN 1 MEDAN">
     </div>
 
-    <button id="btnGenerate" class="btn-generate">Generate License Key</button>
+    <button id="btnGenerate" class="btn-generate" onclick="generateLicense()">Generate License Key</button>
 
     <div id="output" class="result"></div>
   </div>
@@ -266,6 +266,7 @@
     let selectedExpDate = '';
     let selectedDays = 0;
     let generatedKey = '';
+    let isGenerated = false;
 
     function showToast(message, isInfo = false) {
       const toast = document.getElementById('toast');
@@ -311,10 +312,10 @@
 
       const infoExp = document.getElementById('infoExp');
       infoExp.style.display = 'block';
-      infoExp.textContent = `Masa Aktif Key s/d: ${formatTanggalIndo(selectedExpDate)} ${jumlahHari === 9999 ? '(Permanent)' : `(+${jumlahHari} Hari)`}`;
+      infoExp.textContent = `License Key : ${jumlahHari === 9999 ? 'Lifetime' : `+${jumlahHari} Hari`}`;
     }
 
-    function generateLicense(isReGenerate = false) {
+    function generateLicense() {
       const deviceId = document.getElementById('deviceId').value.trim().toUpperCase();
       const client = document.getElementById('clientId').value.trim() || 'CLIENT';
 
@@ -331,12 +332,8 @@
         return showToast('Pilih salah satu durasi lisensi!');
       }
 
-      // Jika klik 2x / re-generate, sisipkan nonce acak agar bentuk string License Key berubah
-      let payload = `${selectedExpDate}|${deviceId}|${client}|${SECRET_SALT}`;
-      if (isReGenerate) {
-        const randomNonce = Math.floor(Math.random() * 16777215).toString(16).toUpperCase();
-        payload += `|${randomNonce}`;
-      }
+      const randomNonce = Math.floor(Math.random() * 16777215).toString(16).toUpperCase();
+      const payload = `${selectedExpDate}|${deviceId}|${client}|${SECRET_SALT}|${randomNonce}`;
 
       const encoded = btoa(payload).split('').reverse().join('');
       generatedKey = `MIND-${encoded}`;
@@ -345,19 +342,23 @@
       out.style.display = 'block';
       out.innerHTML = `
         <span style="font-size:11px; color:#cbd5e1; font-weight:600;">
-          ${isReGenerate ? '🔄 License Key Di-generate Ulang (Key Baru):' : 'License Key Berhasil Dibuat:'}
+          ${isGenerated ? '🔄 License Key Berhasil Di-generate Ulang:' : 'License Key Berhasil Dibuat:'}
         </span>
         <div class="license-box">
           <span class="license-text">${generatedKey}</span>
           <button class="btn-copy-icon" title="Salin License Key" onclick="copyToClipboard(this)">📋</button>
         </div>
         <div style="font-size:10px; color:#94a3b8; line-height: 1.4;">
-          Kadaluarsa Payload: <b style="color:#38bdf8">${formatTanggalIndo(selectedExpDate)}</b> (${selectedDays === 9999 ? 'Permanent' : `+${selectedDays} Hari`})<br>
+          Kadaluarsa Payload: <b style="color:#38bdf8">${formatTanggalIndo(selectedExpDate)}</b> (${selectedDays === 9999 ? 'Lifetime' : `+${selectedDays} Hari`})<br>
           Kirim lisensi di atas ke pembeli.
         </div>
       `;
 
-      if (isReGenerate) {
+      const btnGen = document.getElementById('btnGenerate');
+      if (!isGenerated) {
+        btnGen.textContent = 'Regenerate License Key';
+        isGenerated = true;
+      } else {
         showToast('🔄 License Key berhasil di-generate ulang!', true);
       }
 
@@ -377,37 +378,6 @@
         showToast('Gagal menyalin lisensi: ' + err);
       });
     }
-
-    // Event Handler untuk mendeteksi Klik Tunggal & Double-Click (Termasuk Layar Sentuh Mobile)
-    const btnGen = document.getElementById('btnGenerate');
-    let clickTimer = null;
-    let touchLastTime = 0;
-
-    btnGen.addEventListener('click', function (e) {
-      if (clickTimer === null) {
-        clickTimer = setTimeout(() => {
-          clickTimer = null;
-          generateLicense(false); // Single Click
-        }, 300);
-      } else {
-        clearTimeout(clickTimer);
-        clickTimer = null;
-        generateLicense(true); // Double Click
-      }
-    });
-
-    // Handler tambahan agar responsive pada double tap di layar HP / Touchscreen
-    btnGen.addEventListener('touchend', function (e) {
-      const currentTime = new Date().getTime();
-      const tapLength = currentTime - touchLastTime;
-      if (tapLength < 300 && tapLength > 0) {
-        e.preventDefault();
-        if (clickTimer) clearTimeout(clickTimer);
-        clickTimer = null;
-        generateLicense(true); // Double Tap
-      }
-      touchLastTime = currentTime;
-    });
   </script>
 </body>
 </html>

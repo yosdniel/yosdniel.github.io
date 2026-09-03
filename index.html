@@ -119,7 +119,7 @@
       display: none;
     }
 
-    .btn-generate {
+    .btn-generate, .btn-login {
       width: 100%;
       height: 50px;
       border-radius: 12px;
@@ -135,7 +135,7 @@
       user-select: none;
     }
 
-    .btn-generate:active {
+    .btn-generate:active, .btn-login:active {
       transform: scale(0.98);
       background: #1d4ed8;
     }
@@ -220,6 +220,15 @@
       color: #a7f3d0;
       border-color: #047857;
     }
+
+    /* Container Tampilan */
+    #loginView {
+      display: block;
+    }
+
+    #generatorView {
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -227,7 +236,23 @@
   <!-- Toast Alert -->
   <div id="toast" class="toast-alert"></div>
 
-  <div class="container">
+  <!-- VIEW 1: LOCKSCREEN / AUTHENTICATION -->
+  <div id="loginView" class="container">
+    <div class="header">
+      <h1>Akses Terproteksi</h1>
+      <p>Mindspace Studio Dashboard</p>
+    </div>
+
+    <div class="field-group">
+      <label for="accessPassword">Masukkan Passcode Dashboard:</label>
+      <input type="password" id="accessPassword" placeholder="••••••••" onkeyup="if(event.key==='Enter') verifyPassword()">
+    </div>
+
+    <button id="btnLogin" class="btn-login" onclick="verifyPassword()">Masuk ke Dashboard</button>
+  </div>
+
+  <!-- VIEW 2: GENERATOR LISENSI -->
+  <div id="generatorView" class="container">
     <div class="header">
       <h1>Generator Lisensi SIPGN</h1>
       <p>Mindspace Studio Dashboard</p>
@@ -267,6 +292,42 @@
     let selectedDays = 0;
     let generatedKey = '';
     let isGenerated = false;
+
+    // OTENTIKASI PASSWORD
+    async function verifyPassword() {
+      const passwordInput = document.getElementById('accessPassword').value;
+      const btnLogin = document.getElementById('btnLogin');
+
+      if (!passwordInput) {
+        return showToast('Masukkan passcode terlebih dahulu!');
+      }
+
+      btnLogin.disabled = true;
+      btnLogin.textContent = 'Memverifikasi...';
+
+      try {
+        const response = await fetch('/api/verify-pass', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: passwordInput })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.status) {
+          showToast('Akses Diterima!', true);
+          document.getElementById('loginView').style.display = 'none';
+          document.getElementById('generatorView').style.display = 'block';
+        } else {
+          showToast(data.error || 'Password Salah!');
+        }
+      } catch (err) {
+        showToast('Gagal menghubungi server verifikasi.');
+      } finally {
+        btnLogin.disabled = false;
+        btnLogin.textContent = 'Masuk ke Dashboard';
+      }
+    }
 
     function showToast(message, isInfo = false) {
       const toast = document.getElementById('toast');

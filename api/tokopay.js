@@ -1,5 +1,13 @@
 const crypto = require('crypto');
 
+// Pemetaan Paket & Harga di Sisi Server (Harga Dasar sebelum hitung QRIS Fee)
+const HARGA_PAKET = {
+  1: 5000,
+  7: 20000,
+  14: 35000,
+  30: 50000
+};
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -25,14 +33,20 @@ export default async function handler(req, res) {
   }
 
   // =========================================================================
-  // METODE POST: Membuat Order QRIS
+  // METODE POST: Membuat Order QRIS (Nominal Dikunci di Server)
   // =========================================================================
   if (req.method === 'POST') {
     try {
-      const { nominal, ref_id, channel = 'QRISREALTIME' } = req.body || {};
+      const { paket_hari, ref_id, channel = 'QRISREALTIME' } = req.body || {};
 
-      if (!nominal || !ref_id) {
-        return res.status(400).json({ status: false, error: 'Parameter nominal dan ref_id wajib diisi.' });
+      if (!paket_hari || !ref_id) {
+        return res.status(400).json({ status: false, error: 'Parameter paket_hari dan ref_id wajib diisi.' });
+      }
+
+      // Validasi dan Ambil Nominal Langsung dari Mapping Server
+      const nominal = HARGA_PAKET[Number(paket_hari)];
+      if (!nominal) {
+        return res.status(400).json({ status: false, error: 'Pilihan paket tidak valid.' });
       }
 
       const daftarChannel = Array.from(new Set([channel, 'QRISREALTIME', 'QRIS_REALTIME', 'QRIS2', 'QRIS']));
@@ -45,7 +59,7 @@ export default async function handler(req, res) {
 
         const apiUrl = `https://api.tokopay.id/v1/order?merchant=${merchantId}&secret=${secretKey}&ref_id=${ref_id}&nominal=${nominal}&metode=${channelCode}&signature=${signature}`;
 
-        console.log(`[TOKOPAY CREATE] Mencoba Order RefID=${ref_id}, Nominal=${nominal}, Channel=${channelCode}`);
+        console.log(`[TOKOPAY CREATE] Mencoba Order RefID=${ref_id}, Paket=${paket_hari} Hari, Nominal=${nominal}, Channel=${channelCode}`);
 
         const response = await fetch(apiUrl);
         const data = await response.json();
@@ -78,23 +92,23 @@ export default async function handler(req, res) {
   }
 
   // =========================================================================
-  // METODE GET: Cek Status Pembayaran (Polling Universal Handler)
+  // METODE GET: Cek Status Pembayaran (Tanpa Wajib Parameter Nominal Client)
   // =========================================================================
   if (req.method === 'GET') {
     try {
-      const { ref_id, nominal, metode = 'QRISREALTIME' } = req.query;
+      const { ref_id, metode = 'QRISREALTIME' } = req.query;
 
-      if (!ref_id || !nominal) {
-        return res.status(400).json({ status: false, error: 'Parameter ref_id & nominal wajib.' });
+      if (!ref_id) {
+        return res.status(400).json({ status: false, error: 'Parameter ref_id wajib.' });
       }
 
       const rawSignature = `${merchantId}${secretKey}${ref_id}`;
       const signature = crypto.createHash('md5').update(rawSignature).digest('hex');
 
-      // Coba tembak 2 endpoint alternatif Tokopay secara berurutan agar tidak 404/gagal
+      // Endpoint pencarian status order berdasarkan ref_id
       const endpointList = [
-        `https://api.tokopay.id/v1/order?merchant=${merchantId}&secret=${secretKey}&ref_id=${ref_id}&nominal=${nominal}&metode=${metode}&signature=${signature}`,
-        `https://api.tokopay.id/v1/order/status?merchant=${merchantId}&secret=${secretKey}&ref_id=${ref_id}&nominal=${nominal}&signature=${signature}`
+        `https://api.tokopay.id/v1/order/status?merchant=${merchantId}&secret=${secretKey}&ref_id=${ref_id}&signature=${signature}`,
+        `https://api.tokopay.id/v1/order?merchant=${merchantId}&secret=${secretKey}&ref_id=${ref_id}&metode=${metode}&signature=${signature}`
       ];
 
       let hasilData = null;
@@ -106,7 +120,6 @@ export default async function handler(req, res) {
           
           if (data && (data.status !== undefined || data.data)) {
             hasilData = data;
-            // Jika status sukses ditemukan, langsung hentikan loop
             const statusVal = data?.data?.status || data?.status;
             if (statusVal === 'Success' || statusVal === 1 || statusVal === true) {
               break;

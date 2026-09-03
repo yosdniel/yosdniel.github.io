@@ -35,11 +35,11 @@ export default async function handler(req, res) {
         return res.status(400).json({ status: false, error: 'Parameter nominal dan ref_id wajib diisi.' });
       }
 
-      // Prioritaskan QRISREALTIME sesuai log Tokopay kamu
       const daftarChannel = Array.from(new Set([channel, 'QRISREALTIME', 'QRIS_REALTIME', 'QRIS2', 'QRIS']));
       let lastResponse = null;
 
       for (const channelCode of daftarChannel) {
+        // Format signature umum Tokopay: merchant + secret + ref_id
         const rawSignature = `${merchantId}${secretKey}${ref_id}`;
         const signature = crypto.createHash('md5').update(rawSignature).digest('hex');
 
@@ -52,11 +52,9 @@ export default async function handler(req, res) {
 
         console.log(`[TOKOPAY RESPONSE ${channelCode}]:`, JSON.stringify(data));
 
-        // FIX: Cek status berupa angka 1 ATAU string "Success" / "Unpaid"
-        const isSuccess = data && (data.status === 1 || data.status === 'Success' || data.status === 'Unpaid');
+        const isSuccess = data && (data.status === 1 || data.status === true || data.status === 'Success' || data.status === 'Unpaid');
 
         if (isSuccess && data.data) {
-          // LANGSUNG RETURN AGAR LOOP BERHENTI
           return res.status(200).json({
             status: true,
             channel_used: channelCode,
@@ -80,11 +78,11 @@ export default async function handler(req, res) {
   }
 
   // =========================================================================
-  // METODE GET: Cek Status Pembayaran (Polling)
+  // METODE GET: Cek Status Pembayaran (Polling Universal Handler)
   // =========================================================================
   if (req.method === 'GET') {
     try {
-      const { ref_id, nominal } = req.query;
+      const { ref_id, nominal, metode = 'QRISREALTIME' } = req.query;
 
       if (!ref_id || !nominal) {
         return res.status(400).json({ status: false, error: 'Parameter ref_id & nominal wajib.' });
@@ -93,13 +91,39 @@ export default async function handler(req, res) {
       const rawSignature = `${merchantId}${secretKey}${ref_id}`;
       const signature = crypto.createHash('md5').update(rawSignature).digest('hex');
 
-      const apiUrl = `https://api.tokopay.id/v1/order/status?merchant=${merchantId}&secret=${secretKey}&ref_id=${ref_id}&nominal=${nominal}&signature=${signature}`;
+      // Coba tembak 2 endpoint alternatif Tokopay secara berurutan agar tidak 404/gagal
+      const endpointList = [
+        `https://api.tokopay.id/v1/order?merchant=${merchantId}&secret=${secretKey}&ref_id=${ref_id}&nominal=${nominal}&metode=${metode}&signature=${signature}`,
+        `https://api.tokopay.id/v1/order/status?merchant=${merchantId}&secret=${secretKey}&ref_id=${ref_id}&nominal=${nominal}&signature=${signature}`
+      ];
 
-      const response = await fetch(apiUrl);
-      const data = await response.json();
+      let hasilData = null;
 
-      return res.status(200).json(data);
+      for (const endpointUrl of endpointList) {
+        try {
+          const response = await fetch(endpointUrl);
+          const data = await response.json();
+          
+          if (data && (data.status !== undefined || data.data)) {
+            hasilData = data;
+            // Jika status sukses ditemukan, langsung hentikan loop
+            const statusVal = data?.data?.status || data?.status;
+            if (statusVal === 'Success' || statusVal === 1 || statusVal === true) {
+              break;
+            }
+          }
+        } catch (innerErr) {
+          console.warn(`[TOKOPAY STATUS CHECK WARN] Gagal pada endpoint ${endpointUrl}:`, innerErr.message);
+        }
+      }
+
+      if (!hasilData) {
+        return res.status(404).json({ status: false, error: 'Transaksi tidak ditemukan atau gagal di-check.' });
+      }
+
+      return res.status(200).json(hasilData);
     } catch (err) {
+      console.error('[TOKOPAY EXCEPTION STATUS]:', err.message);
       return res.status(500).json({ status: false, error: err.message });
     }
   }

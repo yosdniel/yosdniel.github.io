@@ -22,6 +22,23 @@ export default async function handler(req, res) {
     return;
   }
 
+  // =========================================================================
+  // METODE GET: Ambil Daftar Paket (Tanpa Perlu Auth Tokopay)
+  // =========================================================================
+  if (req.method === 'GET' && req.query.action === 'get_packages') {
+    const packages = Object.entries(HARGA_PAKET).map(([hari, harga]) => ({
+      hari: Number(hari),
+      harga: harga,
+      nama: `Paket ${hari} Hari`,
+      selected: Number(hari) === 7
+    }));
+
+    return res.status(200).json({
+      status: true,
+      packages: packages
+    });
+  }
+
   const merchantId = process.env.TOKOPAY_MERCHANT_ID;
   const secretKey = process.env.TOKOPAY_SECRET_KEY;
 
@@ -117,7 +134,7 @@ export default async function handler(req, res) {
         try {
           const response = await fetch(endpointUrl);
           const data = await response.json();
-          
+
           if (data && (data.status !== undefined || data.data)) {
             hasilData = data;
             const statusVal = data?.data?.status || data?.status;

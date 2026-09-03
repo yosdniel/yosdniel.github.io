@@ -33,7 +33,7 @@ export default async function handler(req, res) {
   // =========================================================================
   if (req.method === 'POST') {
     try {
-      const { nominal, ref_id, channel = 'QRIS', produk = 'Topup Lisensi SIPGN' } = req.body || {};
+      const { nominal, ref_id, channel = 'QRISREALTIME', produk = 'Topup Lisensi SIPGN' } = req.body || {};
 
       if (!nominal || !ref_id) {
         return res.status(400).json({ status: false, error: 'Parameter nominal dan ref_id wajib diisi.' });

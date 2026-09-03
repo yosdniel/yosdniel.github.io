@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 
 export default async function handler(req, res) {
-  // 1. Izinkan akses CORS agar Userscript Tampermonkey tidak terblokir
+  // 1. Header CORS untuk mendukung panggilan dari Userscript Tampermonkey
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -10,61 +10,74 @@ export default async function handler(req, res) {
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
   );
 
-  // Tangani Preflight Options Request
+  // Penanganan HTTP Preflight Options
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
   }
 
-  // 2. Ambil Kredensial dari Environment Variables Vercel
+  // 2. Ambil Kredensial Merchant dari Environment Variables Vercel
   const merchantId = process.env.TOKOPAY_MERCHANT_ID;
   const secretKey = process.env.TOKOPAY_SECRET_KEY;
 
   if (!merchantId || !secretKey) {
-    console.error('[TOKOPAY ERROR] Environment variable TOKOPAY_MERCHANT_ID atau TOKOPAY_SECRET_KEY belum dipasang di Vercel!');
+    console.error('[TOKOPAY CONFIG ERROR] TOKOPAY_MERCHANT_ID atau TOKOPAY_SECRET_KEY belum dikonfigurasi di Environment Variables Vercel!');
     return res.status(500).json({
       status: false,
-      error: 'Konfigurasi Server Belum Lengkap: Merchant ID / Secret Key tidak ditemukan di Vercel Environment Variables.'
+      error: 'Konfigurasi Server Belum Lengkap: TOKOPAY_MERCHANT_ID / TOKOPAY_SECRET_KEY tidak ditemukan.'
     });
   }
 
   // =========================================================================
-  // METODE 1: POST (Membuat Order QRIS Baru)
+  // METODE POST: Membuat Order QRIS Realtime
   // =========================================================================
   if (req.method === 'POST') {
     try {
-      const { nominal, ref_id, channel = 'QRISREALTIME', produk = 'Topup Lisensi SIPGN' } = req.body || {};
+      const { nominal, ref_id, channel, produk = 'Topup Lisensi SIPGN' } = req.body || {};
 
       if (!nominal || !ref_id) {
         return res.status(400).json({ status: false, error: 'Parameter nominal dan ref_id wajib diisi.' });
       }
 
-      // Rumus Signature Tokopay Create Order: MD5(merchant_id + secret_key + ref_id)
-      const rawSignature = `${merchantId}${secretKey}${ref_id}`;
-      const signature = crypto.createHash('md5').update(rawSignature).digest('hex');
+      // Daftar variasi penulisan channel QRIS Realtime di Tokopay
+      // Urutan pertama diutamakan sesuai input atau default QRISREALTIME
+      const targetChannel = channel || 'QRISREALTIME';
+      const daftarChannel = Array.from(new Set([targetChannel, 'QRISREALTIME', 'QRIS_REALTIME', 'QRIS2', 'QRIS']));
 
-      // Endpoint Resmi Tokopay Create Order
-      const apiUrl = `https://api.tokopay.id/v1/order?merchant=${merchantId}&secret=${secretKey}&ref_id=${ref_id}&nominal=${nominal}&metode=${channel}&signature=${signature}`;
+      let lastResponse = null;
 
-      console.log(`[TOKOPAY INFO] Membuat Order QRIS: RefID=${ref_id}, Nominal=${nominal}`);
+      for (const channelCode of daftarChannel) {
+        // Rumus Signature Tokopay: MD5(merchant_id + secret_key + ref_id)
+        const rawSignature = `${merchantId}${secretKey}${ref_id}`;
+        const signature = crypto.createHash('md5').update(rawSignature).digest('hex');
 
-      const response = await fetch(apiUrl);
-      const data = await response.json();
+        const apiUrl = `https://api.tokopay.id/v1/order?merchant=${merchantId}&secret=${secretKey}&ref_id=${ref_id}&nominal=${nominal}&metode=${channelCode}&signature=${signature}`;
 
-      console.log('[TOKOPAY RESPONSE CREATE]:', JSON.stringify(data));
+        console.log(`[TOKOPAY CREATE] Mencoba Order RefID=${ref_id}, Nominal=${nominal}, Channel=${channelCode}`);
 
-      if (data && data.status === 1) {
-        return res.status(200).json({
-          status: true,
-          data: data.data
-        });
-      } else {
-        return res.status(400).json({
-          status: false,
-          error: data.error_msg || data.message || 'Gagal membuat order QRIS di Tokopay.',
-          raw: data
-        });
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+
+        console.log(`[TOKOPAY RESPONSE ${channelCode}]:`, JSON.stringify(data));
+
+        if (data && data.status === 1) {
+          return res.status(200).json({
+            status: true,
+            channel_used: channelCode,
+            data: data.data
+          });
+        }
+
+        lastResponse = data;
       }
+
+      // Jika seluruh pilihan channel di atas ditolak oleh Tokopay
+      return res.status(400).json({
+        status: false,
+        error: lastResponse?.error_msg || lastResponse?.message || 'Gagal membuat QRIS. Pastikan channel QRIS Realtime di Tokopay sudah diaktifkan.',
+        raw: lastResponse
+      });
+
     } catch (err) {
       console.error('[TOKOPAY EXCEPTION CREATE]:', err.message);
       return res.status(500).json({ status: false, error: err.message });
@@ -72,7 +85,7 @@ export default async function handler(req, res) {
   }
 
   // =========================================================================
-  // METODE 2: GET (Cek Status Pembayaran / Polling)
+  // METODE GET: Polling Status Pembayaran Order
   // =========================================================================
   if (req.method === 'GET') {
     try {
@@ -82,11 +95,10 @@ export default async function handler(req, res) {
         return res.status(400).json({ status: false, error: 'Parameter query ref_id dan nominal wajib diisi.' });
       }
 
-      // Rumus Signature Tokopay Check Status: MD5(merchant_id + secret_key + ref_id)
+      // Rumus Signature Cek Status: MD5(merchant_id + secret_key + ref_id)
       const rawSignature = `${merchantId}${secretKey}${ref_id}`;
       const signature = crypto.createHash('md5').update(rawSignature).digest('hex');
 
-      // Endpoint Resmi Tokopay Cek Status Order
       const apiUrl = `https://api.tokopay.id/v1/order/status?merchant=${merchantId}&secret=${secretKey}&ref_id=${ref_id}&nominal=${nominal}&signature=${signature}`;
 
       const response = await fetch(apiUrl);

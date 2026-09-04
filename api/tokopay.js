@@ -3,9 +3,10 @@ const crypto = require('crypto');
 // Pemetaan Paket & Harga di Sisi Server (Harga Dasar sebelum hitung QRIS Fee)
 const HARGA_PAKET = {
   1: 5000,
-  7: 20000,
+  7: 25000,
   14: 35000,
-  30: 50000
+  30: 50000,
+  60: 100000
 };
 
 export default async function handler(req, res) {

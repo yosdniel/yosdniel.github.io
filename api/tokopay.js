@@ -4,8 +4,8 @@ const crypto = require('crypto');
 const HARGA_PAKET = {
   1: 5000,
   7: 25000,
-  14: 35000,
-  30: 50000,
+  14: 40000,
+  30: 70000,
   60: 100000
 };
 

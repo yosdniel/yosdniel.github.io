@@ -11,7 +11,7 @@ const HARGA_PAKET = {
 
 // Versi Userscript Terbaru & URL Download untuk Auto Update Checker
 const VERSIONS = {
-  latest_version: '1.5.17',
+  latest_version: '1.5.18',
   download_url: 'https://mindspace-id.vercel.app/files/sipgn-autofill.user.js',
   changelog: 'Peningkatan stabilitas integrity check & auto-update checker.'
 };
@@ -36,12 +36,12 @@ export default async function handler(req, res) {
   const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   // =========================================================================
-  // METODE GET: Public Endpoints & Supabase License Validation
+  // 1. METODE GET ENDPOINTS
   // =========================================================================
   if (req.method === 'GET') {
-    const { action, device_id } = req.query;
+    const { action, device_id, ref_id, metode = 'QRISREALTIME' } = req.query;
 
-    // 1. Endpoint Cek Versi Terbaru Userscript
+    // A. Endpoint Cek Versi Terbaru Userscript
     if (action === 'check_version') {
       return res.status(200).json({
         status: true,
@@ -51,7 +51,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // 2. Endpoint Ambil Daftar Paket
+    // B. Endpoint Ambil Daftar Paket
     if (action === 'get_packages') {
       const packages = Object.entries(HARGA_PAKET).map(([hari, harga]) => ({
         hari: Number(hari),
@@ -66,7 +66,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // 3. Endpoint Cek Status Lisensi dari Supabase (Online Check)
+    // C. Endpoint Cek Status Lisensi dari Supabase (Online Check)
     if (action === 'check_license') {
       if (!device_id) {
         return res.status(400).json({ valid: false, msg: 'Parameter device_id wajib diisi.' });
@@ -112,18 +112,70 @@ export default async function handler(req, res) {
         return res.status(500).json({ valid: false, msg: 'Gagal terhubung ke database.' });
       }
     }
+
+    // D. Cek Status Pembayaran QRIS Tokopay
+    if (ref_id) {
+      const merchantId = process.env.TOKOPAY_MERCHANT_ID;
+      const secretKey = process.env.TOKOPAY_SECRET_KEY;
+
+      if (!merchantId || !secretKey) {
+        return res.status(500).json({ status: false, error: 'Konfigurasi Tokopay belum lengkap.' });
+      }
+
+      try {
+        const rawSignature = `${merchantId}:${secretKey}:${ref_id}`;
+        const signature = crypto.createHash('md5').update(rawSignature).digest('hex');
+
+        const endpointList = [
+          `https://api.tokopay.id/v1/order/status?merchant=${merchantId}&secret=${secretKey}&ref_id=${ref_id}&signature=${signature}`,
+          `https://api.tokopay.id/v1/order?merchant=${merchantId}&secret=${secretKey}&ref_id=${ref_id}&metode=${metode}&signature=${signature}`
+        ];
+
+        let hasilData = null;
+
+        for (const endpointUrl of endpointList) {
+          try {
+            const response = await fetch(endpointUrl);
+            const data = await response.json();
+
+            if (data && (data.status !== undefined || data.data)) {
+              hasilData = data;
+              const statusVal = data?.data?.status || data?.status;
+              if (statusVal === 'Success' || statusVal === 1 || statusVal === true || statusVal === 'Paid') {
+                break;
+              }
+            }
+          } catch (innerErr) {
+            console.warn(`[TOKOPAY STATUS WARN] ${endpointUrl}:`, innerErr.message);
+          }
+        }
+
+        if (!hasilData) {
+          return res.status(404).json({ status: false, error: 'Transaksi tidak ditemukan.' });
+        }
+
+        return res.status(200).json(hasilData);
+      } catch (err) {
+        console.error('[TOKOPAY EXCEPTION STATUS]:', err.message);
+        return res.status(500).json({ status: false, error: err.message });
+      }
+    }
   }
 
   // =========================================================================
-  // METODE POST: Simpan & Hapus Lisensi Supabase (Admin / System Action)
+  // 2. METODE POST ENDPOINTS
   // =========================================================================
   if (req.method === 'POST') {
-    const { action, device_id, license_key, exp_date, admin_secret } = req.body || {};
+    const { action, device_id, license_key, exp_date, admin_secret, paket_hari, ref_id, channel = 'QRISREALTIME' } = req.body || {};
 
     // A. Simpan / Topup Lisensi ke Supabase
     if (action === 'save_license') {
       if (!device_id || !license_key || !exp_date) {
         return res.status(400).json({ success: false, message: 'Parameter device_id, license_key, dan exp_date wajib diisi.' });
+      }
+
+      if (!SUPABASE_URL || !SUPABASE_KEY) {
+        return res.status(500).json({ success: false, message: 'Konfigurasi Supabase di Vercel belum lengkap.' });
       }
 
       try {
@@ -184,126 +236,62 @@ export default async function handler(req, res) {
         return res.status(500).json({ success: false, message: 'Terjadi kesalahan server saat menghapus data.' });
       }
     }
-  }
 
-  // =========================================================================
-  // VALIDASI KONFIGURASI MERCHANT TOKOPAY
-  // =========================================================================
-  const merchantId = process.env.TOKOPAY_MERCHANT_ID;
-  const secretKey = process.env.TOKOPAY_SECRET_KEY;
+    // C. Membuat Order QRIS Tokopay (Bila parameter action kosong / order QRIS)
+    if (paket_hari || ref_id) {
+      const merchantId = process.env.TOKOPAY_MERCHANT_ID;
+      const secretKey = process.env.TOKOPAY_SECRET_KEY;
 
-  if (!merchantId || !secretKey) {
-    return res.status(500).json({
-      status: false,
-      error: 'Konfigurasi Vercel Belum Lengkap: TOKOPAY_MERCHANT_ID / TOKOPAY_SECRET_KEY kosong.'
-    });
-  }
-
-  // =========================================================================
-  // METODE POST: Membuat Order QRIS Tokopay
-  // =========================================================================
-  if (req.method === 'POST') {
-    try {
-      const { paket_hari, ref_id, channel = 'QRISREALTIME' } = req.body || {};
-
-      if (!paket_hari || !ref_id) {
-        return res.status(400).json({ status: false, error: 'Parameter paket_hari dan ref_id wajib diisi.' });
+      if (!merchantId || !secretKey) {
+        return res.status(500).json({
+          status: false,
+          error: 'Konfigurasi Vercel Belum Lengkap: TOKOPAY_MERCHANT_ID / TOKOPAY_SECRET_KEY kosong.'
+        });
       }
 
-      const nominal = HARGA_PAKET[Number(paket_hari)];
-      if (!nominal) {
-        return res.status(400).json({ status: false, error: 'Pilihan paket tidak valid.' });
-      }
-
-      const daftarChannel = Array.from(new Set([channel, 'QRISREALTIME', 'QRIS_REALTIME', 'QRIS2', 'QRIS']));
-      let lastResponse = null;
-
-      for (const channelCode of daftarChannel) {
-        // Generasi Signature Tokopay: md5(merchantId:secretKey:ref_id)
-        const rawSignature = `${merchantId}:${secretKey}:${ref_id}`;
-        const signature = crypto.createHash('md5').update(rawSignature).digest('hex');
-
-        const apiUrl = `https://api.tokopay.id/v1/order?merchant=${merchantId}&secret=${secretKey}&ref_id=${ref_id}&nominal=${nominal}&metode=${channelCode}&signature=${signature}`;
-
-        console.log(`[TOKOPAY CREATE] RefID=${ref_id}, Paket=${paket_hari} Hari, Nominal=${nominal}, Channel=${channelCode}`);
-
-        const response = await fetch(apiUrl);
-        const data = await response.json();
-
-        console.log(`[TOKOPAY RESPONSE ${channelCode}]:`, JSON.stringify(data));
-
-        const isSuccess = data && (data.status === 1 || data.status === true || data.status === 'Success' || data.status === 'Unpaid');
-
-        if (isSuccess && data.data) {
-          return res.status(200).json({
-            status: true,
-            channel_used: channelCode,
-            data: data.data
-          });
+      try {
+        const nominal = HARGA_PAKET[Number(paket_hari)];
+        if (!nominal) {
+          return res.status(400).json({ status: false, error: 'Pilihan paket tidak valid.' });
         }
 
-        lastResponse = data;
-      }
+        const daftarChannel = Array.from(new Set([channel, 'QRISREALTIME', 'QRIS_REALTIME', 'QRIS2', 'QRIS']));
+        let lastResponse = null;
 
-      return res.status(400).json({
-        status: false,
-        error: lastResponse?.error_msg || lastResponse?.message || 'Gagal membuat QRIS Tokopay.',
-        raw: lastResponse
-      });
+        for (const channelCode of daftarChannel) {
+          const rawSignature = `${merchantId}:${secretKey}:${ref_id}`;
+          const signature = crypto.createHash('md5').update(rawSignature).digest('hex');
 
-    } catch (err) {
-      console.error('[TOKOPAY EXCEPTION CREATE]:', err.message);
-      return res.status(500).json({ status: false, error: err.message });
-    }
-  }
+          const apiUrl = `https://api.tokopay.id/v1/order?merchant=${merchantId}&secret=${secretKey}&ref_id=${ref_id}&nominal=${nominal}&metode=${channelCode}&signature=${signature}`;
 
-  // =========================================================================
-  // METODE GET: Cek Status Pembayaran QRIS Tokopay
-  // =========================================================================
-  if (req.method === 'GET') {
-    try {
-      const { ref_id, metode = 'QRISREALTIME' } = req.query;
+          console.log(`[TOKOPAY CREATE] RefID=${ref_id}, Paket=${paket_hari} Hari, Nominal=${nominal}, Channel=${channelCode}`);
 
-      if (!ref_id) {
-        return res.status(400).json({ status: false, error: 'Parameter ref_id wajib diisi.' });
-      }
-
-      // Generasi Signature Tokopay: md5(merchantId:secretKey:ref_id)
-      const rawSignature = `${merchantId}:${secretKey}:${ref_id}`;
-      const signature = crypto.createHash('md5').update(rawSignature).digest('hex');
-
-      const endpointList = [
-        `https://api.tokopay.id/v1/order/status?merchant=${merchantId}&secret=${secretKey}&ref_id=${ref_id}&signature=${signature}`,
-        `https://api.tokopay.id/v1/order?merchant=${merchantId}&secret=${secretKey}&ref_id=${ref_id}&metode=${metode}&signature=${signature}`
-      ];
-
-      let hasilData = null;
-
-      for (const endpointUrl of endpointList) {
-        try {
-          const response = await fetch(endpointUrl);
+          const response = await fetch(apiUrl);
           const data = await response.json();
 
-          if (data && (data.status !== undefined || data.data)) {
-            hasilData = data;
-            const statusVal = data?.data?.status || data?.status;
-            if (statusVal === 'Success' || statusVal === 1 || statusVal === true || statusVal === 'Paid') {
-              break;
-            }
+          const isSuccess = data && (data.status === 1 || data.status === true || data.status === 'Success' || data.status === 'Unpaid');
+
+          if (isSuccess && data.data) {
+            return res.status(200).json({
+              status: true,
+              channel_used: channelCode,
+              data: data.data
+            });
           }
-        } catch (innerErr) {
-          console.warn(`[TOKOPAY STATUS WARN] ${endpointUrl}:`, innerErr.message);
+
+          lastResponse = data;
         }
-      }
 
-      if (!hasilData) {
-        return res.status(404).json({ status: false, error: 'Transaksi tidak ditemukan.' });
-      }
+        return res.status(400).json({
+          status: false,
+          error: lastResponse?.error_msg || lastResponse?.message || 'Gagal membuat QRIS Tokopay.',
+          raw: lastResponse
+        });
 
-      return res.status(200).json(hasilData);
-    } catch (err) {
-      console.error('[TOKOPAY EXCEPTION STATUS]:', err.message);
-      return res.status(500).json({ status: false, error: err.message });
+      } catch (err) {
+        console.error('[TOKOPAY EXCEPTION CREATE]:', err.message);
+        return res.status(500).json({ status: false, error: err.message });
+      }
     }
   }
 

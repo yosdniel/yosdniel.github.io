@@ -1,4 +1,4 @@
-const crypto = require('crypto');
+import crypto from 'crypto';
 
 const HARGA_PAKET = {
   1: 5000,
@@ -9,9 +9,9 @@ const HARGA_PAKET = {
 };
 
 const VERSIONS = {
-  latest_version: '1.5.20',
+  latest_version: '1.5.21',
   download_url: 'https://mindspace-id.vercel.app/files/sipgn-autofill.user.js',
-  changelog: 'Fix total integrasi Supabase & pemetaan otomatis status QRIS Tokopay.'
+  changelog: 'Stabilitas sinkronisasi lisensi Supabase & perbaikan penanganan status QRIS Tokopay.'
 };
 
 // Global in-memory backup mapping ref_id -> { device_id, paket_hari }
@@ -64,6 +64,10 @@ export default async function handler(req, res) {
   const SUPABASE_URL = process.env.SUPABASE_URL;
   const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
+    return res.status(500).json({ status: false, error: 'Konfigurasi environment Supabase belum lengkap.' });
+  }
+
   try {
     if (req.method === 'GET') {
       const { action, device_id, ref_id } = req.query || {};
@@ -91,6 +95,9 @@ export default async function handler(req, res) {
 
         const lisensi = data[0];
         const hariIniWIB = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+        
+        if (lisensi.status === 'revoked') return res.status(200).json({ valid: false, status: 'revoked', msg: 'Akses lisensi telah dicabut.' });
+        if (lisensi.status === 'hold') return res.status(200).json({ valid: false, status: 'hold', msg: 'Lisensi sedang ditangguhkan.' });
         if (lisensi.status !== 'active') return res.status(200).json({ valid: false, msg: `Lisensi berstatus: ${lisensi.status}` });
         if (hariIniWIB > lisensi.exp_date) return res.status(200).json({ valid: false, msg: 'Lisensi telah kadaluarsa.' });
 
@@ -117,6 +124,10 @@ export default async function handler(req, res) {
           let paketHari = orderInfo?.paket_hari || 7;
           let targetDevId = orderInfo?.device_id || device_id;
 
+          if (!targetDevId) {
+            return res.status(200).json({ is_paid: false, error: 'Device ID tidak ditemukan untuk pembaruan lisensi.' });
+          }
+
           let savedInfo = await simpanLisensiOtomatis(SUPABASE_URL, SUPABASE_KEY, targetDevId, paketHari);
           return res.status(200).json({ is_paid: true, exp_date: savedInfo?.exp_date });
         }
@@ -129,6 +140,7 @@ export default async function handler(req, res) {
       const { action, device_id, license_key, exp_date, status = 'active', paket_hari, ref_id } = req.body || {};
 
       if (action === 'save_license') {
+        if (!device_id) return res.status(400).json({ success: false, error: 'Device ID wajib diisi.' });
         const response = await fetch(`${SUPABASE_URL}/rest/v1/licenses?on_conflict=device_id`, {
           method: 'POST',
           headers: {
@@ -147,23 +159,28 @@ export default async function handler(req, res) {
         const secretKey = process.env.TOKOPAY_SECRET_KEY;
         const nominal = HARGA_PAKET[Number(paket_hari)] || 25000;
 
-        if (ref_id && device_id) orderMemory.set(ref_id, { device_id, paket_hari });
+        if (ref_id && device_id) {
+          orderMemory.set(ref_id, { device_id, paket_hari });
+        }
 
-        const signature = crypto.createHash('md5').update(`${merchantId}:${secretKey}:${ref_id}`).digest('hex');
+        const signature = crypto.createHash('md5').update(`${merchantId}${secretKey}${ref_id}`).digest('hex');
         const apiUrl = `https://api.tokopay.id/v1/order?merchant=${merchantId}&secret=${secretKey}&ref_id=${ref_id}&nominal=${nominal}&metode=QRISREALTIME&signature=${signature}`;
 
         const resp = await fetch(apiUrl, { cache: 'no-store' });
         const data = await resp.json();
 
-        if (data?.status === 1 || data?.status === '1' || data?.status === true || String(data?.status).toLowerCase() === 'success') {
-          return res.status(200).json({ status: true, data: data.data });
+        const isSuccess = data?.status === 1 || data?.status === '1' || data?.status === true || String(data?.status).toLowerCase() === 'success';
+
+        if (isSuccess) {
+          return res.status(200).json({ status: true, data: data.data || data });
         }
-        return res.status(200).json({ status: false, error: data?.error_msg || 'Gagal membuat QRIS.' });
+        return res.status(200).json({ status: false, error: data?.error_msg || data?.message || 'Gagal membuat QRIS.' });
       }
     }
 
     return res.status(405).json({ status: false, error: 'Method Not Allowed' });
   } catch (err) {
+    console.error('[API HANDLER ERROR]', err);
     return res.status(500).json({ status: false, error: err.message });
   }
 }

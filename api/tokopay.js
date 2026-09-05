@@ -11,10 +11,9 @@ const HARGA_PAKET = {
 const VERSIONS = {
   latest_version: '1.5.21',
   download_url: 'https://mindspace-id.vercel.app/files/sipgn-autofill.user.js',
-  changelog: 'Peningkatan stabilitas integrity check & auto-update checker.'
+  changelog: 'Perbaikan logika validasi status pembayaran QRIS real-time.'
 };
 
-// Map sementara untuk fallback cache
 const orderCache = new Map();
 
 function buatLicenseKeyServer(expDate, deviceId) {
@@ -159,7 +158,7 @@ export default async function handler(req, res) {
         }
       }
 
-      // CEK STATUS TOKOPAY & AUTO-SAVE KE SUPABASE
+      // VALIDASI STATUS TOKOPAY MELALUI REF_ID
       if (ref_id) {
         const merchantId = process.env.TOKOPAY_MERCHANT_ID;
         const secretKey = process.env.TOKOPAY_SECRET_KEY;
@@ -169,48 +168,50 @@ export default async function handler(req, res) {
         }
 
         try {
-          const rawSignature = `${merchantId}:${secretKey}:${ref_id}`;
+          // Signature standar Tokopay untuk cek status: MD5(merchant + secret + ref_id) atau sesuai dokumentasi
+          const rawSignature = `${merchantId}${secretKey}${ref_id}`;
           const signature = crypto.createHash('md5').update(rawSignature).digest('hex');
-          const endpointUrl = `https://api.tokopay.id/v1/order/status?merchant=${merchantId}&secret=${secretKey}&ref_id=${ref_id}&signature=${signature}`;
+          const endpointUrl = `https://api.tokopay.id/v1/order/status?merchant=${merchantId}&key=${secretKey}&ref_id=${ref_id}&signature=${signature}`;
 
           const response = await fetch(endpointUrl);
-          const data = await response.json();
+          const responseText = await response.text();
+          let data;
+          try {
+            data = JSON.parse(responseText);
+          } catch (parseErr) {
+            return res.status(200).json({ is_paid: false, raw_response: responseText });
+          }
 
-          // Tangkap semua kemungkinan struktur status sukses dari Tokopay
-          const statusVal = data?.data?.status ?? data?.status ?? data?.data?.status_text;
+          // Tokopay biasanya mengembalikan status di `data.status` (1 = Success/Paid, 2 = Pending, 3 = Expired) 
+          // atau string 'Success' / 'Paid' / 'Settlement' di dalam `data.data.status`
+          const statusVal = data?.data?.status ?? data?.status ?? data?.status_text;
+          const isPaidVal = data?.is_paid ?? data?.data?.is_paid;
+
           const isLunas = 
+            isPaidVal === true ||
+            statusVal === 1 || 
+            statusVal === '1' || 
             statusVal === 'Success' || 
             statusVal === 'success' || 
             statusVal === 'Paid' || 
             statusVal === 'paid' || 
-            statusVal === 1 || 
-            statusVal === '1' || 
-            statusVal === true ||
-            data?.is_paid === true;
+            statusVal === 'Settlement' || 
+            statusVal === 'settlement';
 
           if (isLunas) {
-            // Ambil data paket dari cache memori, atau fallback baca nominal bayar dari API Tokopay untuk menentukan jumlah hari secara otomatis
             let cachedOrder = orderCache.get(ref_id);
             let paketHariTarget = cachedOrder?.paket_hari;
-            let targetDevId = cachedOrder?.device_id;
+            let targetDevId = cachedOrder?.device_id || device_id;
 
-            // Jika cache kosong (karena serverless instance berganti), hitung paket berdasarkan nominal bayar dari respons Tokopay
             if (!paketHariTarget) {
               const nominalBayar = Number(data?.data?.total_bayar || data?.total_bayar || data?.data?.nominal || 0);
-              // Cari paket berdasarkan harga yang cocok
               for (const [hari, harga] of Object.entries(HARGA_PAKET)) {
-                if (Math.abs(harga - nominalBayar) < 500) { // Toleransi selisih unikode/kode unik
+                if (Math.abs(harga - nominalBayar) < 1000) {
                   paketHariTarget = Number(hari);
                   break;
                 }
               }
-              // Default fallback jika nominal tidak ditemukan: 7 hari
               if (!paketHariTarget) paketHariTarget = 7;
-            }
-
-            // Jika device_id tidak ada di cache, coba ambil parameter dari query jika dikirim client, atau cari device_id aktif di database
-            if (!targetDevId) {
-              targetDevId = req.query.device_id;
             }
 
             let savedInfo = null;

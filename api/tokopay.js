@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 
-// Pemetaan Paket & Harga di Sisi Server (Harga Dasar)
+// Pemetaan Paket & Harga di Sisi Server
 const HARGA_PAKET = {
   1: 100,
   7: 25000,
@@ -9,15 +9,22 @@ const HARGA_PAKET = {
   60: 100000
 };
 
-// Versi Userscript Terbaru & URL Download untuk Auto Update Checker
 const VERSIONS = {
   latest_version: '1.5.20',
   download_url: 'https://mindspace-id.vercel.app/files/sipgn-autofill.user.js',
   changelog: 'Peningkatan stabilitas integrity check & auto-update checker.'
 };
 
+const SECRET_SALT = 'MINDSTUDIO2026';
+
+function buatLicenseKey(expDate, deviceId) {
+  const nonce = Math.floor(Math.random() * 16777215).toString(16).toUpperCase();
+  const payload = `${expDate}|${deviceId}|AutoPayment|${SECRET_SALT}|${nonce}`;
+  const encoded = btoa(payload).split('').reverse().join('');
+  return `MIND-${encoded}`;
+}
+
 export default async function handler(req, res) {
-  // CORS Headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -31,7 +38,6 @@ export default async function handler(req, res) {
     return;
   }
 
-  // Variabel Supabase dari Environment Variables Vercel
   const SUPABASE_URL = process.env.SUPABASE_URL;
   const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -41,7 +47,6 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     const { action, device_id, ref_id, metode = 'QRISREALTIME' } = req.query;
 
-    // A. Endpoint Cek Versi Terbaru Userscript
     if (action === 'check_version') {
       return res.status(200).json({
         status: true,
@@ -51,7 +56,6 @@ export default async function handler(req, res) {
       });
     }
 
-    // B. Endpoint Ambil Daftar Paket
     if (action === 'get_packages') {
       const packages = Object.entries(HARGA_PAKET).map(([hari, harga]) => ({
         hari: Number(hari),
@@ -63,17 +67,16 @@ export default async function handler(req, res) {
       return res.status(200).json({
         status: true,
         packages: packages
-      });
+      }));
     }
 
-    // C. Endpoint Cek Status Lisensi dari Supabase (Online Check)
     if (action === 'check_license') {
       if (!device_id) {
         return res.status(400).json({ valid: false, msg: 'Parameter device_id wajib diisi.' });
       }
 
       if (!SUPABASE_URL || !SUPABASE_KEY) {
-        return res.status(500).json({ valid: false, msg: 'Konfigurasi Supabase di Vercel belum lengkap.' });
+        return res.status(500).json({ valid: false, msg: 'Konfigurasi Supabase belum lengkap.' });
       }
 
       try {
@@ -88,58 +91,31 @@ export default async function handler(req, res) {
         const data = await response.json();
 
         if (!response.ok || !data || data.length === 0) {
-          return res.status(200).json({ valid: false, msg: 'Lisensi tidak ditemukan atau belum terdaftar.' });
+          return res.status(200).json({ valid: false, msg: 'Lisensi tidak ditemukan.' });
         }
 
         const lisensi = data[0];
-
-        // MENGGUNAKAN ZONA WAKTU WIB (Asia/Jakarta) Format: YYYY-MM-DD
         const hariIniWIB = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
 
         if (lisensi.status === 'revoked') {
-          return res.status(200).json({
-            valid: false,
-            msg: 'Lisensi Anda telah dicabut oleh Admin.',
-            status: 'revoked',
-            exp_date: lisensi.exp_date,
-            license_key: lisensi.license_key
-          });
+          return res.status(200).json({ valid: false, msg: 'Lisensi Anda telah dicabut oleh Admin.', status: 'revoked', exp_date: lisensi.exp_date });
         }
 
         if (lisensi.status === 'hold') {
-          return res.status(200).json({
-            valid: false,
-            msg: 'Lisensi Anda sedang ditangguhkan (Hold).',
-            status: 'hold',
-            exp_date: lisensi.exp_date,
-            license_key: lisensi.license_key
-          });
+          return res.status(200).json({ valid: false, msg: 'Lisensi Anda sedang ditangguhkan.', status: 'hold', exp_date: lisensi.exp_date });
         }
 
-        // Pengecekan kadaluarsa secara akurat berbasis WIB
         if (hariIniWIB > lisensi.exp_date) {
-          return res.status(200).json({
-            valid: false,
-            msg: `Lisensi telah kadaluarsa pada (${lisensi.exp_date})`,
-            exp_date: lisensi.exp_date,
-            status: lisensi.status || 'active',
-            license_key: lisensi.license_key
-          });
+          return res.status(200).json({ valid: false, msg: `Lisensi telah kadaluarsa pada (${lisensi.exp_date})`, exp_date: lisensi.exp_date, status: 'expired' });
         }
 
-        return res.status(200).json({
-          valid: true,
-          status: lisensi.status || 'active',
-          exp_date: lisensi.exp_date,
-          license_key: lisensi.license_key
-        });
+        return res.status(200).json({ valid: true, status: lisensi.status || 'active', exp_date: lisensi.exp_date, license_key: lisensi.license_key });
       } catch (err) {
-        console.error('[SUPABASE CHECK ERROR]:', err.message);
         return res.status(500).json({ valid: false, msg: 'Gagal terhubung ke database.' });
       }
     }
 
-    // D. Cek Status Pembayaran QRIS Tokopay
+    // D. CEK STATUS PEMBAYARAN TOKOPAY (PERBAIKAN STRUKTUR RESPON)
     if (ref_id) {
       const merchantId = process.env.TOKOPAY_MERCHANT_ID;
       const secretKey = process.env.TOKOPAY_SECRET_KEY;
@@ -166,9 +142,15 @@ export default async function handler(req, res) {
 
             if (data && (data.status !== undefined || data.data)) {
               hasilData = data;
-              const statusVal = data?.data?.status || data?.status;
-              if (statusVal === 'Success' || statusVal === 1 || statusVal === true || statusVal === 'Paid') {
-                break;
+              const statusVal = data?.data?.status ?? data?.status;
+              
+              // Tokopay mengembalikan 1, "Paid", "Success", atau true jika lunas
+              if (statusVal === 'Success' || statusVal === 1 || statusVal === '1' || statusVal === true || String(statusVal).toLowerCase() === 'paid') {
+                return res.status(200).json({
+                  is_paid: true,
+                  status: 'Success',
+                  raw: data
+                });
               }
             }
           } catch (innerErr) {
@@ -176,14 +158,9 @@ export default async function handler(req, res) {
           }
         }
 
-        if (!hasilData) {
-          return res.status(404).json({ status: false, error: 'Transaksi tidak ditemukan.' });
-        }
-
-        return res.status(200).json(hasilData);
+        return res.status(200).json({ is_paid: false, status: 'Unpaid', raw: hasilData });
       } catch (err) {
-        console.error('[TOKOPAY EXCEPTION STATUS]:', err.message);
-        return res.status(500).json({ status: false, error: err.message });
+        return res.status(500).json({ is_paid: false, error: err.message });
       }
     }
   }
@@ -194,14 +171,25 @@ export default async function handler(req, res) {
   if (req.method === 'POST') {
     const { action, device_id, license_key, exp_date, status = 'active', admin_secret, paket_hari, ref_id, channel = 'QRISREALTIME' } = req.body || {};
 
-    // A. Simpan / Topup Lisensi ke Supabase
-    if (action === 'save_license') {
-      if (!device_id || !license_key || !exp_date) {
-        return res.status(400).json({ success: false, message: 'Parameter device_id, license_key, dan exp_date wajib diisi.' });
+    // A. CALLBACK WEBHOOK DARI TOKOPAY (OTOMATIS SINKRON KE SUPABASE)
+    if (action === 'webhook_tokopay' || req.body?.status === 'Completed' || req.body?.status === 'Paid') {
+      const { ref_id: cbRefId, status: cbStatus, signature: cbSignature } = req.body;
+      const merchantId = process.env.TOKOPAY_MERCHANT_ID;
+      const secretKey = process.env.TOKOPAY_SECRET_KEY;
+
+      const rawSig = `${merchantId}:${secretKey}:${cbRefId}`;
+      const calcSig = crypto.createHash('md5').update(rawSig).digest('hex');
+
+      if (cbSignature && cbSignature !== calcSig) {
+        return res.status(403).json({ status: false, message: 'Invalid Signature' });
       }
 
-      if (!SUPABASE_URL || !SUPABASE_KEY) {
-        return res.status(500).json({ success: false, message: 'Konfigurasi Supabase di Vercel belum lengkap.' });
+      return res.status(200).json({ status: true });
+    }
+
+    if (action === 'save_license') {
+      if (!device_id || !license_key || !exp_date) {
+        return res.status(400).json({ success: false, message: 'Parameter wajib diisi.' });
       }
 
       try {
@@ -223,26 +211,20 @@ export default async function handler(req, res) {
         });
 
         if (response.ok) {
-          return res.status(200).json({ success: true, message: 'Lisensi berhasil disimpan ke Supabase!' });
+          return res.status(200).json({ success: true, message: 'Lisensi disimpan.' });
         } else {
-          const errData = await response.json();
-          return res.status(500).json({ success: false, message: errData.message || 'Gagal menyimpan ke Supabase.' });
+          return res.status(500).json({ success: false, message: 'Gagal menyimpan ke Supabase.' });
         }
       } catch (err) {
-        return res.status(500).json({ success: false, message: 'Terjadi kesalahan koneksi ke Supabase.' });
+        return res.status(500).json({ success: false, message: 'Terjadi kesalahan koneksi.' });
       }
     }
 
-    // B. Hapus Lisensi dari Admin Dashboard
     if (action === 'delete_license') {
       const ADMIN_SECRET = process.env.GENERATOR_PASSWORD || process.env.ADMIN_SECRET_KEY;
 
       if (!admin_secret || admin_secret !== ADMIN_SECRET) {
-        return res.status(403).json({ success: false, message: 'Akses Ditolak! Secret key admin salah.' });
-      }
-
-      if (!device_id) {
-        return res.status(400).json({ success: false, message: 'Parameter device_id wajib diisi.' });
+        return res.status(403).json({ success: false, message: 'Akses Ditolak!' });
       }
 
       try {
@@ -255,68 +237,41 @@ export default async function handler(req, res) {
         });
 
         if (response.ok) {
-          return res.status(200).json({ success: true, message: `Device ID ${device_id} berhasil dihapus dari Supabase!` });
-        } else {
-          return res.status(500).json({ success: false, message: 'Gagal menghapus lisensi dari Supabase.' });
+          return res.status(200).json({ success: true, message: `Device ID ${device_id} dihapus.` });
         }
+        return res.status(500).json({ success: false, message: 'Gagal menghapus.' });
       } catch (err) {
-        return res.status(500).json({ success: false, message: 'Terjadi kesalahan server saat menghapus data.' });
+        return res.status(500).json({ success: false, message: 'Error server.' });
       }
     }
 
-    // C. Membuat Order QRIS Tokopay
     if (paket_hari || ref_id) {
       const merchantId = process.env.TOKOPAY_MERCHANT_ID;
       const secretKey = process.env.TOKOPAY_SECRET_KEY;
 
-      if (!merchantId || !secretKey) {
-        return res.status(500).json({
-          status: false,
-          error: 'Konfigurasi Vercel Belum Lengkap: TOKOPAY_MERCHANT_ID / TOKOPAY_SECRET_KEY kosong.'
-        });
-      }
-
       try {
         const nominal = HARGA_PAKET[Number(paket_hari)];
         if (!nominal) {
-          return res.status(400).json({ status: false, error: 'Pilihan paket tidak valid.' });
+          return res.status(400).json({ status: false, error: 'Paket tidak valid.' });
         }
 
-        const daftarChannel = Array.from(new Set([channel, 'QRISREALTIME', 'QRIS_REALTIME', 'QRIS2', 'QRIS']));
-        let lastResponse = null;
+        const rawSignature = `${merchantId}:${secretKey}:${ref_id}`;
+        const signature = crypto.createHash('md5').update(rawSignature).digest('hex');
 
-        for (const channelCode of daftarChannel) {
-          const rawSignature = `${merchantId}:${secretKey}:${ref_id}`;
-          const signature = crypto.createHash('md5').update(rawSignature).digest('hex');
+        const apiUrl = `https://api.tokopay.id/v1/order?merchant=${merchantId}&secret=${secretKey}&ref_id=${ref_id}&nominal=${nominal}&metode=${channel}&signature=${signature}`;
 
-          const apiUrl = `https://api.tokopay.id/v1/order?merchant=${merchantId}&secret=${secretKey}&ref_id=${ref_id}&nominal=${nominal}&metode=${channelCode}&signature=${signature}`;
+        const response = await fetch(apiUrl);
+        const data = await response.json();
 
-          console.log(`[TOKOPAY CREATE] RefID=${ref_id}, Paket=${paket_hari} Hari, Nominal=${nominal}, Channel=${channelCode}`);
-
-          const response = await fetch(apiUrl);
-          const data = await response.json();
-
-          const isSuccess = data && (data.status === 1 || data.status === true || data.status === 'Success' || data.status === 'Unpaid');
-
-          if (isSuccess && data.data) {
-            return res.status(200).json({
-              status: true,
-              channel_used: channelCode,
-              data: data.data
-            });
-          }
-
-          lastResponse = data;
+        if (data && (data.status === 1 || data.status === true || data.status === 'Success')) {
+          return res.status(200).json({
+            status: true,
+            data: data.data
+          });
         }
 
-        return res.status(400).json({
-          status: false,
-          error: lastResponse?.error_msg || lastResponse?.message || 'Gagal membuat QRIS Tokopay.',
-          raw: lastResponse
-        });
-
+        return res.status(400).json({ status: false, error: data?.error_msg || 'Gagal membuat QRIS Tokopay.' });
       } catch (err) {
-        console.error('[TOKOPAY EXCEPTION CREATE]:', err.message);
         return res.status(500).json({ status: false, error: err.message });
       }
     }

@@ -37,6 +37,7 @@
     .btn-primary:hover { background: #1d4ed8; }
     .btn-success { background: #059669; color: white; }
     .btn-success:hover { background: #047857; }
+    .btn-warning { background: #d97706; color: white; }
     .btn-danger { background: #dc2626; color: white; }
     .btn-danger:hover { background: #b91c1c; }
     .btn-secondary { background: #475569; color: white; }
@@ -52,6 +53,8 @@
     .badge-active { background: #065f46; color: #34d399; }
     .badge-hold { background: #78350f; color: #fbbf24; }
     .badge-revoked { background: #7f1d1d; color: #fca5a5; }
+    .badge-expired { background: #9a3412; color: #ffedd5; }
+    .badge-unregistered { background: #334155; color: #94a3b8; }
 
     .grid-durasi { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
     .btn-quick {
@@ -82,7 +85,7 @@
     <!-- TAHAP 0: VERIFIKASI PASSWORD ADMIN -->
     <div id="step0">
       <div class="field-group">
-        <label for="inputAdminPassword">Masukkan Password Admin Generator:</label>
+        <label for="inputAdminPassword">Masukkan Password Admin Dashboard:</label>
         <input type="password" id="inputAdminPassword" placeholder="••••••••••••" onkeyup="if(event.key==='Enter') verifikasiAdminPassword()">
       </div>
       <button class="btn btn-primary" id="btnLogin" onclick="verifikasiAdminPassword()">🔒 Masuk Ke Dashboard</button>
@@ -106,9 +109,6 @@
         <div><b>Device ID:</b> <span id="dispDeviceId" style="color:#facc15;">-</span></div>
         <div><b>Status Saat Ini:</b> <span id="dispStatus">-</span></div>
         <div><b>Tanggal Kadaluarsa:</b> <span id="dispExpDate" style="color:#38bdf8;">-</span></div>
-        <div style="margin-top:6px; word-break:break-all; font-family:monospace; font-size:11px; color:#94a3b8;">
-          <b>Key:</b> <span id="dispKey">-</span>
-        </div>
       </div>
 
       <div class="field-group">
@@ -122,7 +122,7 @@
 
       <div class="field-group">
         <label for="editExpDate">Atur Tanggal Kadaluarsa Manual:</label>
-        <input type="date" id="editExpDate">
+        <input type="date" id="editExpDate" onchange="cekOtomatisStatusTanggal()">
       </div>
 
       <div class="field-group">
@@ -131,13 +131,15 @@
           <option value="active">Active (Lisensi Berjalan)</option>
           <option value="hold">Hold (Ditangguhkan Sementara)</option>
           <option value="revoked">Revoke (Dicabut Permanent)</option>
+          <option value="expired" disabled>Expired (Masa Aktif Habis)</option>
+          <option value="unregistered" disabled>Unregistered (Belum Terdaftar)</option>
         </select>
       </div>
 
       <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
         <button class="btn btn-success" onclick="simpanPerubahan()">💾 Simpan Perubahan</button>
         <div style="display: flex; gap: 8px;">
-          <button class="btn btn-danger" style="flex: 1;" onclick="hapusLisensi()">🗑️ Hapus Lisensi</button>
+          <button class="btn btn-danger" style="flex: 1;" id="btnHapusLisensi" onclick="hapusLisensi()">🗑️ Hapus Lisensi</button>
           <button class="btn btn-secondary" style="flex: 1;" onclick="resetForm()">↩️ Kembali</button>
         </div>
       </div>
@@ -152,6 +154,10 @@
 
     let adminPasswordSecret = '';
     let currentLicenseData = null;
+
+    function getTanggalHariIniWIB() {
+      return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+    }
 
     function showToast(msg, isSuccess = true) {
       const t = document.getElementById('toast');
@@ -222,24 +228,34 @@
         document.getElementById('step2').style.display = 'block';
         document.getElementById('dispDeviceId').textContent = deviceId;
 
-        const hariIni = new Date().toISOString().split('T')[0];
-        const statusDb = data.status || (data.msg && data.msg.includes('Hold') ? 'hold' : (data.msg && data.msg.includes('dicabut') ? 'revoked' : 'active'));
+        const hariIni = getTanggalHariIniWIB();
 
-        if (data.valid || data.exp_date || data.status) {
+        if (data.exp_date || data.status) {
+          // Data Ditemukan di Database
+          let statusAktual = data.status || 'active';
+
+          // Cek Apakah Kadaluarsa
+          if (statusAktual === 'active' && data.exp_date && hariIni > data.exp_date) {
+            statusAktual = 'expired';
+          }
+
           currentLicenseData = {
             device_id: deviceId,
             exp_date: data.exp_date || hariIni,
-            status: statusDb,
-            license_key: data.license_key || buatLicenseKey(data.exp_date || hariIni, deviceId)
+            status: statusAktual,
+            license_key: data.license_key || buatLicenseKey(data.exp_date || hariIni, deviceId),
+            is_new: false
           };
         } else {
+          // Device ID Belum Pernah Terdaftar
           currentLicenseData = {
             device_id: deviceId,
-            exp_date: hariIni,
-            status: 'active',
-            license_key: buatLicenseKey(hariIni, deviceId)
+            exp_date: '-',
+            status: 'unregistered',
+            license_key: '',
+            is_new: true
           };
-          showToast('Device ID baru. Silakan tentukan durasi.', true);
+          showToast('Device ID belum terdaftar. Silakan tentukan durasi.', true);
         }
 
         renderDetail();
@@ -249,18 +265,29 @@
     }
 
     function renderDetail() {
-      document.getElementById('dispExpDate').textContent = currentLicenseData.exp_date;
-      document.getElementById('editExpDate').value = currentLicenseData.exp_date;
-      document.getElementById('dispKey').textContent = currentLicenseData.license_key;
-      document.getElementById('editStatus').value = currentLicenseData.status;
+      document.getElementById('dispExpDate').textContent = currentLicenseData.exp_date !== '-' ? currentLicenseData.exp_date : 'Belum Diatur';
+      document.getElementById('editExpDate').value = currentLicenseData.exp_date !== '-' ? currentLicenseData.exp_date : getTanggalHariIniWIB();
+      
+      const selectStatus = document.getElementById('editStatus');
+      selectStatus.value = currentLicenseData.status;
 
       const stEl = document.getElementById('dispStatus');
       if (currentLicenseData.status === 'active') {
         stEl.innerHTML = '<span class="badge badge-active">Active</span>';
       } else if (currentLicenseData.status === 'hold') {
         stEl.innerHTML = '<span class="badge badge-hold">Hold</span>';
-      } else {
+      } else if (currentLicenseData.status === 'revoked') {
         stEl.innerHTML = '<span class="badge badge-revoked">Revoked</span>';
+      } else if (currentLicenseData.status === 'expired') {
+        stEl.innerHTML = '<span class="badge badge-expired">Expired (Kadaluarsa)</span>';
+      } else {
+        stEl.innerHTML = '<span class="badge badge-unregistered">Belum Terdaftar</span>';
+      }
+
+      // Tombol hapus disembunyikan jika device id belum terdaftar
+      const btnHapus = document.getElementById('btnHapusLisensi');
+      if (btnHapus) {
+        btnHapus.style.display = currentLicenseData.is_new ? 'none' : 'block';
       }
     }
 
@@ -271,9 +298,26 @@
       }
     }
 
+    function cekOtomatisStatusTanggal() {
+      const selectedExp = document.getElementById('editExpDate').value;
+      if (!selectedExp) return;
+
+      const hariIni = getTanggalHariIniWIB();
+      currentLicenseData.exp_date = selectedExp;
+
+      if (selectedExp >= hariIni && (currentLicenseData.status === 'expired' || currentLicenseData.status === 'unregistered')) {
+        currentLicenseData.status = 'active';
+      } else if (selectedExp < hariIni && currentLicenseData.status === 'active') {
+        currentLicenseData.status = 'expired';
+      }
+
+      renderDetail();
+    }
+
     function tambahHari(jumlahHari) {
       let baseDate = new Date();
-      if (currentLicenseData.exp_date && new Date(currentLicenseData.exp_date) > baseDate) {
+      
+      if (currentLicenseData.exp_date && currentLicenseData.exp_date !== '-' && new Date(currentLicenseData.exp_date) > baseDate) {
         baseDate = new Date(currentLicenseData.exp_date);
       }
 
@@ -283,17 +327,23 @@
       const dd = String(baseDate.getDate()).padStart(2, '0');
 
       currentLicenseData.exp_date = `${yyyy}-${mm}-${dd}`;
+      currentLicenseData.status = 'active'; // Otomatis aktif ketika ditambah durasinya
       currentLicenseData.license_key = buatLicenseKey(currentLicenseData.exp_date, currentLicenseData.device_id);
       
       renderDetail();
-      showToast(`Durasi ditambah +${jumlahHari} hari`);
+      showToast(`Durasi diatur: +${jumlahHari} hari`);
     }
 
     async function simpanPerubahan() {
       const expDateVal = document.getElementById('editExpDate').value;
-      const statusVal = document.getElementById('editStatus').value;
+      let statusVal = document.getElementById('editStatus').value;
 
       if (!expDateVal) return showToast('Pilih tanggal kadaluarsa!', false);
+
+      // Jika statusnya expired atau unregistered namun tanggal diatur di masa depan, ubah ke active
+      if ((statusVal === 'expired' || statusVal === 'unregistered') && expDateVal >= getTanggalHariIniWIB()) {
+        statusVal = 'active';
+      }
 
       currentLicenseData.exp_date = expDateVal;
       currentLicenseData.status = statusVal;
@@ -316,6 +366,7 @@
 
         if (res.ok && (resData.success || resData.status)) {
           showToast('Data lisensi BERHASIL disimpan ke Supabase!');
+          currentLicenseData.is_new = false;
           renderDetail();
         } else {
           showToast(resData.message || 'Gagal menyimpan ke database.', false);

@@ -31,11 +31,15 @@ export default async function handler(req, res) {
     return;
   }
 
+  // Variabel Supabase dari Environment Variables Vercel
+  const SUPABASE_URL = process.env.SUPABASE_URL;
+  const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+
   // =========================================================================
-  // METODE GET: Public Endpoints (Tanpa Perlu Auth Merchant Key Tokopay)
+  // METODE GET: Public Endpoints & Supabase License Validation
   // =========================================================================
   if (req.method === 'GET') {
-    const action = req.query.action;
+    const { action, device_id } = req.query;
 
     // 1. Endpoint Cek Versi Terbaru Userscript
     if (action === 'check_version') {
@@ -61,10 +65,129 @@ export default async function handler(req, res) {
         packages: packages
       });
     }
+
+    // 3. Endpoint Cek Status Lisensi dari Supabase (Online Check)
+    if (action === 'check_license') {
+      if (!device_id) {
+        return res.status(400).json({ valid: false, msg: 'Parameter device_id wajib diisi.' });
+      }
+
+      if (!SUPABASE_URL || !SUPABASE_KEY) {
+        return res.status(500).json({ valid: false, msg: 'Konfigurasi Supabase di Vercel belum lengkap.' });
+      }
+
+      try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(device_id)}&select=*`, {
+          method: 'GET',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data || data.length === 0) {
+          return res.status(200).json({ valid: false, msg: 'Lisensi tidak ditemukan atau telah dicabut.' });
+        }
+
+        const lisensi = data[0];
+        const hariIni = new Date().toISOString().split('T')[0];
+
+        if (lisensi.status === 'revoked') {
+          return res.status(200).json({ valid: false, msg: 'Lisensi Anda telah dicabut oleh Admin.' });
+        }
+
+        if (hariIni > lisensi.exp_date) {
+          return res.status(200).json({ valid: false, msg: `Lisensi telah kadaluarsa pada (${lisensi.exp_date})` });
+        }
+
+        return res.status(200).json({
+          valid: true,
+          exp_date: lisensi.exp_date,
+          license_key: lisensi.license_key
+        });
+      } catch (err) {
+        console.error('[SUPABASE CHECK ERROR]:', err.message);
+        return res.status(500).json({ valid: false, msg: 'Gagal terhubung ke database Supabase.' });
+      }
+    }
   }
 
   // =========================================================================
-  // VALiDASI KONFIGURASI MERCHANTOKOPAY
+  // METODE POST: Simpan & Hapus Lisensi Supabase (Admin / System Action)
+  // =========================================================================
+  if (req.method === 'POST') {
+    const { action, device_id, license_key, exp_date, admin_secret } = req.body || {};
+
+    // A. Simpan / Topup Lisensi ke Supabase
+    if (action === 'save_license') {
+      if (!device_id || !license_key || !exp_date) {
+        return res.status(400).json({ success: false, message: 'Parameter device_id, license_key, dan exp_date wajib diisi.' });
+      }
+
+      try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/licenses`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=merge-duplicates'
+          },
+          body: JSON.stringify({
+            device_id: device_id,
+            license_key: license_key,
+            exp_date: exp_date,
+            status: 'active',
+            updated_at: new Date().toISOString()
+          })
+        });
+
+        if (response.ok) {
+          return res.status(200).json({ success: true, message: 'Lisensi berhasil disimpan ke Supabase!' });
+        } else {
+          const errData = await response.json();
+          return res.status(500).json({ success: false, message: errData.message || 'Gagal menyimpan ke Supabase.' });
+        }
+      } catch (err) {
+        return res.status(500).json({ success: false, message: 'Terjadi kesalahan koneksi ke Supabase.' });
+      }
+    }
+
+    // B. Hapus Lisensi dari Admin Dashboard
+    if (action === 'delete_license') {
+      const ADMIN_SECRET = process.env.ADMIN_SECRET_KEY;
+      if (admin_secret !== ADMIN_SECRET) {
+        return res.status(403).json({ success: false, message: 'Akses Ditolak! Secret key admin salah.' });
+      }
+
+      if (!device_id) {
+        return res.status(400).json({ success: false, message: 'Parameter device_id wajib diisi.' });
+      }
+
+      try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(device_id)}`, {
+          method: 'DELETE',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        });
+
+        if (response.ok) {
+          return res.status(200).json({ success: true, message: `Device ID ${device_id} berhasil dihapus dari Supabase!` });
+        } else {
+          return res.status(500).json({ success: false, message: 'Gagal menghapus lisensi dari Supabase.' });
+        }
+      } catch (err) {
+        return res.status(500).json({ success: false, message: 'Terjadi kesalahan server saat menghapus data.' });
+      }
+    }
+  }
+
+  // =========================================================================
+  // VALIDASI KONFIGURASI MERCHANT TOKOPAY
   // =========================================================================
   const merchantId = process.env.TOKOPAY_MERCHANT_ID;
   const secretKey = process.env.TOKOPAY_SECRET_KEY;

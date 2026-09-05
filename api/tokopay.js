@@ -9,7 +9,7 @@ const HARGA_PAKET = {
 };
 
 const VERSIONS = {
-  latest_version: '1.5.21',
+  latest_version: '1.5.20',
   download_url: 'https://mindspace-id.vercel.app/files/sipgn-autofill.user.js',
   changelog: 'Stabilitas sinkronisasi lisensi Supabase & perbaikan penanganan status QRIS Tokopay.'
 };

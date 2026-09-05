@@ -62,6 +62,12 @@
       border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;
     }
     .btn-quick:hover { background: #475569; }
+    .btn-quick-lifetime {
+      background: #7c3aed; border-color: #6d28d9; color: #f3e8ff;
+    }
+    .btn-quick-lifetime:hover {
+      background: #6d28d9;
+    }
 
     .toast {
       position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
@@ -116,7 +122,10 @@
         <div class="grid-durasi">
           <button class="btn-quick" onclick="tambahHari(1)">+1 Hari</button>
           <button class="btn-quick" onclick="tambahHari(7)">+7 Hari</button>
+          <button class="btn-quick" onclick="tambahHari(14)">+14 Hari</button>
           <button class="btn-quick" onclick="tambahHari(30)">+30 Hari</button>
+          <button class="btn-quick" onclick="tambahHari(60)">+60 Hari</button>
+          <button class="btn-quick btn-quick-lifetime" onclick="setLifetime()">♾️ Lifetime</button>
         </div>
       </div>
 
@@ -332,6 +341,15 @@
       
       renderDetail();
       showToast(`Durasi diatur: +${jumlahHari} hari`);
+    }
+
+    function setLifetime() {
+      currentLicenseData.exp_date = '2099-12-31';
+      currentLicenseData.status = 'active';
+      currentLicenseData.license_key = buatLicenseKey(currentLicenseData.exp_date, currentLicenseData.device_id);
+
+      renderDetail();
+      showToast('Durasi diatur: Lifetime (2099-12-31)');
     }
 
     async function simpanPerubahan() {

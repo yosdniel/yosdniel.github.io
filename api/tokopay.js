@@ -11,7 +11,7 @@ const HARGA_PAKET = {
 const VERSIONS = {
   latest_version: '1.5.21',
   download_url: 'https://mindspace-id.vercel.app/files/sipgn-autofill.user.js',
-  changelog: 'Perbaikan logika validasi status pembayaran QRIS real-time.'
+  changelog: 'Perbaikan anti-caching response 304 dan validasi status QRIS real-time.'
 };
 
 const orderCache = new Map();
@@ -82,6 +82,7 @@ async function simpanLisensiOtomatis(SUPABASE_URL, SUPABASE_KEY, deviceId, paket
 }
 
 export default async function handler(req, res) {
+  // CORS & ANTI-CACHING HEADERS (Mencegah Status 304 Not Modified)
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -89,6 +90,9 @@ export default async function handler(req, res) {
     'Access-Control-Allow-Headers',
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
   );
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -158,7 +162,7 @@ export default async function handler(req, res) {
         }
       }
 
-      // VALIDASI STATUS TOKOPAY MELALUI REF_ID
+      // VALIDASI STATUS TOKOPAY MELALUI REF_ID (DENGAN ANTI-CACHE FORCE TIMESTAMP)
       if (ref_id) {
         const merchantId = process.env.TOKOPAY_MERCHANT_ID;
         const secretKey = process.env.TOKOPAY_SECRET_KEY;
@@ -168,12 +172,14 @@ export default async function handler(req, res) {
         }
 
         try {
-          // Signature standar Tokopay untuk cek status: MD5(merchant + secret + ref_id) atau sesuai dokumentasi
           const rawSignature = `${merchantId}${secretKey}${ref_id}`;
           const signature = crypto.createHash('md5').update(rawSignature).digest('hex');
-          const endpointUrl = `https://api.tokopay.id/v1/order/status?merchant=${merchantId}&key=${secretKey}&ref_id=${ref_id}&signature=${signature}`;
+          
+          // Tambahkan parameter timestamp acak untuk mencegah API Tokopay / Vercel melakukan caching di level server
+          const timestampAcak = Date.now();
+          const endpointUrl = `https://api.tokopay.id/v1/order/status?merchant=${merchantId}&key=${secretKey}&secret=${secretKey}&ref_id=${ref_id}&signature=${signature}&_t=${timestampAcak}`;
 
-          const response = await fetch(endpointUrl);
+          const response = await fetch(endpointUrl, { cache: 'no-store' });
           const responseText = await response.text();
           let data;
           try {
@@ -182,8 +188,6 @@ export default async function handler(req, res) {
             return res.status(200).json({ is_paid: false, raw_response: responseText });
           }
 
-          // Tokopay biasanya mengembalikan status di `data.status` (1 = Success/Paid, 2 = Pending, 3 = Expired) 
-          // atau string 'Success' / 'Paid' / 'Settlement' di dalam `data.data.status`
           const statusVal = data?.data?.status ?? data?.status ?? data?.status_text;
           const isPaidVal = data?.is_paid ?? data?.data?.is_paid;
 
@@ -290,7 +294,7 @@ export default async function handler(req, res) {
 
           const apiUrl = `https://api.tokopay.id/v1/order?merchant=${merchantId}&secret=${secretKey}&ref_id=${ref_id}&nominal=${nominal}&metode=${channel}&signature=${signature}`;
 
-          const response = await fetch(apiUrl);
+          const response = await fetch(apiUrl, { cache: 'no-store' });
           const data = await response.json();
 
           const st = data?.status;

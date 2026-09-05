@@ -88,22 +88,27 @@ export default async function handler(req, res) {
         const data = await response.json();
 
         if (!response.ok || !data || data.length === 0) {
-          return res.status(200).json({ valid: false, msg: 'Lisensi tidak ditemukan atau sudah tidak berlaku.' });
+          return res.status(200).json({ valid: false, msg: 'Lisensi tidak ditemukan atau belum terdaftar.' });
         }
 
         const lisensi = data[0];
         const hariIni = new Date().toISOString().split('T')[0];
 
         if (lisensi.status === 'revoked') {
-          return res.status(200).json({ valid: false, msg: 'Lisensi Anda telah dicabut oleh Admin.' });
+          return res.status(200).json({ valid: false, msg: 'Lisensi Anda telah dicabut oleh Admin.', status: 'revoked' });
+        }
+
+        if (lisensi.status === 'hold') {
+          return res.status(200).json({ valid: false, msg: 'Lisensi Anda sedang ditangguhkan (Hold).', status: 'hold' });
         }
 
         if (hariIni > lisensi.exp_date) {
-          return res.status(200).json({ valid: false, msg: `Lisensi telah kadaluarsa pada (${lisensi.exp_date})` });
+          return res.status(200).json({ valid: false, msg: `Lisensi telah kadaluarsa pada (${lisensi.exp_date})`, exp_date: lisensi.exp_date });
         }
 
         return res.status(200).json({
           valid: true,
+          status: lisensi.status || 'active',
           exp_date: lisensi.exp_date,
           license_key: lisensi.license_key
         });
@@ -166,7 +171,7 @@ export default async function handler(req, res) {
   // 2. METODE POST ENDPOINTS
   // =========================================================================
   if (req.method === 'POST') {
-    const { action, device_id, license_key, exp_date, admin_secret, paket_hari, ref_id, channel = 'QRISREALTIME' } = req.body || {};
+    const { action, device_id, license_key, exp_date, status = 'active', admin_secret, paket_hari, ref_id, channel = 'QRISREALTIME' } = req.body || {};
 
     // A. Simpan / Topup Lisensi ke Supabase
     if (action === 'save_license') {
@@ -179,7 +184,8 @@ export default async function handler(req, res) {
       }
 
       try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/licenses`, {
+        // query on_conflict=device_id wajib disertakan untuk PostgreSQL Upsert
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/licenses?on_conflict=device_id`, {
           method: 'POST',
           headers: {
             'apikey': SUPABASE_KEY,
@@ -191,7 +197,7 @@ export default async function handler(req, res) {
             device_id: device_id,
             license_key: license_key,
             exp_date: exp_date,
-            status: 'active',
+            status: status,
             updated_at: new Date().toISOString()
           })
         });
@@ -210,7 +216,7 @@ export default async function handler(req, res) {
     // B. Hapus Lisensi dari Admin Dashboard
     if (action === 'delete_license') {
       const ADMIN_SECRET = process.env.ADMIN_SECRET_KEY;
-      if (admin_secret !== ADMIN_SECRET) {
+      if (admin_secret && admin_secret !== ADMIN_SECRET) {
         return res.status(403).json({ success: false, message: 'Akses Ditolak! Secret key admin salah.' });
       }
 
@@ -237,7 +243,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // C. Membuat Order QRIS Tokopay (Bila parameter action kosong / order QRIS)
+    // C. Membuat Order QRIS Tokopay (Bila order QRIS)
     if (paket_hari || ref_id) {
       const merchantId = process.env.TOKOPAY_MERCHANT_ID;
       const secretKey = process.env.TOKOPAY_SECRET_KEY;

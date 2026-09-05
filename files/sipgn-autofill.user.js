@@ -9,8 +9,8 @@
 // @grant       GM_xmlhttpRequest
 // @connect     mindspace-id.vercel.app
 // @connect     api.qrserver.com
-// @updateURL   https://mindspace-id.vercel.app/sipgn-autofill.user.js
-// @downloadURL https://mindspace-id.vercel.app/sipgn-autofill.user.js
+// @updateURL   https://mindspace-id.vercel.app/files/sipgn-autofill.user.js
+// @downloadURL https://mindspace-id.vercel.app/files/sipgn-autofill.user.js
 // ==/UserScript==
 
 (function () {

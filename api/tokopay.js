@@ -11,7 +11,7 @@ const HARGA_PAKET = {
 
 // Versi Userscript Terbaru & URL Download untuk Auto Update Checker
 const VERSIONS = {
-  latest_version: '1.5.18',
+  latest_version: '1.5.20',
   download_url: 'https://mindspace-id.vercel.app/files/sipgn-autofill.user.js',
   changelog: 'Peningkatan stabilitas integrity check & auto-update checker.'
 };

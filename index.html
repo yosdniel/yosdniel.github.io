@@ -2,276 +2,265 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Generator Lisensi - Mindspace Studio</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Admin Lisensi - Mindspace Studio</title>
   <style>
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: #0b1329; color: #f8fafc; margin: 0; padding: 12px;
-      display: flex; justify-content: center; align-items: center; min-height: 100dvh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #0b1329; color: #f8fafc; margin: 0; padding: 16px;
+      display: flex; justify-content: center; align-items: center; min-height: 100vh;
     }
     .container {
-      width: 100%; max-width: 440px; background: #1e293b; border: 1px solid #334155;
-      border-radius: 20px; padding: 20px 16px; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+      width: 100%; max-width: 480px; background: #1e293b; border: 1px solid #334155;
+      border-radius: 20px; padding: 24px; box-shadow: 0 16px 36px rgba(0,0,0,0.5);
     }
     .header { text-align: center; margin-bottom: 20px; }
-    .header h1 { font-size: 18px; font-weight: 700; margin: 0; color: #f8fafc; }
-    .header p { font-size: 11px; color: #94a3b8; margin: 4px 0 0 0; }
+    .header h1 { font-size: 20px; font-weight: 700; margin: 0; color: #f8fafc; }
+    .header p { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+    
     .field-group { margin-bottom: 16px; }
     label { font-size: 12px; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 6px; }
-    input {
-      width: 100%; height: 48px; padding: 0 14px; border-radius: 10px; border: 1px solid #334155;
-      background: #0f172a; color: #f8fafc; font-size: 16px; outline: none; transition: border-color 0.2s;
+    input, select {
+      width: 100%; height: 46px; padding: 0 14px; border-radius: 10px;
+      border: 1px solid #334155; background: #0f172a; color: #f8fafc; font-size: 14px;
+      outline: none; transition: border-color 0.2s;
     }
-    input:focus { border-color: #38bdf8; }
-    .duration-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-    .btn-durasi {
-      height: 46px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: #94a3b8;
-      font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center;
-      justify-content: center; transition: all 0.2s ease;
+    input:focus, select:focus { border-color: #38bdf8; }
+    
+    .btn {
+      width: 100%; height: 46px; border-radius: 10px; border: none;
+      font-weight: 700; font-size: 14px; cursor: pointer; transition: 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
     }
-    .btn-durasi.active {
-      background: #1e3a8a; border-color: #3b82f6; color: #ffffff;
-      box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+    .btn-primary { background: #2563eb; color: white; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-success { background: #059669; color: white; }
+    .btn-warning { background: #d97706; color: white; }
+    .btn-danger { background: #dc2626; color: white; }
+    
+    .card-info {
+      background: #0f172a; border: 1px solid #334155; border-radius: 12px;
+      padding: 14px; margin-bottom: 16px; font-size: 13px; line-height: 1.6;
     }
-    .info-exp {
-      font-size: 11px; color: #38bdf8; margin-top: 8px; font-weight: 600; background: #0f172a;
-      padding: 8px 12px; border-radius: 8px; border: 1px solid #1e293b; display: none;
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: bold;
     }
-    .btn-generate, .btn-login {
-      width: 100%; height: 50px; border-radius: 12px; border: none; background: #2563eb; color: white;
-      font-weight: 700; font-size: 14px; cursor: pointer; margin-top: 12px;
-      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3); transition: background 0.2s, transform 0.1s; user-select: none;
+    .badge-active { background: #065f46; color: #34d399; }
+    .badge-hold { background: #78350f; color: #fbbf24; }
+    .badge-revoked { background: #7f1d1d; color: #fca5a5; }
+
+    .grid-durasi { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+    .btn-quick {
+      height: 38px; background: #334155; color: #f8fafc; border: 1px solid #475569;
+      border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;
     }
-    .btn-generate:active, .btn-login:active { transform: scale(0.98); background: #1d4ed8; }
-    .result { margin-top: 16px; background: #0f172a; padding: 12px; border-radius: 12px; border: 1px dashed #38bdf8; display: none; }
-    .license-box {
-      display: flex; align-items: center; justify-content: space-between; background: #1e293b;
-      padding: 10px 12px; border-radius: 8px; border: 1px solid #334155; margin: 8px 0; gap: 8px;
+    .btn-quick:hover { background: #475569; }
+
+    .toast {
+      position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+      background: #0f172a; border: 1px solid #334155; padding: 12px 20px;
+      border-radius: 10px; font-size: 13px; display: none; z-index: 999; color: white;
     }
-    .license-text { color: #facc15; font-weight: 700; font-size: 12px; font-family: monospace; word-break: break-all; }
-    .btn-copy-icon {
-      background: #334155; border: none; color: #f8fafc; width: 38px; height: 38px; border-radius: 8px;
-      cursor: pointer; font-size: 15px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: 0.2s;
-    }
-    .btn-copy-icon:active { transform: scale(0.92); }
-    .toast-alert {
-      position: fixed; top: 16px; left: 50%; transform: translateX(-50%) translateY(-100px);
-      background: #7f1d1d; color: #fecaca; border: 1px solid #991b1b; padding: 10px 16px;
-      border-radius: 10px; font-size: 12px; font-weight: 600; box-shadow: 0 8px 20px rgba(0,0,0,0.4);
-      z-index: 9999; opacity: 0; transition: all 0.3s ease; text-align: center; width: 90%; max-width: 360px;
-    }
-    .toast-alert.show { transform: translateX(-50%) translateY(0); opacity: 1; }
-    .toast-alert.info { background: #065f46; color: #a7f3d0; border-color: #047857; }
-    #loginView { display: block; }
-    #generatorView { display: none; }
+
+    #step2 { display: none; }
   </style>
 </head>
 <body>
 
-  <div id="toast" class="toast-alert"></div>
+  <div id="toast" class="toast"></div>
 
-  <!-- VIEW 1: AUTHENTICATION -->
-  <div id="loginView" class="container">
+  <div class="container">
     <div class="header">
-      <h1>Akses Terproteksi</h1>
-      <p>Mindspace Studio Dashboard</p>
-    </div>
-    <div class="field-group">
-      <label for="accessPassword">Masukkan Passcode Dashboard:</label>
-      <input type="password" id="accessPassword" placeholder="••••••••" onkeyup="if(event.key==='Enter') verifyPassword()">
-    </div>
-    <button id="btnLogin" class="btn-login" onclick="verifyPassword()">Masuk ke Dashboard</button>
-  </div>
-
-  <!-- VIEW 2: GENERATOR LISENSI -->
-  <div id="generatorView" class="container">
-    <div class="header">
-      <h1>Generator Lisensi SIPGN</h1>
-      <p>Mindspace Studio Dashboard</p>
+      <h1>Dashboard Kelola Lisensi</h1>
+      <p>Mindspace Studio Admin Panel</p>
     </div>
 
-    <div class="field-group">
-      <label for="deviceId">Device ID Pembeli:</label>
-      <input type="text" id="deviceId" placeholder="DEV-XXXX-XXXX" style="text-transform: uppercase;">
-    </div>
-
-    <div class="field-group">
-      <label>Pilih Durasi Lisensi:</label>
-      <div class="duration-grid">
-        <button class="btn-durasi" onclick="pilihDurasi(1, this)">1 Hari</button>
-        <button class="btn-durasi" onclick="pilihDurasi(3, this)">3 Hari</button>
-        <button class="btn-durasi" onclick="pilihDurasi(7, this)">7 Hari</button>
-        <button class="btn-durasi" onclick="pilihDurasi(14, this)">14 Hari</button>
-        <button class="btn-durasi" onclick="pilihDurasi(30, this)">30 Hari</button>
-        <button class="btn-durasi" onclick="pilihDurasi(9999, this)">Permanent</button>
+    <!-- TAHAP 1: CEK DEVICE ID -->
+    <div id="step1">
+      <div class="field-group">
+        <label for="inputDeviceId">Masukkan Device ID:</label>
+        <input type="text" id="inputDeviceId" placeholder="DEV-XXXX-XXXX" style="text-transform: uppercase;">
       </div>
-      <div id="infoExp" class="info-exp"></div>
+      <button class="btn btn-primary" onclick="cekDeviceId()">🔎 Periksa Device ID</button>
     </div>
 
-    <div class="field-group">
-      <label for="clientId">Nama / ID Client (Opsional):</label>
-      <input type="text" id="clientId" placeholder="Contoh: SMAN 1 MEDAN">
+    <!-- TAHAP 2: PANEL KONTROL KELOLA LISENSI -->
+    <div id="step2">
+      <div class="card-info">
+        <div><b>Device ID:</b> <span id="dispDeviceId" style="color:#facc15;">-</span></div>
+        <div><b>Status Saat Ini:</b> <span id="dispStatus">-</span></div>
+        <div><b>Tanggal Kadaluarsa:</b> <span id="dispExpDate" style="color:#38bdf8;">-</span></div>
+        <div style="margin-top:6px; word-break:break-all; font-family:monospace; font-size:11px; color:#94a3b8;">
+          <b>Key:</b> <span id="dispKey">-</span>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label>Aksi Cepat Tambah Durasi:</label>
+        <div class="grid-durasi">
+          <button class="btn-quick" onclick="tambahHari(1)">+1 Hari</button>
+          <button class="btn-quick" onclick="tambahHari(7)">+7 Hari</button>
+          <button class="btn-quick" onclick="tambahHari(30)">+30 Hari</button>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label for="editExpDate">Atur Tanggal Kadaluarsa Manual:</label>
+        <input type="date" id="editExpDate">
+      </div>
+
+      <div class="field-group">
+        <label for="editStatus">Ubah Status Lisensi:</label>
+        <select id="editStatus">
+          <option value="active">Active (Lisensi Berjalan)</option>
+          <option value="hold">Hold (Ditangguhkan Sementara)</option>
+          <option value="revoked">Revoke (Dicabut Permanent)</option>
+        </select>
+      </div>
+
+      <div style="display: flex; gap: 8px; margin-top: 16px;">
+        <button class="btn btn-success" style="flex: 2;" onclick="simpanPerubahan()">💾 Simpan Perubahan</button>
+        <button class="btn btn-danger" style="flex: 1;" onclick="resetForm()">↩️ Kembali</button>
+      </div>
     </div>
-
-    <button id="btnGenerate" class="btn-generate" onclick="generateLicense()">Generate License Key</button>
-
-    <div id="output" class="result"></div>
   </div>
 
   <script>
-    const SECRET_SALT = 'MINDSTUDIO2026';
-    // URL absolut untuk menghindari 404 / CORS
     const VERCEL_API_URL = 'https://mindspace-id.vercel.app/api/tokopay';
-    
-    let selectedExpDate = '';
-    let selectedDays = 0;
-    let generatedKey = '';
-    let isGenerated = false;
+    const SECRET_SALT = 'MINDSTUDIO2026';
 
-    async function verifyPassword() {
-      const passwordInput = document.getElementById('accessPassword').value;
-      const btnLogin = document.getElementById('btnLogin');
+    let currentLicenseData = null;
 
-      if (!passwordInput) return showToast('Masukkan passcode terlebih dahulu!');
+    function showToast(msg, isSuccess = true) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.style.borderColor = isSuccess ? '#059669' : '#dc2626';
+      t.style.display = 'block';
+      setTimeout(() => { t.style.display = 'none'; }, 2800);
+    }
 
-      btnLogin.disabled = true;
-      btnLogin.textContent = 'Memverifikasi...';
+    function buatLicenseKey(expDate, deviceId) {
+      const nonce = Math.floor(Math.random() * 16777215).toString(16).toUpperCase();
+      const payload = `${expDate}|${deviceId}|ADMIN|${SECRET_SALT}|${nonce}`;
+      const encoded = btoa(payload).split('').reverse().join('');
+      return `MIND-${encoded}`;
+    }
+
+    async function cekDeviceId() {
+      const deviceId = document.getElementById('inputDeviceId').value.trim().toUpperCase();
+      if (!deviceId) return showToast('Masukkan Device ID terlebih dahulu!', false);
 
       try {
-        const response = await fetch('https://mindspace-id.vercel.app/api/verify-pass', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: passwordInput })
-        });
+        const res = await fetch(`${VERCEL_API_URL}?action=check_license&device_id=${encodeURIComponent(deviceId)}`);
+        const data = await res.json();
 
-        const data = await response.json();
+        document.getElementById('step1').style.display = 'none';
+        document.getElementById('step2').style.display = 'block';
+        document.getElementById('dispDeviceId').textContent = deviceId;
 
-        if (response.ok && data.status) {
-          showToast('Akses Diterima!', true);
-          document.getElementById('loginView').style.display = 'none';
-          document.getElementById('generatorView').style.display = 'block';
+        const hariIni = new Date().toISOString().split('T')[0];
+
+        if (data.valid || data.exp_date) {
+          // Data Ditemukan di Database
+          currentLicenseData = {
+            device_id: deviceId,
+            exp_date: data.exp_date,
+            status: data.status || 'active',
+            license_key: data.license_key || buatLicenseKey(data.exp_date, deviceId)
+          };
         } else {
-          showToast(data.error || 'Password Salah!');
+          // Device Baru (Belum Terdaftar)
+          currentLicenseData = {
+            device_id: deviceId,
+            exp_date: hariIni,
+            status: 'active',
+            license_key: buatLicenseKey(hariIni, deviceId)
+          };
+          showToast('Device ID baru. Silakan tentukan durasi.', true);
         }
-      } catch (err) {
-        showToast('Gagal menghubungi server verifikasi.');
-      } finally {
-        btnLogin.disabled = false;
-        btnLogin.textContent = 'Masuk ke Dashboard';
+
+        renderDetail();
+      } catch (e) {
+        showToast('Gagal terhubung ke Server Vercel/Supabase!', false);
       }
     }
 
-    function showToast(message, isInfo = false) {
-      const toast = document.getElementById('toast');
-      toast.textContent = message;
-      if (isInfo) toast.classList.add('info');
-      else toast.classList.remove('info');
-      toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 2800);
-    }
+    function renderDetail() {
+      document.getElementById('dispExpDate').textContent = currentLicenseData.exp_date;
+      document.getElementById('editExpDate').value = currentLicenseData.exp_date;
+      document.getElementById('dispKey').textContent = currentLicenseData.license_key;
+      document.getElementById('editStatus').value = currentLicenseData.status;
 
-    function formatTanggalIndo(tanggalStr) {
-      if (!tanggalStr || !/^\d{4}-\d{2}-\d{2}$/.test(tanggalStr)) return tanggalStr;
-      const namaBulan = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-      const [yyyy, mm, dd] = tanggalStr.split('-');
-      return `${dd} ${namaBulan[parseInt(mm, 10) - 1]} ${yyyy}`;
-    }
-
-    function pilihDurasi(jumlahHari, btn) {
-      document.querySelectorAll('.btn-durasi').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      selectedDays = jumlahHari;
-
-      if (jumlahHari === 9999) {
-        selectedExpDate = '2099-12-31';
+      const stEl = document.getElementById('dispStatus');
+      if (currentLicenseData.status === 'active') {
+        stEl.innerHTML = '<span class="badge badge-active">Active</span>';
+      } else if (currentLicenseData.status === 'hold') {
+        stEl.innerHTML = '<span class="badge badge-hold">Hold</span>';
       } else {
-        const target = new Date();
-        target.setDate(target.getDate() + jumlahHari);
-        const yyyy = target.getFullYear();
-        const mm = String(target.getMonth() + 1).padStart(2, '0');
-        const dd = String(target.getDate()).padStart(2, '0');
-        selectedExpDate = `${yyyy}-${mm}-${dd}`;
+        stEl.innerHTML = '<span class="badge badge-revoked">Revoked</span>';
       }
-
-      const infoExp = document.getElementById('infoExp');
-      infoExp.style.display = 'block';
-      infoExp.textContent = `License Key : ${jumlahHari === 9999 ? 'Lifetime' : `+${jumlahHari} Hari (${formatTanggalIndo(selectedExpDate)})`}`;
     }
 
-    async function simpanLisensiKeSupabase(deviceId, licenseKey, expDate) {
+    function tambahHari(jumlahHari) {
+      let baseDate = new Date();
+      if (currentLicenseData.exp_date && new Date(currentLicenseData.exp_date) > baseDate) {
+        baseDate = new Date(currentLicenseData.exp_date);
+      }
+
+      baseDate.setDate(baseDate.getDate() + jumlahHari);
+      const yyyy = baseDate.getFullYear();
+      const mm = String(baseDate.getMonth() + 1).padStart(2, '0');
+      const dd = String(baseDate.getDate()).padStart(2, '0');
+
+      currentLicenseData.exp_date = `${yyyy}-${mm}-${dd}`;
+      currentLicenseData.license_key = buatLicenseKey(currentLicenseData.exp_date, currentLicenseData.device_id);
+      
+      renderDetail();
+      showToast(`Durasi ditambah +${jumlahHari} hari`);
+    }
+
+    async function simpanPerubahan() {
+      const expDateVal = document.getElementById('editExpDate').value;
+      const statusVal = document.getElementById('editStatus').value;
+
+      if (!expDateVal) return showToast('Pilih tanggal kadaluarsa!', false);
+
+      currentLicenseData.exp_date = expDateVal;
+      currentLicenseData.status = statusVal;
+      currentLicenseData.license_key = buatLicenseKey(expDateVal, currentLicenseData.device_id);
+
       try {
-        const response = await fetch(VERCEL_API_URL, {
+        const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'save_license',
-            device_id: deviceId,
-            license_key: licenseKey,
-            exp_date: expDate
+            device_id: currentLicenseData.device_id,
+            license_key: currentLicenseData.license_key,
+            exp_date: currentLicenseData.exp_date,
+            status: currentLicenseData.status
           })
         });
-        const resData = await response.json();
-        return resData.status || resData.success;
+
+        const resData = await res.json();
+
+        if (res.ok && (resData.success || resData.status)) {
+          showToast('Data lisensi BERHASIL disimpan ke Supabase!');
+          renderDetail();
+        } else {
+          showToast(resData.message || 'Gagal menyimpan ke database.', false);
+        }
       } catch (e) {
-        console.warn('[Dashboard] Gagal menyimpan ke Supabase:', e);
-        return false;
+        showToast('Error koneksi saat menyimpan lisensi.', false);
       }
     }
 
-    async function generateLicense() {
-      const deviceId = document.getElementById('deviceId').value.trim().toUpperCase();
-      const client = document.getElementById('clientId').value.trim() || 'CLIENT';
-
-      if (!deviceId) return showToast('Masukkan Device ID milik pembeli!');
-      if (!/^DEV-[0-9A-F]{4}-[0-9A-F]{4}$/.test(deviceId)) return showToast('Format Device ID tidak valid!');
-      if (!selectedExpDate) return showToast('Pilih salah satu durasi lisensi!');
-
-      const btnGen = document.getElementById('btnGenerate');
-      btnGen.disabled = true;
-      btnGen.textContent = 'Memproses & Menyimpan...';
-
-      const randomNonce = Math.floor(Math.random() * 16777215).toString(16).toUpperCase();
-      const payload = `${selectedExpDate}|${deviceId}|${client}|${SECRET_SALT}|${randomNonce}`;
-      const encoded = btoa(payload).split('').reverse().join('');
-      generatedKey = `MIND-${encoded}`;
-
-      // Simpan lisensi ke Supabase
-      const isSaved = await simpanLisensiKeSupabase(deviceId, generatedKey, selectedExpDate);
-
-      const out = document.getElementById('output');
-      out.style.display = 'block';
-      out.innerHTML = `
-        <span style="font-size:11px; color:#cbd5e1; font-weight:600;">
-          ${isSaved ? '✅ License Key Berhasil Dibuat & Tersimpan di Supabase:' : '⚠️ Lisensi Dibuat (Gagal Sync Server):'}
-        </span>
-        <div class="license-box">
-          <span class="license-text">${generatedKey}</span>
-          <button class="btn-copy-icon" title="Salin License Key" onclick="copyToClipboard(this)">📋</button>
-        </div>
-        <div style="font-size:10px; color:#94a3b8; line-height: 1.4;">
-          Durasi License Key: <b style="color:#38bdf8">${selectedDays === 9999 ? 'Lifetime' : `+${selectedDays} Hari (${formatTanggalIndo(selectedExpDate)})`}</b><br>
-          Status Database: <b style="color:${isSaved ? '#4ade80' : '#ef4444'}">${isSaved ? 'TERHUBUNG' : 'GAGAL SYNC'}</b>
-        </div>
-      `;
-
-      btnGen.disabled = false;
-      btnGen.textContent = 'Regenerate License Key';
-      showToast(isSaved ? 'Lisensi tersimpan di Database Cloud!' : 'Lisensi dibuat secara offline!', isSaved);
-      out.scrollIntoView({ behavior: 'smooth', block: 'end' });
-    }
-
-    function copyToClipboard(btn) {
-      if (!generatedKey) return;
-      navigator.clipboard.writeText(generatedKey).then(() => {
-        btn.innerHTML = '✅';
-        btn.style.background = '#16a34a';
-        setTimeout(() => {
-          btn.innerHTML = '📋';
-          btn.style.background = '#334155';
-        }, 1200);
-      }).catch(err => showToast('Gagal menyalin: ' + err));
+    function resetForm() {
+      document.getElementById('step2').style.display = 'none';
+      document.getElementById('step1').style.display = 'block';
+      document.getElementById('inputDeviceId').value = '';
+      currentLicenseData = null;
     }
   </script>
 </body>

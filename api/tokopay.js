@@ -15,8 +15,78 @@ const VERSIONS = {
   changelog: 'Peningkatan stabilitas integrity check & auto-update checker.'
 };
 
+// Map sementara untuk menyimpan order paket hari berdasarkan ref_id
+const orderCache = new Map();
+
+function buatLicenseKeyServer(expDate, deviceId) {
+  const nonce = Math.floor(Math.random() * 16777215).toString(16).toUpperCase();
+  const payload = `${expDate}|${deviceId}|AutoPayment|MINDSTUDIO2026|${nonce}`;
+  const encoded = Buffer.from(payload).toString('base64');
+  const reversed = encoded.split('').reverse().join('');
+  return `MIND-${reversed}`;
+}
+
+async function simpanLisensiOtomatis(SUPABASE_URL, SUPABASE_KEY, deviceId, paketHari) {
+  if (!SUPABASE_URL || !SUPABASE_KEY || !deviceId || !paketHari) return null;
+
+  try {
+    let expDateObj = new Date();
+    
+    // Cek dulu apakah lisensi sudah ada di Supabase
+    const checkRes = await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(deviceId)}&select=*`, {
+      method: 'GET',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`
+      }
+    });
+    
+    const existing = await checkRes.json();
+    if (Array.isArray(existing) && existing.length > 0 && existing[0].exp_date) {
+      const currentExp = new Date(existing[0].exp_date + 'T00:00:00');
+      if (currentExp > expDateObj) {
+        expDateObj = currentExp;
+      }
+    }
+
+    // Tambahkan jumlah hari paket
+    expDateObj.setDate(expDateObj.getDate() + Number(paketHari));
+    
+    const yyyy = expDateObj.getFullYear();
+    const mm = String(expDateObj.getMonth() + 1).padStart(2, '0');
+    const dd = String(expDateObj.getDate()).padStart(2, '0');
+    const expDateTarget = `${yyyy}-${mm}-${dd}`;
+
+    const licenseKey = buatLicenseKeyServer(expDateTarget, deviceId);
+
+    // Save/Upsert ke Supabase
+    const saveRes = await fetch(`${SUPABASE_URL}/rest/v1/licenses?on_conflict=device_id`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify({
+        device_id: deviceId,
+        license_key: licenseKey,
+        exp_date: expDateTarget,
+        status: 'active',
+        updated_at: new Date().toISOString()
+      })
+    });
+
+    if (saveRes.ok) {
+      return { exp_date: expDateTarget, license_key: licenseKey };
+    }
+  } catch (err) {
+    console.error('[SUPABASE AUTO-SAVE ERROR]', err);
+  }
+  return null;
+}
+
 export default async function handler(req, res) {
-  // Setup Header CORS Safety
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -29,18 +99,16 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // WRAPPER UTAMA SUPAYA FUNCTION TIDAK CRASH (500 ERROR PREVENTER)
   try {
     const SUPABASE_URL = process.env.SUPABASE_URL;
     const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    // =========================================================================
+    // -------------------------------------------------------------------------
     // 1. METODE GET ENDPOINTS
-    // =========================================================================
+    // -------------------------------------------------------------------------
     if (req.method === 'GET') {
       const { action, device_id, ref_id, metode = 'QRISREALTIME' } = req.query || {};
 
-      // A. CHECK VERSION
       if (action === 'check_version') {
         return res.status(200).json({
           status: true,
@@ -50,7 +118,6 @@ export default async function handler(req, res) {
         });
       }
 
-      // B. GET PACKAGES
       if (action === 'get_packages') {
         const packages = Object.entries(HARGA_PAKET).map(([hari, harga]) => ({
           hari: Number(hari),
@@ -59,13 +126,9 @@ export default async function handler(req, res) {
           selected: Number(hari) === 7
         }));
 
-        return res.status(200).json({
-          status: true,
-          packages: packages
-        });
+        return res.status(200).json({ status: true, packages: packages });
       }
 
-      // C. CHECK LICENSE
       if (action === 'check_license') {
         if (!device_id) {
           return res.status(200).json({ valid: false, msg: 'Parameter device_id wajib diisi.' });
@@ -114,7 +177,7 @@ export default async function handler(req, res) {
         }
       }
 
-      // D. CEK STATUS TOKOPAY
+      // CEK STATUS TOKOPAY & OTOMATIS AKTIFKAN LISENSI
       if (ref_id) {
         const merchantId = process.env.TOKOPAY_MERCHANT_ID;
         const secretKey = process.env.TOKOPAY_SECRET_KEY;
@@ -127,55 +190,44 @@ export default async function handler(req, res) {
           const rawSignature = `${merchantId}:${secretKey}:${ref_id}`;
           const signature = crypto.createHash('md5').update(rawSignature).digest('hex');
 
-          const endpointList = [
-            `https://api.tokopay.id/v1/order/status?merchant=${merchantId}&secret=${secretKey}&ref_id=${ref_id}&signature=${signature}`,
-            `https://api.tokopay.id/v1/order?merchant=${merchantId}&secret=${secretKey}&ref_id=${ref_id}&metode=${metode}&signature=${signature}`
-          ];
+          const endpointUrl = `https://api.tokopay.id/v1/order/status?merchant=${merchantId}&secret=${secretKey}&ref_id=${ref_id}&signature=${signature}`;
 
-          let hasilData = null;
+          const response = await fetch(endpointUrl);
+          const data = await response.json();
 
-          for (const endpointUrl of endpointList) {
-            try {
-              const response = await fetch(endpointUrl);
-              const data = await response.json();
+          const statusVal = data?.data?.status ?? data?.status;
+          const isLunas = statusVal === 'Success' || statusVal === 1 || statusVal === '1' || statusVal === true || String(statusVal).toLowerCase() === 'paid';
 
-              if (data && (data.status !== undefined || data.data)) {
-                hasilData = data;
-                const statusVal = data?.data?.status ?? data?.status;
+          if (isLunas) {
+            const cachedOrder = orderCache.get(ref_id);
+            let savedInfo = null;
 
-                if (statusVal === 'Success' || statusVal === 1 || statusVal === '1' || statusVal === true || String(statusVal).toLowerCase() === 'paid') {
-                  return res.status(200).json({
-                    is_paid: true,
-                    status: 'Success',
-                    raw: data
-                  });
-                }
-              }
-            } catch (innerErr) {
-              console.warn(`[TOKOPAY WARN] ${endpointUrl}:`, innerErr.message);
+            if (cachedOrder && cachedOrder.device_id && cachedOrder.paket_hari) {
+              savedInfo = await simpanLisensiOtomatis(SUPABASE_URL, SUPABASE_KEY, cachedOrder.device_id, cachedOrder.paket_hari);
             }
+
+            return res.status(200).json({
+              is_paid: true,
+              status: 'Success',
+              exp_date: savedInfo?.exp_date || null,
+              raw: data
+            });
           }
 
-          return res.status(200).json({ is_paid: false, status: 'Unpaid', raw: hasilData });
+          return res.status(200).json({ is_paid: false, status: 'Unpaid', raw: data });
         } catch (err) {
           return res.status(200).json({ is_paid: false, error: err.message });
         }
       }
     }
 
-    // =========================================================================
+    // -------------------------------------------------------------------------
     // 2. METODE POST ENDPOINTS
-    // =========================================================================
+    // -------------------------------------------------------------------------
     if (req.method === 'POST') {
       const body = req.body || {};
-      const { action, device_id, license_key, exp_date, status = 'active', admin_secret, paket_hari, ref_id, channel = 'QRISREALTIME' } = body;
+      const { action, device_id, license_key, exp_date, status = 'active', paket_hari, ref_id, channel = 'QRISREALTIME' } = body;
 
-      // A. CALLBACK WEBHOOK DARI TOKOPAY
-      if (action === 'webhook_tokopay' || body?.status === 'Completed' || body?.status === 'Paid') {
-        return res.status(200).json({ status: true });
-      }
-
-      // B. SAVE LICENSE TO SUPABASE
       if (action === 'save_license') {
         if (!device_id || !license_key || !exp_date) {
           return res.status(400).json({ success: false, message: 'Parameter wajib diisi.' });
@@ -212,7 +264,7 @@ export default async function handler(req, res) {
         }
       }
 
-      // C. CREATE QRIS ORDER
+      // BUAT QRIS ORDER (Simpan cache device_id & paket_hari)
       if (paket_hari || ref_id) {
         const merchantId = process.env.TOKOPAY_MERCHANT_ID;
         const secretKey = process.env.TOKOPAY_SECRET_KEY;
@@ -225,6 +277,11 @@ export default async function handler(req, res) {
           const nominal = HARGA_PAKET[Number(paket_hari)];
           if (!nominal) {
             return res.status(200).json({ status: false, error: 'Paket tidak valid.' });
+          }
+
+          // Simpan ke Cache Internal Vercel
+          if (ref_id && device_id) {
+            orderCache.set(ref_id, { device_id, paket_hari });
           }
 
           const rawSignature = `${merchantId}:${secretKey}:${ref_id}`;
@@ -252,7 +309,6 @@ export default async function handler(req, res) {
     return res.status(200).json({ status: false, error: 'Method Not Allowed' });
 
   } catch (globalErr) {
-    // TANGKAP SEMUA ERROR CRASH & KEMBALIKAN RESPON JSON AGAR USERSCRIPT TIDAK PECAH
     console.error('[FATAL VERCEL ERROR]', globalErr);
     return res.status(200).json({ 
       valid: false, 

@@ -36,8 +36,12 @@
     .btn-primary { background: #2563eb; color: white; }
     .btn-primary:hover { background: #1d4ed8; }
     .btn-success { background: #059669; color: white; }
+    .btn-success:hover { background: #047857; }
     .btn-warning { background: #d97706; color: white; }
     .btn-danger { background: #dc2626; color: white; }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-secondary { background: #475569; color: white; }
+    .btn-secondary:hover { background: #334155; }
     
     .card-info {
       background: #0f172a; border: 1px solid #334155; border-radius: 12px;
@@ -63,7 +67,7 @@
       border-radius: 10px; font-size: 13px; display: none; z-index: 999; color: white;
     }
 
-    #step2 { display: none; }
+    #step1, #step2 { display: none; }
   </style>
 </head>
 <body>
@@ -76,13 +80,25 @@
       <p>Mindspace Studio Admin Panel</p>
     </div>
 
+    <!-- TAHAP 0: VERIFIKASI PASSWORD ADMIN -->
+    <div id="step0">
+      <div class="field-group">
+        <label for="inputAdminPassword">Masukkan Password Admin Generator:</label>
+        <input type="password" id="inputAdminPassword" placeholder="••••••••••••">
+      </div>
+      <button class="btn btn-primary" onclick="verifikasiAdminPassword()">🔒 Masuk Ke Dashboard</button>
+    </div>
+
     <!-- TAHAP 1: CEK DEVICE ID -->
     <div id="step1">
       <div class="field-group">
         <label for="inputDeviceId">Masukkan Device ID:</label>
         <input type="text" id="inputDeviceId" placeholder="DEV-XXXX-XXXX" style="text-transform: uppercase;">
       </div>
-      <button class="btn btn-primary" onclick="cekDeviceId()">🔎 Periksa Device ID</button>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-primary" style="flex: 2;" onclick="cekDeviceId()">🔎 Periksa Device ID</button>
+        <button class="btn btn-secondary" style="flex: 1;" onclick="logoutAdmin()">🚪 Keluar</button>
+      </div>
     </div>
 
     <!-- TAHAP 2: PANEL KONTROL KELOLA LISENSI -->
@@ -119,9 +135,12 @@
         </select>
       </div>
 
-      <div style="display: flex; gap: 8px; margin-top: 16px;">
-        <button class="btn btn-success" style="flex: 2;" onclick="simpanPerubahan()">💾 Simpan Perubahan</button>
-        <button class="btn btn-danger" style="flex: 1;" onclick="resetForm()">↩️ Kembali</button>
+      <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
+        <button class="btn btn-success" onclick="simpanPerubahan()">💾 Simpan Perubahan</button>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-danger" style="flex: 1;" onclick="hapusLisensi()">🗑️ Hapus Lisensi</button>
+          <button class="btn btn-secondary" style="flex: 1;" onclick="resetForm()">↩️ Kembali</button>
+        </div>
       </div>
     </div>
   </div>
@@ -130,6 +149,7 @@
     const VERCEL_API_URL = 'https://mindspace-id.vercel.app/api/tokopay';
     const SECRET_SALT = 'MINDSTUDIO2026';
 
+    let adminPasswordSecret = '';
     let currentLicenseData = null;
 
     function showToast(msg, isSuccess = true) {
@@ -145,6 +165,24 @@
       const payload = `${expDate}|${deviceId}|ADMIN|${SECRET_SALT}|${nonce}`;
       const encoded = btoa(payload).split('').reverse().join('');
       return `MIND-${encoded}`;
+    }
+
+    function verifikasiAdminPassword() {
+      const passInput = document.getElementById('inputAdminPassword').value.trim();
+      if (!passInput) return showToast('Masukkan password admin terlebih dahulu!', false);
+
+      adminPasswordSecret = passInput;
+      document.getElementById('step0').style.display = 'none';
+      document.getElementById('step1').style.display = 'block';
+      showToast('Akses Admin Diterima.', true);
+    }
+
+    function logoutAdmin() {
+      adminPasswordSecret = '';
+      document.getElementById('inputAdminPassword').value = '';
+      document.getElementById('step1').style.display = 'none';
+      document.getElementById('step0').style.display = 'block';
+      showToast('Berhasil keluar.', true);
     }
 
     async function cekDeviceId() {
@@ -253,6 +291,36 @@
         }
       } catch (e) {
         showToast('Error koneksi saat menyimpan lisensi.', false);
+      }
+    }
+
+    async function hapusLisensi() {
+      if (!currentLicenseData || !currentLicenseData.device_id) return;
+      
+      const konfirmasi = confirm(`Apakah Anda yakin ingin MENGHAPUS lisensi Device ID "${currentLicenseData.device_id}" secara permanen dari Supabase?`);
+      if (!konfirmasi) return;
+
+      try {
+        const res = await fetch(VERCEL_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'delete_license',
+            device_id: currentLicenseData.device_id,
+            admin_secret: adminPasswordSecret
+          })
+        });
+
+        const resData = await res.json();
+
+        if (res.ok && resData.success) {
+          showToast(`Lisensi Device ID ${currentLicenseData.device_id} berhasil dihapus!`);
+          resetForm();
+        } else {
+          showToast(resData.message || 'Gagal menghapus lisensi dari database.', false);
+        }
+      } catch (e) {
+        showToast('Error koneksi saat menghapus lisensi.', false);
       }
     }
 

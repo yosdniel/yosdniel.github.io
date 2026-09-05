@@ -128,7 +128,7 @@
 
       <div class="field-group">
         <label for="editStatus">Ubah Status Lisensi:</label>
-        <select id="editStatus">
+        <select id="editStatus" onchange="ubahStatusDropdown(this.value)">
           <option value="active">Active (Lisensi Berjalan)</option>
           <option value="hold">Hold (Ditangguhkan Sementara)</option>
           <option value="revoked">Revoke (Dicabut Permanent)</option>
@@ -199,13 +199,16 @@
 
         const hariIni = new Date().toISOString().split('T')[0];
 
-        if (data.valid || data.exp_date) {
+        // Pastikan status dibaca tepat dari database, jika tidak ada baru default ke 'active'
+        const statusDb = data.status || (data.msg && data.msg.includes('Hold') ? 'hold' : (data.msg && data.msg.includes('dicabut') ? 'revoked' : 'active'));
+
+        if (data.valid || data.exp_date || data.status) {
           // Data Ditemukan di Database
           currentLicenseData = {
             device_id: deviceId,
-            exp_date: data.exp_date,
-            status: data.status || 'active',
-            license_key: data.license_key || buatLicenseKey(data.exp_date, deviceId)
+            exp_date: data.exp_date || hariIni,
+            status: statusDb,
+            license_key: data.license_key || buatLicenseKey(data.exp_date || hariIni, deviceId)
           };
         } else {
           // Device Baru (Belum Terdaftar)
@@ -228,6 +231,8 @@
       document.getElementById('dispExpDate').textContent = currentLicenseData.exp_date;
       document.getElementById('editExpDate').value = currentLicenseData.exp_date;
       document.getElementById('dispKey').textContent = currentLicenseData.license_key;
+      
+      // Mengatur pilihan dropdown list sesuai status terkini dari database
       document.getElementById('editStatus').value = currentLicenseData.status;
 
       const stEl = document.getElementById('dispStatus');
@@ -237,6 +242,13 @@
         stEl.innerHTML = '<span class="badge badge-hold">Hold</span>';
       } else {
         stEl.innerHTML = '<span class="badge badge-revoked">Revoked</span>';
+      }
+    }
+
+    function ubahStatusDropdown(val) {
+      if (currentLicenseData) {
+        currentLicenseData.status = val;
+        renderDetail();
       }
     }
 

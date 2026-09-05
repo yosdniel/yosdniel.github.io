@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        SIPGN Autofill - POP
 // @namespace   sipgn-autofill
-// @version     1.5.17
+// @version     1.5.18
 // @description Isi otomatis form Tugas Pengiriman & Auto Payment QRIS Tokopay
 // @match       https://pop-sipgn.bgn.go.id/distribution/*
 // @grant       GM_setValue
@@ -9,8 +9,8 @@
 // @grant       GM_xmlhttpRequest
 // @connect     mindspace-id.vercel.app
 // @connect     api.qrserver.com
-// @updateURL    https://mindspace-id.vercel.app/files/sipgn-autofill.meta.js
-// @downloadURL  https://mindspace-id.vercel.app/files/sipgn-autofill.user.js
+// @updateURL   https://mindspace-id.vercel.app/sipgn-autofill.user.js
+// @downloadURL https://mindspace-id.vercel.app/sipgn-autofill.user.js
 // ==/UserScript==
 
 (function () {
@@ -19,6 +19,11 @@
   // ------------------------------------------------------------------
   // KONFIGURASI API VERCEL & STORAGE
   // ------------------------------------------------------------------
+  // Mengambil versi otomatis dari header @version Userscript Manager
+  const CURRENT_VERSION = (typeof GM_info !== 'undefined' && GM_info.script)
+    ? GM_info.script.version
+    : '1.5.17';
+
   const VERCEL_API_URL = 'https://mindspace-id.vercel.app/api/tokopay';
 
   const SECRET_SALT = 'MINDSTUDIO2026';
@@ -26,6 +31,57 @@
   const USED_KEYS_STORAGE_KEY = 'sipgn_used_keys_list';
   const DEVICE_STORAGE_KEY = 'sipgn_device_id';
   const STORAGE_KEY = 'sipgnAutofillData';
+
+  // ------------------------------------------------------------------
+  // FITUR IN-APP UPDATE CHECKER & NOTIFICATION BANNER
+  // ------------------------------------------------------------------
+  function cekUpdateSkrip() {
+    GM_xmlhttpRequest({
+      method: 'GET',
+      url: `${VERCEL_API_URL}?action=check_version`,
+      onload: function (res) {
+        try {
+          const data = JSON.parse(res.responseText);
+          const latestVersion = data.version;
+          const downloadUrl = data.download_url || 'https://mindspace-id.vercel.app/files/sipgn-autofill.user.js';
+
+          if (latestVersion && latestVersion !== CURRENT_VERSION) {
+            tampilkanNotifikasiUpdate(latestVersion, downloadUrl);
+          }
+        } catch (e) {
+          console.warn('[Autofill] Gagal memproses data update:', e);
+        }
+      },
+      onerror: function () {
+        console.warn('[Autofill] Gagal menghubungi server update.');
+      }
+    });
+  }
+
+  function tampilkanNotifikasiUpdate(versiBaru, urlDownload) {
+    const bannerLama = document.getElementById('sipgn-update-banner');
+    if (bannerLama) bannerLama.remove();
+
+    const banner = document.createElement('div');
+    banner.id = 'sipgn-update-banner';
+    banner.style.cssText = `
+      background: #854d0e; color: #fef08a; padding: 10px; border-radius: 6px;
+      font-size: 11px; margin-bottom: 10px; border: 1px solid #a16207; text-align: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    `;
+    banner.innerHTML = `
+      🚀 <b>Update Versi v${versiBaru} Tersedia!</b><br>
+      <div style="font-size:10px; color:#fef9c3; margin-top:2px;">Versi Anda saat ini: v${CURRENT_VERSION}</div>
+      <a href="${urlDownload}" target="_blank" style="display:inline-block; margin-top:6px; padding:5px 10px; background:#eab308; color:#0f172a; font-weight:bold; border-radius:4px; text-decoration:none; font-size:10px;">
+        📥 Download & Install Update
+      </a>
+    `;
+
+    const panel = document.getElementById('sipgn-autofill-panel');
+    if (panel) {
+      panel.insertBefore(banner, panel.children[2]);
+    }
+  }
 
   function formatTanggalIndo(tanggalStr) {
     if (!tanggalStr || typeof tanggalStr !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(tanggalStr)) {
@@ -298,6 +354,7 @@
     pasangDetektorNavigasiSPA();
     renderPanel();
     pasangDetektorPerubahanForm();
+    cekUpdateSkrip();
   }
 
   function perbaruiTampilanInfoModal() {
@@ -709,7 +766,7 @@
   function downloadBackupData() {
     const backup = {
       Application: 'SIPGN POP - Autofill',
-      Version: '1.5.17',
+      Version: CURRENT_VERSION,
       Developed: 'Mindspace Studio',
       dibuatPada: new Date().toISOString(),
       dataKPM: dataPenugasan,
@@ -1488,7 +1545,7 @@
       panel.appendChild(judul);
 
       const deskripsi = document.createElement('div');
-      deskripsi.textContent = 'Latest Version : v1.5.17';
+      deskripsi.textContent = `Latest Version : v${CURRENT_VERSION}`;
       deskripsi.style.cssText = 'margin-bottom: 8px; text-align: center; font-size: 10px; color: #38bdf8;';
       panel.appendChild(deskripsi);
 

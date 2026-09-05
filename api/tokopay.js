@@ -92,18 +92,39 @@ export default async function handler(req, res) {
         }
 
         const lisensi = data[0];
-        const hariIni = new Date().toISOString().split('T')[0];
+
+        // MENGGUNAKAN ZONA WAKTU WIB (Asia/Jakarta) Format: YYYY-MM-DD
+        const hariIniWIB = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
 
         if (lisensi.status === 'revoked') {
-          return res.status(200).json({ valid: false, msg: 'Lisensi Anda telah dicabut oleh Admin.', status: 'revoked', exp_date: lisensi.exp_date, license_key: lisensi.license_key });
+          return res.status(200).json({
+            valid: false,
+            msg: 'Lisensi Anda telah dicabut oleh Admin.',
+            status: 'revoked',
+            exp_date: lisensi.exp_date,
+            license_key: lisensi.license_key
+          });
         }
 
         if (lisensi.status === 'hold') {
-          return res.status(200).json({ valid: false, msg: 'Lisensi Anda sedang ditangguhkan (Hold).', status: 'hold', exp_date: lisensi.exp_date, license_key: lisensi.license_key });
+          return res.status(200).json({
+            valid: false,
+            msg: 'Lisensi Anda sedang ditangguhkan (Hold).',
+            status: 'hold',
+            exp_date: lisensi.exp_date,
+            license_key: lisensi.license_key
+          });
         }
 
-        if (hariIni > lisensi.exp_date) {
-          return res.status(200).json({ valid: false, msg: `Lisensi telah kadaluarsa pada (${lisensi.exp_date})`, exp_date: lisensi.exp_date, status: lisensi.status || 'active', license_key: lisensi.license_key });
+        // Pengecekan kadaluarsa secara akurat berbasis WIB
+        if (hariIniWIB > lisensi.exp_date) {
+          return res.status(200).json({
+            valid: false,
+            msg: `Lisensi telah kadaluarsa pada (${lisensi.exp_date})`,
+            exp_date: lisensi.exp_date,
+            status: lisensi.status || 'active',
+            license_key: lisensi.license_key
+          });
         }
 
         return res.status(200).json({
@@ -184,7 +205,6 @@ export default async function handler(req, res) {
       }
 
       try {
-        // query on_conflict=device_id wajib disertakan untuk PostgreSQL Upsert
         const response = await fetch(`${SUPABASE_URL}/rest/v1/licenses?on_conflict=device_id`, {
           method: 'POST',
           headers: {
@@ -215,7 +235,6 @@ export default async function handler(req, res) {
 
     // B. Hapus Lisensi dari Admin Dashboard
     if (action === 'delete_license') {
-      // Prioritaskan GENERATOR_PASSWORD agar sama dengan endpoint verify-pass
       const ADMIN_SECRET = process.env.GENERATOR_PASSWORD || process.env.ADMIN_SECRET_KEY;
 
       if (!admin_secret || admin_secret !== ADMIN_SECRET) {
@@ -245,7 +264,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // C. Membuat Order QRIS Tokopay (Bila order QRIS)
+    // C. Membuat Order QRIS Tokopay
     if (paket_hari || ref_id) {
       const merchantId = process.env.TOKOPAY_MERCHANT_ID;
       const secretKey = process.env.TOKOPAY_SECRET_KEY;

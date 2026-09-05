@@ -1952,7 +1952,7 @@
       if (intervalMonitorLisensi) clearInterval(intervalMonitorLisensi);
       intervalMonitorLisensi = setInterval(() => {
         periksaStatusLisensiOnline(false);
-      }, 5000);
+      }, 60000);
 
     } catch (e) {
       console.error('[Autofill] Gagal inisialisasi, membuka modal aktivasi:', e);

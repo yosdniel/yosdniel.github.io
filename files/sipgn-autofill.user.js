@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        SIPGN Autofill - POP
 // @namespace   sipgn-autofill
-// @version     1.5.18
+// @version     1.5.20
 // @description Isi otomatis form Tugas Pengiriman & Auto Payment QRIS Tokopay
 // @match       https://pop-sipgn.bgn.go.id/distribution/*
 // @grant       GM_setValue
@@ -21,7 +21,7 @@
   // ------------------------------------------------------------------
   const CURRENT_VERSION = (typeof GM_info !== 'undefined' && GM_info.script)
     ? GM_info.script.version
-    : '1.5.18';
+    : '1.5.20';
 
   const VERCEL_API_URL = 'https://mindspace-id.vercel.app/api/tokopay';
 
@@ -32,6 +32,8 @@
   const STORAGE_KEY = 'sipgnAutofillData';
 
   let currentDatabaseExpDate = null;
+  let statusLisensiTerakhir = null; // Menyimpan cache status lisensi untuk pengawasan real-time
+  let intervalMonitorLisensi = null;
 
   // ------------------------------------------------------------------
   // FITUR IN-APP UPDATE CHECKER & POP-UP NOTIFICATION
@@ -602,7 +604,7 @@
     overlay.innerHTML = `
       <div style="position: relative; background: #0f172a; border: 1px solid ${borderColor}; color: white; padding: 24px; border-radius: 12px; width: 340px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
         <div style="font-size: 36px; margin-bottom: 8px;">${isHold ? '⏸️' : '🚫'}</div>
-        <h3 style="margin-top:0; font-size: 18px; font-weight: bold; color: ${textColor};">${judulText}</h3>
+        <h3 style="margin-top:0; font-size: 18px; font-weight: bold; margin-bottom: 10px; color: ${textColor};">${judulText}</h3>
         <div style="background: ${bgHeader}; color: ${textColor}; padding: 12px; border-radius: 8px; font-size: 12px; margin-bottom: 14px; border: 1px solid ${borderColor}; line-height: 1.5;">
           ${pesanText}
         </div>
@@ -1877,42 +1879,81 @@
     }
   }
 
-  function inialisasiSistem() {
-    try {
-      const currentDevId = dapatkanDeviceID();
+  // ------------------------------------------------------------------
+  // PENGAWASAN STATUS LISENSI SECARA REAL-TIME (POLLING LATAR BELAKANG)
+  // ------------------------------------------------------------------
+  function bersihkanSemuaUI() {
+    const panel = document.getElementById('sipgn-autofill-panel');
+    if (panel) panel.remove();
+    const modalAktivasi = document.getElementById('sipgn-license-modal');
+    if (modalAktivasi) modalAktivasi.remove();
+    const modalStatus = document.getElementById('sipgn-status-modal');
+    if (modalStatus) modalStatus.remove();
+  }
 
-      GM_xmlhttpRequest({
-        method: 'GET',
-        url: `${VERCEL_API_URL}?action=check_license&device_id=${encodeURIComponent(currentDevId)}`,
-        onload: function (res) {
-          try {
-            const data = JSON.parse(res.responseText);
+  function periksaStatusLisensiOnline(isPemeriksaanAwal = false) {
+    const currentDevId = dapatkanDeviceID();
 
-            if (data.status === 'revoked') {
+    GM_xmlhttpRequest({
+      method: 'GET',
+      url: `${VERCEL_API_URL}?action=check_license&device_id=${encodeURIComponent(currentDevId)}`,
+      onload: function (res) {
+        try {
+          const data = JSON.parse(res.responseText);
+          
+          // Tentukan status aktual
+          let statusSekarang = 'unregistered';
+          if (data.status === 'revoked') {
+            statusSekarang = 'revoked';
+          } else if (data.status === 'hold') {
+            statusSekarang = 'hold';
+          } else if (data.valid) {
+            statusSekarang = 'active';
+          } else if (data.exp_date || (data.msg && data.msg.includes('kadaluarsa'))) {
+            statusSekarang = 'expired';
+          }
+
+          // Cek Apakah Status Berubah
+          if (statusSekarang !== statusLisensiTerakhir || isPemeriksaanAwal) {
+            statusLisensiTerakhir = statusSekarang;
+
+            if (statusSekarang === 'revoked') {
+              bersihkanSemuaUI();
               tampilkanModalStatusSitus('Akses Dibatalkan', 'Lisensi Anda telah dicabut oleh Administrator.', 'revoked');
-              return;
-            }
-
-            if (data.status === 'hold') {
+            } else if (statusSekarang === 'hold') {
+              bersihkanSemuaUI();
               tampilkanModalStatusSitus('Lisensi Ditangguhkan', 'Lisensi Anda sedang ditangguhkan sementara. Silakan hubungi Administrator.', 'hold');
-              return;
-            }
-
-            if (data.valid) {
+            } else if (statusSekarang === 'active') {
               currentDatabaseExpDate = data.exp_date;
+              bersihkanSemuaUI();
               mulaiJalankanSkrip();
-            } else {
+            } else { // expired / unregistered
               currentDatabaseExpDate = data.exp_date || null;
+              bersihkanSemuaUI();
               tampilkanModalAktivasi(data.msg || 'Lisensi tidak ditemukan atau telah kadaluarsa.', false);
             }
-          } catch (e) {
-            tampilkanModalAktivasi('Gagal memverifikasi status lisensi ke server.', false);
           }
-        },
-        onerror: function () {
-          tampilkanModalAktivasi('Gagal terhubung ke server verifikasi.', false);
+        } catch (e) {
+          if (isPemeriksaanAwal) tampilkanModalAktivasi('Gagal memverifikasi status lisensi ke server.', false);
         }
-      });
+      },
+      onerror: function () {
+        if (isPemeriksaanAwal) tampilkanModalAktivasi('Gagal terhubung ke server verifikasi.', false);
+      }
+    });
+  }
+
+  function inialisasiSistem() {
+    try {
+      // Pemeriksaan Awal
+      periksaStatusLisensiOnline(true);
+
+      // Mulai polling otomatis setiap 5 detik
+      if (intervalMonitorLisensi) clearInterval(intervalMonitorLisensi);
+      intervalMonitorLisensi = setInterval(() => {
+        periksaStatusLisensiOnline(false);
+      }, 5000);
+
     } catch (e) {
       console.error('[Autofill] Gagal inisialisasi, membuka modal aktivasi:', e);
       tampilkanModalAktivasi('', false);

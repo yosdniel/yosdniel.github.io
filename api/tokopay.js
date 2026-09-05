@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 
 const HARGA_PAKET = {
-  1: 100,
+  1: 5000,
   7: 25000,
   14: 40000,
   30: 70000,
@@ -9,7 +9,7 @@ const HARGA_PAKET = {
 };
 
 const VERSIONS = {
-  latest_version: '1.5.21',
+  latest_version: '1.5.20',
   download_url: 'https://mindspace-id.vercel.app/files/sipgn-autofill.user.js',
   changelog: 'Fix total integrasi Supabase & pemetaan otomatis status QRIS Tokopay.'
 };

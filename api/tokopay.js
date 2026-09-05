@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 
-// Pemetaan Paket & Harga di Sisi Server (Harga Dasar sebelum hitung QRIS Fee)
+// Pemetaan Paket & Harga di Sisi Server (Harga Dasar)
 const HARGA_PAKET = {
   1: 5000,
   7: 25000,
@@ -9,7 +9,15 @@ const HARGA_PAKET = {
   60: 100000
 };
 
+// Versi Userscript Terbaru & URL Download untuk Auto Update Checker
+const VERSIONS = {
+  latest_version: '1.5.20',
+  download_url: 'https://mindspace-id.vercel.app/sipgn-autofill.user.js',
+  changelog: 'Peningkatan stabilitas integrity check & auto-update checker.'
+};
+
 export default async function handler(req, res) {
+  // CORS Headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -24,22 +32,40 @@ export default async function handler(req, res) {
   }
 
   // =========================================================================
-  // METODE GET: Ambil Daftar Paket (Tanpa Perlu Auth Tokopay)
+  // METODE GET: Public Endpoints (Tanpa Perlu Auth Merchant Key Tokopay)
   // =========================================================================
-  if (req.method === 'GET' && req.query.action === 'get_packages') {
-    const packages = Object.entries(HARGA_PAKET).map(([hari, harga]) => ({
-      hari: Number(hari),
-      harga: harga,
-      nama: `Paket ${hari} Hari`,
-      selected: Number(hari) === 7
-    }));
+  if (req.method === 'GET') {
+    const action = req.query.action;
 
-    return res.status(200).json({
-      status: true,
-      packages: packages
-    });
+    // 1. Endpoint Cek Versi Terbaru Userscript
+    if (action === 'check_version') {
+      return res.status(200).json({
+        status: true,
+        version: VERSIONS.latest_version,
+        download_url: VERSIONS.download_url,
+        changelog: VERSIONS.changelog
+      });
+    }
+
+    // 2. Endpoint Ambil Daftar Paket
+    if (action === 'get_packages') {
+      const packages = Object.entries(HARGA_PAKET).map(([hari, harga]) => ({
+        hari: Number(hari),
+        harga: harga,
+        nama: `Paket ${hari} Hari`,
+        selected: Number(hari) === 7
+      }));
+
+      return res.status(200).json({
+        status: true,
+        packages: packages
+      });
+    }
   }
 
+  // =========================================================================
+  // VALiDASI KONFIGURASI MERCHANTOKOPAY
+  // =========================================================================
   const merchantId = process.env.TOKOPAY_MERCHANT_ID;
   const secretKey = process.env.TOKOPAY_SECRET_KEY;
 
@@ -51,7 +77,7 @@ export default async function handler(req, res) {
   }
 
   // =========================================================================
-  // METODE POST: Membuat Order QRIS (Nominal Dikunci di Server)
+  // METODE POST: Membuat Order QRIS Tokopay
   // =========================================================================
   if (req.method === 'POST') {
     try {
@@ -61,7 +87,6 @@ export default async function handler(req, res) {
         return res.status(400).json({ status: false, error: 'Parameter paket_hari dan ref_id wajib diisi.' });
       }
 
-      // Validasi dan Ambil Nominal Langsung dari Mapping Server
       const nominal = HARGA_PAKET[Number(paket_hari)];
       if (!nominal) {
         return res.status(400).json({ status: false, error: 'Pilihan paket tidak valid.' });
@@ -71,13 +96,13 @@ export default async function handler(req, res) {
       let lastResponse = null;
 
       for (const channelCode of daftarChannel) {
-        // Format signature umum Tokopay: merchant + secret + ref_id
-        const rawSignature = `${merchantId}${secretKey}${ref_id}`;
+        // Generasi Signature Tokopay: md5(merchantId:secretKey:ref_id)
+        const rawSignature = `${merchantId}:${secretKey}:${ref_id}`;
         const signature = crypto.createHash('md5').update(rawSignature).digest('hex');
 
         const apiUrl = `https://api.tokopay.id/v1/order?merchant=${merchantId}&secret=${secretKey}&ref_id=${ref_id}&nominal=${nominal}&metode=${channelCode}&signature=${signature}`;
 
-        console.log(`[TOKOPAY CREATE] Mencoba Order RefID=${ref_id}, Paket=${paket_hari} Hari, Nominal=${nominal}, Channel=${channelCode}`);
+        console.log(`[TOKOPAY CREATE] RefID=${ref_id}, Paket=${paket_hari} Hari, Nominal=${nominal}, Channel=${channelCode}`);
 
         const response = await fetch(apiUrl);
         const data = await response.json();
@@ -99,7 +124,7 @@ export default async function handler(req, res) {
 
       return res.status(400).json({
         status: false,
-        error: lastResponse?.error_msg || lastResponse?.message || 'Gagal membuat QRIS.',
+        error: lastResponse?.error_msg || lastResponse?.message || 'Gagal membuat QRIS Tokopay.',
         raw: lastResponse
       });
 
@@ -110,20 +135,20 @@ export default async function handler(req, res) {
   }
 
   // =========================================================================
-  // METODE GET: Cek Status Pembayaran (Tanpa Wajib Parameter Nominal Client)
+  // METODE GET: Cek Status Pembayaran QRIS Tokopay
   // =========================================================================
   if (req.method === 'GET') {
     try {
       const { ref_id, metode = 'QRISREALTIME' } = req.query;
 
       if (!ref_id) {
-        return res.status(400).json({ status: false, error: 'Parameter ref_id wajib.' });
+        return res.status(400).json({ status: false, error: 'Parameter ref_id wajib diisi.' });
       }
 
-      const rawSignature = `${merchantId}${secretKey}${ref_id}`;
+      // Generasi Signature Tokopay: md5(merchantId:secretKey:ref_id)
+      const rawSignature = `${merchantId}:${secretKey}:${ref_id}`;
       const signature = crypto.createHash('md5').update(rawSignature).digest('hex');
 
-      // Endpoint pencarian status order berdasarkan ref_id
       const endpointList = [
         `https://api.tokopay.id/v1/order/status?merchant=${merchantId}&secret=${secretKey}&ref_id=${ref_id}&signature=${signature}`,
         `https://api.tokopay.id/v1/order?merchant=${merchantId}&secret=${secretKey}&ref_id=${ref_id}&metode=${metode}&signature=${signature}`
@@ -139,17 +164,17 @@ export default async function handler(req, res) {
           if (data && (data.status !== undefined || data.data)) {
             hasilData = data;
             const statusVal = data?.data?.status || data?.status;
-            if (statusVal === 'Success' || statusVal === 1 || statusVal === true) {
+            if (statusVal === 'Success' || statusVal === 1 || statusVal === true || statusVal === 'Paid') {
               break;
             }
           }
         } catch (innerErr) {
-          console.warn(`[TOKOPAY STATUS CHECK WARN] Gagal pada endpoint ${endpointUrl}:`, innerErr.message);
+          console.warn(`[TOKOPAY STATUS WARN] ${endpointUrl}:`, innerErr.message);
         }
       }
 
       if (!hasilData) {
-        return res.status(404).json({ status: false, error: 'Transaksi tidak ditemukan atau gagal di-check.' });
+        return res.status(404).json({ status: false, error: 'Transaksi tidak ditemukan.' });
       }
 
       return res.status(200).json(hasilData);

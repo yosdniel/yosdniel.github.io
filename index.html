@@ -5,249 +5,83 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Generator Lisensi - Mindspace Studio</title>
   <style>
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
-
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: #0b1329;
-      color: #f8fafc;
-      margin: 0;
-      padding: 12px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100dvh;
+      background-color: #0b1329; color: #f8fafc; margin: 0; padding: 12px;
+      display: flex; justify-content: center; align-items: center; min-height: 100dvh;
     }
-
     .container {
-      width: 100%;
-      max-width: 440px;
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 20px;
-      padding: 20px 16px;
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+      width: 100%; max-width: 440px; background: #1e293b; border: 1px solid #334155;
+      border-radius: 20px; padding: 20px 16px; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
     }
-
-    .header {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-
-    .header h1 {
-      font-size: 18px;
-      font-weight: 700;
-      margin: 0;
-      color: #f8fafc;
-    }
-
-    .header p {
-      font-size: 11px;
-      color: #94a3b8;
-      margin: 4px 0 0 0;
-    }
-
-    .field-group {
-      margin-bottom: 16px;
-    }
-
-    label {
-      font-size: 12px;
-      font-weight: 600;
-      color: #cbd5e1;
-      display: block;
-      margin-bottom: 6px;
-    }
-
+    .header { text-align: center; margin-bottom: 20px; }
+    .header h1 { font-size: 18px; font-weight: 700; margin: 0; color: #f8fafc; }
+    .header p { font-size: 11px; color: #94a3b8; margin: 4px 0 0 0; }
+    .field-group { margin-bottom: 16px; }
+    label { font-size: 12px; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 6px; }
     input {
-      width: 100%;
-      height: 48px;
-      padding: 0 14px;
-      border-radius: 10px;
-      border: 1px solid #334155;
-      background: #0f172a;
-      color: #f8fafc;
-      font-size: 16px;
-      outline: none;
-      transition: border-color 0.2s;
+      width: 100%; height: 48px; padding: 0 14px; border-radius: 10px; border: 1px solid #334155;
+      background: #0f172a; color: #f8fafc; font-size: 16px; outline: none; transition: border-color 0.2s;
     }
-
-    input:focus {
-      border-color: #38bdf8;
-    }
-
-    .duration-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
-    }
-
+    input:focus { border-color: #38bdf8; }
+    .duration-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
     .btn-durasi {
-      height: 46px;
-      border-radius: 10px;
-      border: 1px solid #334155;
-      background: #0f172a;
-      color: #94a3b8;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s ease;
+      height: 46px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: #94a3b8;
+      font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center;
+      justify-content: center; transition: all 0.2s ease;
     }
-
     .btn-durasi.active {
-      background: #1e3a8a;
-      border-color: #3b82f6;
-      color: #ffffff;
+      background: #1e3a8a; border-color: #3b82f6; color: #ffffff;
       box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
     }
-
     .info-exp {
-      font-size: 11px;
-      color: #38bdf8;
-      margin-top: 8px;
-      font-weight: 600;
-      background: #0f172a;
-      padding: 8px 12px;
-      border-radius: 8px;
-      border: 1px solid #1e293b;
-      display: none;
+      font-size: 11px; color: #38bdf8; margin-top: 8px; font-weight: 600; background: #0f172a;
+      padding: 8px 12px; border-radius: 8px; border: 1px solid #1e293b; display: none;
     }
-
     .btn-generate, .btn-login {
-      width: 100%;
-      height: 50px;
-      border-radius: 12px;
-      border: none;
-      background: #2563eb;
-      color: white;
-      font-weight: 700;
-      font-size: 14px;
-      cursor: pointer;
-      margin-top: 12px;
-      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
-      transition: background 0.2s, transform 0.1s;
-      user-select: none;
+      width: 100%; height: 50px; border-radius: 12px; border: none; background: #2563eb; color: white;
+      font-weight: 700; font-size: 14px; cursor: pointer; margin-top: 12px;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3); transition: background 0.2s, transform 0.1s; user-select: none;
     }
-
-    .btn-generate:active, .btn-login:active {
-      transform: scale(0.98);
-      background: #1d4ed8;
-    }
-
-    .result {
-      margin-top: 16px;
-      background: #0f172a;
-      padding: 12px;
-      border-radius: 12px;
-      border: 1px dashed #38bdf8;
-      display: none;
-    }
-
+    .btn-generate:active, .btn-login:active { transform: scale(0.98); background: #1d4ed8; }
+    .result { margin-top: 16px; background: #0f172a; padding: 12px; border-radius: 12px; border: 1px dashed #38bdf8; display: none; }
     .license-box {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: #1e293b;
-      padding: 10px 12px;
-      border-radius: 8px;
-      border: 1px solid #334155;
-      margin: 8px 0;
-      gap: 8px;
+      display: flex; align-items: center; justify-content: space-between; background: #1e293b;
+      padding: 10px 12px; border-radius: 8px; border: 1px solid #334155; margin: 8px 0; gap: 8px;
     }
-
-    .license-text {
-      color: #facc15;
-      font-weight: 700;
-      font-size: 12px;
-      font-family: monospace;
-      word-break: break-all;
-    }
-
+    .license-text { color: #facc15; font-weight: 700; font-size: 12px; font-family: monospace; word-break: break-all; }
     .btn-copy-icon {
-      background: #334155;
-      border: none;
-      color: #f8fafc;
-      width: 38px;
-      height: 38px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 15px;
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: 0.2s;
+      background: #334155; border: none; color: #f8fafc; width: 38px; height: 38px; border-radius: 8px;
+      cursor: pointer; font-size: 15px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: 0.2s;
     }
-
-    .btn-copy-icon:active {
-      transform: scale(0.92);
-    }
-
+    .btn-copy-icon:active { transform: scale(0.92); }
     .toast-alert {
-      position: fixed;
-      top: 16px;
-      left: 50%;
-      transform: translateX(-50%) translateY(-100px);
-      background: #7f1d1d;
-      color: #fecaca;
-      border: 1px solid #991b1b;
-      padding: 10px 16px;
-      border-radius: 10px;
-      font-size: 12px;
-      font-weight: 600;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.4);
-      z-index: 9999;
-      opacity: 0;
-      transition: all 0.3s ease;
-      text-align: center;
-      width: 90%;
-      max-width: 360px;
+      position: fixed; top: 16px; left: 50%; transform: translateX(-50%) translateY(-100px);
+      background: #7f1d1d; color: #fecaca; border: 1px solid #991b1b; padding: 10px 16px;
+      border-radius: 10px; font-size: 12px; font-weight: 600; box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+      z-index: 9999; opacity: 0; transition: all 0.3s ease; text-align: center; width: 90%; max-width: 360px;
     }
-
-    .toast-alert.show {
-      transform: translateX(-50%) translateY(0);
-      opacity: 1;
-    }
-
-    .toast-alert.info {
-      background: #065f46;
-      color: #a7f3d0;
-      border-color: #047857;
-    }
-
-    /* Container Tampilan */
-    #loginView {
-      display: block;
-    }
-
-    #generatorView {
-      display: none;
-    }
+    .toast-alert.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .toast-alert.info { background: #065f46; color: #a7f3d0; border-color: #047857; }
+    #loginView { display: block; }
+    #generatorView { display: none; }
   </style>
 </head>
 <body>
 
-  <!-- Toast Alert -->
   <div id="toast" class="toast-alert"></div>
 
-  <!-- VIEW 1: LOCKSCREEN / AUTHENTICATION -->
+  <!-- VIEW 1: AUTHENTICATION -->
   <div id="loginView" class="container">
     <div class="header">
       <h1>Akses Terproteksi</h1>
       <p>Mindspace Studio Dashboard</p>
     </div>
-
     <div class="field-group">
       <label for="accessPassword">Masukkan Passcode Dashboard:</label>
       <input type="password" id="accessPassword" placeholder="••••••••" onkeyup="if(event.key==='Enter') verifyPassword()">
     </div>
-
     <button id="btnLogin" class="btn-login" onclick="verifyPassword()">Masuk ke Dashboard</button>
   </div>
 
@@ -288,26 +122,25 @@
 
   <script>
     const SECRET_SALT = 'MINDSTUDIO2026';
-    const VERCEL_API_URL = '/api/tokopay'; // Sesuaikan endpoint API Supabase Anda
+    // URL absolut untuk menghindari 404 / CORS
+    const VERCEL_API_URL = 'https://mindspace-id.vercel.app/api/tokopay';
+    
     let selectedExpDate = '';
     let selectedDays = 0;
     let generatedKey = '';
     let isGenerated = false;
 
-    // OTENTIKASI PASSWORD
     async function verifyPassword() {
       const passwordInput = document.getElementById('accessPassword').value;
       const btnLogin = document.getElementById('btnLogin');
 
-      if (!passwordInput) {
-        return showToast('Masukkan passcode terlebih dahulu!');
-      }
+      if (!passwordInput) return showToast('Masukkan passcode terlebih dahulu!');
 
       btnLogin.disabled = true;
       btnLogin.textContent = 'Memverifikasi...';
 
       try {
-        const response = await fetch('/api/verify-pass', {
+        const response = await fetch('https://mindspace-id.vercel.app/api/verify-pass', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ password: passwordInput })
@@ -333,23 +166,15 @@
     function showToast(message, isInfo = false) {
       const toast = document.getElementById('toast');
       toast.textContent = message;
-      if (isInfo) {
-        toast.classList.add('info');
-      } else {
-        toast.classList.remove('info');
-      }
+      if (isInfo) toast.classList.add('info');
+      else toast.classList.remove('info');
       toast.classList.add('show');
-      setTimeout(() => {
-        toast.classList.remove('show');
-      }, 2800);
+      setTimeout(() => toast.classList.remove('show'), 2800);
     }
 
     function formatTanggalIndo(tanggalStr) {
       if (!tanggalStr || !/^\d{4}-\d{2}-\d{2}$/.test(tanggalStr)) return tanggalStr;
-      const namaBulan = [
-        'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-      ];
+      const namaBulan = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
       const [yyyy, mm, dd] = tanggalStr.split('-');
       return `${dd} ${namaBulan[parseInt(mm, 10) - 1]} ${yyyy}`;
     }
@@ -364,11 +189,9 @@
       } else {
         const target = new Date();
         target.setDate(target.getDate() + jumlahHari);
-
         const yyyy = target.getFullYear();
         const mm = String(target.getMonth() + 1).padStart(2, '0');
         const dd = String(target.getDate()).padStart(2, '0');
-
         selectedExpDate = `${yyyy}-${mm}-${dd}`;
       }
 
@@ -379,7 +202,7 @@
 
     async function simpanLisensiKeSupabase(deviceId, licenseKey, expDate) {
       try {
-        await fetch(VERCEL_API_URL, {
+        const response = await fetch(VERCEL_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -389,9 +212,11 @@
             exp_date: expDate
           })
         });
-        console.log('[Dashboard] Lisensi berhasil disimpan ke Supabase');
+        const resData = await response.json();
+        return resData.status || resData.success;
       } catch (e) {
         console.warn('[Dashboard] Gagal menyimpan ke Supabase:', e);
+        return false;
       }
     }
 
@@ -399,37 +224,27 @@
       const deviceId = document.getElementById('deviceId').value.trim().toUpperCase();
       const client = document.getElementById('clientId').value.trim() || 'CLIENT';
 
-      if (!deviceId) {
-        return showToast('Masukkan Device ID milik pembeli!');
-      }
-
-      const regexDeviceId = /^DEV-[0-9A-F]{4}-[0-9A-F]{4}$/;
-      if (!regexDeviceId.test(deviceId)) {
-        return showToast('Format Device ID tidak valid!');
-      }
-
-      if (!selectedExpDate) {
-        return showToast('Pilih salah satu durasi lisensi!');
-      }
+      if (!deviceId) return showToast('Masukkan Device ID milik pembeli!');
+      if (!/^DEV-[0-9A-F]{4}-[0-9A-F]{4}$/.test(deviceId)) return showToast('Format Device ID tidak valid!');
+      if (!selectedExpDate) return showToast('Pilih salah satu durasi lisensi!');
 
       const btnGen = document.getElementById('btnGenerate');
       btnGen.disabled = true;
-      btnGen.textContent = 'Memproses...';
+      btnGen.textContent = 'Memproses & Menyimpan...';
 
       const randomNonce = Math.floor(Math.random() * 16777215).toString(16).toUpperCase();
       const payload = `${selectedExpDate}|${deviceId}|${client}|${SECRET_SALT}|${randomNonce}`;
-
       const encoded = btoa(payload).split('').reverse().join('');
       generatedKey = `MIND-${encoded}`;
 
-      // Simpan lisensi baru langsung ke Supabase
-      await simpanLisensiKeSupabase(deviceId, generatedKey, selectedExpDate);
+      // Simpan lisensi ke Supabase
+      const isSaved = await simpanLisensiKeSupabase(deviceId, generatedKey, selectedExpDate);
 
       const out = document.getElementById('output');
       out.style.display = 'block';
       out.innerHTML = `
         <span style="font-size:11px; color:#cbd5e1; font-weight:600;">
-          ${isGenerated ? '🔄 License Key Berhasil Di-generate Ulang & Tersimpan:' : 'License Key Berhasil Dibuat & Tersimpan:'}
+          ${isSaved ? '✅ License Key Berhasil Dibuat & Tersimpan di Supabase:' : '⚠️ Lisensi Dibuat (Gagal Sync Server):'}
         </span>
         <div class="license-box">
           <span class="license-text">${generatedKey}</span>
@@ -437,19 +252,13 @@
         </div>
         <div style="font-size:10px; color:#94a3b8; line-height: 1.4;">
           Durasi License Key: <b style="color:#38bdf8">${selectedDays === 9999 ? 'Lifetime' : `+${selectedDays} Hari (${formatTanggalIndo(selectedExpDate)})`}</b><br>
-          Kirim lisensi di atas ke pembeli.
+          Status Database: <b style="color:${isSaved ? '#4ade80' : '#ef4444'}">${isSaved ? 'TERHUBUNG' : 'GAGAL SYNC'}</b>
         </div>
       `;
 
       btnGen.disabled = false;
-      if (!isGenerated) {
-        btnGen.textContent = 'Regenerate License Key';
-        isGenerated = true;
-      } else {
-        btnGen.textContent = 'Regenerate License Key';
-        showToast('🔄 License Key berhasil di-generate ulang!', true);
-      }
-
+      btnGen.textContent = 'Regenerate License Key';
+      showToast(isSaved ? 'Lisensi tersimpan di Database Cloud!' : 'Lisensi dibuat secara offline!', isSaved);
       out.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
 
@@ -462,9 +271,7 @@
           btn.innerHTML = '📋';
           btn.style.background = '#334155';
         }, 1200);
-      }).catch(err => {
-        showToast('Gagal menyalin lisensi: ' + err);
-      });
+      }).catch(err => showToast('Gagal menyalin: ' + err));
     }
   </script>
 </body>

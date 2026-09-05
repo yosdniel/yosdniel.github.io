@@ -95,15 +95,15 @@ export default async function handler(req, res) {
         const hariIni = new Date().toISOString().split('T')[0];
 
         if (lisensi.status === 'revoked') {
-          return res.status(200).json({ valid: false, msg: 'Lisensi Anda telah dicabut oleh Admin.', status: 'revoked' });
+          return res.status(200).json({ valid: false, msg: 'Lisensi Anda telah dicabut oleh Admin.', status: 'revoked', exp_date: lisensi.exp_date, license_key: lisensi.license_key });
         }
 
         if (lisensi.status === 'hold') {
-          return res.status(200).json({ valid: false, msg: 'Lisensi Anda sedang ditangguhkan (Hold).', status: 'hold' });
+          return res.status(200).json({ valid: false, msg: 'Lisensi Anda sedang ditangguhkan (Hold).', status: 'hold', exp_date: lisensi.exp_date, license_key: lisensi.license_key });
         }
 
         if (hariIni > lisensi.exp_date) {
-          return res.status(200).json({ valid: false, msg: `Lisensi telah kadaluarsa pada (${lisensi.exp_date})`, exp_date: lisensi.exp_date });
+          return res.status(200).json({ valid: false, msg: `Lisensi telah kadaluarsa pada (${lisensi.exp_date})`, exp_date: lisensi.exp_date, status: lisensi.status || 'active', license_key: lisensi.license_key });
         }
 
         return res.status(200).json({
@@ -215,8 +215,10 @@ export default async function handler(req, res) {
 
     // B. Hapus Lisensi dari Admin Dashboard
     if (action === 'delete_license') {
-      const ADMIN_SECRET = process.env.ADMIN_SECRET_KEY;
-      if (admin_secret && admin_secret !== ADMIN_SECRET) {
+      // Prioritaskan GENERATOR_PASSWORD agar sama dengan endpoint verify-pass
+      const ADMIN_SECRET = process.env.GENERATOR_PASSWORD || process.env.ADMIN_SECRET_KEY;
+
+      if (!admin_secret || admin_secret !== ADMIN_SECRET) {
         return res.status(403).json({ success: false, message: 'Akses Ditolak! Secret key admin salah.' });
       }
 

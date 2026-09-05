@@ -37,7 +37,6 @@
     .btn-primary:hover { background: #1d4ed8; }
     .btn-success { background: #059669; color: white; }
     .btn-success:hover { background: #047857; }
-    .btn-warning { background: #d97706; color: white; }
     .btn-danger { background: #dc2626; color: white; }
     .btn-danger:hover { background: #b91c1c; }
     .btn-secondary { background: #475569; color: white; }
@@ -84,16 +83,16 @@
     <div id="step0">
       <div class="field-group">
         <label for="inputAdminPassword">Masukkan Password Admin Generator:</label>
-        <input type="password" id="inputAdminPassword" placeholder="••••••••••••">
+        <input type="password" id="inputAdminPassword" placeholder="••••••••••••" onkeyup="if(event.key==='Enter') verifikasiAdminPassword()">
       </div>
-      <button class="btn btn-primary" onclick="verifikasiAdminPassword()">🔒 Masuk Ke Dashboard</button>
+      <button class="btn btn-primary" id="btnLogin" onclick="verifikasiAdminPassword()">🔒 Masuk Ke Dashboard</button>
     </div>
 
     <!-- TAHAP 1: CEK DEVICE ID -->
     <div id="step1">
       <div class="field-group">
         <label for="inputDeviceId">Masukkan Device ID:</label>
-        <input type="text" id="inputDeviceId" placeholder="DEV-XXXX-XXXX" style="text-transform: uppercase;">
+        <input type="text" id="inputDeviceId" placeholder="DEV-XXXX-XXXX" style="text-transform: uppercase;" onkeyup="if(event.key==='Enter') cekDeviceId()">
       </div>
       <div style="display: flex; gap: 8px;">
         <button class="btn btn-primary" style="flex: 2;" onclick="cekDeviceId()">🔎 Periksa Device ID</button>
@@ -146,7 +145,9 @@
   </div>
 
   <script>
-    const VERCEL_API_URL = 'https://mindspace-id.vercel.app/api/tokopay';
+    const VERCEL_BASE_URL = 'https://mindspace-id.vercel.app';
+    const VERCEL_API_URL = `${VERCEL_BASE_URL}/api/tokopay`;
+    const VERIFY_PASS_URL = `${VERCEL_BASE_URL}/api/verify-pass`;
     const SECRET_SALT = 'MINDSTUDIO2026';
 
     let adminPasswordSecret = '';
@@ -167,14 +168,38 @@
       return `MIND-${encoded}`;
     }
 
-    function verifikasiAdminPassword() {
+    async function verifikasiAdminPassword() {
       const passInput = document.getElementById('inputAdminPassword').value.trim();
+      const btnLogin = document.getElementById('btnLogin');
+
       if (!passInput) return showToast('Masukkan password admin terlebih dahulu!', false);
 
-      adminPasswordSecret = passInput;
-      document.getElementById('step0').style.display = 'none';
-      document.getElementById('step1').style.display = 'block';
-      showToast('Akses Admin Diterima.', true);
+      btnLogin.disabled = true;
+      btnLogin.textContent = '⏳ Memeriksa...';
+
+      try {
+        const res = await fetch(VERIFY_PASS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: passInput })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.status) {
+          adminPasswordSecret = passInput;
+          document.getElementById('step0').style.display = 'none';
+          document.getElementById('step1').style.display = 'block';
+          showToast('Akses Admin Diterima.', true);
+        } else {
+          showToast(data.error || 'Password salah!', false);
+        }
+      } catch (e) {
+        showToast('Gagal terhubung ke API Verifikasi Password.', false);
+      } finally {
+        btnLogin.disabled = false;
+        btnLogin.textContent = '🔒 Masuk Ke Dashboard';
+      }
     }
 
     function logoutAdmin() {
@@ -198,12 +223,9 @@
         document.getElementById('dispDeviceId').textContent = deviceId;
 
         const hariIni = new Date().toISOString().split('T')[0];
-
-        // Pastikan status dibaca tepat dari database, jika tidak ada baru default ke 'active'
         const statusDb = data.status || (data.msg && data.msg.includes('Hold') ? 'hold' : (data.msg && data.msg.includes('dicabut') ? 'revoked' : 'active'));
 
         if (data.valid || data.exp_date || data.status) {
-          // Data Ditemukan di Database
           currentLicenseData = {
             device_id: deviceId,
             exp_date: data.exp_date || hariIni,
@@ -211,7 +233,6 @@
             license_key: data.license_key || buatLicenseKey(data.exp_date || hariIni, deviceId)
           };
         } else {
-          // Device Baru (Belum Terdaftar)
           currentLicenseData = {
             device_id: deviceId,
             exp_date: hariIni,
@@ -231,8 +252,6 @@
       document.getElementById('dispExpDate').textContent = currentLicenseData.exp_date;
       document.getElementById('editExpDate').value = currentLicenseData.exp_date;
       document.getElementById('dispKey').textContent = currentLicenseData.license_key;
-      
-      // Mengatur pilihan dropdown list sesuai status terkini dari database
       document.getElementById('editStatus').value = currentLicenseData.status;
 
       const stEl = document.getElementById('dispStatus');

@@ -88,7 +88,7 @@ export default async function handler(req, res) {
         const data = await response.json();
 
         if (!response.ok || !data || data.length === 0) {
-          return res.status(200).json({ valid: false, msg: 'Lisensi tidak ditemukan atau telah dicabut.' });
+          return res.status(200).json({ valid: false, msg: 'Lisensi tidak ditemukan atau sudah tidak berlaku.' });
         }
 
         const lisensi = data[0];
@@ -109,7 +109,7 @@ export default async function handler(req, res) {
         });
       } catch (err) {
         console.error('[SUPABASE CHECK ERROR]:', err.message);
-        return res.status(500).json({ valid: false, msg: 'Gagal terhubung ke database Supabase.' });
+        return res.status(500).json({ valid: false, msg: 'Gagal terhubung ke database.' });
       }
     }
   }

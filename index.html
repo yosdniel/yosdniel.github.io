@@ -288,6 +288,7 @@
 
   <script>
     const SECRET_SALT = 'MINDSTUDIO2026';
+    const VERCEL_API_URL = '/api/tokopay'; // Sesuaikan endpoint API Supabase Anda
     let selectedExpDate = '';
     let selectedDays = 0;
     let generatedKey = '';
@@ -362,7 +363,7 @@
         selectedExpDate = '2099-12-31';
       } else {
         const target = new Date();
-        target.setDate(target.getDate() + (jumlahHari - 1));
+        target.setDate(target.getDate() + jumlahHari);
 
         const yyyy = target.getFullYear();
         const mm = String(target.getMonth() + 1).padStart(2, '0');
@@ -373,10 +374,28 @@
 
       const infoExp = document.getElementById('infoExp');
       infoExp.style.display = 'block';
-      infoExp.textContent = `License Key : ${jumlahHari === 9999 ? 'Lifetime' : `+${jumlahHari} Hari`}`;
+      infoExp.textContent = `License Key : ${jumlahHari === 9999 ? 'Lifetime' : `+${jumlahHari} Hari (${formatTanggalIndo(selectedExpDate)})`}`;
     }
 
-    function generateLicense() {
+    async function simpanLisensiKeSupabase(deviceId, licenseKey, expDate) {
+      try {
+        await fetch(VERCEL_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'save_license',
+            device_id: deviceId,
+            license_key: licenseKey,
+            exp_date: expDate
+          })
+        });
+        console.log('[Dashboard] Lisensi berhasil disimpan ke Supabase');
+      } catch (e) {
+        console.warn('[Dashboard] Gagal menyimpan ke Supabase:', e);
+      }
+    }
+
+    async function generateLicense() {
       const deviceId = document.getElementById('deviceId').value.trim().toUpperCase();
       const client = document.getElementById('clientId').value.trim() || 'CLIENT';
 
@@ -393,33 +412,41 @@
         return showToast('Pilih salah satu durasi lisensi!');
       }
 
+      const btnGen = document.getElementById('btnGenerate');
+      btnGen.disabled = true;
+      btnGen.textContent = 'Memproses...';
+
       const randomNonce = Math.floor(Math.random() * 16777215).toString(16).toUpperCase();
       const payload = `${selectedExpDate}|${deviceId}|${client}|${SECRET_SALT}|${randomNonce}`;
 
       const encoded = btoa(payload).split('').reverse().join('');
       generatedKey = `MIND-${encoded}`;
 
+      // Simpan lisensi baru langsung ke Supabase
+      await simpanLisensiKeSupabase(deviceId, generatedKey, selectedExpDate);
+
       const out = document.getElementById('output');
       out.style.display = 'block';
       out.innerHTML = `
         <span style="font-size:11px; color:#cbd5e1; font-weight:600;">
-          ${isGenerated ? '🔄 License Key Berhasil Di-generate Ulang:' : 'License Key Berhasil Dibuat:'}
+          ${isGenerated ? '🔄 License Key Berhasil Di-generate Ulang & Tersimpan:' : 'License Key Berhasil Dibuat & Tersimpan:'}
         </span>
         <div class="license-box">
           <span class="license-text">${generatedKey}</span>
           <button class="btn-copy-icon" title="Salin License Key" onclick="copyToClipboard(this)">📋</button>
         </div>
         <div style="font-size:10px; color:#94a3b8; line-height: 1.4;">
-          Durasi License Key: <b style="color:#38bdf8">${selectedDays === 9999 ? 'Lifetime' : `+${selectedDays} Hari`}</b><br>
+          Durasi License Key: <b style="color:#38bdf8">${selectedDays === 9999 ? 'Lifetime' : `+${selectedDays} Hari (${formatTanggalIndo(selectedExpDate)})`}</b><br>
           Kirim lisensi di atas ke pembeli.
         </div>
       `;
 
-      const btnGen = document.getElementById('btnGenerate');
+      btnGen.disabled = false;
       if (!isGenerated) {
         btnGen.textContent = 'Regenerate License Key';
         isGenerated = true;
       } else {
+        btnGen.textContent = 'Regenerate License Key';
         showToast('🔄 License Key berhasil di-generate ulang!', true);
       }
 

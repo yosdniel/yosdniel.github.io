@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        SIPGN Autofill - POP
 // @namespace   sipgn-autofill
-// @version     1.5.17
+// @version     1.5.18
 // @description Isi otomatis form Tugas Pengiriman & Auto Payment QRIS Tokopay
 // @match       https://pop-sipgn.bgn.go.id/distribution/*
 // @grant       GM_setValue
@@ -21,7 +21,7 @@
   // ------------------------------------------------------------------
   const CURRENT_VERSION = (typeof GM_info !== 'undefined' && GM_info.script)
     ? GM_info.script.version
-    : '1.5.17';
+    : '1.5.18';
 
   const VERCEL_API_URL = 'https://mindspace-id.vercel.app/api/tokopay';
 
@@ -30,6 +30,8 @@
   const USED_KEYS_STORAGE_KEY = 'sipgn_used_keys_list';
   const DEVICE_STORAGE_KEY = 'sipgn_device_id';
   const STORAGE_KEY = 'sipgnAutofillData';
+
+  let currentDatabaseExpDate = null;
 
   // ------------------------------------------------------------------
   // FITUR IN-APP UPDATE CHECKER & POP-UP NOTIFICATION
@@ -126,127 +128,12 @@
     }
   }
 
-  function dekodePayloadLisensi(licenseKey) {
-    if (!licenseKey || typeof licenseKey !== 'string' || !licenseKey.startsWith('MIND-')) return null;
-    try {
-      const rawEncoded = licenseKey.replace('MIND-', '');
-      const reversed = rawEncoded.split('').reverse().join('');
-      const decodedPayload = atob(reversed);
-      const [expDate, deviceId, client, salt] = decodedPayload.split('|');
-      return { expDate, deviceId, client, salt };
-    } catch (e) {
-      return null;
-    }
-  }
-
   function buatLicenseKey(expDate, deviceId, client = 'User') {
     const nonce = Math.floor(Math.random() * 16777215).toString(16).toUpperCase();
     const payload = `${expDate}|${deviceId}|${client}|${SECRET_SALT}|${nonce}`;
     const encoded = btoa(payload);
     const reversed = encoded.split('').reverse().join('');
     return `MIND-${reversed}`;
-  }
-
-  function verifikasiLisensi(licenseKey) {
-    if (!licenseKey) {
-      return { valid: false, msg: 'Belum ada lisensi yang terpasang.' };
-    }
-    const payload = dekodePayloadLisensi(licenseKey);
-    if (!payload) {
-      return { valid: false, msg: '<b>Format License Key tidak valid!</b>' };
-    }
-
-    if (payload.salt !== SECRET_SALT) {
-      return { valid: false, msg: 'License Key tidak dikenali!' };
-    }
-
-    const currentDevId = dapatkanDeviceID();
-    if (payload.deviceId !== currentDevId) {
-      return { valid: false, msg: 'License Key ini terikat pada perangkat lain!' };
-    }
-
-    const target = new Date();
-    const yyyy = target.getFullYear();
-    const mm = String(target.getMonth() + 1).padStart(2, '0');
-    const dd = String(target.getDate()).padStart(2, '0');
-    const hariIni = `${yyyy}-${mm}-${dd}`;
-
-    if (hariIni > payload.expDate) {
-      return { valid: false, msg: `Lisensi telah kadaluarsa pada (${formatTanggalIndo(payload.expDate)})` };
-    }
-
-    return {
-      valid: true,
-      expDate: payload.expDate,
-      msg: `Lisensi aktif s/d : <b>${formatTanggalIndo(payload.expDate)}</b>`,
-    };
-  }
-
-  function prosesAktivasiLisensi(keyBaru) {
-    const savedKey = GM_getValue(LICENSE_STORAGE_KEY, '');
-    let usedKeys = GM_getValue(USED_KEYS_STORAGE_KEY, []);
-
-    if (typeof usedKeys === 'string') {
-      try { usedKeys = JSON.parse(usedKeys); } catch (e) { usedKeys = []; }
-    }
-
-    if (usedKeys.includes(keyBaru) || keyBaru === savedKey) {
-      const cekAktif = verifikasiLisensi(savedKey);
-      return {
-        valid: false,
-        msg: `<b>LISENSI SUDAH PERNAH DIGUNAKAN!</b><br>Masa aktif Anda saat ini s/d : <b>${formatTanggalIndo(cekAktif.expDate)}</b>`,
-        expDate: cekAktif.expDate
-      };
-    }
-
-    const resBaru = verifikasiLisensi(keyBaru);
-    if (!resBaru.valid) {
-      return resBaru;
-    }
-
-    const payloadBaru = dekodePayloadLisensi(keyBaru);
-    const resLama = verifikasiLisensi(savedKey);
-
-    const hariIni = new Date();
-    hariIni.setHours(0, 0, 0, 0);
-
-    const expDateBaruObj = new Date(payloadBaru.expDate + 'T00:00:00');
-    let durasiHariBaru = Math.round((expDateBaruObj.getTime() - hariIni.getTime()) / (1000 * 60 * 60 * 24));
-    if (durasiHariBaru < 1) durasiHariBaru = 1;
-
-    let baseDate = new Date(hariIni);
-    let isAkumulasi = false;
-
-    if (resLama.valid && resLama.expDate) {
-      const expLamaDate = new Date(resLama.expDate + 'T00:00:00');
-      if (expLamaDate >= hariIni) {
-        baseDate = expLamaDate;
-        isAkumulasi = true;
-      }
-    }
-
-    baseDate.setDate(baseDate.getDate() + durasiHariBaru);
-
-    const yyyy = baseDate.getFullYear();
-    const mm = String(baseDate.getMonth() + 1).padStart(2, '0');
-    const dd = String(baseDate.getDate()).padStart(2, '0');
-    const expDateHasil = `${yyyy}-${mm}-${dd}`;
-
-    const keyHasil = buatLicenseKey(expDateHasil, dapatkanDeviceID(), payloadBaru.client);
-
-    GM_setValue(LICENSE_STORAGE_KEY, keyHasil);
-    if (!usedKeys.includes(keyBaru)) usedKeys.push(keyBaru);
-    if (!usedKeys.includes(keyHasil)) usedKeys.push(keyHasil);
-    GM_setValue(USED_KEYS_STORAGE_KEY, JSON.stringify(usedKeys));
-
-    // Simpan/sinkronkan juga ke Supabase
-    simpanLisensiKeSupabase(dapatkanDeviceID(), keyHasil, expDateHasil);
-
-    const pesanInfo = isAkumulasi
-      ? `Masa aktif lisensi bertambah <b>${durasiHariBaru} hari</b>.<br>Lisensi aktif s/d : <b>${formatTanggalIndo(expDateHasil)}</b>`
-      : `<b>AKTIVASI BERHASIL!</b></br>Lisensi aktif s/d : <b>${formatTanggalIndo(expDateHasil)}</b>`;
-
-    return { valid: true, msg: pesanInfo, expDate: expDateHasil };
   }
 
   function simpanLisensiKeSupabase(deviceId, licenseKey, expDate) {
@@ -260,7 +147,7 @@
         license_key: licenseKey,
         exp_date: expDate
       }),
-      onload: function (res) {
+      onload: function () {
         console.log('[Autofill] Lisensi disinkronkan ke Supabase.');
       }
     });
@@ -396,9 +283,7 @@
     const container = document.getElementById('sipgn-info-exp-container');
     if (!container) return;
     const currentDevId = dapatkanDeviceID();
-    const savedKey = GM_getValue(LICENSE_STORAGE_KEY, '');
-    const cekLisensi = verifikasiLisensi(savedKey);
-    const infoExp = cekLisensi.valid ? `Lisensi Aktif s/d: <b>${formatTanggalIndo(cekLisensi.expDate)}</b>` : '';
+    const infoExp = currentDatabaseExpDate ? `Lisensi Aktif s/d: <b>${formatTanggalIndo(currentDatabaseExpDate)}</b>` : '';
 
     container.innerHTML = `
       <b>Device ID:</b><br><span id="sipgn-dev-id-text" style="font-size: 13px; font-weight: bold; color: #facc15;">${currentDevId}</span>
@@ -409,15 +294,23 @@
   function eksekusiSuksesPembayaran(jumlahHari, devId) {
     hentikanTimerDanPolling();
 
-    const target = new Date();
-    target.setDate(target.getDate() + jumlahHari);
-    const yyyy = target.getFullYear();
-    const mm = String(target.getMonth() + 1).padStart(2, '0');
-    const dd = String(target.getDate()).padStart(2, '0');
+    let baseDate = new Date();
+    if (currentDatabaseExpDate) {
+      const expDateObj = new Date(currentDatabaseExpDate + 'T00:00:00');
+      if (expDateObj > baseDate) baseDate = expDateObj;
+    }
+
+    baseDate.setDate(baseDate.getDate() + jumlahHari);
+    const yyyy = baseDate.getFullYear();
+    const mm = String(baseDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(baseDate.getDate()).padStart(2, '0');
     const expDateTarget = `${yyyy}-${mm}-${dd}`;
 
+    currentDatabaseExpDate = expDateTarget;
     const autoKey = buatLicenseKey(expDateTarget, devId, 'AutoPayment');
-    const hasilAktivasi = prosesAktivasiLisensi(autoKey);
+
+    GM_setValue(LICENSE_STORAGE_KEY, autoKey);
+    simpanLisensiKeSupabase(devId, autoKey, expDateTarget);
 
     perbaruiTampilanInfoModal();
 
@@ -434,7 +327,7 @@
         <div style="background: #064e3b; color: #a7f3d0; padding: 14px; border-radius: 8px; font-size: 12px; margin-top: 10px; border: 1px solid #047857; text-align: center;">
           🎉 <b>PEMBAYARAN BERHASIL!</b><br>
           <div style="margin-top: 6px; font-size: 11px; color: #e2e8f0;">
-            ${hasilAktivasi.msg}
+            Lisensi aktif s/d : <b>${formatTanggalIndo(expDateTarget)}</b>
           </div>
         </div>
         <button id="sipgn-btn-close-success" style="width: 100%; margin-top: 10px; padding: 8px; border: none; border-radius: 6px; background: #2563eb; color: white; font-weight: bold; cursor: pointer; font-size: 11px;">
@@ -496,7 +389,7 @@
             <img src="${qrImgUrl}" alt="QRIS Tokopay" style="width: 180px; height: 180px; display: block; margin: 0 auto;" />
           </div>
           <div style="font-size: 10px; color: #cbd5e1; margin-bottom: 10px;">
-            Total Pembayaran:</br><b style="color: #4ade80; font-size: 20px;">${teksNominal}</b></br>
+            Total Pembayaran:<br><b style="color: #4ade80; font-size: 20px;">${teksNominal}</b><br>
           </div>
           <div style="font-size: 11px; color: #facc15; font-weight: bold; margin-top: 4px;">
             Selesaikan pembayaran dalam waktu:
@@ -605,9 +498,7 @@
       if (modalLama) modalLama.remove();
 
       const currentDevId = dapatkanDeviceID();
-      const savedKey = GM_getValue(LICENSE_STORAGE_KEY, '');
-      const cekLisensi = verifikasiLisensi(savedKey);
-      const infoExp = cekLisensi.valid ? `Masa Aktif s/d: <b>${formatTanggalIndo(cekLisensi.expDate)}</b>` : '';
+      const infoExp = currentDatabaseExpDate ? `Masa Aktif s/d: <b>${formatTanggalIndo(currentDatabaseExpDate)}</b>` : '';
 
       const overlay = document.createElement('div');
       overlay.id = 'sipgn-license-modal';
@@ -625,8 +516,8 @@
               ? `<button id="sipgn-btn-close-x" style="position: absolute; top: 10px; right: 12px; background: transparent; border: none; color: #94a3b8; font-size: 18px; font-weight: bold; cursor: pointer;">✕</button>`
               : ''
           }
-          <h3 style="margin-top:0; font-size: 18px; font-weight: bold; color: #f8fafc;">Pengaturan Lisensi SIPGN</h3>
-          <p style="font-size: 11px; color: #94a3b8; margin-bottom: 12px;">Pilih metode aktivasi atau perpanjangan lisensi Anda.</p>
+          <h3 style="margin-top:0; font-size: 18px; font-weight: bold; color: #f8fafc;">Aktivasi / Perpanjang Lisensi</h3>
+          <p style="font-size: 11px; color: #94a3b8; margin-bottom: 12px;">Pilih paket durasi untuk memperpanjang akses sistem Anda.</p>
 
           <div id="sipgn-info-exp-container" style="background: #1e293b; padding: 8px; border-radius: 6px; font-size: 11px; margin-bottom: 12px; border: 1px solid #334155; color: #38bdf8; word-break: break-all;">
             <b>Device ID:</b><br><span id="sipgn-dev-id-text" style="font-size: 13px; font-weight: bold; color: #facc15;">${currentDevId}</span>
@@ -640,15 +531,6 @@
                  </div>`
               : ''
           }
-
-          <div style="display: flex; gap: 6px; margin-bottom: 12px;">
-            <button id="sipgn-tab-btn-qris" style="flex: 1; padding: 8px 4px; border: none; border-radius: 6px; background: #059669; color: white; font-weight: bold; cursor: pointer; font-size: 10px;">
-              💳 Beli / Topup Otomatis (QRIS)
-            </button>
-            <button id="sipgn-tab-btn-manual" style="flex: 1; padding: 8px 4px; border: none; border-radius: 6px; background: #334155; color: #cbd5e1; font-weight: bold; cursor: pointer; font-size: 10px;">
-              🔑 Input License Key
-            </button>
-          </div>
 
           <div id="sipgn-sec-qris" style="display: block; background: #1e293b; padding: 12px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 10px;">
             <div id="sipgn-wrapper-paket">
@@ -665,47 +547,16 @@
             <div id="sipgn-qris-container" style="display: none; text-align: center;"></div>
           </div>
 
-          <div id="sipgn-sec-manual" style="display: none; background: #1e293b; padding: 12px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 10px;">
-            <textarea id="sipgn-key-input" placeholder="Tempel License Key (MIND-...) di sini"
-                      style="width: 100%; height: 50px; box-sizing: border-box; padding: 8px; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: #38bdf8; margin-bottom: 8px; text-align: center; font-family: monospace; font-size: 11px; resize: none;"></textarea>
-
-            <button id="sipgn-btn-activate" style="width: 100%; padding: 9px; border: none; border-radius: 6px; background: #2563eb; color: white; font-weight: bold; cursor: pointer; font-size: 11px;">
-              Aktivasi Lisensi Manual
-            </button>
-          </div>
-
           <div style="margin-top: 12px; font-size: 10px; color: #64748b;">© 2026 - <b>Mindspace Studio</b></div>
         </div>
       `;
 
       document.body.appendChild(overlay);
 
-      const btnTabQris = document.getElementById('sipgn-tab-btn-qris');
-      const btnTabManual = document.getElementById('sipgn-tab-btn-manual');
-      const secQris = document.getElementById('sipgn-sec-qris');
-      const secManual = document.getElementById('sipgn-sec-manual');
       const selectPaket = document.getElementById('sipgn-select-paket');
       const btnBeli = document.getElementById('sipgn-btn-buy-qris');
 
       muatDaftarPaketKeSelect(selectPaket, btnBeli);
-
-      btnTabQris.onclick = () => {
-        secQris.style.display = 'block';
-        secManual.style.display = 'none';
-        btnTabQris.style.background = '#059669';
-        btnTabQris.style.color = 'white';
-        btnTabManual.style.background = '#334155';
-        btnTabManual.style.color = '#cbd5e1';
-      };
-
-      btnTabManual.onclick = () => {
-        secQris.style.display = 'none';
-        secManual.style.display = 'block';
-        btnTabManual.style.background = '#2563eb';
-        btnTabManual.style.color = 'white';
-        btnTabQris.style.background = '#334155';
-        btnTabQris.style.color = '#cbd5e1';
-      };
 
       if (bisaDitutup || isBerhasil) {
         const btnCloseX = document.getElementById('sipgn-btn-close-x');
@@ -716,20 +567,6 @@
           };
         }
       }
-
-      document.getElementById('sipgn-btn-activate').onclick = () => {
-        const inputKey = document.getElementById('sipgn-key-input');
-        const key = inputKey.value.trim();
-        const res = prosesAktivasiLisensi(key);
-
-        if (res.valid) {
-          perbaruiTampilanInfoModal();
-          tampilkanModalAktivasi(res.msg, true, true);
-          mulaiJalankanSkrip();
-        } else {
-          tampilkanModalAktivasi(res.msg, true, false);
-        }
-      };
 
       btnBeli.onclick = () => {
         if (!selectPaket || !selectPaket.value) {
@@ -742,6 +579,48 @@
     } catch (e) {
       console.error('[Autofill] Gagal merender modal:', e);
     }
+  }
+
+  function tampilkanModalStatusSitus(judulText, pesanText, warnaTema = 'revoked') {
+    const modalLama = document.getElementById('sipgn-status-modal');
+    if (modalLama) modalLama.remove();
+
+    const isHold = warnaTema === 'hold';
+    const bgHeader = isHold ? '#78350f' : '#7f1d1d';
+    const borderColor = isHold ? '#d97706' : '#991b1b';
+    const textColor = isHold ? '#fef08a' : '#fecaca';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'sipgn-status-modal';
+    overlay.style.cssText = `
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(11, 30, 63, 0.92); backdrop-filter: blur(6px);
+      z-index: 999999; display: flex; align-items: center; justify-content: center;
+      font-family: sans-serif;
+    `;
+
+    overlay.innerHTML = `
+      <div style="position: relative; background: #0f172a; border: 1px solid ${borderColor}; color: white; padding: 24px; border-radius: 12px; width: 340px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+        <div style="font-size: 36px; margin-bottom: 8px;">${isHold ? '⏸️' : '🚫'}</div>
+        <h3 style="margin-top:0; font-size: 18px; font-weight: bold; color: ${textColor};">${judulText}</h3>
+        <div style="background: ${bgHeader}; color: ${textColor}; padding: 12px; border-radius: 8px; font-size: 12px; margin-bottom: 14px; border: 1px solid ${borderColor}; line-height: 1.5;">
+          ${pesanText}
+        </div>
+        <div style="font-size: 11px; color: #94a3b8; margin-bottom: 12px;">
+          Device ID: <b style="color:#facc15;">${dapatkanDeviceID()}</b>
+        </div>
+        <button id="sipgn-btn-reload-status" style="width: 100%; padding: 9px; border: none; border-radius: 6px; background: #334155; color: white; font-weight: bold; cursor: pointer; font-size: 11px;">
+          🔄 Muat Ulang Halaman
+        </button>
+        <div style="margin-top: 12px; font-size: 10px; color: #64748b;">© 2026 - <b>Mindspace Studio</b></div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    document.getElementById('sipgn-btn-reload-status').onclick = () => {
+      location.reload();
+    };
   }
 
   // ------------------------------------------------------------------
@@ -1977,7 +1856,7 @@
       panel.appendChild(formWrapper);
 
       const tombolLisensi = document.createElement('button');
-      tombolLisensi.textContent = '🔑 Pengaturan Lisensi / Top-Up';
+      tombolLisensi.textContent = '💳 Pengaturan Lisensi / Top-Up';
       tombolLisensi.style.cssText = `
         width: 100%; padding: 6px; border: none; border-radius: 6px;
         background: #334155; color: white; cursor: pointer; font-size: 11px; margin-top: 4px; margin-bottom: 8px;
@@ -1998,40 +1877,40 @@
     }
   }
 
-  function verifikasiLokal() {
-    const savedKey = GM_getValue(LICENSE_STORAGE_KEY, '');
-    const res = verifikasiLisensi(savedKey);
-
-    if (!res.valid) {
-      tampilkanModalAktivasi(savedKey ? res.msg : '', false);
-      return;
-    }
-
-    mulaiJalankanSkrip();
-  }
-
   function inialisasiSistem() {
     try {
       const currentDevId = dapatkanDeviceID();
 
-      // Cek lisensi secara online ke Vercel/Supabase
       GM_xmlhttpRequest({
         method: 'GET',
         url: `${VERCEL_API_URL}?action=check_license&device_id=${encodeURIComponent(currentDevId)}`,
         onload: function (res) {
           try {
             const data = JSON.parse(res.responseText);
+
+            if (data.status === 'revoked') {
+              tampilkanModalStatusSitus('Akses Dibatalkan', 'Lisensi Anda telah dicabut oleh Administrator.', 'revoked');
+              return;
+            }
+
+            if (data.status === 'hold') {
+              tampilkanModalStatusSitus('Lisensi Ditangguhkan', 'Lisensi Anda sedang ditangguhkan sementara. Silakan hubungi Administrator.', 'hold');
+              return;
+            }
+
             if (data.valid) {
+              currentDatabaseExpDate = data.exp_date;
               mulaiJalankanSkrip();
             } else {
-              tampilkanModalAktivasi(data.msg || 'Lisensi tidak ditemukan atau telah dicabut.', false);
+              currentDatabaseExpDate = data.exp_date || null;
+              tampilkanModalAktivasi(data.msg || 'Lisensi tidak ditemukan atau telah kadaluarsa.', false);
             }
           } catch (e) {
-            verifikasiLokal();
+            tampilkanModalAktivasi('Gagal memverifikasi status lisensi ke server.', false);
           }
         },
         onerror: function () {
-          verifikasiLokal();
+          tampilkanModalAktivasi('Gagal terhubung ke server verifikasi.', false);
         }
       });
     } catch (e) {

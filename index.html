@@ -7,7 +7,6 @@
   
   <!-- FAVICON & PWA MANIFEST -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2338bdf8'><path d='M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z'/></svg>">
-  <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22Dashboard%20Admin%20Lisensi%22%2C%22short_name%22%3A%22AdminSIPGN%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230b1329%22%2C%22theme_color%22%3A%22%232563eb%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%2520xmlns%253D%2527http%253A%2F%2Fwww.w3.org%2F2000%2Fsvg%2527%2520viewBox%253D%25270%25200%252024%252024%2527%2520fill%253D%2527%252338bdf8%2527%253E%253Cpath%2520d%253D%2527M12%25201L3%25205v6c0%25205.55%25203.84%252010.74%25209%252012%25205.16-1.26%25209-6.45%25209-12V5l-9-4zm0%252010.99h7c-.53%25204.12-3.28%25207.79-7%25208.94V12H5V6.3l7-3.11v8.8z%2527%2F%253E%253C%2Fsvg%253E%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
   <meta name="theme-color" content="#2563eb">
 
   <style>
@@ -18,54 +17,39 @@
       display: flex; justify-content: center; align-items: center; min-height: 100vh;
     }
     .container {
-      width: 100%; max-width: 520px; background: #1e293b; border: 1px solid #334155;
+      width: 100%; max-width: 580px; background: #1e293b; border: 1px solid #334155;
       border-radius: 20px; padding: 24px; box-shadow: 0 16px 36px rgba(0,0,0,0.5);
     }
     .header { text-align: center; margin-bottom: 20px; }
     .header h1 { font-size: 20px; font-weight: 700; margin: 0; color: #f8fafc; }
     .header p { font-size: 12px; color: #94a3b8; margin-top: 4px; }
     
-    .field-group { margin-bottom: 16px; }
+    .field-group { margin-bottom: 14px; }
     label { font-size: 12px; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 6px; }
     input, select {
-      width: 100%; height: 46px; padding: 0 14px; border-radius: 10px;
+      width: 100%; height: 44px; padding: 0 14px; border-radius: 10px;
       border: 1px solid #334155; background: #0f172a; color: #f8fafc; font-size: 14px;
       outline: none; transition: border-color 0.2s;
     }
     input:focus, select:focus { border-color: #38bdf8; }
     
     .btn {
-      width: 100%; height: 46px; border-radius: 10px; border: none;
-      font-weight: 700; font-size: 14px; cursor: pointer; transition: 0.2s;
+      width: 100%; height: 44px; border-radius: 10px; border: none;
+      font-weight: 700; font-size: 13px; cursor: pointer; transition: 0.2s;
       display: flex; align-items: center; justify-content: center; gap: 8px;
     }
     .btn-primary { background: #2563eb; color: white; }
     .btn-primary:hover { background: #1d4ed8; }
     .btn-success { background: #059669; color: white; }
     .btn-success:hover { background: #047857; }
-    .btn-warning { background: #d97706; color: white; }
     .btn-danger { background: #dc2626; color: white; }
     .btn-danger:hover { background: #b91c1c; }
     .btn-secondary { background: #475569; color: white; }
     .btn-secondary:hover { background: #334155; }
     
-    .install-container {
-      text-align: center;
-      margin-top: 16px;
-      border-top: 1px solid #334155;
-      padding-top: 12px;
-    }
-    .btn-install {
-      background: #7c3aed; color: #f3e8ff; border: none; border-radius: 8px;
-      font-size: 11px; font-weight: 600; padding: 6px 14px; height: 34px;
-      cursor: pointer; display: none; width: auto; margin: 0 auto; gap: 6px;
-      align-items: center; justify-content: center; transition: background 0.2s;
-    }
-    .btn-install:hover { background: #6d28d9; }
-    
     .card-info {
       background: #0f172a; border: 1px solid #334155; border-radius: 12px;
-      padding: 14px; margin-bottom: 16px; font-size: 13px; line-height: 1.6;
+      padding: 14px; margin-bottom: 14px; font-size: 13px; line-height: 1.6;
     }
     .badge {
       display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: bold;
@@ -85,16 +69,30 @@
     .btn-quick-lifetime { background: #7c3aed; border-color: #6d28d9; color: #f3e8ff; }
     .btn-quick-lifetime:hover { background: #6d28d9; }
 
-    .menu-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 16px; }
+    /* MENU GRID MODERN */
+    .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
     .menu-card {
       background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 16px;
-      cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; transition: 0.2s; text-align: center;
     }
-    .menu-card:hover { border-color: #38bdf8; background: #131c31; }
-    .menu-card h3 { margin: 0; font-size: 15px; color: #f8fafc; }
-    .menu-card p { margin: 4px 0 0 0; font-size: 12px; color: #94a3b8; }
+    .menu-card:hover { border-color: #38bdf8; background: #131c31; transform: translateY(-2px); }
+    .menu-card h3 { margin: 8px 0 4px 0; font-size: 14px; color: #f8fafc; }
+    .menu-card p { margin: 0; font-size: 11px; color: #94a3b8; }
+    .menu-icon { font-size: 22px; }
 
-    .package-row { display: flex; gap: 8px; align-items: center; background: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 8px; }
+    /* STATS & CHART */
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+    .stat-box { background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 10px; text-align: center; }
+    .stat-box span { font-size: 10px; color: #94a3b8; display: block; text-transform: uppercase; font-weight: 600; }
+    .stat-box h4 { margin: 4px 0 0 0; font-size: 15px; color: #38bdf8; }
+
+    .chart-container { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 14px; margin-bottom: 14px; }
+    .chart-bars { display: flex; align-items: flex-end; justify-content: space-around; height: 90px; padding-top: 10px; border-bottom: 1px solid #334155; }
+    .chart-bar-group { display: flex; flex-direction: column; align-items: center; flex: 1; }
+    .chart-bar { width: 24px; background: #2563eb; border-radius: 6px 6px 0 0; transition: height 0.4s; }
+    .chart-label { font-size: 10px; color: #94a3b8; margin-top: 6px; }
+
+    .package-row, .voucher-row { display: flex; gap: 8px; align-items: center; background: #0f172a; padding: 8px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 8px; }
 
     .toast {
       position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
@@ -118,35 +116,65 @@
     <!-- VIEW 0: LOGIN ADMIN -->
     <div id="viewLogin" class="view-section" style="display: block;">
       <div class="field-group">
-        <label for="inputAdminPassword">Masukkan Password Admin Dashboard:</label>
+        <label for="inputAdminPassword">Password Admin:</label>
         <input type="password" id="inputAdminPassword" placeholder="••••••••••••" onkeyup="if(event.key==='Enter') verifikasiAdminPassword()">
       </div>
       <button class="btn btn-primary" id="btnLogin" onclick="verifikasiAdminPassword()">🔒 Masuk Ke Dashboard</button>
     </div>
 
-    <!-- VIEW 1: MENU UTAMA ADMIN DASHBOARD -->
+    <!-- VIEW 1: MENU UTAMA & STATISTIK -->
     <div id="viewMainMenu" class="view-section">
-      <div style="font-size: 13px; color: #94a3b8; margin-bottom: 12px; text-align: center;">Pilih fitur manajemen di bawah ini:</div>
-      
-      <div class="menu-grid">
-        <div class="menu-card" onclick="bukaFitur('device')">
-          <div>
-            <h3>🔍 Cek & Kelola Device ID</h3>
-            <p>Periksa masa aktif, perpanjang, atau ubah status lisensi pengguna.</p>
-          </div>
-          <span style="font-size: 20px; color: #38bdf8;">➔</span>
+      <!-- STATISTIK PENDAPATAN & USER -->
+      <div class="stats-grid">
+        <div class="stat-box">
+          <span>Hari Ini</span>
+          <h4 id="statRevHari">Rp 0</h4>
         </div>
-
-        <div class="menu-card" onclick="bukaFitur('packages')">
-          <div>
-            <h3>📦 Kelola Harga Paket</h3>
-            <p>Atur daftar pilihan durasi dan harga paket langganan sistem.</p>
-          </div>
-          <span style="font-size: 20px; color: #38bdf8;">➔</span>
+        <div class="stat-box">
+          <span>Minggu Ini</span>
+          <h4 id="statRevMinggu">Rp 0</h4>
+        </div>
+        <div class="stat-box">
+          <span>Bulan Ini</span>
+          <h4 id="statRevBulan">Rp 0</h4>
         </div>
       </div>
 
-      <button class="btn btn-secondary" onclick="logoutAdmin()">🚪 Keluar Sistem</button>
+      <!-- CHART BAR PENDAPATAN HARIAN -->
+      <div class="chart-container">
+        <div style="font-size: 11px; font-weight: bold; color: #cbd5e1; margin-bottom: 4px;">📊 Grafik Pendapatan 7 Hari Terakhir</div>
+        <div class="chart-bars" id="chartBarsContainer">
+          <!-- Diisi via JS -->
+        </div>
+      </div>
+
+      <div style="font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 8px;">Pilih Menu Manajemen:</div>
+      
+      <div class="menu-grid">
+        <div class="menu-card" onclick="bukaFitur('device')">
+          <div class="menu-icon">🔍</div>
+          <h3>Cek Device ID</h3>
+          <p>Kelola masa aktif user</p>
+        </div>
+
+        <div class="menu-card" onclick="bukaFitur('packages')">
+          <div class="menu-icon">📦</div>
+          <h3>Harga Paket</h3>
+          <p>Atur durasi & harga</p>
+        </div>
+
+        <div class="menu-card" onclick="bukaFitur('vouchers')">
+          <div class="menu-icon">🎟️</div>
+          <h3>Set Voucher</h3>
+          <p>Buat kupon diskon</p>
+        </div>
+
+        <div class="menu-card" onclick="logoutAdmin()" style="border-color: #7f1d1d;">
+          <div class="menu-icon">🚪</div>
+          <h3 style="color: #fca5a5;">Keluar</h3>
+          <p>Akhiri sesi admin</p>
+        </div>
+      </div>
     </div>
 
     <!-- VIEW 2: FITUR CEK DEVICE ID -->
@@ -197,23 +225,23 @@
         </select>
       </div>
 
-      <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
+      <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 14px;">
         <button class="btn btn-success" onclick="simpanPerubahanLisensi()">💾 Simpan Perubahan</button>
         <div style="display: flex; gap: 8px;">
-          <button class="btn btn-danger" style="flex: 1;" id="btnHapusLisensi" onclick="hapusLisensi()">🗑️ Hapus Lisensi</button>
+          <button class="btn btn-danger" style="flex: 1;" id="btnHapusLisensi" onclick="hapusLisensi()">🗑️ Hapus</button>
           <button class="btn btn-secondary" style="flex: 1;" onclick="bukaFitur('device')">↩️ Kembali</button>
         </div>
       </div>
     </div>
 
-    <!-- VIEW 4: FITUR KELOLA HARGA PAKET -->
+    <!-- VIEW 4: FITUR KELOLA HARGA PAKET (TANPA SCROLLBAR KAKU) -->
     <div id="viewPackages" class="view-section">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-        <label style="margin:0;">Daftar Paket Langganan:</label>
-        <button class="btn btn-primary" style="width: auto; height: 32px; font-size: 11px; padding: 0 10px;" onclick="tambahBarisPaketForm()">+ Tambah Paket</button>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <label style="margin:0;">Kelola Daftar Paket Langganan:</label>
+        <button class="btn btn-primary" style="width: auto; height: 32px; font-size: 11px; padding: 0 10px;" onclick="tambahBarisPaketForm()">+ Tambah</button>
       </div>
 
-      <div id="containerListPaket" style="max-height: 260px; overflow-y: auto; margin-bottom: 12px;"></div>
+      <div id="containerListPaket" style="margin-bottom: 14px;"></div>
 
       <div style="display: flex; gap: 8px;">
         <button class="btn btn-success" style="flex: 2;" onclick="simpanPengaturanPaketServer()">💾 Simpan Paket</button>
@@ -221,11 +249,19 @@
       </div>
     </div>
 
-    <!-- TOMBOL INSTALL PWA -->
-    <div class="install-container">
-      <button id="btnInstallApp" class="btn-install" onclick="installAplikasiPWA()">
-        📱 Install Aplikasi Android
-      </button>
+    <!-- VIEW 5: FITUR KELOLA VOUCHER DISKON -->
+    <div id="viewVouchers" class="view-section">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <label style="margin:0;">Kelola Kode Kupon / Voucher:</label>
+        <button class="btn btn-primary" style="width: auto; height: 32px; font-size: 11px; padding: 0 10px;" onclick="tambahBarisVoucherForm()">+ Tambah Kupon</button>
+      </div>
+
+      <div id="containerListVoucher" style="margin-bottom: 14px;"></div>
+
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-success" style="flex: 2;" onclick="simpanPengaturanVoucherServer()">💾 Simpan Voucher</button>
+        <button class="btn btn-secondary" style="flex: 1;" onclick="kembaliKeMenu()">🔙 Menu</button>
+      </div>
     </div>
   </div>
 
@@ -237,27 +273,6 @@
 
     let adminPasswordSecret = '';
     let currentLicenseData = null;
-    let deferredPrompt = null;
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      const btnInstall = document.getElementById('btnInstallApp');
-      if (btnInstall) btnInstall.style.display = 'inline-flex';
-    });
-
-    async function installAplikasiPWA() {
-      if (!deferredPrompt) {
-        showToast('Gunakan menu titik tiga (⋮) di Chrome lalu pilih "Tambahkan ke Layar Utama".', false);
-        return;
-      }
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        document.getElementById('btnInstallApp').style.display = 'none';
-      }
-      deferredPrompt = null;
-    }
 
     function getTanggalHariIniWIB() {
       return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
@@ -278,6 +293,7 @@
 
     function kembaliKeMenu() {
       gantiView('viewMainMenu');
+      muatStatistikDashboard();
     }
 
     function buatLicenseKey(expDate, deviceId) {
@@ -308,6 +324,7 @@
         if (res.ok && data.status) {
           adminPasswordSecret = passInput;
           gantiView('viewMainMenu');
+          muatStatistikDashboard();
           showToast('Akses Admin Diterima.', true);
         } else {
           showToast(data.error || 'Password salah!', false);
@@ -333,9 +350,44 @@
       } else if (fitur === 'packages') {
         muatDataPaketServer();
         gantiView('viewPackages');
+      } else if (fitur === 'vouchers') {
+        muatDataVoucherServer();
+        gantiView('viewVouchers');
       }
     }
 
+    // --- STATISTIK & CHART PENDAPATAN ---
+    async function muatStatistikDashboard() {
+      try {
+        const res = await fetch(`${VERCEL_API_URL}?action=get_stats`);
+        const data = await res.json();
+
+        document.getElementById('statRevHari').textContent = `Rp ${(data.harian || 0).toLocaleString('id-ID')}`;
+        document.getElementById('statRevMinggu').textContent = `Rp ${(data.mingguan || 0).toLocaleString('id-ID')}`;
+        document.getElementById('statRevBulan').textContent = `Rp ${(data.bulanan || 0).toLocaleString('id-ID')}`;
+
+        // Render Chart Bar 7 Hari Terakhir
+        const chartContainer = document.getElementById('chartBarsContainer');
+        chartContainer.innerHTML = '';
+        const chartData = data.chart_harian || [0,0,0,0,0,0,0];
+        const maxVal = Math.max(...chartData, 1000);
+
+        chartData.forEach((val, idx) => {
+          const tinggiPersen = Math.round((val / maxVal) * 70);
+          const group = document.div || document.createElement('div');
+          group.className = 'chart-bar-group';
+          group.innerHTML = `
+            <div class="chart-bar" style="height: ${Math.max(4, tinggiPersen)}px;" title="Rp ${val.toLocaleString('id-ID')}"></div>
+            <div class="chart-label">H-${6-idx}</div>
+          `;
+          chartContainer.appendChild(group);
+        });
+      } catch (e) {
+        // Fallback jika endpoint statistik belum tersedia di backend
+      }
+    }
+
+    // --- CEK & KELOLA DEVICE ID ---
     async function cekDeviceId() {
       const deviceId = document.getElementById('inputDeviceId').value.trim().toUpperCase();
       if (!deviceId) return showToast('Masukkan Device ID terlebih dahulu!', false);
@@ -351,7 +403,6 @@
 
         if (data.exp_date || data.status) {
           let statusAktual = data.status || 'active';
-
           if (statusAktual === 'active' && data.exp_date && hariIni > data.exp_date) {
             statusAktual = 'expired';
           }
@@ -371,102 +422,72 @@
             license_key: '',
             is_new: true
           };
-          showToast('Device ID belum terdaftar. Silakan tentukan durasi.', true);
+          showToast('Device ID belum terdaftar.', true);
         }
 
         renderDetailDevice();
       } catch (e) {
-        showToast('Gagal terhubung ke Server Vercel/Supabase!', false);
+        showToast('Gagal terhubung ke Server!', false);
       }
     }
 
     function renderDetailDevice() {
       document.getElementById('dispExpDate').textContent = currentLicenseData.exp_date !== '-' ? currentLicenseData.exp_date : 'Belum Diatur';
       document.getElementById('editExpDate').value = currentLicenseData.exp_date !== '-' ? currentLicenseData.exp_date : getTanggalHariIniWIB();
-      
-      const selectStatus = document.getElementById('editStatus');
-      selectStatus.value = currentLicenseData.status;
+      document.getElementById('editStatus').value = currentLicenseData.status;
 
       const stEl = document.getElementById('dispStatus');
-      if (currentLicenseData.status === 'active') {
-        stEl.innerHTML = '<span class="badge badge-active">Active</span>';
-      } else if (currentLicenseData.status === 'hold') {
-        stEl.innerHTML = '<span class="badge badge-hold">Hold</span>';
-      } else if (currentLicenseData.status === 'revoked') {
-        stEl.innerHTML = '<span class="badge badge-revoked">Revoked</span>';
-      } else if (currentLicenseData.status === 'expired') {
-        stEl.innerHTML = '<span class="badge badge-expired">Expired (Kadaluarsa)</span>';
-      } else {
-        stEl.innerHTML = '<span class="badge badge-unregistered">Belum Terdaftar</span>';
-      }
+      if (currentLicenseData.status === 'active') stEl.innerHTML = '<span class="badge badge-active">Active</span>';
+      else if (currentLicenseData.status === 'hold') stEl.innerHTML = '<span class="badge badge-hold">Hold</span>';
+      else if (currentLicenseData.status === 'revoked') stEl.innerHTML = '<span class="badge badge-revoked">Revoked</span>';
+      else if (currentLicenseData.status === 'expired') stEl.innerHTML = '<span class="badge badge-expired">Expired</span>';
+      else stEl.innerHTML = '<span class="badge badge-unregistered">Belum Terdaftar</span>';
 
-      const btnHapus = document.getElementById('btnHapusLisensi');
-      if (btnHapus) {
-        btnHapus.style.display = currentLicenseData.is_new ? 'none' : 'block';
-      }
+      document.getElementById('btnHapusLisensi').style.display = currentLicenseData.is_new ? 'none' : 'block';
     }
 
     function ubahStatusDropdown(val) {
-      if (currentLicenseData) {
-        currentLicenseData.status = val;
-        renderDetailDevice();
-      }
+      if (currentLicenseData) { currentLicenseData.status = val; renderDetailDevice(); }
     }
 
     function cekOtomatisStatusTanggal() {
       const selectedExp = document.getElementById('editExpDate').value;
       if (!selectedExp) return;
-
       const hariIni = getTanggalHariIniWIB();
       currentLicenseData.exp_date = selectedExp;
-
       if (selectedExp >= hariIni && (currentLicenseData.status === 'expired' || currentLicenseData.status === 'unregistered')) {
         currentLicenseData.status = 'active';
       } else if (selectedExp < hariIni && currentLicenseData.status === 'active') {
         currentLicenseData.status = 'expired';
       }
-
       renderDetailDevice();
     }
 
     function tambahHari(jumlahHari) {
       let baseDate = new Date();
-      
       if (currentLicenseData.exp_date && currentLicenseData.exp_date !== '-' && new Date(currentLicenseData.exp_date) > baseDate) {
         baseDate = new Date(currentLicenseData.exp_date);
       }
-
       baseDate.setDate(baseDate.getDate() + jumlahHari);
-      const yyyy = baseDate.getFullYear();
-      const mm = String(baseDate.getMonth() + 1).padStart(2, '0');
-      const dd = String(baseDate.getDate()).padStart(2, '0');
-
-      currentLicenseData.exp_date = `${yyyy}-${mm}-${dd}`;
+      currentLicenseData.exp_date = baseDate.toISOString().slice(0, 10);
       currentLicenseData.status = 'active';
       currentLicenseData.license_key = buatLicenseKey(currentLicenseData.exp_date, currentLicenseData.device_id);
-      
       renderDetailDevice();
-      showToast(`Durasi diatur: +${jumlahHari} hari`);
+      showToast(`Durasi ditambah: +${jumlahHari} hari`);
     }
 
     function setLifetime() {
       currentLicenseData.exp_date = '2099-12-31';
       currentLicenseData.status = 'active';
       currentLicenseData.license_key = buatLicenseKey(currentLicenseData.exp_date, currentLicenseData.device_id);
-
       renderDetailDevice();
-      showToast('Durasi diatur: Lifetime (2099-12-31)');
+      showToast('Durasi diatur: Lifetime');
     }
 
     async function simpanPerubahanLisensi() {
       const expDateVal = document.getElementById('editExpDate').value;
       let statusVal = document.getElementById('editStatus').value;
-
       if (!expDateVal) return showToast('Pilih tanggal kadaluarsa!', false);
-
-      if ((statusVal === 'expired' || statusVal === 'unregistered') && expDateVal >= getTanggalHariIniWIB()) {
-        statusVal = 'active';
-      }
 
       currentLicenseData.exp_date = expDateVal;
       currentLicenseData.status = statusVal;
@@ -476,60 +497,42 @@
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'save_license',
-            device_id: currentLicenseData.device_id,
-            license_key: currentLicenseData.license_key,
-            exp_date: currentLicenseData.exp_date,
-            status: currentLicenseData.status
-          })
+          body: JSON.stringify({ action: 'save_license', ...currentLicenseData })
         });
-
         const resData = await res.json();
-
         if (res.ok && (resData.success || resData.status)) {
-          showToast('Data lisensi BERHASIL disimpan ke Supabase!');
+          showToast('Lisensi berhasil disimpan!');
           currentLicenseData.is_new = false;
           renderDetailDevice();
         } else {
-          showToast(resData.message || 'Gagal menyimpan ke database.', false);
+          showToast('Gagal menyimpan lisensi.', false);
         }
       } catch (e) {
-        showToast('Error koneksi saat menyimpan lisensi.', false);
+        showToast('Error koneksi server.', false);
       }
     }
 
     async function hapusLisensi() {
-      if (!currentLicenseData || !currentLicenseData.device_id) return;
-      
-      const konfirmasi = confirm(`Apakah Anda yakin ingin MENGHAPUS lisensi Device ID "${currentLicenseData.device_id}" secara permanen dari Supabase?`);
-      if (!konfirmasi) return;
-
+      if (!confirm(`Hapus permanen Device ID "${currentLicenseData.device_id}"?`)) return;
       try {
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'delete_license',
-            device_id: currentLicenseData.device_id,
-            admin_secret: adminPasswordSecret
-          })
+          body: JSON.stringify({ action: 'delete_license', device_id: currentLicenseData.device_id, admin_secret: adminPasswordSecret })
         });
-
         const resData = await res.json();
-
         if (res.ok && resData.success) {
-          showToast(`Lisensi Device ID ${currentLicenseData.device_id} berhasil dihapus!`);
+          showToast('Lisensi berhasil dihapus!');
           bukaFitur('device');
         } else {
-          showToast(resData.message || 'Gagal menghapus lisensi dari database.', false);
+          showToast('Gagal menghapus lisensi.', false);
         }
       } catch (e) {
-        showToast('Error koneksi saat menghapus lisensi.', false);
+        showToast('Error koneksi server.', false);
       }
     }
 
-    // --- MANAJEMEN PAKET HARGA ---
+    // --- KELOLA HARGA PAKET ---
     async function muatDataPaketServer() {
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=get_packages`);
@@ -537,16 +540,10 @@
         const list = data.packages || [];
         const container = document.getElementById('containerListPaket');
         container.innerHTML = '';
-
-        if (list.length === 0) {
-          tambahBarisPaketForm('Paket 7 Hari', 7, 100);
-        } else {
-          list.forEach(p => {
-            tambahBarisPaketForm(p.nama, p.hari, p.harga);
-          });
-        }
+        if (list.length === 0) tambahBarisPaketForm('Paket 7 Hari', 7, 100);
+        else list.forEach(p => tambahBarisPaketForm(p.nama, p.hari, p.harga));
       } catch (err) {
-        showToast('Gagal memuat daftar paket dari server.', false);
+        showToast('Gagal memuat paket.', false);
       }
     }
 
@@ -555,18 +552,10 @@
       const div = document.createElement('div');
       div.className = 'package-row';
       div.innerHTML = `
-        <div style="flex: 2;">
-          <input type="text" class="inp-nama" value="${nama}" placeholder="Nama Paket" style="height: 38px; font-size: 12px;">
-        </div>
-        <div style="flex: 1;">
-          <input type="number" class="inp-hari" value="${hari}" placeholder="Hari" style="height: 38px; font-size: 12px;">
-        </div>
-        <div style="flex: 1.5;">
-          <input type="number" class="inp-harga" value="${harga}" placeholder="Harga (Rp)" style="height: 38px; font-size: 12px;">
-        </div>
-        <div>
-          <button class="btn btn-danger" style="width: 38px; height: 38px; font-size: 14px;" onclick="this.parentElement.parentElement.remove()">✕</button>
-        </div>
+        <input type="text" class="inp-nama" value="${nama}" placeholder="Nama Paket" style="flex: 2; height: 38px; font-size: 12px;">
+        <input type="number" class="inp-hari" value="${hari}" placeholder="Hari" style="flex: 1; height: 38px; font-size: 12px;">
+        <input type="number" class="inp-harga" value="${harga}" placeholder="Harga" style="flex: 1.5; height: 38px; font-size: 12px;">
+        <button class="btn btn-danger" style="width: 38px; height: 38px;" onclick="this.parentElement.remove()">✕</button>
       `;
       container.appendChild(div);
     }
@@ -574,21 +563,12 @@
     async function simpanPengaturanPaketServer() {
       const rows = document.querySelectorAll('.package-row');
       const packages = [];
-
       rows.forEach(r => {
         const nama = r.querySelector('.inp-nama').value.trim();
         const hari = Number(r.querySelector('.inp-hari').value);
         const harga = Number(r.querySelector('.inp-harga').value);
-        if (nama && !isNaN(hari) && !isNaN(harga)) {
-          packages.push({ nama, hari, harga });
-        }
+        if (nama && !isNaN(hari) && !isNaN(harga)) packages.push({ nama, hari, harga });
       });
-
-      if (packages.length === 0) {
-        showToast('Minimal harus ada 1 paket valid.', false);
-        return;
-      }
-
       try {
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
@@ -596,15 +576,61 @@
           body: JSON.stringify({ action: 'save_packages', packages })
         });
         const result = await res.json();
-        if (result.success) {
-          showToast('Pengaturan paket berhasil disimpan!');
-          muatDataPaketServer();
-        } else {
-          showToast('Gagal menyimpan paket.', false);
-        }
+        if (result.success) { showToast('Paket berhasil disimpan!'); muatDataPaketServer(); }
+        else { showToast('Gagal menyimpan paket.', false); }
+      } catch (err) { showToast('Error koneksi server.', false); }
+    }
+
+    // --- KELOLA VOUCHER DISKON ---
+    async function muatDataVoucherServer() {
+      try {
+        const res = await fetch(`${VERCEL_API_URL}?action=get_vouchers`);
+        const data = await res.json();
+        const list = data.vouchers || [];
+        const container = document.getElementById('containerListVoucher');
+        container.innerHTML = '';
+        if (list.length === 0) tambahBarisVoucherForm('PROMO50', 'percent', 50);
+        else list.forEach(v => tambahBarisVoucherForm(v.code, v.discount_type, v.discount_value));
       } catch (err) {
-        showToast('Terjadi kesalahan koneksi ke server.', false);
+        showToast('Gagal memuat voucher.', false);
       }
+    }
+
+    function tambahBarisVoucherForm(code = '', type = 'percent', value = '') {
+      const container = document.getElementById('containerListVoucher');
+      const div = document.createElement('div');
+      div.className = 'voucher-row';
+      div.innerHTML = `
+        <input type="text" class="inp-code" value="${code}" placeholder="KODE" style="flex: 2; height: 38px; font-size: 12px; text-transform: uppercase;">
+        <select class="inp-type" style="flex: 1.2; height: 38px; font-size: 12px;">
+          <option value="percent" ${type==='percent'?'selected':''}>Persen (%)</option>
+          <option value="fixed" ${type==='fixed'?'selected':''}>Nominal (Rp)</option>
+        </select>
+        <input type="number" class="inp-value" value="${value}" placeholder="Nilai" style="flex: 1; height: 38px; font-size: 12px;">
+        <button class="btn btn-danger" style="width: 38px; height: 38px;" onclick="this.parentElement.remove()">✕</button>
+      `;
+      container.appendChild(div);
+    }
+
+    async function simpanPengaturanVoucherServer() {
+      const rows = document.querySelectorAll('.voucher-row');
+      const vouchers = [];
+      rows.forEach(r => {
+        const code = r.querySelector('.inp-code').value.trim().toUpperCase();
+        const discount_type = r.querySelector('.inp-type').value;
+        const discount_value = Number(r.querySelector('.inp-value').value);
+        if (code && !isNaN(discount_value)) vouchers.push({ code, discount_type, discount_value });
+      });
+      try {
+        const res = await fetch(VERCEL_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save_vouchers', vouchers })
+        });
+        const result = await res.json();
+        if (result.success) { showToast('Voucher berhasil disimpan!'); muatDataVoucherServer(); }
+        else { showToast('Gagal menyimpan voucher.', false); }
+      } catch (err) { showToast('Error koneksi server.', false); }
     }
   </script>
 </body>

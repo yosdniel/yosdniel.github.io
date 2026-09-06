@@ -9,7 +9,7 @@ const HARGA_PAKET = {
 };
 
 const VERSIONS = {
-  latest_version: '1.5.20',
+  latest_version: '1.5.21',
   download_url: 'https://mindspace-id.vercel.app/files/sipgn-autofill.user.js',
   changelog: 'Stabilitas sinkronisasi lisensi Supabase & perbaikan penanganan status QRIS Tokopay.'
 };
@@ -21,13 +21,11 @@ const processedOrders = new Map();
 async function simpanLisensiOtomatis(SUPABASE_URL, SUPABASE_KEY, deviceId, paketHari, refId) {
   if (!SUPABASE_URL || !SUPABASE_KEY || !deviceId || !paketHari) return null;
 
-  // Jika ref_id ini sudah pernah diproses, kembalikan data kadaluarsa yang tersimpan (cegah double add)
   if (refId && processedOrders.has(refId)) {
     return { exp_date: processedOrders.get(refId) };
   }
 
   try {
-    // Ambil tanggal hari ini dalam WIB (YYYY-MM-DD)
     const hariIniWIB = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
     let expDateObj = new Date(hariIniWIB + 'T00:00:00');
 
@@ -77,7 +75,6 @@ async function simpanLisensiOtomatis(SUPABASE_URL, SUPABASE_KEY, deviceId, paket
 }
 
 export default async function handler(req, res) {
-  // Pengaturan Header CORS Lengkap untuk Mencegah Status 0 / Blocked by Preflight
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS,PATCH,DELETE,PUT');
@@ -87,7 +84,6 @@ export default async function handler(req, res) {
   );
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
 
-  // Tangani Request Preflight OPTIONS dari Browser
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
@@ -132,7 +128,7 @@ export default async function handler(req, res) {
         if (lisensi.status !== 'active') return res.status(200).json({ valid: false, msg: `Lisensi berstatus: ${lisensi.status}` });
         if (hariIniWIB > lisensi.exp_date) return res.status(200).json({ valid: false, msg: 'Lisensi telah kadaluarsa.' });
 
-        return res.status(200).json({ valid: true, exp_date: lisensi.exp_date });
+        return res.status(200).json({ valid: true, exp_date: lisensi.exp_date, status: lisensi.status, license_key: lisensi.license_key });
       }
 
       // CEK STATUS PEMBAYARAN KE TOKOPAY API
@@ -143,17 +139,14 @@ export default async function handler(req, res) {
 
         const signature = crypto.createHash('md5').update(`${merchantId}${secretKey}${ref_id}`).digest('hex');
         
-        // Panggilan API Cek Status Tokopay dengan parameter "secret"
         const tokopayRes = await fetch(`https://api.tokopay.id/v1/order/status?merchant=${merchantId}&secret=${secretKey}&ref_id=${encodeURIComponent(ref_id)}&signature=${signature}`, { cache: 'no-store' });
         const tokopayData = await tokopayRes.json();
 
-        // 1. Ekstrak data bertingkat (nested: data.data.status / data.status)
         const innerData = tokopayData?.data?.data || tokopayData?.data || tokopayData;
         const rawDataStatus = innerData?.status || innerData?.status_pembayaran || tokopayData?.status;
         const stringStatus = String(rawDataStatus || '').toLowerCase();
         const isPaidBool = innerData?.is_paid === true || tokopayData?.is_paid === true;
 
-        // 2. Verifikasi status pembayaran lunas
         const isLunas =
           isPaidBool ||
           rawDataStatus === 1 ||
@@ -162,7 +155,6 @@ export default async function handler(req, res) {
 
         if (isLunas) {
           let orderInfo = orderMemory.get(ref_id);
-          // Mengutamakan parameter URL jika memory Vercel ter-reset
           let targetPaketHari = orderInfo?.paket_hari || paket_hari || 7;
           let targetDevId = orderInfo?.device_id || device_id;
 
@@ -170,13 +162,11 @@ export default async function handler(req, res) {
             return res.status(200).json({ is_paid: false, error: 'Device ID tidak ditemukan untuk pembaruan lisensi.' });
           }
 
-          // Tanggal fallback jika Supabase bermasalah
           const hariIniWIB = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
           const fallbackExp = new Date(hariIniWIB + 'T00:00:00');
           fallbackExp.setDate(fallbackExp.getDate() + Number(targetPaketHari));
           const fallbackExpStr = fallbackExp.toISOString().slice(0, 10);
 
-          // Eksekusi Supabase terisolasi agar tidak menggagalkan respon is_paid
           let savedInfo = null;
           try {
             savedInfo = await simpanLisensiOtomatis(SUPABASE_URL, SUPABASE_KEY, targetDevId, targetPaketHari, ref_id);
@@ -186,6 +176,7 @@ export default async function handler(req, res) {
 
           return res.status(200).json({
             is_paid: true,
+            status: 'Success',
             exp_date: savedInfo?.exp_date || fallbackExpStr
           });
         }
@@ -209,6 +200,18 @@ export default async function handler(req, res) {
           },
           body: JSON.stringify({ device_id, license_key, exp_date, status, updated_at: new Date().toISOString() })
         });
+        return res.status(200).json({ success: response.ok, status: response.ok });
+      }
+
+      if (action === 'delete_license') {
+        if (!device_id) return res.status(400).json({ success: false, error: 'Device ID wajib diisi.' });
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(device_id)}`, {
+          method: 'DELETE',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        });
         return res.status(200).json({ success: response.ok });
       }
 
@@ -218,7 +221,6 @@ export default async function handler(req, res) {
         const secretKey = process.env.TOKOPAY_SECRET_KEY;
         const nominal = HARGA_PAKET[Number(paket_hari)] || 25000;
 
-        // Pastikan ref_id unik
         let fixRefId = ref_id;
         if (!fixRefId || fixRefId === device_id) {
           fixRefId = `SIPGN-${device_id || 'DEV'}-${Date.now()}`;

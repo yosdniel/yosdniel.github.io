@@ -308,6 +308,14 @@ export default async function handler(req, res) {
         return res.status(200).json({ valid: false, status: 'expired', exp_date: lic.exp_date, msg: 'Lisensi Anda telah kadaluarsa.' });
       }
 
+      // OTOMATIS UPDATE WAKTU TERAKHIR DIGUNAKAN SAAT SCRIPT / DEVICE MELAKUKAN CHECK LISENSI
+      const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
+      await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(device_id)}`, {
+        method: 'PATCH',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updated_at: timestampWIB })
+      });
+
       return res.status(200).json({ valid: true, status: 'active', exp_date: lic.exp_date });
     } catch (e) {
       return res.status(200).json({ valid: false, msg: 'Gagal verifikasi lisensi.' });

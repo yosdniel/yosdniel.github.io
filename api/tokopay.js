@@ -132,11 +132,13 @@ export default async function handler(req, res) {
         const tokopayRes = await fetch(`https://api.tokopay.id/v1/order/status?merchant=${merchantId}&key=${secretKey}&ref_id=${encodeURIComponent(ref_id)}&signature=${signature}`, { cache: 'no-store' });
         const tokopayData = await tokopayRes.json();
 
-        // Pengecekan status yang tahan terhadap variasi tipe data Tokopay
-        const rawDataStatus = tokopayData?.data?.status ?? tokopayData?.data?.status_pembayaran ?? tokopayData?.status;
+        // 1. Ekstrak data bertingkat (nested: data.data.status / data.status)
+        const innerData = tokopayData?.data?.data || tokopayData?.data || tokopayData;
+        const rawDataStatus = innerData?.status || innerData?.status_pembayaran || tokopayData?.status;
         const stringStatus = String(rawDataStatus || '').toLowerCase();
-        const isPaidBool = tokopayData?.data?.is_paid === true || tokopayData?.is_paid === true;
+        const isPaidBool = innerData?.is_paid === true || tokopayData?.is_paid === true;
 
+        // 2. Verifikasi status pembayaran lunas
         const isLunas =
           isPaidBool ||
           rawDataStatus === 1 ||
@@ -179,13 +181,13 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: response.ok });
       }
 
-      // CREATION ORDER QRIS
+      // BUAT TRANSAKSI QRIS
       if (paket_hari || ref_id) {
         const merchantId = process.env.TOKOPAY_MERCHANT_ID;
         const secretKey = process.env.TOKOPAY_SECRET_KEY;
         const nominal = HARGA_PAKET[Number(paket_hari)] || 25000;
 
-        // Buat Reff ID Unik jika ref_id yang dikirim sama dengan device_id atau kosong
+        // Pastikan ref_id unik (tidak boleh persis sama dengan device_id)
         let fixRefId = ref_id;
         if (!fixRefId || fixRefId === device_id) {
           fixRefId = `SIPGN-${device_id || 'DEV'}-${Date.now()}`;

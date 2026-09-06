@@ -22,7 +22,6 @@ async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, pake
   if (!supabaseUrl || !supabaseKey || !deviceId) return null;
 
   try {
-    // 1. Ambil atau buat harga berdasarkan paket jika nominal 0
     let finalNominal = Number(nominal);
     if (!finalNominal || finalNominal <= 0) {
       const pRes = await fetch(`${supabaseUrl}/rest/v1/packages?hari=eq.${Number(paketHari)}&select=*`, {
@@ -33,11 +32,10 @@ async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, pake
       if (Array.isArray(pData) && pData.length > 0) {
         finalNominal = Number(pData[0].harga || 0);
       } else {
-        finalNominal = Number(paketHari) === 30 ? 50000 : 100; // Default fallback
+        finalNominal = Number(paketHari) === 30 ? 50000 : 100;
       }
     }
 
-    // 2. Catat ke tabel transactions agar grafik langsung terekam valid
     await fetch(`${supabaseUrl}/rest/v1/transactions`, {
       method: 'POST',
       headers: {
@@ -53,7 +51,6 @@ async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, pake
       })
     });
 
-    // 3. Update / Insert masa aktif lisensi
     const getRes = await fetch(`${supabaseUrl}/rest/v1/licenses?device_id=eq.${encodeURIComponent(deviceId)}`, {
       method: 'GET',
       headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` },
@@ -101,7 +98,7 @@ async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, pake
           license_key: licenseKeyNew,
           exp_date: expDateNew,
           status: 'active',
-          client_name: 'User QRIS'
+          client_name: 'User QRIS / Voucher'
         }),
         cache: 'no-store'
       });
@@ -136,7 +133,7 @@ export default async function handler(req, res) {
   const paket_hari = query.paket_hari || body?.paket_hari;
 
   if (action === 'check_version') {
-    return res.status(200).json({ version: '1.5.31', download_url: 'https://mindspace-id.vercel.app/sipgn-autofill.user.js' });
+    return res.status(200).json({ version: '1.5.32', download_url: 'https://mindspace-id.vercel.app/sipgn-autofill.user.js' });
   }
 
   // GET PACKAGES
@@ -194,7 +191,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // SAVE VOUCHERS
+  // SAVE VOUCHERS (Mendukung struktur baru: code, days_value, max_uses, used_count, used_devices)
   if (action === 'save_vouchers' && req.method === 'POST') {
     const newVouchers = body.vouchers;
     try {
@@ -203,10 +200,18 @@ export default async function handler(req, res) {
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
       });
       if (Array.isArray(newVouchers) && newVouchers.length > 0) {
+        const formattedVouchers = newVouchers.map(v => ({
+          code: String(v.code || '').trim().toUpperCase(),
+          days_value: Number(v.days_value || v.days || 7),
+          max_uses: Number(v.max_uses || 10),
+          used_count: Number(v.used_count || 0),
+          used_devices: Array.isArray(v.used_devices) ? v.used_devices : []
+        }));
+
         await fetch(`${SUPABASE_URL}/rest/v1/vouchers`, {
           method: 'POST',
           headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify(newVouchers)
+          body: JSON.stringify(formattedVouchers)
         });
       }
       return res.status(200).json({ success: true });
@@ -215,7 +220,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // GET STATISTIK PENDAPATAN & CHART BAR VALID BERDASARKAN TABEL TRANSACTIONS
+  // GET STATISTIK PENDAPATAN & CHART BAR
   if (action === 'get_stats') {
     try {
       const resTrans = await fetch(`${SUPABASE_URL}/rest/v1/transactions?select=*`, {
@@ -228,13 +233,11 @@ export default async function handler(req, res) {
       const nowWIB = new Date();
       const hariIniStr = nowWIB.toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
 
-      // Hitung awal minggu ini (Senin) dan awal bulan ini
       let harian = 0;
       let mingguan = 0;
       let bulanan = 0;
       let chartHarian = [0, 0, 0, 0, 0, 0, 0];
 
-      // Buat list 7 hari terakhir (format YYYY-MM-DD)
       const datesArray = [];
       for (let i = 6; i >= 0; i--) {
         const d = new Date();
@@ -246,15 +249,9 @@ export default async function handler(req, res) {
         const tDate = (t.created_at || '').slice(0, 10);
         const amount = Number(t.amount || 0);
 
-        if (tDate === hariIniStr) {
-          harian += amount;
-        }
+        if (tDate === hariIniStr) harian += amount;
+        if (tDate.slice(0, 7) === hariIniStr.slice(0, 7)) bulanan += amount;
 
-        if (tDate.slice(0, 7) === hariIniStr.slice(0, 7)) {
-          bulanan += amount;
-        }
-
-        // Mingguan (7 hari ke belakang)
         if (datesArray.includes(tDate)) {
           mingguan += amount;
           const idx = datesArray.indexOf(tDate);
@@ -300,10 +297,73 @@ export default async function handler(req, res) {
     }
   }
 
-  // POST: KONTROL ADMIN & WEBHOOK TOKOPAY
+  // POST: KONTROL ADMIN, KLAIM VOUCHER, & WEBHOOK TOKOPAY
   if (req.method === 'POST') {
+    // 1. ENDPOINT KLAIM VOUCHER BARU
+    if (body.action === 'claim_voucher') {
+      const { voucher_code, device_id: devIdTarget } = body;
+      const cleanVoucher = (voucher_code || '').trim().toUpperCase();
+
+      if (!cleanVoucher || !devIdTarget) {
+        return res.status(400).json({ error: 'Kode voucher dan Device ID wajib diisi.' });
+      }
+
+      try {
+        const vRes = await fetch(`${SUPABASE_URL}/rest/v1/vouchers?code=eq.${encodeURIComponent(cleanVoucher)}&select=*`, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+          cache: 'no-store'
+        });
+        const vData = await vRes.json();
+
+        if (!Array.isArray(vData) || vData.length === 0) {
+          return res.status(400).json({ error: 'Kode voucher tidak valid.' });
+        }
+
+        const voucher = vData[0];
+        const usedDevices = Array.isArray(voucher.used_devices) ? voucher.used_devices : [];
+
+        // Validasi: Apakah Device ID sudah pernah klaim voucher ini?
+        if (usedDevices.includes(devIdTarget)) {
+          return res.status(400).json({ error: 'Device ID Anda sudah pernah menggunakan voucher ini.' });
+        }
+
+        // Validasi: Apakah kuota maksimal penggunaan sudah habis?
+        if (voucher.used_count >= voucher.max_uses) {
+          return res.status(400).json({ error: 'Kuota penggunaan voucher ini sudah habis.' });
+        }
+
+        // Catat penggunaan voucher baru
+        usedDevices.push(devIdTarget);
+        const newUsedCount = voucher.used_count + 1;
+
+        await fetch(`${SUPABASE_URL}/rest/v1/vouchers?id=eq.${voucher.id}`, {
+          method: 'PATCH',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            used_count: newUsedCount,
+            used_devices: usedDevices
+          })
+        });
+
+        // Berikan durasi custom langsung tanpa bayar (transaksi senilai 0)
+        const savedInfo = await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, devIdTarget, voucher.days_value, 0);
+
+        return res.status(200).json({
+          success: true,
+          message: `Voucher berhasil diklaim! Durasi aktif ditambah ${voucher.days_value} hari.`,
+          exp_date: savedInfo?.exp_date
+        });
+
+      } catch (err) {
+        return res.status(500).json({ error: 'Gagal memproses klaim voucher.' });
+      }
+    }
+
     if (body.action === 'save_license') {
-      // Jika admin memperpanjang manual, catat juga sebagai transaksi senilai 0 atau harga paket terkait
       await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, body.device_id, body.paket_hari || 7, body.nominal || 0);
 
       await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(body.device_id)}`, {

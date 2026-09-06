@@ -4,6 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard Admin Lisensi - Mindspace Studio</title>
+  
+  <!-- FAVICON & PWA MANIFEST -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2338bdf8'><path d='M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z'/></svg>">
+  <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22Dashboard%20Admin%20Lisensi%22%2C%22short_name%22%3A%22AdminSIPGN%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230b1329%22%2C%22theme_color%22%3A%22%232563eb%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%2520xmlns%253D%2527http%253A%2F%2Fwww.w3.org%2F2000%2Fsvg%2527%2520viewBox%253D%25270%25200%252024%252024%2527%2520fill%253D%2527%252338bdf8%2527%253E%253Cpath%2520d%253D%2527M12%25201L3%25205v6c0%25205.55%25203.84%252010.74%25209%252012%25205.16-1.26%25209-6.45%25209-12V5l-9-4zm0%252010.99h7c-.53%25204.12-3.28%25207.79-7%25208.94V12H5V6.3l7-3.11v8.8z%2527%2F%253E%253C%2Fsvg%253E%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
+  <meta name="theme-color" content="#2563eb">
+
   <style>
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
@@ -42,6 +48,8 @@
     .btn-danger:hover { background: #b91c1c; }
     .btn-secondary { background: #475569; color: white; }
     .btn-secondary:hover { background: #334155; }
+    .btn-install { background: #7c3aed; color: white; display: none; margin-bottom: 12px; }
+    .btn-install:hover { background: #6d28d9; }
     
     .card-info {
       background: #0f172a; border: 1px solid #334155; border-radius: 12px;
@@ -87,6 +95,11 @@
       <h1>Dashboard Kelola Lisensi</h1>
       <p>Mindspace Studio Admin Panel</p>
     </div>
+
+    <!-- TOMBOL INSTALL / BUAT PINTASAN APLIKASI -->
+    <button id="btnInstallApp" class="btn btn-install" onclick="installAplikasiPWA()">
+      📱 Install Sebagai Aplikasi Android
+    </button>
 
     <!-- TAHAP 0: VERIFIKASI PASSWORD ADMIN -->
     <div id="step0">
@@ -163,6 +176,28 @@
 
     let adminPasswordSecret = '';
     let currentLicenseData = null;
+    let deferredPrompt = null;
+
+    // --- FITUR PWA / INSTALL KE ANDROID ---
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const btnInstall = document.getElementById('btnInstallApp');
+      if (btnInstall) btnInstall.style.display = 'flex';
+    });
+
+    async function installAplikasiPWA() {
+      if (!deferredPrompt) {
+        showToast('Gunakan menu titik tiga (⋮) di Chrome lalu pilih "Tambahkan ke Layar Utama".', false);
+        return;
+      }
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        document.getElementById('btnInstallApp').style.display = 'none';
+      }
+      deferredPrompt = null;
+    }
 
     function getTanggalHariIniWIB() {
       return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
@@ -240,10 +275,8 @@
         const hariIni = getTanggalHariIniWIB();
 
         if (data.exp_date || data.status) {
-          // Data Ditemukan di Database
           let statusAktual = data.status || 'active';
 
-          // Cek Apakah Kadaluarsa
           if (statusAktual === 'active' && data.exp_date && hariIni > data.exp_date) {
             statusAktual = 'expired';
           }
@@ -256,7 +289,6 @@
             is_new: false
           };
         } else {
-          // Device ID Belum Pernah Terdaftar
           currentLicenseData = {
             device_id: deviceId,
             exp_date: '-',
@@ -293,7 +325,6 @@
         stEl.innerHTML = '<span class="badge badge-unregistered">Belum Terdaftar</span>';
       }
 
-      // Tombol hapus disembunyikan jika device id belum terdaftar
       const btnHapus = document.getElementById('btnHapusLisensi');
       if (btnHapus) {
         btnHapus.style.display = currentLicenseData.is_new ? 'none' : 'block';
@@ -336,7 +367,7 @@
       const dd = String(baseDate.getDate()).padStart(2, '0');
 
       currentLicenseData.exp_date = `${yyyy}-${mm}-${dd}`;
-      currentLicenseData.status = 'active'; // Otomatis aktif ketika ditambah durasinya
+      currentLicenseData.status = 'active';
       currentLicenseData.license_key = buatLicenseKey(currentLicenseData.exp_date, currentLicenseData.device_id);
       
       renderDetail();
@@ -358,7 +389,6 @@
 
       if (!expDateVal) return showToast('Pilih tanggal kadaluarsa!', false);
 
-      // Jika statusnya expired atau unregistered namun tanggal diatur di masa depan, ubah ke active
       if ((statusVal === 'expired' || statusVal === 'unregistered') && expDateVal >= getTanggalHariIniWIB()) {
         statusVal = 'active';
       }

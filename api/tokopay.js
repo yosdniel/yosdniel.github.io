@@ -14,21 +14,30 @@ const VERSIONS = {
   changelog: 'Stabilitas sinkronisasi lisensi Supabase & perbaikan penanganan status QRIS Tokopay.'
 };
 
-// Global in-memory backup mapping ref_id -> { device_id, paket_hari }
+// Memory cache sementara untuk order & tracking order yang sudah diproses (mencegah double topup)
 const orderMemory = new Map();
+const processedOrders = new Map();
 
-async function simpanLisensiOtomatis(SUPABASE_URL, SUPABASE_KEY, deviceId, paketHari) {
+async function simpanLisensiOtomatis(SUPABASE_URL, SUPABASE_KEY, deviceId, paketHari, refId) {
   if (!SUPABASE_URL || !SUPABASE_KEY || !deviceId || !paketHari) return null;
+
+  // Jika ref_id ini sudah pernah diproses sebelumnya, kembalikan data yang tersimpan (cegah double add)
+  if (refId && processedOrders.has(refId)) {
+    return { exp_date: processedOrders.get(refId) };
+  }
+
   try {
     let expDateObj = new Date();
     const checkRes = await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(deviceId)}&select=*`, {
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
     });
     const existing = await checkRes.json();
+    
     if (Array.isArray(existing) && existing.length > 0 && existing[0].exp_date) {
       const currentExp = new Date(existing[0].exp_date + 'T00:00:00');
       if (currentExp > expDateObj) expDateObj = currentExp;
     }
+
     expDateObj.setDate(expDateObj.getDate() + Number(paketHari));
     
     const expDateTarget = expDateObj.toISOString().slice(0, 10);
@@ -43,10 +52,19 @@ async function simpanLisensiOtomatis(SUPABASE_URL, SUPABASE_KEY, deviceId, paket
         'Content-Type': 'application/json',
         'Prefer': 'resolution=merge-duplicates'
       },
-      body: JSON.stringify({ device_id: deviceId, license_key: licenseKey, exp_date: expDateTarget, status: 'active', updated_at: new Date().toISOString() })
+      body: JSON.stringify({ 
+        device_id: deviceId, 
+        license_key: licenseKey, 
+        exp_date: expDateTarget, 
+        status: 'active', 
+        updated_at: new Date().toISOString() 
+      })
     });
 
-    if (saveRes.ok) return { exp_date: expDateTarget, license_key: licenseKey };
+    if (saveRes.ok) {
+      if (refId) processedOrders.set(refId, expDateTarget);
+      return { exp_date: expDateTarget, license_key: licenseKey };
+    }
   } catch (err) {
     console.error('[SUPABASE ERROR]', err);
   }
@@ -114,10 +132,11 @@ export default async function handler(req, res) {
         const tokopayRes = await fetch(`https://api.tokopay.id/v1/order/status?merchant=${merchantId}&key=${secretKey}&ref_id=${ref_id}&signature=${signature}`, { cache: 'no-store' });
         const tokopayData = await tokopayRes.json();
 
-        const statusVal = tokopayData?.data?.status ?? tokopayData?.status;
-        const isPaidVal = tokopayData?.is_paid ?? tokopayData?.data?.is_paid;
+        // Pengecekan status transaksi yang ketat dan presisi
+        const trxStatus = String(tokopayData?.data?.status || tokopayData?.data?.status_pembayaran || '').toLowerCase();
+        const isPaidBool = tokopayData?.data?.is_paid === true || tokopayData?.is_paid === true;
 
-        const isLunas = isPaidVal === true || statusVal === 1 || statusVal === '1' || String(statusVal).toLowerCase() === 'success' || String(statusVal).toLowerCase() === 'paid' || String(statusVal).toLowerCase() === 'settlement';
+        const isLunas = isPaidBool || ['success', 'dibayar', 'paid', 'settlement', 'completed'].includes(trxStatus);
 
         if (isLunas) {
           let orderInfo = orderMemory.get(ref_id);
@@ -128,7 +147,7 @@ export default async function handler(req, res) {
             return res.status(200).json({ is_paid: false, error: 'Device ID tidak ditemukan untuk pembaruan lisensi.' });
           }
 
-          let savedInfo = await simpanLisensiOtomatis(SUPABASE_URL, SUPABASE_KEY, targetDevId, targetPaketHari);
+          let savedInfo = await simpanLisensiOtomatis(SUPABASE_URL, SUPABASE_KEY, targetDevId, targetPaketHari, ref_id);
           return res.status(200).json({ is_paid: true, exp_date: savedInfo?.exp_date });
         }
 

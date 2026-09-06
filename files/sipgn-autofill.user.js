@@ -1,16 +1,16 @@
 // ==UserScript==
-// @name        SIPGN Autofill - POP
-// @namespace   sipgn-autofill
-// @version     1.5.28
-// @description Isi otomatis form Tugas Pengiriman & Auto Payment QRIS Tokopay
-// @match       https://pop-sipgn.bgn.go.id/distribution/*
-// @grant       GM_setValue
-// @grant       GM_getValue
-// @grant       GM_xmlhttpRequest
-// @connect     mindspace-id.vercel.app
-// @connect     api.qrserver.com
-// @connect     chart.googleapis.com
-// @updateURL   https://mindspace-id.vercel.app/sipgn-autofill.user.js
+// @name       SIPGN Autofill - POP
+// @namespace    sipgn-autofill
+// @version      1.5.33
+// @description Isi otomatis form Tugas Pengiriman & Klaim Voucher Durasi Custom Baru
+// @match        https://pop-sipgn.bgn.go.id/distribution/*
+// @grant        GM_setValue
+// @grant        GM_getValue
+// @grant        GM_xmlhttpRequest
+// @connect      mindspace-id.vercel.app
+// @connect      api.qrserver.com
+// @connect      chart.googleapis.com
+// @updateURL    https://mindspace-id.vercel.app/sipgn-autofill.user.js
 // @downloadURL https://mindspace-id.vercel.app/sipgn-autofill.user.js
 // ==/UserScript==
 
@@ -22,7 +22,7 @@
   // ------------------------------------------------------------------
   const CURRENT_VERSION = (typeof GM_info !== 'undefined' && GM_info.script)
     ? GM_info.script.version
-    : '1.5.28';
+    : '1.5.33';
 
   const VERCEL_API_URL = 'https://mindspace-id.vercel.app/api/tokopay';
 
@@ -36,6 +36,8 @@
   let intervalMonitorLisensi = null;
   let isPaymentModalOpen = false;
   let isPaymentSuccess = false;
+  let daftarVouchersGlobal = [];
+  let kodeVoucherTerpakai = null;
 
   // ------------------------------------------------------------------
   // FITUR IN-APP UPDATE CHECKER & POP-UP NOTIFICATION
@@ -142,29 +144,67 @@
   }
 
   // ------------------------------------------------------------------
-  // FUNGSI KOMUNIKASI API VERCEL <-> TOKOPAY
+  // FUNGSI KOMUNIKASI API VERCEL <-> TOKOPAY & VOUCHER KLAIM
   // ------------------------------------------------------------------
-  function ambilDaftarPaketVercel() {
+  function ambilDaftarPaketDanVoucherVercel() {
     return new Promise((resolve, reject) => {
       GM_xmlhttpRequest({
         method: 'GET',
         url: `${VERCEL_API_URL}?action=get_packages&_t=${Date.now()}`,
         headers: { 'Cache-Control': 'no-cache, no-store' },
-        onload: function (res) {
-          try {
-            const data = JSON.parse(res.responseText);
-            const listPaket = data.packages || data.data || (Array.isArray(data) ? data : null);
-            if (Array.isArray(listPaket) && listPaket.length > 0) {
-              resolve(listPaket);
-            } else {
-              reject('Daftar paket kosong atau format tidak sesuai.');
-            }
-          } catch (e) {
-            reject('Respon daftar paket dari Vercel tidak valid.');
-          }
+        onload: function (resPkg) {
+          GM_xmlhttpRequest({
+            method: 'GET',
+            url: `${VERCEL_API_URL}?action=get_vouchers&_t=${Date.now()}`,
+            headers: { 'Cache-Control': 'no-cache, no-store' },
+            onload: function (resVouch) {
+              try {
+                const dataPkg = JSON.parse(resPkg.responseText);
+                const listPaket = dataPkg.packages || dataPkg.data || (Array.isArray(dataPkg) ? dataPkg : []);
+
+                let listVoucher = [];
+                try {
+                  const dataVouch = JSON.parse(resVouch.responseText);
+                  listVoucher = dataVouch.vouchers || [];
+                } catch(e) {}
+
+                daftarVouchersGlobal = listVoucher;
+                resolve({ packages: listPaket, vouchers: listVoucher });
+              } catch (e) {
+                reject('Respon data dari Vercel tidak valid.');
+              }
+            },
+            onerror: () => reject('Gagal mengambil voucher.')
+          });
         },
         onerror: function () {
           reject('Gagal mengambil daftar paket dari server Vercel.');
+        }
+      });
+    });
+  }
+
+  function klaimVoucherVercel(kodeVoucher) {
+    return new Promise((resolve, reject) => {
+      GM_xmlhttpRequest({
+        method: 'POST',
+        url: VERCEL_API_URL,
+        headers: { 'Content-Type': 'application/json' },
+        data: JSON.stringify({
+          action: 'claim_voucher',
+          voucher_code: kodeVoucher,
+          device_id: dapatkanDeviceID()
+        }),
+        onload: function (res) {
+          try {
+            const data = JSON.parse(res.responseText);
+            resolve(data);
+          } catch (e) {
+            reject('Respon klaim voucher dari Vercel tidak valid.');
+          }
+        },
+        onerror: function () {
+          reject('Gagal menghubungi server Vercel.');
         }
       });
     });
@@ -276,7 +316,7 @@
   // ------------------------------------------------------------------
   // MODAL INDEPENDEN UNTUK TRANSAKSI SUKSES
   // ------------------------------------------------------------------
-  function tampilkanModalSukses(expDateTarget) {
+  function tampilkanModalSukses(expDateTarget, pesanSuksesCustom = 'PEMBAYARAN BERHASIL!') {
     const modalAktivasiLama = document.getElementById('sipgn-license-modal');
     if (modalAktivasiLama) modalAktivasiLama.remove();
 
@@ -295,8 +335,8 @@
     overlay.innerHTML = `
       <div style="position: relative; background: #0f172a; border: 1px solid #10b981; color: white; padding: 24px; border-radius: 12px; width: 330px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
         <div style="font-size: 40px; margin-bottom: 6px;">🎉</div>
-        <h3 style="margin: 0; font-size: 18px; font-weight: bold; color: #34d399;">PEMBAYARAN BERHASIL!</h3>
-        <p style="font-size: 11px; color: #94a3b8; margin: 8px 0 14px 0;">Transaksi Anda telah dikonfirmasi oleh sistem.</p>
+        <h3 style="margin: 0; font-size: 18px; font-weight: bold; color: #34d399;">${pesanSuksesCustom}</h3>
+        <p style="font-size: 11px; color: #94a3b8; margin: 8px 0 14px 0;">Akses sistem Anda telah diperbarui.</p>
 
         <div style="background: #064e3b; color: #a7f3d0; padding: 12px; border-radius: 8px; font-size: 12px; margin-bottom: 16px; border: 1px solid #047857; text-align: center;">
           Status: <b>AKTIF</b><br>
@@ -328,14 +368,12 @@
 
     let expDateTarget = expDateFromBackend;
 
-    // Jika backend tidak mengirim tanggal ekspirasi secara eksplisit, 
-    // hitung akumulasi dari tanggal aktif saat ini (misal: 05 Oktober 2026)
     if (!expDateTarget) {
       let baseDate = new Date();
       if (currentDatabaseExpDate) {
         const expDateObj = new Date(currentDatabaseExpDate + 'T00:00:00');
         if (expDateObj > baseDate) {
-          baseDate = expDateObj; // Akumulasi dari tanggal aktif terakhir
+          baseDate = expDateObj;
         }
       }
       baseDate.setDate(baseDate.getDate() + jumlahHari);
@@ -354,38 +392,31 @@
     tampilkanModalSukses(expDateTarget);
   }
 
-  // ------------------------------------------------------------------
-  // DETEKTOR LUNAS MULTI-PAYLOAD / ROBUST
-  // ------------------------------------------------------------------
   function cekApakahLunas(obj) {
     if (!obj) return false;
-
-    // Periksa berbagai format objek balasan dari Vercel / Tokopay
     const subData = obj.data || obj.result || obj;
     const innerSubData = subData?.data || subData;
-
     const listStatusSukses = ['success', 'paid', 'completed', 'lunas', 'berhasil', '200', '1'];
 
-    const isPaidFlag = 
-      subData.is_paid === true || subData.paid === true || 
+    const isPaidFlag =
+      subData.is_paid === true || subData.paid === true ||
       innerSubData.is_paid === true || innerSubData.paid === true ||
       obj.is_paid === true || obj.paid === true;
 
     const statusVal = String(
-      innerSubData.status || innerSubData.raw_status || innerSubData.transaction_status || 
-      subData.status || subData.raw_status || subData.transaction_status || 
+      innerSubData.status || innerSubData.raw_status || innerSubData.transaction_status ||
+      subData.status || subData.raw_status || subData.transaction_status ||
       obj.status || ''
     ).toLowerCase().trim();
 
     if (isPaidFlag || listStatusSukses.includes(statusVal)) {
       return true;
     }
-
     return false;
   }
 
   // ------------------------------------------------------------------
-  // PROSES PEMBAYARAN OTOMATIS & DETEKSI LUNAS QRIS
+  // PROSES PEMBAYARAN OTOMATIS & VOUCHER KLAIM
   // ------------------------------------------------------------------
   async function prosesPembayaranOtomatis(jumlahHari) {
     const devId = dapatkanDeviceID();
@@ -472,7 +503,6 @@
         const imgEl = document.getElementById('sipgn-qr-img-element');
         if (imgEl && qrStringRaw) {
           imgEl.onerror = function () {
-            console.warn('[Autofill] qrserver.com error, beralih ke Google Chart API...');
             this.src = `https://chart.googleapis.com/chart?cht=qr&chs=250x250&chl=${encodeURIComponent(qrStringRaw.trim())}`;
           };
         }
@@ -481,7 +511,6 @@
         if (btnCancel) btnCancel.onclick = prosesMulaiBatalWithCountdown;
       }
 
-      // Countdown Waktu Transaksi (10 Menit)
       let sisaWaktu = 600;
       const timerDisplay = document.getElementById('sipgn-timer-display');
 
@@ -511,7 +540,6 @@
         }
       }, 1000);
 
-      // Polling Status Pembayaran Realtime (Setiap 3 Detik)
       let isPollingBusy = false;
       intervalPollingPembayaran = setInterval(async () => {
         if (isPollingBusy) return;
@@ -519,12 +547,9 @@
 
         try {
           const resStatus = await cekStatusVercel(refIdFix, jumlahHari);
-          console.log('[Autofill] Polling Status:', resStatus);
-
           const isLunas = cekApakahLunas(resStatus);
 
           if (isLunas) {
-            console.log('[Autofill] Pembayaran BERHASIL terkonfirmasi!');
             const innerData = resStatus?.data || resStatus;
             const expDateFromBackend = innerData?.exp_date || resStatus?.exp_date || null;
             eksekusiSuksesPembayaran(jumlahHari, devId, expDateFromBackend);
@@ -552,10 +577,11 @@
     selectEl.innerHTML = '<option value="">⏳ Memuat paket dari server...</option>';
     if (btnBeliEl) btnBeliEl.disabled = true;
 
-    ambilDaftarPaketVercel()
-      .then((daftarPaket) => {
+    ambilDaftarPaketDanVoucherVercel()
+      .then((resData) => {
+        const listPaket = resData.packages;
         selectEl.innerHTML = '';
-        daftarPaket.forEach((p, idx) => {
+        listPaket.forEach((p, idx) => {
           const opt = document.createElement('option');
           const hari = p.hari || p.paket_hari || p.days || p.value;
           const harga = p.harga || p.price || p.formatted_price;
@@ -574,13 +600,32 @@
       });
   }
 
-  function tampilkanModalAktivasi(pesanPeringatan = '', bisaDitutup = true, isBerhasil = false) {
+  async function tampilkanModalAktivasi(pesanPeringatan = '', bisaDitutup = true, isBerhasil = false) {
     try {
       const modalLama = document.getElementById('sipgn-license-modal');
       if (modalLama) modalLama.remove();
 
       const currentDevId = dapatkanDeviceID();
       const infoExp = currentDatabaseExpDate ? `Masa Aktif s/d: <b>${formatTanggalIndo(currentDatabaseExpDate)}</b>` : '';
+
+      // Pengecekan status device ke server apakah termasuk user baru murni (unregistered)
+      let isUserBaru = true;
+      try {
+        const checkRes = await new Promise((resolve) => {
+          GM_xmlhttpRequest({
+            method: 'GET',
+            url: `${VERCEL_API_URL}?action=check_license&device_id=${encodeURIComponent(currentDevId)}&_t=${Date.now()}`,
+            headers: { 'Cache-Control': 'no-cache, no-store' },
+            onload: (res) => {
+              try { resolve(JSON.parse(res.responseText)); } catch(e) { resolve({ valid: false }); }
+            },
+            onerror: () => resolve({ valid: false })
+          });
+        });
+        if (checkRes.status && checkRes.status !== 'unregistered') {
+          isUserBaru = false;
+        }
+      } catch(e) {}
 
       const overlay = document.createElement('div');
       overlay.id = 'sipgn-license-modal';
@@ -599,7 +644,7 @@
               : ''
           }
           <h3 style="margin-top:0; font-size: 18px; font-weight: bold; color: #f8fafc;">Aktivasi / Perpanjang Lisensi</h3>
-          <p style="font-size: 11px; color: #94a3b8; margin-bottom: 12px;">Pilih paket durasi untuk memperpanjang akses sistem Anda.</p>
+          <p style="font-size: 11px; color: #94a3b8; margin-bottom: 12px;">${isUserBaru ? 'Selamat datang! Gunakan voucher user baru atau pilih paket durasi.' : 'Pilih paket durasi untuk memperpanjang akses sistem Anda.'}</p>
 
           <div id="sipgn-info-exp-container" style="background: #1e293b; padding: 8px; border-radius: 6px; font-size: 11px; margin-bottom: 12px; border: 1px solid #334155; color: #38bdf8; word-break: break-all;">
             <b>Device ID:</b><br><span id="sipgn-dev-id-text" style="font-size: 13px; font-weight: bold; color: #facc15;">${currentDevId}</span>
@@ -615,8 +660,24 @@
           }
 
           <div id="sipgn-sec-qris" style="display: block; background: #1e293b; padding: 12px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 10px;">
+
+            ${
+              isUserBaru
+                ? `
+              <div id="sipgn-voucher-section" style="margin-bottom: 12px; text-align: left; border-bottom: 1px dashed #475569; padding-bottom: 10px;">
+                <label style="display: block; font-size: 11px; color: #38bdf8; margin-bottom: 4px; font-weight: bold;">Klaim Kode Voucher User Baru:</label>
+                <div style="display: flex; gap: 6px; margin-bottom: 4px;">
+                  <input type="text" id="sipgn-input-voucher" placeholder="KODE VOUCHER" style="flex: 2; padding: 6px; border-radius: 5px; border: 1px solid #475569; background: #0f172a; color: white; font-size: 11px; text-transform: uppercase;" />
+                  <button id="sipgn-btn-apply-voucher" style="flex: 1; padding: 6px; border: none; border-radius: 5px; background: #2563eb; color: white; font-weight: bold; cursor: pointer; font-size: 11px;">Klaim</button>
+                </div>
+                <div id="sipgn-voucher-feedback" style="font-size: 10px; min-height: 14px;"></div>
+              </div>
+              `
+                : ''
+            }
+
             <div id="sipgn-wrapper-paket">
-              <label style="display: block; font-size: 11px; color: #cbd5e1; margin-bottom: 6px; text-align: left;">Pilih Paket Durasi:</label>
+              <label style="display: block; font-size: 11px; color: #cbd5e1; margin-bottom: 6px; text-align: left;">Atau Pilih Paket Durasi QRIS:</label>
               <select id="sipgn-select-paket" style="width: 100%; padding: 7px; border-radius: 5px; border: 1px solid #475569; background: #0f172a; color: white; font-size: 11px; margin-bottom: 8px;">
                 <option value="">⏳ Memuat paket...</option>
               </select>
@@ -639,6 +700,47 @@
       const btnBeli = document.getElementById('sipgn-btn-buy-qris');
 
       muatDaftarPaketKeSelect(selectPaket, btnBeli);
+
+      if (isUserBaru) {
+        const inputVoucher = document.getElementById('sipgn-input-voucher');
+        const btnApplyVoucher = document.getElementById('sipgn-btn-apply-voucher');
+        const voucherFeedback = document.getElementById('sipgn-voucher-feedback');
+
+        btnApplyVoucher.onclick = async () => {
+          const kode = inputVoucher.value.trim().toUpperCase();
+          if (!kode) {
+            voucherFeedback.textContent = 'Masukkan kode voucher terlebih dahulu.';
+            voucherFeedback.style.color = '#ef4444';
+            return;
+          }
+
+          btnApplyVoucher.disabled = true;
+          btnApplyVoucher.textContent = 'Memeriksa...';
+          voucherFeedback.textContent = '';
+
+          try {
+            const resKlaim = await klaimVoucherVercel(kode);
+            if (resKlaim.success) {
+              voucherFeedback.textContent = resKlaim.message;
+              voucherFeedback.style.color = '#4ade80';
+              setTimeout(() => {
+                overlay.remove();
+                eksekusiSuksesPembayaran(0, currentDevId, resKlaim.exp_date);
+              }, 1000);
+            } else {
+              voucherFeedback.textContent = resKlaim.error || 'Voucher tidak valid.';
+              voucherFeedback.style.color = '#ef4444';
+              btnApplyVoucher.disabled = false;
+              btnApplyVoucher.textContent = 'Klaim';
+            }
+          } catch (err) {
+            voucherFeedback.textContent = 'Gagal memproses klaim voucher.';
+            voucherFeedback.style.color = '#ef4444';
+            btnApplyVoucher.disabled = false;
+            btnApplyVoucher.textContent = 'Klaim';
+          }
+        };
+      }
 
       if (bisaDitutup || isBerhasil) {
         const btnCloseX = document.getElementById('sipgn-btn-close-x');
@@ -708,9 +810,8 @@
   }
 
   // ------------------------------------------------------------------
-  // CORE LOGIC FORM FILLER & SPINNER
+  // CORE LOGIC FORM FILLER & SPINNER (Sama seperti sebelumnya)
   // ------------------------------------------------------------------
-
   const DATA_AWAL = [
     {
       sekolah: 'SMAN 1 MEDAN',
@@ -1182,15 +1283,15 @@
   async function klikElemenPrecise(el) {
     try {
       el.scrollIntoView({ block: 'center', inline: 'nearest' });
-    } catch (e) { /* abaikan */ }
+    } catch (e) {}
     try {
       el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, view: window }));
       el.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, view: window }));
-    } catch (e) { /* abaikan */ }
+    } catch (e) {}
     try {
       el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
       el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true }));
-    } catch (e) { /* abaikan */ }
+    } catch (e) {}
     el.click();
   }
 

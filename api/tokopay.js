@@ -14,14 +14,14 @@ const VERSIONS = {
   changelog: 'Stabilitas sinkronisasi lisensi Supabase & perbaikan penanganan status QRIS Tokopay.'
 };
 
-// Memory cache sementara untuk order & tracking order yang sudah diproses (mencegah double topup)
+// Memory cache sementara (ephemeral) untuk tracking order & cegah double topup
 const orderMemory = new Map();
 const processedOrders = new Map();
 
 async function simpanLisensiOtomatis(SUPABASE_URL, SUPABASE_KEY, deviceId, paketHari, refId) {
   if (!SUPABASE_URL || !SUPABASE_KEY || !deviceId || !paketHari) return null;
 
-  // Jika ref_id ini sudah pernah diproses sebelumnya, kembalikan data yang tersimpan (cegah double add)
+  // Jika ref_id ini sudah pernah diproses, kembalikan data kadaluarsa yang tersimpan (cegah double add)
   if (refId && processedOrders.has(refId)) {
     return { exp_date: processedOrders.get(refId) };
   }
@@ -32,14 +32,14 @@ async function simpanLisensiOtomatis(SUPABASE_URL, SUPABASE_KEY, deviceId, paket
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
     });
     const existing = await checkRes.json();
-    
+
     if (Array.isArray(existing) && existing.length > 0 && existing[0].exp_date) {
       const currentExp = new Date(existing[0].exp_date + 'T00:00:00');
       if (currentExp > expDateObj) expDateObj = currentExp;
     }
 
     expDateObj.setDate(expDateObj.getDate() + Number(paketHari));
-    
+
     const expDateTarget = expDateObj.toISOString().slice(0, 10);
     const nonce = Math.floor(Math.random() * 16777215).toString(16).toUpperCase();
     const licenseKey = `MIND-${Buffer.from(`${expDateTarget}|${deviceId}|AutoPayment|MINDSTUDIO2026|${nonce}`).toString('base64').split('').reverse().join('')}`;
@@ -52,12 +52,12 @@ async function simpanLisensiOtomatis(SUPABASE_URL, SUPABASE_KEY, deviceId, paket
         'Content-Type': 'application/json',
         'Prefer': 'resolution=merge-duplicates'
       },
-      body: JSON.stringify({ 
-        device_id: deviceId, 
-        license_key: licenseKey, 
-        exp_date: expDateTarget, 
-        status: 'active', 
-        updated_at: new Date().toISOString() 
+      body: JSON.stringify({
+        device_id: deviceId,
+        license_key: licenseKey,
+        exp_date: expDateTarget,
+        status: 'active',
+        updated_at: new Date().toISOString()
       })
     });
 
@@ -113,7 +113,7 @@ export default async function handler(req, res) {
 
         const lisensi = data[0];
         const hariIniWIB = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
-        
+
         if (lisensi.status === 'revoked') return res.status(200).json({ valid: false, status: 'revoked', msg: 'Akses lisensi telah dicabut.' });
         if (lisensi.status === 'hold') return res.status(200).json({ valid: false, status: 'hold', msg: 'Lisensi sedang ditangguhkan.' });
         if (lisensi.status !== 'active') return res.status(200).json({ valid: false, msg: `Lisensi berstatus: ${lisensi.status}` });
@@ -129,22 +129,23 @@ export default async function handler(req, res) {
         if (!merchantId || !secretKey) return res.status(200).json({ is_paid: false, error: 'Kunci Tokopay belum diatur.' });
 
         const signature = crypto.createHash('md5').update(`${merchantId}${secretKey}${ref_id}`).digest('hex');
-        const tokopayRes = await fetch(`https://api.tokopay.id/v1/order/status?merchant=${merchantId}&key=${secretKey}&ref_id=${ref_id}&signature=${signature}`, { cache: 'no-store' });
+        const tokopayRes = await fetch(`https://api.tokopay.id/v1/order/status?merchant=${merchantId}&key=${secretKey}&ref_id=${encodeURIComponent(ref_id)}&signature=${signature}`, { cache: 'no-store' });
         const tokopayData = await tokopayRes.json();
 
-        // Pengecekan status transaksi yang ultra-aman & tahan terhadap variasi tipe data Tokopay
+        // Pengecekan status yang tahan terhadap variasi tipe data Tokopay
         const rawDataStatus = tokopayData?.data?.status ?? tokopayData?.data?.status_pembayaran ?? tokopayData?.status;
         const stringStatus = String(rawDataStatus || '').toLowerCase();
         const isPaidBool = tokopayData?.data?.is_paid === true || tokopayData?.is_paid === true;
 
-        const isLunas = 
+        const isLunas =
           isPaidBool ||
-          rawDataStatus === 1 || 
+          rawDataStatus === 1 ||
           rawDataStatus === '1' ||
           ['success', 'dibayar', 'paid', 'settlement', 'completed'].includes(stringStatus);
 
         if (isLunas) {
           let orderInfo = orderMemory.get(ref_id);
+          // Mengutamakan parameter URL jika memory Vercel ter-reset
           let targetPaketHari = orderInfo?.paket_hari || paket_hari || 7;
           let targetDevId = orderInfo?.device_id || device_id;
 
@@ -178,17 +179,24 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: response.ok });
       }
 
+      // CREATION ORDER QRIS
       if (paket_hari || ref_id) {
         const merchantId = process.env.TOKOPAY_MERCHANT_ID;
         const secretKey = process.env.TOKOPAY_SECRET_KEY;
         const nominal = HARGA_PAKET[Number(paket_hari)] || 25000;
 
-        if (ref_id && device_id) {
-          orderMemory.set(ref_id, { device_id, paket_hari });
+        // Buat Reff ID Unik jika ref_id yang dikirim sama dengan device_id atau kosong
+        let fixRefId = ref_id;
+        if (!fixRefId || fixRefId === device_id) {
+          fixRefId = `SIPGN-${device_id || 'DEV'}-${Date.now()}`;
         }
 
-        const signature = crypto.createHash('md5').update(`${merchantId}${secretKey}${ref_id}`).digest('hex');
-        const apiUrl = `https://api.tokopay.id/v1/order?merchant=${merchantId}&secret=${secretKey}&ref_id=${ref_id}&nominal=${nominal}&metode=QRISREALTIME&signature=${signature}`;
+        if (fixRefId && device_id) {
+          orderMemory.set(fixRefId, { device_id, paket_hari });
+        }
+
+        const signature = crypto.createHash('md5').update(`${merchantId}${secretKey}${fixRefId}`).digest('hex');
+        const apiUrl = `https://api.tokopay.id/v1/order?merchant=${merchantId}&secret=${secretKey}&ref_id=${encodeURIComponent(fixRefId)}&nominal=${nominal}&metode=QRISREALTIME&signature=${signature}`;
 
         const resp = await fetch(apiUrl, { cache: 'no-store' });
         const data = await resp.json();
@@ -196,7 +204,11 @@ export default async function handler(req, res) {
         const isSuccess = data?.status === 1 || data?.status === '1' || data?.status === true || String(data?.status).toLowerCase() === 'success';
 
         if (isSuccess) {
-          return res.status(200).json({ status: true, data: data.data || data });
+          return res.status(200).json({ 
+            status: true, 
+            ref_id: fixRefId,
+            data: data.data || data 
+          });
         }
         return res.status(200).json({ status: false, error: data?.error_msg || data?.message || 'Gagal membuat QRIS.' });
       }

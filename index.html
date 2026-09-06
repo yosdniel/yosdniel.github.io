@@ -18,7 +18,7 @@
       display: flex; justify-content: center; align-items: center; min-height: 100vh;
     }
     .container {
-      width: 100%; max-width: 480px; background: #1e293b; border: 1px solid #334155;
+      width: 100%; max-width: 520px; background: #1e293b; border: 1px solid #334155;
       border-radius: 20px; padding: 24px; box-shadow: 0 16px 36px rgba(0,0,0,0.5);
     }
     .header { text-align: center; margin-bottom: 20px; }
@@ -82,12 +82,19 @@
       border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;
     }
     .btn-quick:hover { background: #475569; }
-    .btn-quick-lifetime {
-      background: #7c3aed; border-color: #6d28d9; color: #f3e8ff;
+    .btn-quick-lifetime { background: #7c3aed; border-color: #6d28d9; color: #f3e8ff; }
+    .btn-quick-lifetime:hover { background: #6d28d9; }
+
+    .menu-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 16px; }
+    .menu-card {
+      background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 16px;
+      cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: space-between;
     }
-    .btn-quick-lifetime:hover {
-      background: #6d28d9;
-    }
+    .menu-card:hover { border-color: #38bdf8; background: #131c31; }
+    .menu-card h3 { margin: 0; font-size: 15px; color: #f8fafc; }
+    .menu-card p { margin: 4px 0 0 0; font-size: 12px; color: #94a3b8; }
+
+    .package-row { display: flex; gap: 8px; align-items: center; background: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 8px; }
 
     .toast {
       position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
@@ -95,7 +102,7 @@
       border-radius: 10px; font-size: 13px; display: none; z-index: 999; color: white;
     }
 
-    #step1, #step2 { display: none; }
+    .view-section { display: none; }
   </style>
 </head>
 <body>
@@ -104,12 +111,12 @@
 
   <div class="container">
     <div class="header">
-      <h1>Dashboard Kelola Lisensi</h1>
+      <h1>Dashboard Admin Lisensi</h1>
       <p>Mindspace Studio Admin Panel</p>
     </div>
 
-    <!-- TAHAP 0: VERIFIKASI PASSWORD ADMIN -->
-    <div id="step0">
+    <!-- VIEW 0: LOGIN ADMIN -->
+    <div id="viewLogin" class="view-section" style="display: block;">
       <div class="field-group">
         <label for="inputAdminPassword">Masukkan Password Admin Dashboard:</label>
         <input type="password" id="inputAdminPassword" placeholder="••••••••••••" onkeyup="if(event.key==='Enter') verifikasiAdminPassword()">
@@ -117,20 +124,45 @@
       <button class="btn btn-primary" id="btnLogin" onclick="verifikasiAdminPassword()">🔒 Masuk Ke Dashboard</button>
     </div>
 
-    <!-- TAHAP 1: CEK DEVICE ID -->
-    <div id="step1">
+    <!-- VIEW 1: MENU UTAMA ADMIN DASHBOARD -->
+    <div id="viewMainMenu" class="view-section">
+      <div style="font-size: 13px; color: #94a3b8; margin-bottom: 12px; text-align: center;">Pilih fitur manajemen di bawah ini:</div>
+      
+      <div class="menu-grid">
+        <div class="menu-card" onclick="bukaFitur('device')">
+          <div>
+            <h3>🔍 Cek & Kelola Device ID</h3>
+            <p>Periksa masa aktif, perpanjang, atau ubah status lisensi pengguna.</p>
+          </div>
+          <span style="font-size: 20px; color: #38bdf8;">➔</span>
+        </div>
+
+        <div class="menu-card" onclick="bukaFitur('packages')">
+          <div>
+            <h3>📦 Kelola Harga Paket</h3>
+            <p>Atur daftar pilihan durasi dan harga paket langganan sistem.</p>
+          </div>
+          <span style="font-size: 20px; color: #38bdf8;">➔</span>
+        </div>
+      </div>
+
+      <button class="btn btn-secondary" onclick="logoutAdmin()">🚪 Keluar Sistem</button>
+    </div>
+
+    <!-- VIEW 2: FITUR CEK DEVICE ID -->
+    <div id="viewDeviceCheck" class="view-section">
       <div class="field-group">
         <label for="inputDeviceId">Masukkan Device ID:</label>
         <input type="text" id="inputDeviceId" placeholder="DEV-XXXX-XXXX" style="text-transform: uppercase;" onkeyup="if(event.key==='Enter') cekDeviceId()">
       </div>
       <div style="display: flex; gap: 8px;">
         <button class="btn btn-primary" style="flex: 2;" onclick="cekDeviceId()">🔎 Periksa Device ID</button>
-        <button class="btn btn-secondary" style="flex: 1;" onclick="logoutAdmin()">🚪 Keluar</button>
+        <button class="btn btn-secondary" style="flex: 1;" onclick="kembaliKeMenu()">🔙 Menu</button>
       </div>
     </div>
 
-    <!-- TAHAP 2: PANEL KONTROL KELOLA LISENSI -->
-    <div id="step2">
+    <!-- VIEW 3: FITUR DETAIL & KONTROL LISENSI -->
+    <div id="viewDeviceDetail" class="view-section">
       <div class="card-info">
         <div><b>Device ID:</b> <span id="dispDeviceId" style="color:#facc15;">-</span></div>
         <div><b>Status Saat Ini:</b> <span id="dispStatus">-</span></div>
@@ -166,15 +198,30 @@
       </div>
 
       <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
-        <button class="btn btn-success" onclick="simpanPerubahan()">💾 Simpan Perubahan</button>
+        <button class="btn btn-success" onclick="simpanPerubahanLisensi()">💾 Simpan Perubahan</button>
         <div style="display: flex; gap: 8px;">
           <button class="btn btn-danger" style="flex: 1;" id="btnHapusLisensi" onclick="hapusLisensi()">🗑️ Hapus Lisensi</button>
-          <button class="btn btn-secondary" style="flex: 1;" onclick="resetForm()">↩️ Kembali</button>
+          <button class="btn btn-secondary" style="flex: 1;" onclick="bukaFitur('device')">↩️ Kembali</button>
         </div>
       </div>
     </div>
 
-    <!-- TOMBOL INSTALL KOMPAK DI BAWAH -->
+    <!-- VIEW 4: FITUR KELOLA HARGA PAKET -->
+    <div id="viewPackages" class="view-section">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <label style="margin:0;">Daftar Paket Langganan:</label>
+        <button class="btn btn-primary" style="width: auto; height: 32px; font-size: 11px; padding: 0 10px;" onclick="tambahBarisPaketForm()">+ Tambah Paket</button>
+      </div>
+
+      <div id="containerListPaket" style="max-height: 260px; overflow-y: auto; margin-bottom: 12px;"></div>
+
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-success" style="flex: 2;" onclick="simpanPengaturanPaketServer()">💾 Simpan Paket</button>
+        <button class="btn btn-secondary" style="flex: 1;" onclick="kembaliKeMenu()">🔙 Menu</button>
+      </div>
+    </div>
+
+    <!-- TOMBOL INSTALL PWA -->
     <div class="install-container">
       <button id="btnInstallApp" class="btn-install" onclick="installAplikasiPWA()">
         📱 Install Aplikasi Android
@@ -192,7 +239,6 @@
     let currentLicenseData = null;
     let deferredPrompt = null;
 
-    // --- FITUR PWA / INSTALL KE ANDROID ---
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
@@ -225,6 +271,15 @@
       setTimeout(() => { t.style.display = 'none'; }, 2800);
     }
 
+    function gantiView(viewId) {
+      document.querySelectorAll('.view-section').forEach(el => el.style.display = 'none');
+      document.getElementById(viewId).style.display = 'block';
+    }
+
+    function kembaliKeMenu() {
+      gantiView('viewMainMenu');
+    }
+
     function buatLicenseKey(expDate, deviceId) {
       const nonce = Math.floor(Math.random() * 16777215).toString(16).toUpperCase();
       const payload = `${expDate}|${deviceId}|ADMIN|${SECRET_SALT}|${nonce}`;
@@ -252,8 +307,7 @@
 
         if (res.ok && data.status) {
           adminPasswordSecret = passInput;
-          document.getElementById('step0').style.display = 'none';
-          document.getElementById('step1').style.display = 'block';
+          gantiView('viewMainMenu');
           showToast('Akses Admin Diterima.', true);
         } else {
           showToast(data.error || 'Password salah!', false);
@@ -269,9 +323,17 @@
     function logoutAdmin() {
       adminPasswordSecret = '';
       document.getElementById('inputAdminPassword').value = '';
-      document.getElementById('step1').style.display = 'none';
-      document.getElementById('step0').style.display = 'block';
+      gantiView('viewLogin');
       showToast('Berhasil keluar.', true);
+    }
+
+    function bukaFitur(fitur) {
+      if (fitur === 'device') {
+        gantiView('viewDeviceCheck');
+      } else if (fitur === 'packages') {
+        muatDataPaketServer();
+        gantiView('viewPackages');
+      }
     }
 
     async function cekDeviceId() {
@@ -282,8 +344,7 @@
         const res = await fetch(`${VERCEL_API_URL}?action=check_license&device_id=${encodeURIComponent(deviceId)}`);
         const data = await res.json();
 
-        document.getElementById('step1').style.display = 'none';
-        document.getElementById('step2').style.display = 'block';
+        gantiView('viewDeviceDetail');
         document.getElementById('dispDeviceId').textContent = deviceId;
 
         const hariIni = getTanggalHariIniWIB();
@@ -313,13 +374,13 @@
           showToast('Device ID belum terdaftar. Silakan tentukan durasi.', true);
         }
 
-        renderDetail();
+        renderDetailDevice();
       } catch (e) {
         showToast('Gagal terhubung ke Server Vercel/Supabase!', false);
       }
     }
 
-    function renderDetail() {
+    function renderDetailDevice() {
       document.getElementById('dispExpDate').textContent = currentLicenseData.exp_date !== '-' ? currentLicenseData.exp_date : 'Belum Diatur';
       document.getElementById('editExpDate').value = currentLicenseData.exp_date !== '-' ? currentLicenseData.exp_date : getTanggalHariIniWIB();
       
@@ -348,7 +409,7 @@
     function ubahStatusDropdown(val) {
       if (currentLicenseData) {
         currentLicenseData.status = val;
-        renderDetail();
+        renderDetailDevice();
       }
     }
 
@@ -365,7 +426,7 @@
         currentLicenseData.status = 'expired';
       }
 
-      renderDetail();
+      renderDetailDevice();
     }
 
     function tambahHari(jumlahHari) {
@@ -384,7 +445,7 @@
       currentLicenseData.status = 'active';
       currentLicenseData.license_key = buatLicenseKey(currentLicenseData.exp_date, currentLicenseData.device_id);
       
-      renderDetail();
+      renderDetailDevice();
       showToast(`Durasi diatur: +${jumlahHari} hari`);
     }
 
@@ -393,11 +454,11 @@
       currentLicenseData.status = 'active';
       currentLicenseData.license_key = buatLicenseKey(currentLicenseData.exp_date, currentLicenseData.device_id);
 
-      renderDetail();
+      renderDetailDevice();
       showToast('Durasi diatur: Lifetime (2099-12-31)');
     }
 
-    async function simpanPerubahan() {
+    async function simpanPerubahanLisensi() {
       const expDateVal = document.getElementById('editExpDate').value;
       let statusVal = document.getElementById('editStatus').value;
 
@@ -429,7 +490,7 @@
         if (res.ok && (resData.success || resData.status)) {
           showToast('Data lisensi BERHASIL disimpan ke Supabase!');
           currentLicenseData.is_new = false;
-          renderDetail();
+          renderDetailDevice();
         } else {
           showToast(resData.message || 'Gagal menyimpan ke database.', false);
         }
@@ -459,7 +520,7 @@
 
         if (res.ok && resData.success) {
           showToast(`Lisensi Device ID ${currentLicenseData.device_id} berhasil dihapus!`);
-          resetForm();
+          bukaFitur('device');
         } else {
           showToast(resData.message || 'Gagal menghapus lisensi dari database.', false);
         }
@@ -468,11 +529,82 @@
       }
     }
 
-    function resetForm() {
-      document.getElementById('step2').style.display = 'none';
-      document.getElementById('step1').style.display = 'block';
-      document.getElementById('inputDeviceId').value = '';
-      currentLicenseData = null;
+    // --- MANAJEMEN PAKET HARGA ---
+    async function muatDataPaketServer() {
+      try {
+        const res = await fetch(`${VERCEL_API_URL}?action=get_packages`);
+        const data = await res.json();
+        const list = data.packages || [];
+        const container = document.getElementById('containerListPaket');
+        container.innerHTML = '';
+
+        if (list.length === 0) {
+          tambahBarisPaketForm('Paket 7 Hari', 7, 100);
+        } else {
+          list.forEach(p => {
+            tambahBarisPaketForm(p.nama, p.hari, p.harga);
+          });
+        }
+      } catch (err) {
+        showToast('Gagal memuat daftar paket dari server.', false);
+      }
+    }
+
+    function tambahBarisPaketForm(nama = '', hari = '', harga = '') {
+      const container = document.getElementById('containerListPaket');
+      const div = document.createElement('div');
+      div.className = 'package-row';
+      div.innerHTML = `
+        <div style="flex: 2;">
+          <input type="text" class="inp-nama" value="${nama}" placeholder="Nama Paket" style="height: 38px; font-size: 12px;">
+        </div>
+        <div style="flex: 1;">
+          <input type="number" class="inp-hari" value="${hari}" placeholder="Hari" style="height: 38px; font-size: 12px;">
+        </div>
+        <div style="flex: 1.5;">
+          <input type="number" class="inp-harga" value="${harga}" placeholder="Harga (Rp)" style="height: 38px; font-size: 12px;">
+        </div>
+        <div>
+          <button class="btn btn-danger" style="width: 38px; height: 38px; font-size: 14px;" onclick="this.parentElement.parentElement.remove()">✕</button>
+        </div>
+      `;
+      container.appendChild(div);
+    }
+
+    async function simpanPengaturanPaketServer() {
+      const rows = document.querySelectorAll('.package-row');
+      const packages = [];
+
+      rows.forEach(r => {
+        const nama = r.querySelector('.inp-nama').value.trim();
+        const hari = Number(r.querySelector('.inp-hari').value);
+        const harga = Number(r.querySelector('.inp-harga').value);
+        if (nama && !isNaN(hari) && !isNaN(harga)) {
+          packages.push({ nama, hari, harga });
+        }
+      });
+
+      if (packages.length === 0) {
+        showToast('Minimal harus ada 1 paket valid.', false);
+        return;
+      }
+
+      try {
+        const res = await fetch(VERCEL_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save_packages', packages })
+        });
+        const result = await res.json();
+        if (result.success) {
+          showToast('Pengaturan paket berhasil disimpan!');
+          muatDataPaketServer();
+        } else {
+          showToast('Gagal menyimpan paket.', false);
+        }
+      } catch (err) {
+        showToast('Terjadi kesalahan koneksi ke server.', false);
+      }
     }
   </script>
 </body>

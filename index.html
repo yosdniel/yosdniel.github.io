@@ -207,7 +207,7 @@
         <div><b>Device ID:</b> <span id="dispDeviceId" style="color:#facc15;">-</span></div>
         <div><b>Status Saat Ini:</b> <span id="dispStatus">-</span></div>
         <div><b>Tanggal Kadaluarsa:</b> <span id="dispExpDate" style="color:#38bdf8;">-</span></div>
-        <div><b>Update Terakhir Perpanjang:</b> <span id="dispLastUpdated" style="color:#cbd5e1;">-</span></div>
+        <div><b>Terakhir Digunakan:</b> <span id="dispLastUpdated" style="color:#cbd5e1;">-</span></div>
       </div>
 
       <div class="field-group">
@@ -307,6 +307,59 @@
     function kembaliKeMenu() {
       gantiView('viewMainMenu');
       muatStatistikDashboard();
+    }
+
+    // --- FORMAT TANGGAL & WAKTU RELATIF ---
+    function formatTanggalIndo(dateString) {
+      if (!dateString) return null;
+      try {
+        const d = new Date(dateString);
+        if (isNaN(d.getTime())) return dateString;
+        return d.toLocaleDateString('id-ID', {
+          day: '2-digit',
+          month: 'long',
+          year: 'numeric'
+        });
+      } catch (e) {
+        return dateString;
+      }
+    }
+
+    function formatWaktuRelatif(dateString) {
+      if (!dateString) return null;
+      try {
+        const targetDate = new Date(dateString);
+        if (isNaN(targetDate.getTime())) return dateString;
+
+        const sekarang = new Date();
+        const selisihDetik = Math.floor((sekarang - targetDate) / 1000);
+
+        if (selisihDetik < 60) {
+          return 'Baru saja';
+        } else if (selisihDetik < 3600) {
+          const menit = Math.floor(selisihDetik / 60);
+          return `${menit} menit lalu`;
+        } else if (selisihDetik < 86400) {
+          const jam = Math.floor(selisihDetik / 3600);
+          return `${jam} jam lalu`;
+        } else {
+          // Jika sudah lebih dari 24 jam, tampilkan tanggal & waktu (misal: 06 September 2026, 12:00 WIB)
+          const tgl = targetDate.toLocaleDateString('id-ID', {
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric'
+          });
+          const waktu = targetDate.toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+            timeZone: 'Asia/Jakarta'
+          });
+          return `${tgl}, ${waktu} WIB`;
+        }
+      } catch (e) {
+        return dateString;
+      }
     }
 
     function buatLicenseKey(expDate, deviceId) {
@@ -420,17 +473,21 @@
           const div = document.createElement('div');
           div.className = 'user-item';
           
-          let infoPerpanjang = u.updated_at || u.last_extended || u.created_at;
-          if (!infoPerpanjang) {
+          const rawUpdate = u.updated_at || u.last_extended || u.created_at;
+          let infoPerpanjang = '';
+          
+          if (!rawUpdate) {
             infoPerpanjang = '<span style="color: #f59e0b;">Belum pernah perpanjang / User baru</span>';
           } else {
-            infoPerpanjang = `Update: ${infoPerpanjang}`;
+            infoPerpanjang = `Terakhir digunakan: ${formatWaktuRelatif(rawUpdate)}`;
           }
+
+          const expFormatted = formatTanggalIndo(u.exp_date) || '-';
 
           div.innerHTML = `
             <div class="user-item-info">
               <div>${u.device_id}</div>
-              <div>Durasi s/d: <b>${u.exp_date || '-'}</b> | ${infoPerpanjang}</div>
+              <div>Durasi s/d: <b>${expFormatted}</b><br>${infoPerpanjang}</div>
             </div>
             <div><span class="badge ${u.status === 'active' ? 'badge-active' : 'badge-hold'}">${u.status || 'active'}</span></div>
           `;
@@ -456,7 +513,7 @@
         exp_date: userData.exp_date || hariIni,
         status: statusAktual,
         license_key: userData.license_key || buatLicenseKey(userData.exp_date || hariIni, userData.device_id),
-        last_updated: userData.updated_at || userData.last_extended || '-',
+        last_updated: userData.updated_at || userData.last_extended || userData.created_at || '-',
         is_new: false
       };
       renderDetailDevice();
@@ -486,7 +543,7 @@
             exp_date: data.exp_date || hariIni,
             status: statusAktual,
             license_key: data.license_key || buatLicenseKey(data.exp_date || hariIni, deviceId),
-            last_updated: data.updated_at || data.last_extended || '-',
+            last_updated: data.updated_at || data.last_extended || data.created_at || '-',
             is_new: false
           };
         } else {
@@ -508,12 +565,16 @@
     }
 
     function renderDetailDevice() {
-      document.getElementById('dispExpDate').textContent = currentLicenseData.exp_date !== '-' ? currentLicenseData.exp_date : 'Belum Diatur';
+      document.getElementById('dispExpDate').textContent = currentLicenseData.exp_date !== '-' ? formatTanggalIndo(currentLicenseData.exp_date) : 'Belum Diatur';
       
-      const lastUp = currentLicenseData.last_updated && currentLicenseData.last_updated !== '-' 
-        ? currentLicenseData.last_updated 
-        : '<span style="color: #f59e0b;">Belum pernah perpanjang / User baru</span>';
-      document.getElementById('dispLastUpdated').innerHTML = lastUp;
+      const rawUp = currentLicenseData.last_updated;
+      let lastUpFormatted = '';
+      if (!rawUp || rawUp === '-') {
+        lastUpFormatted = '<span style="color: #f59e0b;">Belum pernah perpanjang / User baru</span>';
+      } else {
+        lastUpFormatted = formatWaktuRelatif(rawUp);
+      }
+      document.getElementById('dispLastUpdated').textContent = lastUpFormatted;
 
       document.getElementById('editExpDate').value = currentLicenseData.exp_date !== '-' ? currentLicenseData.exp_date : getTanggalHariIniWIB();
       document.getElementById('editStatus').value = currentLicenseData.status;

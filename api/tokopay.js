@@ -103,17 +103,65 @@ export default async function handler(req, res) {
   const device_id = query.device_id || body?.device_id;
   const paket_hari = query.paket_hari || body?.paket_hari;
 
+  // 1. POSISI VERSION CHECK BERADA DI BAGIAN PALING ATAS
   if (action === 'check_version') {
-    return res.status(200).json({ version: '1.5.23', download_url: 'https://mindspace-id.vercel.app/sipgn-autofill.user.js' });
+    return res.status(200).json({ version: '1.5.29', download_url: 'https://mindspace-id.vercel.app/sipgn-autofill.user.js' });
   }
 
+  // 2. GET PACKAGES DINAMIS DARI SUPABASE (Mendukung Admin Dashboard Terpisah)
   if (action === 'get_packages') {
+    try {
+      const pkgRes = await fetch(`${SUPABASE_URL}/rest/v1/packages?select=*&order=hari.asc`, {
+        method: 'GET',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+        cache: 'no-store'
+      });
+      const dbPackages = await pkgRes.json();
+      
+      if (Array.isArray(dbPackages) && dbPackages.length > 0) {
+        return res.status(200).json({ packages: dbPackages });
+      }
+    } catch (e) {
+      // Fallback jika tabel packages belum dibuat di Supabase
+    }
+
     return res.status(200).json({
       packages: [
         { hari: 7, harga: 100, nama: 'Paket 7 Hari' },
         { hari: 30, harga: 50000, nama: 'Paket 30 Hari' }
       ]
     });
+  }
+
+  // 3. ACTION UNTUK ADMIN DASHBOARD MENGATUR/MENYIMPAN PAKET
+  if (action === 'save_packages' && req.method === 'POST') {
+    const newPackages = body.packages; // Format: [{ hari: number, harga: number, nama: string }]
+    if (!Array.isArray(newPackages)) {
+      return res.status(400).json({ error: 'Format paket tidak valid.' });
+    }
+
+    try {
+      // Hapus data lama & insert ulang atau upsert ke tabel packages Supabase
+      await fetch(`${SUPABASE_URL}/rest/v1/packages?id=neq.0`, {
+        method: 'DELETE',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      });
+
+      const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/packages`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify(newPackages)
+      });
+      const savedData = await insertRes.json();
+      return res.status(200).json({ success: true, packages: savedData });
+    } catch (err) {
+      return res.status(500).json({ error: 'Gagal menyimpan pengaturan paket ke database.' });
+    }
   }
 
   if (action === 'check_license') {
@@ -178,7 +226,7 @@ export default async function handler(req, res) {
         }
 
         if (targetDevId) {
-          const savedInfo = await simpanLisensiOtomatis(SUPABASE_URL, SUPABASE_KEY, targetDevId, targetPaketHari);
+          await simpanLisensiOtomatis(SUPABASE_URL, SUPABASE_KEY, targetDevId, targetPaketHari);
           return res.status(200).json({ status: true, message: 'Webhook processed successfully' });
         }
       }
@@ -199,7 +247,6 @@ export default async function handler(req, res) {
       const tokopayRes = await fetch(`https://api.tokopay.id/v1/order?merchant=${merchantId}&secret=${secretKey}&reff_id=${encodeURIComponent(refIdOrder)}&ref_id=${encodeURIComponent(refIdOrder)}&nominal=${nominal}&metode=${body.metode || 'QRISREALTIME'}&signature=${signature}`, { cache: 'no-store' });
       const tokopayData = await tokopayRes.json();
 
-      // Ekstraksi data QR Tokopay secara seragam
       const innerData = tokopayData?.data?.data || tokopayData?.data || tokopayData;
       
       const qr_link = innerData?.qr_link || innerData?.qr_url || innerData?.pay_url || null;

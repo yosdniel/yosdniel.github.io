@@ -74,8 +74,8 @@ async function simpanLisensiOtomatis(SUPABASE_URL, SUPABASE_KEY, deviceId, paket
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
@@ -132,11 +132,16 @@ export default async function handler(req, res) {
         const tokopayRes = await fetch(`https://api.tokopay.id/v1/order/status?merchant=${merchantId}&key=${secretKey}&ref_id=${ref_id}&signature=${signature}`, { cache: 'no-store' });
         const tokopayData = await tokopayRes.json();
 
-        // Pengecekan status transaksi yang ketat dan presisi
-        const trxStatus = String(tokopayData?.data?.status || tokopayData?.data?.status_pembayaran || '').toLowerCase();
+        // Pengecekan status transaksi yang ultra-aman & tahan terhadap variasi tipe data Tokopay
+        const rawDataStatus = tokopayData?.data?.status ?? tokopayData?.data?.status_pembayaran ?? tokopayData?.status;
+        const stringStatus = String(rawDataStatus || '').toLowerCase();
         const isPaidBool = tokopayData?.data?.is_paid === true || tokopayData?.is_paid === true;
 
-        const isLunas = isPaidBool || ['success', 'dibayar', 'paid', 'settlement', 'completed'].includes(trxStatus);
+        const isLunas = 
+          isPaidBool ||
+          rawDataStatus === 1 || 
+          rawDataStatus === '1' ||
+          ['success', 'dibayar', 'paid', 'settlement', 'completed'].includes(stringStatus);
 
         if (isLunas) {
           let orderInfo = orderMemory.get(ref_id);
@@ -151,7 +156,7 @@ export default async function handler(req, res) {
           return res.status(200).json({ is_paid: true, exp_date: savedInfo?.exp_date });
         }
 
-        return res.status(200).json({ is_paid: false });
+        return res.status(200).json({ is_paid: false, raw_status: rawDataStatus });
       }
     }
 

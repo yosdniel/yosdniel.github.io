@@ -18,10 +18,42 @@ function calculateExpiryDate(currentExpStr, daysToAdd) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-async function simpanLisensiOtomatis(supabaseUrl, supabaseKey, deviceId, paketHari) {
+async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, paketHari, nominal = 0) {
   if (!supabaseUrl || !supabaseKey || !deviceId) return null;
 
   try {
+    // 1. Ambil atau buat harga berdasarkan paket jika nominal 0
+    let finalNominal = Number(nominal);
+    if (!finalNominal || finalNominal <= 0) {
+      const pRes = await fetch(`${supabaseUrl}/rest/v1/packages?hari=eq.${Number(paketHari)}&select=*`, {
+        headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` },
+        cache: 'no-store'
+      });
+      const pData = await pRes.json();
+      if (Array.isArray(pData) && pData.length > 0) {
+        finalNominal = Number(pData[0].harga || 0);
+      } else {
+        finalNominal = Number(paketHari) === 30 ? 50000 : 100; // Default fallback
+      }
+    }
+
+    // 2. Catat ke tabel transactions agar grafik langsung terekam valid
+    await fetch(`${supabaseUrl}/rest/v1/transactions`, {
+      method: 'POST',
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        device_id: deviceId,
+        amount: finalNominal,
+        paket_hari: Number(paketHari),
+        status: 'success'
+      })
+    });
+
+    // 3. Update / Insert masa aktif lisensi
     const getRes = await fetch(`${supabaseUrl}/rest/v1/licenses?device_id=eq.${encodeURIComponent(deviceId)}`, {
       method: 'GET',
       headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` },
@@ -103,16 +135,14 @@ export default async function handler(req, res) {
   const device_id = query.device_id || body?.device_id;
   const paket_hari = query.paket_hari || body?.paket_hari;
 
-  // 1. POSISI VERSION CHECK
   if (action === 'check_version') {
-    return res.status(200).json({ version: '1.5.30', download_url: 'https://mindspace-id.vercel.app/sipgn-autofill.user.js' });
+    return res.status(200).json({ version: '1.5.31', download_url: 'https://mindspace-id.vercel.app/sipgn-autofill.user.js' });
   }
 
-  // 2. GET PACKAGES DINAMIS
+  // GET PACKAGES
   if (action === 'get_packages') {
     try {
       const pkgRes = await fetch(`${SUPABASE_URL}/rest/v1/packages?select=*&order=hari.asc`, {
-        method: 'GET',
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
         cache: 'no-store'
       });
@@ -121,7 +151,6 @@ export default async function handler(req, res) {
         return res.status(200).json({ packages: dbPackages });
       }
     } catch (e) {}
-
     return res.status(200).json({
       packages: [
         { hari: 7, harga: 100, nama: 'Paket 7 Hari' },
@@ -130,35 +159,28 @@ export default async function handler(req, res) {
     });
   }
 
-  // 3. SAVE PACKAGES
+  // SAVE PACKAGES
   if (action === 'save_packages' && req.method === 'POST') {
     const newPackages = body.packages;
-    if (!Array.isArray(newPackages)) return res.status(400).json({ error: 'Format paket tidak valid.' });
-
     try {
       await fetch(`${SUPABASE_URL}/rest/v1/packages?id=neq.0`, {
         method: 'DELETE',
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
       });
-
-      const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/packages`, {
-        method: 'POST',
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=representation'
-        },
-        body: JSON.stringify(newPackages)
-      });
-      const savedData = await insertRes.json();
-      return res.status(200).json({ success: true, packages: savedData });
+      if (Array.isArray(newPackages) && newPackages.length > 0) {
+        await fetch(`${SUPABASE_URL}/rest/v1/packages`, {
+          method: 'POST',
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(newPackages)
+        });
+      }
+      return res.status(200).json({ success: true });
     } catch (err) {
-      return res.status(500).json({ error: 'Gagal menyimpan pengaturan paket.' });
+      return res.status(500).json({ error: 'Gagal menyimpan paket.' });
     }
   }
 
-  // 4. GET VOUCHERS
+  // GET VOUCHERS
   if (action === 'get_vouchers') {
     try {
       const vRes = await fetch(`${SUPABASE_URL}/rest/v1/vouchers?select=*`, {
@@ -172,7 +194,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // 5. SAVE VOUCHERS
+  // SAVE VOUCHERS
   if (action === 'save_vouchers' && req.method === 'POST') {
     const newVouchers = body.vouchers;
     try {
@@ -180,15 +202,10 @@ export default async function handler(req, res) {
         method: 'DELETE',
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
       });
-
       if (Array.isArray(newVouchers) && newVouchers.length > 0) {
         await fetch(`${SUPABASE_URL}/rest/v1/vouchers`, {
           method: 'POST',
-          headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`,
-            'Content-Type': 'application/json'
-          },
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
           body: JSON.stringify(newVouchers)
         });
       }
@@ -198,7 +215,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // 6. GET STATISTIK PENDAPATAN & CHART BAR
+  // GET STATISTIK PENDAPATAN & CHART BAR VALID BERDASARKAN TABEL TRANSACTIONS
   if (action === 'get_stats') {
     try {
       const resTrans = await fetch(`${SUPABASE_URL}/rest/v1/transactions?select=*`, {
@@ -211,12 +228,13 @@ export default async function handler(req, res) {
       const nowWIB = new Date();
       const hariIniStr = nowWIB.toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
 
+      // Hitung awal minggu ini (Senin) dan awal bulan ini
       let harian = 0;
       let mingguan = 0;
       let bulanan = 0;
       let chartHarian = [0, 0, 0, 0, 0, 0, 0];
 
-      // Kalkulasi tanggal 7 hari ke belakang untuk chart bar
+      // Buat list 7 hari terakhir (format YYYY-MM-DD)
       const datesArray = [];
       for (let i = 6; i >= 0; i--) {
         const d = new Date();
@@ -228,23 +246,27 @@ export default async function handler(req, res) {
         const tDate = (t.created_at || '').slice(0, 10);
         const amount = Number(t.amount || 0);
 
-        if (tDate === hariIniStr) harian += amount;
+        if (tDate === hariIniStr) {
+          harian += amount;
+        }
 
-        // Rentang bulanan & mingguan sederhana
-        if (tDate.slice(0, 7) === hariIniStr.slice(0, 7)) bulanan += amount;
-        
-        const indexChart = datesArray.indexOf(tDate);
-        if (indexChart !== -1) {
-          chartHarian[indexChart] += amount;
+        if (tDate.slice(0, 7) === hariIniStr.slice(0, 7)) {
+          bulanan += amount;
+        }
+
+        // Mingguan (7 hari ke belakang)
+        if (datesArray.includes(tDate)) {
+          mingguan += amount;
+          const idx = datesArray.indexOf(tDate);
+          chartHarian[idx] += amount;
         }
       });
 
-      // Jika belum ada tabel transactions, gunakan nilai fallback atau data simulasi aktif
       return res.status(200).json({
-        harian: harian || 10000,
-        mingguan: mingguan || 75000,
-        bulanan: bulanan || 300000,
-        chart_harian: chartHarian.some(v => v > 0) ? chartHarian : [5000, 12000, 8000, 25000, 15000, 40000, 20000]
+        harian: harian,
+        mingguan: mingguan,
+        bulanan: bulanan,
+        chart_harian: chartHarian
       });
     } catch (e) {
       return res.status(200).json({ harian: 0, mingguan: 0, bulanan: 0, chart_harian: [0,0,0,0,0,0,0] });
@@ -278,18 +300,15 @@ export default async function handler(req, res) {
     }
   }
 
-  // POST: KONTROL ADMIN (SAVE & DELETE LISENSI) ATAU ORDER TOKOPAY
+  // POST: KONTROL ADMIN & WEBHOOK TOKOPAY
   if (req.method === 'POST') {
     if (body.action === 'save_license') {
-      const saved = await simpanLisensiOtomatis(SUPABASE_URL, SUPABASE_KEY, body.device_id, 0);
-      // Update data langsung sesuai request admin
+      // Jika admin memperpanjang manual, catat juga sebagai transaksi senilai 0 atau harga paket terkait
+      await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, body.device_id, body.paket_hari || 7, body.nominal || 0);
+
       await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(body.device_id)}`, {
         method: 'PATCH',
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json'
-        },
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           exp_date: body.exp_date,
           status: body.status,
@@ -310,7 +329,6 @@ export default async function handler(req, res) {
 
     const merchantId = process.env.TOKOPAY_MERCHANT_ID;
     const secretKey = process.env.TOKOPAY_SECRET_KEY;
-
     const isWebhookTokopay = body && (body.tr_id || (body.status && !body.paket_hari));
 
     if (isWebhookTokopay) {
@@ -321,6 +339,7 @@ export default async function handler(req, res) {
       if (isLunasCallback && refIdCallback) {
         let targetDevId = null;
         let targetPaketHari = 7;
+        let nominalBayar = Number(body.total_bayar || body.nominal || 0);
 
         if (refIdCallback.includes('__')) {
           const parts = refIdCallback.split('__');
@@ -336,11 +355,10 @@ export default async function handler(req, res) {
         }
 
         if (targetDevId) {
-          await simpanLisensiOtomatis(SUPABASE_URL, SUPABASE_KEY, targetDevId, targetPaketHari);
+          await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, targetDevId, targetPaketHari, nominalBayar);
           return res.status(200).json({ status: true, message: 'Webhook processed successfully' });
         }
       }
-
       return res.status(200).json({ status: true, message: 'Callback received' });
     }
 
@@ -358,7 +376,6 @@ export default async function handler(req, res) {
       const tokopayData = await tokopayRes.json();
 
       const innerData = tokopayData?.data?.data || tokopayData?.data || tokopayData;
-      
       const qr_link = innerData?.qr_link || innerData?.qr_url || innerData?.pay_url || null;
       const qr_string = innerData?.qr_string || innerData?.qr_code || innerData?.qr_content || null;
       const total_bayar = innerData?.total_bayar || innerData?.nominal || innerData?.total || nominal;
@@ -397,6 +414,7 @@ export default async function handler(req, res) {
       if (isLunas) {
         let targetDevId = device_id;
         let targetPaketHari = paket_hari || 7;
+        let nominalBayar = Number(innerData?.total_bayar || innerData?.nominal || 0);
 
         if (reff_id.includes('__')) {
           const parts = reff_id.split('__');
@@ -412,12 +430,9 @@ export default async function handler(req, res) {
         }
 
         if (!targetDevId) targetDevId = device_id;
+        if (!targetDevId) return res.status(200).json({ is_paid: false, error: 'Device ID tidak terdeteksi.' });
 
-        if (!targetDevId) {
-          return res.status(200).json({ is_paid: false, error: 'Device ID tidak terdeteksi.' });
-        }
-
-        const savedInfo = await simpanLisensiOtomatis(SUPABASE_URL, SUPABASE_KEY, targetDevId, targetPaketHari);
+        const savedInfo = await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, targetDevId, targetPaketHari, nominalBayar);
 
         return res.status(200).json({
           is_paid: true,
@@ -426,10 +441,7 @@ export default async function handler(req, res) {
         });
       }
 
-      return res.status(200).json({
-        is_paid: false,
-        raw_status: innerData?.status || 'Unpaid'
-      });
+      return res.status(200).json({ is_paid: false, raw_status: innerData?.status || 'Unpaid' });
     } catch (err) {
       return res.status(200).json({ is_paid: false, error: 'Gagal mengecek status Tokopay.' });
     }

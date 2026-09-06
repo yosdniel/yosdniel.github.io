@@ -25,7 +25,7 @@ function calculateExpiryDate(currentExpStr, daysToAdd) {
 // Simpan/Perbarui Lisensi ke Supabase
 async function simpanLisensiOtomatis(supabaseUrl, supabaseKey, deviceId, paketHari) {
   if (!supabaseUrl || !supabaseKey || !deviceId) {
-    console.error('[SUPABASE CONFIG ERROR] Missing credentials/deviceId');
+    console.error('[SUPABASE CONFIG ERROR] Missing credentials or deviceId');
     return null;
   }
 
@@ -36,7 +36,8 @@ async function simpanLisensiOtomatis(supabaseUrl, supabaseKey, deviceId, paketHa
       headers: {
         'apikey': supabaseKey,
         'Authorization': `Bearer ${supabaseKey}`
-      }
+      },
+      cache: 'no-store'
     });
 
     const existing = await getRes.json();
@@ -48,7 +49,7 @@ async function simpanLisensiOtomatis(supabaseUrl, supabaseKey, deviceId, paketHa
     const licenseKeyNew = `MIND-${btoa(payload).split('').reverse().join('')}`;
 
     if (activeLicense) {
-      // 2. Update Lisensi
+      // 2. Update Lisensi (PATCH)
       const updateRes = await fetch(`${supabaseUrl}/rest/v1/licenses?device_id=eq.${encodeURIComponent(deviceId)}`, {
         method: 'PATCH',
         headers: {
@@ -62,13 +63,14 @@ async function simpanLisensiOtomatis(supabaseUrl, supabaseKey, deviceId, paketHa
           license_key: licenseKeyNew,
           status: 'active',
           updated_at: new Date().toISOString()
-        })
+        }),
+        cache: 'no-store'
       });
 
       const updatedData = await updateRes.json();
       return Array.isArray(updatedData) && updatedData.length > 0 ? updatedData[0] : { exp_date: expDateNew };
     } else {
-      // 3. Insert Lisensi Baru
+      // 3. Insert Lisensi Baru (POST)
       const insertRes = await fetch(`${supabaseUrl}/rest/v1/licenses`, {
         method: 'POST',
         headers: {
@@ -83,7 +85,8 @@ async function simpanLisensiOtomatis(supabaseUrl, supabaseKey, deviceId, paketHa
           exp_date: expDateNew,
           status: 'active',
           client_name: 'User QRIS'
-        })
+        }),
+        cache: 'no-store'
       });
 
       const insertedData = await insertRes.json();
@@ -96,6 +99,13 @@ async function simpanLisensiOtomatis(supabaseUrl, supabaseKey, deviceId, paketHa
 }
 
 export default async function handler(req, res) {
+  // Anti-Cache HTTP Headers (Mencegah Respon HTTP 304)
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
+
+  // CORS Headers
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -112,12 +122,12 @@ export default async function handler(req, res) {
   const device_id = query.device_id || body?.device_id;
   const paket_hari = query.paket_hari || body?.paket_hari;
 
-  // 1. CHECK VERSION
+  // CHECK VERSION
   if (action === 'check_version') {
     return res.status(200).json({ version: '1.5.21', download_url: 'https://mindspace-id.vercel.app/sipgn-autofill.user.js' });
   }
 
-  // 2. GET PACKAGES
+  // GET PACKAGES
   if (action === 'get_packages') {
     return res.status(200).json({
       packages: [
@@ -127,14 +137,15 @@ export default async function handler(req, res) {
     });
   }
 
-  // 3. CHECK LICENSE STATUS
+  // CHECK LICENSE STATUS
   if (action === 'check_license') {
     if (!device_id) return res.status(200).json({ valid: false, msg: 'Device ID tidak ditemukan.' });
 
     try {
       const getRes = await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(device_id)}`, {
         method: 'GET',
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+        cache: 'no-store'
       });
       const licenses = await getRes.json();
       const lic = Array.isArray(licenses) && licenses.length > 0 ? licenses[0] : null;
@@ -154,13 +165,13 @@ export default async function handler(req, res) {
     }
   }
 
-  // 4. MANUAL SAVE LICENSE
+  // MANUAL SAVE LICENSE
   if (action === 'save_license') {
     const saved = await simpanLisensiOtomatis(SUPABASE_URL, SUPABASE_KEY, device_id, paket_hari || 0);
     return res.status(200).json({ success: true, data: saved });
   }
 
-  // 5. POST ORDER TO TOKOPAY
+  // POST ORDER TO TOKOPAY
   if (req.method === 'POST') {
     const merchantId = process.env.TOKOPAY_MERCHANT_ID;
     const secretKey = process.env.TOKOPAY_SECRET_KEY;
@@ -171,7 +182,7 @@ export default async function handler(req, res) {
     const signature = crypto.createHash('md5').update(`${merchantId}:${secretKey}:${refIdOrder}`).digest('hex');
 
     try {
-      const tokopayRes = await fetch(`https://api.tokopay.id/v1/order?merchant=${merchantId}&secret=${secretKey}&ref_id=${encodeURIComponent(refIdOrder)}&nominal=${nominal}&metode=${body.metode || 'QRISREALTIME'}&signature=${signature}`);
+      const tokopayRes = await fetch(`https://api.tokopay.id/v1/order?merchant=${merchantId}&secret=${secretKey}&ref_id=${encodeURIComponent(refIdOrder)}&nominal=${nominal}&metode=${body.metode || 'QRISREALTIME'}&signature=${signature}`, { cache: 'no-store' });
       const tokopayData = await tokopayRes.json();
 
       orderMemory.set(refIdOrder, { device_id: device_id, paket_hari: body.paket_hari || 7 });
@@ -182,7 +193,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // 6. POLLING STATUS PEMBAYARAN TOKOPAY (SINKRON DENGAN STRUCT RESMI TOKOPAY)
+  // POLLING STATUS PEMBAYARAN TOKOPAY
   if (ref_id) {
     const merchantId = process.env.TOKOPAY_MERCHANT_ID;
     const secretKey = process.env.TOKOPAY_SECRET_KEY;
@@ -194,21 +205,23 @@ export default async function handler(req, res) {
       const tokopayRes = await fetch(`https://api.tokopay.id/v1/order/status?merchant=${merchantId}&secret=${secretKey}&ref_id=${encodeURIComponent(ref_id)}&signature=${signature}`, { cache: 'no-store' });
       const tokopayData = await tokopayRes.json();
 
-      // Membaca objek data sesuai skema JSON Tokopay
-      const innerData = tokopayData?.data?.data || tokopayData?.data;
-      const statusTransaksi = innerData?.status; // String misal: "Success"
+      // Ekstraksi data berdasarkan JSON resmi Tokopay
+      const innerData = tokopayData?.data?.data;
+      const statusTransaksi = innerData?.status; // Menerima "Success"
+      const reffIdTokopay = innerData?.reff_id || ref_id;
 
-      // Evaluasi Lunas Spesifik JSON Tokopay Resmi
+      // Kriteria Lunas
       const isLunas = tokopayData?.status === true && String(statusTransaksi).toLowerCase() === 'success';
 
       if (isLunas) {
-        let orderInfo = orderMemory.get(ref_id);
+        let orderInfo = orderMemory.get(ref_id) || orderMemory.get(reffIdTokopay);
         let targetPaketHari = paket_hari || orderInfo?.paket_hari || 7;
         let targetDevId = device_id || orderInfo?.device_id;
 
-        // Fallback ekstraksi Device ID dari pola ref_id: SIPGN-DEV-XXXX-XXXX-HASH
-        if (!targetDevId && ref_id.startsWith('SIPGN-DEV-')) {
-          const parts = ref_id.split('-');
+        // Fallback ekstraksi Device ID dari ref_id / reff_id (SIPGN-DEV-XXXX-XXXX-HASH)
+        const checkRef = ref_id || reffIdTokopay || '';
+        if (!targetDevId && checkRef.startsWith('SIPGN-DEV-')) {
+          const parts = checkRef.split('-');
           if (parts.length >= 3) {
             targetDevId = `DEV-${parts[1]}-${parts[2]}`;
           }
@@ -218,7 +231,7 @@ export default async function handler(req, res) {
           return res.status(200).json({ is_paid: false, error: 'Device ID tidak terdeteksi.' });
         }
 
-        // Perbarui masa aktif lisensi ke Supabase
+        // Simpan pembaruan lisensi ke Supabase
         const savedInfo = await simpanLisensiOtomatis(SUPABASE_URL, SUPABASE_KEY, targetDevId, targetPaketHari);
 
         return res.status(200).json({

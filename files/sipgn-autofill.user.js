@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        SIPGN Autofill - POP
 // @namespace   sipgn-autofill
-// @version     1.5.20
+// @version     1.5.28
 // @description Isi otomatis form Tugas Pengiriman & Auto Payment QRIS Tokopay
 // @match       https://pop-sipgn.bgn.go.id/distribution/*
 // @grant       GM_setValue
@@ -9,6 +9,7 @@
 // @grant       GM_xmlhttpRequest
 // @connect     mindspace-id.vercel.app
 // @connect     api.qrserver.com
+// @connect     chart.googleapis.com
 // @updateURL   https://mindspace-id.vercel.app/sipgn-autofill.user.js
 // @downloadURL https://mindspace-id.vercel.app/sipgn-autofill.user.js
 // ==/UserScript==
@@ -21,19 +22,20 @@
   // ------------------------------------------------------------------
   const CURRENT_VERSION = (typeof GM_info !== 'undefined' && GM_info.script)
     ? GM_info.script.version
-    : '1.5.20';
+    : '1.5.28';
 
   const VERCEL_API_URL = 'https://mindspace-id.vercel.app/api/tokopay';
 
   const SECRET_SALT = 'MINDSTUDIO2026';
   const LICENSE_STORAGE_KEY = 'sipgn_license_key';
-  const USED_KEYS_STORAGE_KEY = 'sipgn_used_keys_list';
   const DEVICE_STORAGE_KEY = 'sipgn_device_id';
   const STORAGE_KEY = 'sipgnAutofillData';
 
   let currentDatabaseExpDate = null;
-  let statusLisensiTerakhir = null; // Menyimpan cache status lisensi untuk pengawasan real-time
+  let statusLisensiTerakhir = null;
   let intervalMonitorLisensi = null;
+  let isPaymentModalOpen = false;
+  let isPaymentSuccess = false;
 
   // ------------------------------------------------------------------
   // FITUR IN-APP UPDATE CHECKER & POP-UP NOTIFICATION
@@ -41,7 +43,8 @@
   function cekUpdateSkrip() {
     GM_xmlhttpRequest({
       method: 'GET',
-      url: `${VERCEL_API_URL}?action=check_version`,
+      url: `${VERCEL_API_URL}?action=check_version&_t=${Date.now()}`,
+      headers: { 'Cache-Control': 'no-cache, no-store' },
       onload: function (res) {
         try {
           const data = JSON.parse(res.responseText);
@@ -138,23 +141,6 @@
     return `MIND-${reversed}`;
   }
 
-  function simpanLisensiKeSupabase(deviceId, licenseKey, expDate) {
-    GM_xmlhttpRequest({
-      method: 'POST',
-      url: VERCEL_API_URL,
-      headers: { 'Content-Type': 'application/json' },
-      data: JSON.stringify({
-        action: 'save_license',
-        device_id: deviceId,
-        license_key: licenseKey,
-        exp_date: expDate
-      }),
-      onload: function () {
-        console.log('[Autofill] Lisensi disinkronkan ke Supabase.');
-      }
-    });
-  }
-
   // ------------------------------------------------------------------
   // FUNGSI KOMUNIKASI API VERCEL <-> TOKOPAY
   // ------------------------------------------------------------------
@@ -162,7 +148,8 @@
     return new Promise((resolve, reject) => {
       GM_xmlhttpRequest({
         method: 'GET',
-        url: `${VERCEL_API_URL}?action=get_packages`,
+        url: `${VERCEL_API_URL}?action=get_packages&_t=${Date.now()}`,
+        headers: { 'Cache-Control': 'no-cache, no-store' },
         onload: function (res) {
           try {
             const data = JSON.parse(res.responseText);
@@ -191,6 +178,7 @@
         headers: { 'Content-Type': 'application/json' },
         data: JSON.stringify({
           paket_hari: paketHari,
+          reff_id: refId,
           ref_id: refId,
           device_id: dapatkanDeviceID(),
           metode: 'QRISREALTIME',
@@ -211,14 +199,16 @@
     });
   }
 
-  function cekStatusVercel(refId) {
+  function cekStatusVercel(refId, paketHari = 7) {
+    const devId = dapatkanDeviceID();
     return new Promise((resolve, reject) => {
       GM_xmlhttpRequest({
         method: 'GET',
-        url: `${VERCEL_API_URL}?ref_id=${encodeURIComponent(refId)}&metode=QRISREALTIME`,
+        url: `${VERCEL_API_URL}?reff_id=${encodeURIComponent(refId)}&ref_id=${encodeURIComponent(refId)}&device_id=${encodeURIComponent(devId)}&paket_hari=${encodeURIComponent(paketHari)}&metode=QRISREALTIME&_t=${Date.now()}`,
+        headers: { 'Cache-Control': 'no-cache, no-store' },
         onload: function (res) {
           try {
-            const data = JSON.parse(res.responseText);
+            const data = typeof res.responseText === 'string' ? JSON.parse(res.responseText) : res.responseText;
             resolve(data);
           } catch (e) {
             reject('Gagal cek status dari Vercel.');
@@ -243,6 +233,8 @@
 
   function batalkanPembayaranLangsung() {
     hentikanTimerDanPolling();
+    isPaymentModalOpen = false;
+    isPaymentSuccess = false;
     const btnBeli = document.getElementById('sipgn-btn-buy-qris');
     const qrContainer = document.getElementById('sipgn-qris-container');
     const wrapperPaket = document.getElementById('sipgn-wrapper-paket');
@@ -281,81 +273,132 @@
     cekUpdateSkrip();
   }
 
-  function perbaruiTampilanInfoModal() {
-    const container = document.getElementById('sipgn-info-exp-container');
-    if (!container) return;
-    const currentDevId = dapatkanDeviceID();
-    const infoExp = currentDatabaseExpDate ? `Lisensi Aktif s/d: <b>${formatTanggalIndo(currentDatabaseExpDate)}</b>` : '';
+  // ------------------------------------------------------------------
+  // MODAL INDEPENDEN UNTUK TRANSAKSI SUKSES
+  // ------------------------------------------------------------------
+  function tampilkanModalSukses(expDateTarget) {
+    const modalAktivasiLama = document.getElementById('sipgn-license-modal');
+    if (modalAktivasiLama) modalAktivasiLama.remove();
 
-    container.innerHTML = `
-      <b>Device ID:</b><br><span id="sipgn-dev-id-text" style="font-size: 13px; font-weight: bold; color: #facc15;">${currentDevId}</span>
-      ${infoExp ? `<br><span style="color: #4ade80; font-size: 10px; display:inline-block; margin-top:4px;">${infoExp}</span>` : ''}
+    const modalSuksesLama = document.getElementById('sipgn-success-modal');
+    if (modalSuksesLama) modalSuksesLama.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'sipgn-success-modal';
+    overlay.style.cssText = `
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(11, 30, 63, 0.94); backdrop-filter: blur(6px);
+      z-index: 1000001; display: flex; align-items: center; justify-content: center;
+      font-family: sans-serif;
     `;
-  }
 
-  function eksekusiSuksesPembayaran(jumlahHari, devId) {
-    hentikanTimerDanPolling();
+    overlay.innerHTML = `
+      <div style="position: relative; background: #0f172a; border: 1px solid #10b981; color: white; padding: 24px; border-radius: 12px; width: 330px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+        <div style="font-size: 40px; margin-bottom: 6px;">🎉</div>
+        <h3 style="margin: 0; font-size: 18px; font-weight: bold; color: #34d399;">PEMBAYARAN BERHASIL!</h3>
+        <p style="font-size: 11px; color: #94a3b8; margin: 8px 0 14px 0;">Transaksi Anda telah dikonfirmasi oleh sistem.</p>
 
-    let baseDate = new Date();
-    if (currentDatabaseExpDate) {
-      const expDateObj = new Date(currentDatabaseExpDate + 'T00:00:00');
-      if (expDateObj > baseDate) baseDate = expDateObj;
-    }
-
-    baseDate.setDate(baseDate.getDate() + jumlahHari);
-    const yyyy = baseDate.getFullYear();
-    const mm = String(baseDate.getMonth() + 1).padStart(2, '0');
-    const dd = String(baseDate.getDate()).padStart(2, '0');
-    const expDateTarget = `${yyyy}-${mm}-${dd}`;
-
-    currentDatabaseExpDate = expDateTarget;
-    const autoKey = buatLicenseKey(expDateTarget, devId, 'AutoPayment');
-
-    GM_setValue(LICENSE_STORAGE_KEY, autoKey);
-    simpanLisensiKeSupabase(devId, autoKey, expDateTarget);
-
-    perbaruiTampilanInfoModal();
-
-    const qrContainer = document.getElementById('sipgn-qris-container');
-    const wrapperPaket = document.getElementById('sipgn-wrapper-paket');
-    const btnBeli = document.getElementById('sipgn-btn-buy-qris');
-
-    if (wrapperPaket) wrapperPaket.style.display = 'none';
-    if (btnBeli) btnBeli.style.display = 'none';
-
-    if (qrContainer) {
-      qrContainer.style.display = 'block';
-      qrContainer.innerHTML = `
-        <div style="background: #064e3b; color: #a7f3d0; padding: 14px; border-radius: 8px; font-size: 12px; margin-top: 10px; border: 1px solid #047857; text-align: center;">
-          🎉 <b>PEMBAYARAN BERHASIL!</b><br>
-          <div style="margin-top: 6px; font-size: 11px; color: #e2e8f0;">
-            Lisensi aktif s/d : <b>${formatTanggalIndo(expDateTarget)}</b>
+        <div style="background: #064e3b; color: #a7f3d0; padding: 12px; border-radius: 8px; font-size: 12px; margin-bottom: 16px; border: 1px solid #047857; text-align: center;">
+          Status: <b>AKTIF</b><br>
+          <div style="margin-top: 4px; font-size: 11px; color: #f8fafc;">
+            Masa Aktif Baru s/d:<br><b style="color: #facc15; font-size: 14px;">${formatTanggalIndo(expDateTarget)}</b>
           </div>
         </div>
-        <button id="sipgn-btn-close-success" style="width: 100%; margin-top: 10px; padding: 8px; border: none; border-radius: 6px; background: #2563eb; color: white; font-weight: bold; cursor: pointer; font-size: 11px;">
-          Tutup & Lanjutkan Sesi
-        </button>
-      `;
 
-      const btnTutup = document.getElementById('sipgn-btn-close-success');
-      if (btnTutup) {
-        btnTutup.onclick = () => {
-          const modalLama = document.getElementById('sipgn-license-modal');
-          if (modalLama) modalLama.remove();
-          mulaiJalankanSkrip();
-        };
-      }
-    }
+        <button id="sipgn-btn-close-success" style="width: 100%; padding: 10px; border: none; border-radius: 6px; background: #2563eb; color: white; font-weight: bold; cursor: pointer; font-size: 12px;">
+          🚀 Tutup & Lanjutkan Sesi
+        </button>
+        <div style="margin-top: 12px; font-size: 10px; color: #64748b;">© 2026 - <b>Mindspace Studio</b></div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    document.getElementById('sipgn-btn-close-success').onclick = () => {
+      isPaymentSuccess = false;
+      isPaymentModalOpen = false;
+      overlay.remove();
+      mulaiJalankanSkrip();
+    };
   }
 
+  function eksekusiSuksesPembayaran(jumlahHari, devId, expDateFromBackend = null) {
+    hentikanTimerDanPolling();
+    isPaymentSuccess = true;
+
+    let expDateTarget = expDateFromBackend;
+
+    // Jika backend tidak mengirim tanggal ekspirasi secara eksplisit, 
+    // hitung akumulasi dari tanggal aktif saat ini (misal: 05 Oktober 2026)
+    if (!expDateTarget) {
+      let baseDate = new Date();
+      if (currentDatabaseExpDate) {
+        const expDateObj = new Date(currentDatabaseExpDate + 'T00:00:00');
+        if (expDateObj > baseDate) {
+          baseDate = expDateObj; // Akumulasi dari tanggal aktif terakhir
+        }
+      }
+      baseDate.setDate(baseDate.getDate() + jumlahHari);
+      const yyyy = baseDate.getFullYear();
+      const mm = String(baseDate.getMonth() + 1).padStart(2, '0');
+      const dd = String(baseDate.getDate()).padStart(2, '0');
+      expDateTarget = `${yyyy}-${mm}-${dd}`;
+    }
+
+    currentDatabaseExpDate = expDateTarget;
+    statusLisensiTerakhir = 'active';
+
+    const autoKey = buatLicenseKey(expDateTarget, devId, 'AutoPayment');
+    GM_setValue(LICENSE_STORAGE_KEY, autoKey);
+
+    tampilkanModalSukses(expDateTarget);
+  }
+
+  // ------------------------------------------------------------------
+  // DETEKTOR LUNAS MULTI-PAYLOAD / ROBUST
+  // ------------------------------------------------------------------
+  function cekApakahLunas(obj) {
+    if (!obj) return false;
+
+    // Periksa berbagai format objek balasan dari Vercel / Tokopay
+    const subData = obj.data || obj.result || obj;
+    const innerSubData = subData?.data || subData;
+
+    const listStatusSukses = ['success', 'paid', 'completed', 'lunas', 'berhasil', '200', '1'];
+
+    const isPaidFlag = 
+      subData.is_paid === true || subData.paid === true || 
+      innerSubData.is_paid === true || innerSubData.paid === true ||
+      obj.is_paid === true || obj.paid === true;
+
+    const statusVal = String(
+      innerSubData.status || innerSubData.raw_status || innerSubData.transaction_status || 
+      subData.status || subData.raw_status || subData.transaction_status || 
+      obj.status || ''
+    ).toLowerCase().trim();
+
+    if (isPaidFlag || listStatusSukses.includes(statusVal)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  // ------------------------------------------------------------------
+  // PROSES PEMBAYARAN OTOMATIS & DETEKSI LUNAS QRIS
+  // ------------------------------------------------------------------
   async function prosesPembayaranOtomatis(jumlahHari) {
     const devId = dapatkanDeviceID();
-    const refId = Math.floor(Math.random() * 16777215).toString(16).toUpperCase() + Date.now().toString().slice(-6);
+    const cleanDevId = devId.replace(/[^a-zA-Z0-9]/g, '');
+    const refIdAwal = `SIPGN__${cleanDevId}__${jumlahHari}__${Date.now()}`;
+
     const btnBeli = document.getElementById('sipgn-btn-buy-qris');
     const qrContainer = document.getElementById('sipgn-qris-container');
     const wrapperPaket = document.getElementById('sipgn-wrapper-paket');
 
     hentikanTimerDanPolling();
+    isPaymentModalOpen = true;
+    isPaymentSuccess = false;
 
     try {
       if (btnBeli) {
@@ -363,11 +406,37 @@
         btnBeli.textContent = '⏳ Memproses QRIS...';
       }
 
-      const resOrder = await buatOrderVercel(jumlahHari, refId);
-      const orderData = resOrder.data || resOrder;
+      const resOrder = await buatOrderVercel(jumlahHari, refIdAwal);
+      console.log('[Autofill] Respon Buat Order Vercel:', resOrder);
 
-      if (!orderData || (!orderData.qr_link && !orderData.pay_url && !orderData.qr_string)) {
-        alert('Gagal membuat transaksi QRIS Tokopay.');
+      if (resOrder.error) {
+        alert('Gagal dari Server: ' + resOrder.error);
+        isPaymentModalOpen = false;
+        if (btnBeli) { btnBeli.disabled = false; btnBeli.textContent = '💳 Bayar via QRIS'; }
+        return;
+      }
+
+      const refIdFix = resOrder.reff_id || resOrder.ref_id || resOrder.data?.reff_id || resOrder.data?.ref_id || refIdAwal;
+      const orderData = resOrder.data?.data?.data || resOrder.data?.data || resOrder.data || resOrder;
+
+      const qrStringRaw = resOrder.qr_string || orderData.qr_string || orderData.qr_code || orderData.qr_content || null;
+      const qrLinkRaw = resOrder.qr_link || orderData.qr_link || orderData.qr_url || null;
+      const nominalPembayaran = resOrder.total_bayar || orderData.total_bayar || orderData.jumlah_bayar || orderData.nominal || orderData.price || orderData.total || null;
+
+      let finalQrImageUrl = null;
+
+      if (qrStringRaw && typeof qrStringRaw === 'string' && qrStringRaw.trim().length > 10) {
+        finalQrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrStringRaw.trim())}`;
+      } else if (qrLinkRaw && typeof qrLinkRaw === 'string' && (qrLinkRaw.includes('.png') || qrLinkRaw.includes('.jpg') || qrLinkRaw.includes('qr'))) {
+        finalQrImageUrl = qrLinkRaw;
+      } else if (orderData.pay_url) {
+        finalQrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(orderData.pay_url)}`;
+      }
+
+      if (!finalQrImageUrl) {
+        const pesanErrorMsg = resOrder.data?.error_msg || resOrder.data?.message || orderData.error_msg || orderData.message || 'Data QRIS tidak ditemukan dari Tokopay.';
+        alert('Gagal membuat transaksi QRIS: ' + pesanErrorMsg);
+        isPaymentModalOpen = false;
         if (btnBeli) {
           btnBeli.disabled = false;
           btnBeli.textContent = '💳 Bayar via QRIS';
@@ -375,20 +444,16 @@
         return;
       }
 
-      const qrData = orderData.qr_string || orderData.qr_link || orderData.pay_url;
-      const nominalPembayaran = orderData.total_bayar || orderData.nominal || orderData.price || orderData.total || null;
-
       if (wrapperPaket) wrapperPaket.style.display = 'none';
       if (btnBeli) btnBeli.style.display = 'none';
 
       if (qrContainer) {
-        const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData)}`;
         const teksNominal = nominalPembayaran ? `Rp ${Number(nominalPembayaran).toLocaleString('id-ID')}` : '-';
 
         qrContainer.style.display = 'block';
         qrContainer.innerHTML = `
-          <div style="background: white; padding: 10px; border-radius: 8px; display: inline-block; margin: 8px 0;">
-            <img src="${qrImgUrl}" alt="QRIS Tokopay" style="width: 180px; height: 180px; display: block; margin: 0 auto;" />
+          <div style="background: white; padding: 12px; border-radius: 8px; display: inline-block; margin: 8px 0; border: 2px solid #10b981;">
+            <img id="sipgn-qr-img-element" src="${finalQrImageUrl}" alt="QRIS Tokopay" style="width: 210px; height: 210px; display: block; margin: 0 auto; image-rendering: pixelated;" />
           </div>
           <div style="font-size: 10px; color: #cbd5e1; margin-bottom: 10px;">
             Total Pembayaran:<br><b style="color: #4ade80; font-size: 20px;">${teksNominal}</b><br>
@@ -404,10 +469,19 @@
           </button>
         `;
 
+        const imgEl = document.getElementById('sipgn-qr-img-element');
+        if (imgEl && qrStringRaw) {
+          imgEl.onerror = function () {
+            console.warn('[Autofill] qrserver.com error, beralih ke Google Chart API...');
+            this.src = `https://chart.googleapis.com/chart?cht=qr&chs=250x250&chl=${encodeURIComponent(qrStringRaw.trim())}`;
+          };
+        }
+
         const btnCancel = document.getElementById('sipgn-btn-cancel-qris');
         if (btnCancel) btnCancel.onclick = prosesMulaiBatalWithCountdown;
       }
 
+      // Countdown Waktu Transaksi (10 Menit)
       let sisaWaktu = 600;
       const timerDisplay = document.getElementById('sipgn-timer-display');
 
@@ -420,6 +494,7 @@
 
         if (sisaWaktu <= 0) {
           hentikanTimerDanPolling();
+          isPaymentModalOpen = false;
           if (wrapperPaket) wrapperPaket.style.display = 'block';
           if (qrContainer) {
             qrContainer.innerHTML = `
@@ -436,29 +511,34 @@
         }
       }, 1000);
 
+      // Polling Status Pembayaran Realtime (Setiap 3 Detik)
+      let isPollingBusy = false;
       intervalPollingPembayaran = setInterval(async () => {
-        try {
-          const resStatus = await cekStatusVercel(refId);
-          const statusVal = resStatus?.data?.status || resStatus?.status;
-          const dumpString = JSON.stringify(resStatus || {}).toLowerCase();
+        if (isPollingBusy) return;
+        isPollingBusy = true;
 
-          const isLunas =
-            statusVal === 'Success' ||
-            dumpString.includes('"status":"success"') ||
-            dumpString.includes('success') ||
-            dumpString.includes('paid') ||
-            dumpString.includes('settlement');
+        try {
+          const resStatus = await cekStatusVercel(refIdFix, jumlahHari);
+          console.log('[Autofill] Polling Status:', resStatus);
+
+          const isLunas = cekApakahLunas(resStatus);
 
           if (isLunas) {
-            eksekusiSuksesPembayaran(jumlahHari, devId);
+            console.log('[Autofill] Pembayaran BERHASIL terkonfirmasi!');
+            const innerData = resStatus?.data || resStatus;
+            const expDateFromBackend = innerData?.exp_date || resStatus?.exp_date || null;
+            eksekusiSuksesPembayaran(jumlahHari, devId, expDateFromBackend);
           }
         } catch (e) {
-          console.warn('[Autofill] Polling API terganggu:', e);
+          console.warn('[Autofill] Polling status terganggu:', e);
+        } finally {
+          isPollingBusy = false;
         }
       }, 3000);
 
     } catch (err) {
       alert('Error: ' + err);
+      isPaymentModalOpen = false;
       if (wrapperPaket) wrapperPaket.style.display = 'block';
       if (btnBeli) {
         btnBeli.disabled = false;
@@ -565,6 +645,8 @@
         if (btnCloseX) {
           btnCloseX.onclick = () => {
             hentikanTimerDanPolling();
+            isPaymentModalOpen = false;
+            isPaymentSuccess = false;
             overlay.remove();
           };
         }
@@ -1880,9 +1962,11 @@
   }
 
   // ------------------------------------------------------------------
-  // PENGAWASAN STATUS LISENSI SECARA REAL-TIME (POLLING LATAR BELAKANG)
+  // PENGAWASAN STATUS LISENSI SECARA REAL-TIME
   // ------------------------------------------------------------------
   function bersihkanSemuaUI() {
+    if (isPaymentModalOpen || isPaymentSuccess) return;
+
     const panel = document.getElementById('sipgn-autofill-panel');
     if (panel) panel.remove();
     const modalAktivasi = document.getElementById('sipgn-license-modal');
@@ -1892,16 +1976,21 @@
   }
 
   function periksaStatusLisensiOnline(isPemeriksaanAwal = false) {
+    if ((isPaymentModalOpen || isPaymentSuccess) && !isPemeriksaanAwal) return;
     const currentDevId = dapatkanDeviceID();
 
     GM_xmlhttpRequest({
       method: 'GET',
-      url: `${VERCEL_API_URL}?action=check_license&device_id=${encodeURIComponent(currentDevId)}`,
+      url: `${VERCEL_API_URL}?action=check_license&device_id=${encodeURIComponent(currentDevId)}&_t=${Date.now()}`,
+      headers: {
+        'Cache-Control': 'no-cache, no-store'
+      },
       onload: function (res) {
         try {
           const data = JSON.parse(res.responseText);
-          
-          // Tentukan status aktual
+
+          if (isPaymentModalOpen || isPaymentSuccess) return;
+
           let statusSekarang = 'unregistered';
           if (data.status === 'revoked') {
             statusSekarang = 'revoked';
@@ -1913,7 +2002,6 @@
             statusSekarang = 'expired';
           }
 
-          // Cek Apakah Status Berubah
           if (statusSekarang !== statusLisensiTerakhir || isPemeriksaanAwal) {
             statusLisensiTerakhir = statusSekarang;
 
@@ -1927,7 +2015,7 @@
               currentDatabaseExpDate = data.exp_date;
               bersihkanSemuaUI();
               mulaiJalankanSkrip();
-            } else { // expired / unregistered
+            } else {
               currentDatabaseExpDate = data.exp_date || null;
               bersihkanSemuaUI();
               tampilkanModalAktivasi(data.msg || 'Lisensi tidak ditemukan atau telah kadaluarsa.', false);
@@ -1945,10 +2033,8 @@
 
   function inialisasiSistem() {
     try {
-      // Pemeriksaan Awal
       periksaStatusLisensiOnline(true);
 
-      // Mulai polling otomatis setiap 5 detik
       if (intervalMonitorLisensi) clearInterval(intervalMonitorLisensi);
       intervalMonitorLisensi = setInterval(() => {
         periksaStatusLisensiOnline(false);

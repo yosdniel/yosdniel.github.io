@@ -70,7 +70,7 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const { action, device_id, ref_id } = req.query || {};
+      const { action, device_id, ref_id, paket_hari } = req.query || {};
 
       if (action === 'check_version') {
         return res.status(200).json({ status: true, version: VERSIONS.latest_version, download_url: VERSIONS.download_url, changelog: VERSIONS.changelog });
@@ -121,14 +121,14 @@ export default async function handler(req, res) {
 
         if (isLunas) {
           let orderInfo = orderMemory.get(ref_id);
-          let paketHari = orderInfo?.paket_hari || 7;
+          let targetPaketHari = orderInfo?.paket_hari || paket_hari || 7;
           let targetDevId = orderInfo?.device_id || device_id;
 
           if (!targetDevId) {
             return res.status(200).json({ is_paid: false, error: 'Device ID tidak ditemukan untuk pembaruan lisensi.' });
           }
 
-          let savedInfo = await simpanLisensiOtomatis(SUPABASE_URL, SUPABASE_KEY, targetDevId, paketHari);
+          let savedInfo = await simpanLisensiOtomatis(SUPABASE_URL, SUPABASE_KEY, targetDevId, targetPaketHari);
           return res.status(200).json({ is_paid: true, exp_date: savedInfo?.exp_date });
         }
 

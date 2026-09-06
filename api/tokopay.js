@@ -125,7 +125,7 @@ export default async function handler(req, res) {
   // 1. CHECK VERSION
   // ------------------------------------------------------------------
   if (action === 'check_version') {
-    return res.status(200).json({ version: '1.5.21', download_url: 'https://mindspace-id.vercel.app/sipgn-autofill.user.js' });
+    return res.status(200).json({ version: '1.5.22', download_url: 'https://mindspace-id.vercel.app/sipgn-autofill.user.js' });
   }
 
   // ------------------------------------------------------------------
@@ -185,8 +185,11 @@ export default async function handler(req, res) {
     const merchantId = process.env.TOKOPAY_MERCHANT_ID;
     const secretKey = process.env.TOKOPAY_SECRET_KEY;
 
-    // A. JIKA INI DARI WEBHOOK CALLBACK TOKOPAY
-    if (body.status || body.reff_id || body.ref_id || body.tr_id) {
+    // A. PEMERIKSAAN KETAT HANYA UNTUK WEBHOOK CALLBACK DARI TOKOPAY
+    // Hanya diproses sebagai webhook jika terdapat parameter `tr_id` atau `status` langsung dari sistem Tokopay.
+    const isWebhookTokopay = body && (body.tr_id || (body.status && !body.paket_hari));
+
+    if (isWebhookTokopay) {
       console.log('[WEBHOOK TOKOPAY] Terima Callback Payload:', JSON.stringify(body));
 
       const statusCallback = String(body.status || body.raw_status || '').toLowerCase();
@@ -221,8 +224,8 @@ export default async function handler(req, res) {
       return res.status(200).json({ status: true, message: 'Callback received' });
     }
 
-    // B. JIKA INI REQUEST ORDER DARI USERSCRIPT
-    if (!merchantId || !secretKey) return res.status(500).json({ error: 'Kunci API Tokopay belum diatur.' });
+    // B. JIKA INI REQUEST ORDER PEMBUATAN QRIS DARI USERSCRIPT
+    if (!merchantId || !secretKey) return res.status(500).json({ error: 'Kunci API Tokopay belum diatur pada Environment Variables Vercel.' });
 
     const nominal = body.nominal || (body.paket_hari == 30 ? 50000 : 100);
     
@@ -235,7 +238,6 @@ export default async function handler(req, res) {
     const signature = crypto.createHash('md5').update(`${merchantId}:${secretKey}:${refIdOrder}`).digest('hex');
 
     try {
-      // Mengirimkan kedua parameter reff_id & ref_id ke API Tokopay agar terakomodasi sepenuhnya
       const tokopayRes = await fetch(`https://api.tokopay.id/v1/order?merchant=${merchantId}&secret=${secretKey}&reff_id=${encodeURIComponent(refIdOrder)}&ref_id=${encodeURIComponent(refIdOrder)}&nominal=${nominal}&metode=${body.metode || 'QRISREALTIME'}&signature=${signature}`, { cache: 'no-store' });
       const tokopayData = await tokopayRes.json();
 
@@ -257,7 +259,6 @@ export default async function handler(req, res) {
     const signature = crypto.createHash('md5').update(`${merchantId}:${secretKey}:${reff_id}`).digest('hex');
 
     try {
-      // Menggunakan reff_id & ref_id saat request ke endpoint order status
       const tokopayRes = await fetch(`https://api.tokopay.id/v1/order/status?merchant=${merchantId}&secret=${secretKey}&reff_id=${encodeURIComponent(reff_id)}&ref_id=${encodeURIComponent(reff_id)}&signature=${signature}`, { cache: 'no-store' });
       const tokopayData = await tokopayRes.json();
 

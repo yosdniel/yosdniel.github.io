@@ -92,7 +92,17 @@
     .chart-bar { width: 24px; background: #2563eb; border-radius: 6px 6px 0 0; transition: height 0.4s; }
     .chart-label { font-size: 10px; color: #94a3b8; margin-top: 6px; }
 
-    .package-row, .voucher-row { display: flex; gap: 8px; align-items: center; background: #0f172a; padding: 8px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 8px; }
+    .package-row, .voucher-row { display: flex; gap: 6px; align-items: center; background: #0f172a; padding: 8px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 8px; }
+
+    /* LIST USER STYLING */
+    .user-list-container { max-height: 260px; overflow-y: auto; margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; }
+    .user-item {
+      background: #0f172a; border: 1px solid #334155; padding: 10px 12px; border-radius: 8px;
+      cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: 0.2s;
+    }
+    .user-item:hover { border-color: #38bdf8; background: #131c31; }
+    .user-item-info div:first-child { font-weight: 600; font-size: 13px; color: #facc15; }
+    .user-item-info div:last-child { font-size: 11px; color: #94a3b8; margin-top: 2px; }
 
     .toast {
       position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
@@ -124,7 +134,6 @@
 
     <!-- VIEW 1: MENU UTAMA & STATISTIK -->
     <div id="viewMainMenu" class="view-section">
-      <!-- STATISTIK PENDAPATAN & USER -->
       <div class="stats-grid">
         <div class="stat-box">
           <span>Hari Ini</span>
@@ -140,12 +149,9 @@
         </div>
       </div>
 
-      <!-- CHART BAR PENDAPATAN HARIAN -->
       <div class="chart-container">
         <div style="font-size: 11px; font-weight: bold; color: #cbd5e1; margin-bottom: 4px;">📊 Grafik Pendapatan 7 Hari Terakhir</div>
-        <div class="chart-bars" id="chartBarsContainer">
-          <!-- Diisi via JS -->
-        </div>
+        <div class="chart-bars" id="chartBarsContainer"></div>
       </div>
 
       <div style="font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 8px;">Pilih Menu Manajemen:</div>
@@ -154,7 +160,7 @@
         <div class="menu-card" onclick="bukaFitur('device')">
           <div class="menu-icon">🔍</div>
           <h3>Cek Device ID</h3>
-          <p>Kelola masa aktif user</p>
+          <p>Daftar & kelola user</p>
         </div>
 
         <div class="menu-card" onclick="bukaFitur('packages')">
@@ -177,16 +183,22 @@
       </div>
     </div>
 
-    <!-- VIEW 2: FITUR CEK DEVICE ID -->
+    <!-- VIEW 2: FITUR CEK DEVICE ID & LIST ALL USERS -->
     <div id="viewDeviceCheck" class="view-section">
       <div class="field-group">
-        <label for="inputDeviceId">Masukkan Device ID:</label>
-        <input type="text" id="inputDeviceId" placeholder="DEV-XXXX-XXXX" style="text-transform: uppercase;" onkeyup="if(event.key==='Enter') cekDeviceId()">
+        <label for="inputDeviceId">Cari / Masukkan Device ID:</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="inputDeviceId" placeholder="DEV-XXXX-XXXX" style="text-transform: uppercase;" onkeyup="if(event.key==='Enter') cekDeviceId()">
+          <button class="btn btn-primary" style="width: 110px;" onclick="cekDeviceId()">Cari</button>
+        </div>
       </div>
-      <div style="display: flex; gap: 8px;">
-        <button class="btn btn-primary" style="flex: 2;" onclick="cekDeviceId()">🔎 Periksa Device ID</button>
-        <button class="btn btn-secondary" style="flex: 1;" onclick="kembaliKeMenu()">🔙 Menu</button>
+
+      <div style="font-size: 12px; font-weight: 600; color: #cbd5e1; margin: 12px 0 6px 0;">Daftar Seluruh User Terdaftar:</div>
+      <div class="user-list-container" id="listAllUsersContainer">
+        <div style="text-align: center; color: #94a3b8; font-size: 12px; padding: 20px;">Memuat data user...</div>
       </div>
+
+      <button class="btn btn-secondary" onclick="kembaliKeMenu()">🔙 Kembali ke Menu Utama</button>
     </div>
 
     <!-- VIEW 3: FITUR DETAIL & KONTROL LISENSI -->
@@ -195,6 +207,7 @@
         <div><b>Device ID:</b> <span id="dispDeviceId" style="color:#facc15;">-</span></div>
         <div><b>Status Saat Ini:</b> <span id="dispStatus">-</span></div>
         <div><b>Tanggal Kadaluarsa:</b> <span id="dispExpDate" style="color:#38bdf8;">-</span></div>
+        <div><b>Update Terakhir Perpanjang:</b> <span id="dispLastUpdated" style="color:#cbd5e1;">-</span></div>
       </div>
 
       <div class="field-group">
@@ -229,12 +242,12 @@
         <button class="btn btn-success" onclick="simpanPerubahanLisensi()">💾 Simpan Perubahan</button>
         <div style="display: flex; gap: 8px;">
           <button class="btn btn-danger" style="flex: 1;" id="btnHapusLisensi" onclick="hapusLisensi()">🗑️ Hapus</button>
-          <button class="btn btn-secondary" style="flex: 1;" onclick="bukaFitur('device')">↩️ Kembali</button>
+          <button class="btn btn-secondary" style="flex: 1;" onclick="bukaFitur('device')">↩️ Kembali ke Daftar</button>
         </div>
       </div>
     </div>
 
-    <!-- VIEW 4: FITUR KELOLA HARGA PAKET (TANPA SCROLLBAR KAKU) -->
+    <!-- VIEW 4: FITUR KELOLA HARGA PAKET -->
     <div id="viewPackages" class="view-section">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
         <label style="margin:0;">Kelola Daftar Paket Langganan:</label>
@@ -249,14 +262,14 @@
       </div>
     </div>
 
-    <!-- VIEW 5: FITUR KELOLA VOUCHER DISKON -->
+    <!-- VIEW 5: FITUR KELOLA VOUCHER DISKON & DURASI -->
     <div id="viewVouchers" class="view-section">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
         <label style="margin:0;">Kelola Kode Kupon / Voucher:</label>
         <button class="btn btn-primary" style="width: auto; height: 32px; font-size: 11px; padding: 0 10px;" onclick="tambahBarisVoucherForm()">+ Tambah Kupon</button>
       </div>
 
-      <div id="containerListVoucher" style="margin-bottom: 14px;"></div>
+      <div id="containerListVoucher" style="margin-bottom: 14px; max-height: 280px; overflow-y: auto;"></div>
 
       <div style="display: flex; gap: 8px;">
         <button class="btn btn-success" style="flex: 2;" onclick="simpanPengaturanVoucherServer()">💾 Simpan Voucher</button>
@@ -346,6 +359,7 @@
 
     function bukaFitur(fitur) {
       if (fitur === 'device') {
+        muatDaftarSemuaUser();
         gantiView('viewDeviceCheck');
       } else if (fitur === 'packages') {
         muatDataPaketServer();
@@ -366,7 +380,6 @@
         document.getElementById('statRevMinggu').textContent = `Rp ${(data.mingguan || 0).toLocaleString('id-ID')}`;
         document.getElementById('statRevBulan').textContent = `Rp ${(data.bulanan || 0).toLocaleString('id-ID')}`;
 
-        // Render Chart Bar 7 Hari Terakhir
         const chartContainer = document.getElementById('chartBarsContainer');
         chartContainer.innerHTML = '';
         const chartData = data.chart_harian || [0,0,0,0,0,0,0];
@@ -374,7 +387,7 @@
 
         chartData.forEach((val, idx) => {
           const tinggiPersen = Math.round((val / maxVal) * 70);
-          const group = document.div || document.createElement('div');
+          const group = document.createElement('div');
           group.className = 'chart-bar-group';
           group.innerHTML = `
             <div class="chart-bar" style="height: ${Math.max(4, tinggiPersen)}px;" title="Rp ${val.toLocaleString('id-ID')}"></div>
@@ -383,11 +396,72 @@
           chartContainer.appendChild(group);
         });
       } catch (e) {
-        // Fallback jika endpoint statistik belum tersedia di backend
+        // Fallback
       }
     }
 
-    // --- CEK & KELOLA DEVICE ID ---
+    // --- DAFTAR SEMUA USER & CEK DEVICE ID ---
+    async function muatDaftarSemuaUser() {
+      const container = document.getElementById('listAllUsersContainer');
+      container.innerHTML = '<div style="text-align: center; color: #94a3b8; font-size: 12px; padding: 15px;">⏳ Mengambil daftar user dari server...</div>';
+
+      try {
+        const res = await fetch(`${VERCEL_API_URL}?action=get_all_licenses`);
+        const data = await res.json();
+        const users = data.licenses || data.users || [];
+
+        container.innerHTML = '';
+        if (users.length === 0) {
+          container.innerHTML = '<div style="text-align: center; color: #94a3b8; font-size: 12px; padding: 15px;">Belum ada user terdaftar di database.</div>';
+          return;
+        }
+
+        users.forEach(u => {
+          const div = document.createElement('div');
+          div.className = 'user-item';
+          
+          let infoPerpanjang = u.updated_at || u.last_extended || u.created_at;
+          if (!infoPerpanjang) {
+            infoPerpanjang = '<span style="color: #f59e0b;">Belum pernah perpanjang / User baru</span>';
+          } else {
+            infoPerpanjang = `Update: ${infoPerpanjang}`;
+          }
+
+          div.innerHTML = `
+            <div class="user-item-info">
+              <div>${u.device_id}</div>
+              <div>Durasi s/d: <b>${u.exp_date || '-'}</b> | ${infoPerpanjang}</div>
+            </div>
+            <div><span class="badge ${u.status === 'active' ? 'badge-active' : 'badge-hold'}">${u.status || 'active'}</span></div>
+          `;
+          div.onclick = () => pilihUserDariList(u);
+          container.appendChild(div);
+        });
+      } catch (e) {
+        container.innerHTML = '<div style="text-align: center; color: #ef4444; font-size: 12px; padding: 15px;">Gagal memuat daftar user dari server.</div>';
+      }
+    }
+
+    function pilihUserDariList(userData) {
+      gantiView('viewDeviceDetail');
+      document.getElementById('dispDeviceId').textContent = userData.device_id;
+      const hariIni = getTanggalHariIniWIB();
+      let statusAktual = userData.status || 'active';
+      if (statusAktual === 'active' && userData.exp_date && hariIni > userData.exp_date) {
+        statusAktual = 'expired';
+      }
+
+      currentLicenseData = {
+        device_id: userData.device_id,
+        exp_date: userData.exp_date || hariIni,
+        status: statusAktual,
+        license_key: userData.license_key || buatLicenseKey(userData.exp_date || hariIni, userData.device_id),
+        last_updated: userData.updated_at || userData.last_extended || '-',
+        is_new: false
+      };
+      renderDetailDevice();
+    }
+
     async function cekDeviceId() {
       const deviceId = document.getElementById('inputDeviceId').value.trim().toUpperCase();
       if (!deviceId) return showToast('Masukkan Device ID terlebih dahulu!', false);
@@ -412,6 +486,7 @@
             exp_date: data.exp_date || hariIni,
             status: statusAktual,
             license_key: data.license_key || buatLicenseKey(data.exp_date || hariIni, deviceId),
+            last_updated: data.updated_at || data.last_extended || '-',
             is_new: false
           };
         } else {
@@ -420,6 +495,7 @@
             exp_date: '-',
             status: 'unregistered',
             license_key: '',
+            last_updated: '-',
             is_new: true
           };
           showToast('Device ID belum terdaftar.', true);
@@ -433,6 +509,12 @@
 
     function renderDetailDevice() {
       document.getElementById('dispExpDate').textContent = currentLicenseData.exp_date !== '-' ? currentLicenseData.exp_date : 'Belum Diatur';
+      
+      const lastUp = currentLicenseData.last_updated && currentLicenseData.last_updated !== '-' 
+        ? currentLicenseData.last_updated 
+        : '<span style="color: #f59e0b;">Belum pernah perpanjang / User baru</span>';
+      document.getElementById('dispLastUpdated').innerHTML = lastUp;
+
       document.getElementById('editExpDate').value = currentLicenseData.exp_date !== '-' ? currentLicenseData.exp_date : getTanggalHariIniWIB();
       document.getElementById('editStatus').value = currentLicenseData.status;
 
@@ -540,7 +622,7 @@
         const list = data.packages || [];
         const container = document.getElementById('containerListPaket');
         container.innerHTML = '';
-        if (list.length === 0) tambahBarisPaketForm('Paket 7 Hari', 7, 100);
+        if (list.length === 0) tambahBarisPaketForm('Paket 7 Hari', 7, 10000);
         else list.forEach(p => tambahBarisPaketForm(p.nama, p.hari, p.harga));
       } catch (err) {
         showToast('Gagal memuat paket.', false);
@@ -554,7 +636,7 @@
       div.innerHTML = `
         <input type="text" class="inp-nama" value="${nama}" placeholder="Nama Paket" style="flex: 2; height: 38px; font-size: 12px;">
         <input type="number" class="inp-hari" value="${hari}" placeholder="Hari" style="flex: 1; height: 38px; font-size: 12px;">
-        <input type="number" class="inp-harga" value="${harga}" placeholder="Harga" style="flex: 1.5; height: 38px; font-size: 12px;">
+        <input type="number" class="inp-harga" value="${harga}" placeholder="Harga (Rp)" style="flex: 1.5; height: 38px; font-size: 12px;">
         <button class="btn btn-danger" style="width: 38px; height: 38px;" onclick="this.parentElement.remove()">✕</button>
       `;
       container.appendChild(div);
@@ -581,7 +663,7 @@
       } catch (err) { showToast('Error koneksi server.', false); }
     }
 
-    // --- KELOLA VOUCHER DISKON ---
+    // --- KELOLA VOUCHER (DIPERBAIKI DENGAN OPSI DISKON & DURASI) ---
     async function muatDataVoucherServer() {
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=get_vouchers`);
@@ -589,24 +671,29 @@
         const list = data.vouchers || [];
         const container = document.getElementById('containerListVoucher');
         container.innerHTML = '';
-        if (list.length === 0) tambahBarisVoucherForm('PROMO50', 'percent', 50);
-        else list.forEach(v => tambahBarisVoucherForm(v.code, v.discount_type, v.discount_value));
+        if (list.length === 0) {
+          tambahBarisVoucherForm('PROMO50', 'percent', 50, 100);
+        } else {
+          list.forEach(v => tambahBarisVoucherForm(v.code, v.discount_type || 'percent', v.discount_value, v.quota || 100));
+        }
       } catch (err) {
         showToast('Gagal memuat voucher.', false);
       }
     }
 
-    function tambahBarisVoucherForm(code = '', type = 'percent', value = '') {
+    function tambahBarisVoucherForm(code = '', type = 'percent', value = '', quota = 100) {
       const container = document.getElementById('containerListVoucher');
       const div = document.createElement('div');
       div.className = 'voucher-row';
       div.innerHTML = `
         <input type="text" class="inp-code" value="${code}" placeholder="KODE" style="flex: 2; height: 38px; font-size: 12px; text-transform: uppercase;">
-        <select class="inp-type" style="flex: 1.2; height: 38px; font-size: 12px;">
-          <option value="percent" ${type==='percent'?'selected':''}>Persen (%)</option>
-          <option value="fixed" ${type==='fixed'?'selected':''}>Nominal (Rp)</option>
+        <select class="inp-type" style="flex: 1.4; height: 38px; font-size: 12px;">
+          <option value="percent" ${type==='percent'?'selected':''}>Diskon (%)</option>
+          <option value="fixed" ${type==='fixed'?'selected':''}>Diskon (Rp)</option>
+          <option value="days" ${type==='days'?'selected':''}>Bonus (Hari)</option>
         </select>
         <input type="number" class="inp-value" value="${value}" placeholder="Nilai" style="flex: 1; height: 38px; font-size: 12px;">
+        <input type="number" class="inp-quota" value="${quota}" placeholder="Kuota" style="flex: 0.9; height: 38px; font-size: 12px;" title="Batas Kuota Penggunaan">
         <button class="btn btn-danger" style="width: 38px; height: 38px;" onclick="this.parentElement.remove()">✕</button>
       `;
       container.appendChild(div);
@@ -619,8 +706,12 @@
         const code = r.querySelector('.inp-code').value.trim().toUpperCase();
         const discount_type = r.querySelector('.inp-type').value;
         const discount_value = Number(r.querySelector('.inp-value').value);
-        if (code && !isNaN(discount_value)) vouchers.push({ code, discount_type, discount_value });
+        const quota = Number(r.querySelector('.inp-quota').value) || 100;
+        if (code && !isNaN(discount_value)) {
+          vouchers.push({ code, discount_type, discount_value, quota });
+        }
       });
+
       try {
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
@@ -628,9 +719,15 @@
           body: JSON.stringify({ action: 'save_vouchers', vouchers })
         });
         const result = await res.json();
-        if (result.success) { showToast('Voucher berhasil disimpan!'); muatDataVoucherServer(); }
-        else { showToast('Gagal menyimpan voucher.', false); }
-      } catch (err) { showToast('Error koneksi server.', false); }
+        if (result.success) { 
+          showToast('Voucher berhasil disimpan!'); 
+          muatDataVoucherServer(); 
+        } else { 
+          showToast('Gagal menyimpan voucher.', false); 
+        }
+      } catch (err) { 
+        showToast('Error koneksi server.', false); 
+      }
     }
   </script>
 </body>

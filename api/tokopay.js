@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 
 const HARGA_PAKET = {
-  1: 5000,
+  1: 100,
   7: 25000,
   14: 40000,
   30: 70000,

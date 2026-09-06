@@ -136,7 +136,7 @@ export default async function handler(req, res) {
   const paket_hari = query.paket_hari || body?.paket_hari;
 
   if (action === 'check_version') {
-    return res.status(200).json({ version: '1.5.32', download_url: 'https://mindspace-id.vercel.app/sipgn-autofill.user.js' });
+    return res.status(200).json({ version: '1.5.33', download_url: 'https://mindspace-id.vercel.app/sipgn-autofill.user.js' });
   }
 
   // GET ALL LICENSES (UNTUK DASHBOARD ADMIN)

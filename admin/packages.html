@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard - Kelola Paket SIPGN</title>
+  <style>
+    body { font-family: sans-serif; background: #0f172a; color: #f8fafc; padding: 20px; max-width: 600px; margin: 0 auto; }
+    h2 { color: #38bdf8; text-align: center; }
+    .card { background: #1e293b; padding: 16px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 12px; }
+    input { width: 100%; padding: 8px; margin: 4px 0 10px 0; background: #0f172a; border: 1px solid #475569; color: white; border-radius: 4px; box-sizing: border-box; }
+    button { padding: 10px 16px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+    .btn-save { background: #10b981; color: white; width: 100%; font-size: 14px; }
+    .btn-add { background: #2563eb; color: white; margin-bottom: 10px; }
+    .btn-del { background: #7f1d1d; color: #fecaca; }
+    .package-row { display: flex; gap: 10px; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 8px; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+
+  <h2>📦 Admin Dashboard - Pengaturan Paket Lisensi</h2>
+
+  <div class="card">
+    <button class="btn-add" onclick="tambahBarisPaket()">+ Tambah Paket Baru</button>
+    <div id="container-paket"></div>
+    <button class="btn-save" onclick="simpanPengaturanPaket()">💾 Simpan Perubahan ke Server</button>
+  </div>
+
+  <script>
+    const VERCEL_API_URL = 'https://mindspace-id.vercel.app/api/tokopay';
+
+    async function muatDataPaket() {
+      try {
+        const res = await fetch(`${VERCEL_API_URL}?action=get_packages`);
+        const data = await res.json();
+        const list = data.packages || [];
+        const container = document.getElementById('container-paket');
+        container.innerHTML = '';
+
+        list.forEach(p => {
+          tambahBarisPaket(p.nama, p.hari, p.harga);
+        });
+      } catch (err) {
+        alert('Gagal memuat data paket dari server.');
+      }
+    }
+
+    function tambahBarisPaket(nama = '', hari = '', harga = '') {
+      const container = document.getElementById('container-paket');
+      const div = document.createElement('div');
+      div.className = 'package-row';
+      div.innerHTML = `
+        <div style="flex: 2;">
+          <label style="font-size:10px; color:#94a3b8">Nama Paket</label>
+          <input type="text" class="inp-nama" value="${nama}" placeholder="Contoh: Paket 7 Hari">
+        </div>
+        <div style="flex: 1;">
+          <label style="font-size:10px; color:#94a3b8">Durasi (Hari)</label>
+          <input type="number" class="inp-hari" value="${hari}" placeholder="7">
+        </div>
+        <div style="flex: 1.5;">
+          <label style="font-size:10px; color:#94a3b8">Harga (Rp)</label>
+          <input type="number" class="inp-harga" value="${harga}" placeholder="10000">
+        </div>
+        <div style="padding-top: 14px;">
+          <button class="btn-del" onclick="this.parentElement.parentElement.remove()">✕</button>
+        </div>
+      `;
+      container.appendChild(div);
+    }
+
+    async function simpanPengaturanPaket() {
+      const rows = document.querySelectorAll('.package-row');
+      const packages = [];
+
+      rows.forEach(r => {
+        const nama = r.querySelector('.inp-nama').value.trim();
+        const hari = Number(r.querySelector('.inp-hari').value);
+        const harga = Number(r.querySelector('.inp-harga').value);
+        if (nama && !isNaN(hari) && !isNaN(harga)) {
+          packages.push({ nama, hari, harga });
+        }
+      });
+
+      if (packages.length === 0) {
+        alert('Minimal harus ada 1 paket yang valid.');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${VERCEL_API_URL}?action=save_packages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save_packages', packages })
+        });
+        const result = await res.json();
+        if (result.success) {
+          alert('Pengaturan paket berhasil disimpan!');
+          muatDataPaket();
+        } else {
+          alert('Gagal menyimpan: ' + (result.error || 'Unknown error'));
+        }
+      } catch (err) {
+        alert('Terjadi kesalahan koneksi ke server.');
+      }
+    }
+
+    muatDataPaket();
+  </script>
+</body>
+</html>

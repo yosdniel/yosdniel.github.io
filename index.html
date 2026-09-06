@@ -479,7 +479,7 @@
           if (!rawUpdate) {
             infoPerpanjang = '<span style="color: #f59e0b;">Belum pernah perpanjang / User baru</span>';
           } else {
-            infoPerpanjang = `Terakhir digunakan: ${formatWaktuRelatif(rawUpdate)}`;
+            infoPerpanjang = `Terakhir digunakan: <b>${formatWaktuRelatif(rawUpdate)}</b>`;
           }
 
           const expFormatted = formatTanggalIndo(u.exp_date) || '-';
@@ -570,7 +570,7 @@
       const rawUp = currentLicenseData.last_updated;
       let lastUpFormatted = '';
       if (!rawUp || rawUp === '-') {
-        lastUpFormatted = '<span style="color: #f59e0b;">Belum pernah perpanjang / User baru</span>';
+        lastUpFormatted = '<span style="color: #f59e0b;">Belum pernah perpanjang</span>';
       } else {
         lastUpFormatted = formatWaktuRelatif(rawUp);
       }

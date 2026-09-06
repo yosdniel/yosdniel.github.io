@@ -21,13 +21,13 @@ const processedOrders = new Map();
 async function simpanLisensiOtomatis(SUPABASE_URL, SUPABASE_KEY, deviceId, paketHari, refId) {
   if (!SUPABASE_URL || !SUPABASE_KEY || !deviceId || !paketHari) return null;
 
-  // Jika ref_id ini sudah pernah diproses, kembalikan data exp_date yang tersimpan
+  // Jika ref_id ini sudah pernah diproses, kembalikan data kadaluarsa yang tersimpan (cegah double add)
   if (refId && processedOrders.has(refId)) {
     return { exp_date: processedOrders.get(refId) };
   }
 
   try {
-    // Ambil tanggal hari ini dalam format YYYY-MM-DD berbasis WIB
+    // Ambil tanggal hari ini dalam WIB (YYYY-MM-DD)
     const hariIniWIB = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
     let expDateObj = new Date(hariIniWIB + 'T00:00:00');
 
@@ -43,7 +43,6 @@ async function simpanLisensiOtomatis(SUPABASE_URL, SUPABASE_KEY, deviceId, paket
 
     expDateObj.setDate(expDateObj.getDate() + Number(paketHari));
 
-    // Ekstrak string tanggal YYYY-MM-DD
     const expDateTarget = expDateObj.toISOString().slice(0, 10);
     const nonce = Math.floor(Math.random() * 16777215).toString(16).toUpperCase();
     const licenseKey = `MIND-${Buffer.from(`${expDateTarget}|${deviceId}|AutoPayment|MINDSTUDIO2026|${nonce}`).toString('base64').split('').reverse().join('')}`;
@@ -78,12 +77,20 @@ async function simpanLisensiOtomatis(SUPABASE_URL, SUPABASE_KEY, deviceId, paket
 }
 
 export default async function handler(req, res) {
+  // Pengaturan Header CORS Lengkap untuk Mencegah Status 0 / Blocked by Preflight
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS,PATCH,DELETE,PUT');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
+  );
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
 
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  // Tangani Request Preflight OPTIONS dari Browser
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
 
   const SUPABASE_URL = process.env.SUPABASE_URL;
   const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -136,17 +143,17 @@ export default async function handler(req, res) {
 
         const signature = crypto.createHash('md5').update(`${merchantId}${secretKey}${ref_id}`).digest('hex');
         
-        // Panggilan API Cek Status Tokopay dengan format signature resmi
+        // Panggilan API Cek Status Tokopay dengan parameter "secret"
         const tokopayRes = await fetch(`https://api.tokopay.id/v1/order/status?merchant=${merchantId}&secret=${secretKey}&ref_id=${encodeURIComponent(ref_id)}&signature=${signature}`, { cache: 'no-store' });
         const tokopayData = await tokopayRes.json();
 
-        // 1. Ekstrak data bertingkat (menangani nested: data.data.status / data.status)
+        // 1. Ekstrak data bertingkat (nested: data.data.status / data.status)
         const innerData = tokopayData?.data?.data || tokopayData?.data || tokopayData;
         const rawDataStatus = innerData?.status || innerData?.status_pembayaran || tokopayData?.status;
         const stringStatus = String(rawDataStatus || '').toLowerCase();
         const isPaidBool = innerData?.is_paid === true || tokopayData?.is_paid === true;
 
-        // 2. Evaluasi status pembayaran lunas
+        // 2. Verifikasi status pembayaran lunas
         const isLunas =
           isPaidBool ||
           rawDataStatus === 1 ||
@@ -155,6 +162,7 @@ export default async function handler(req, res) {
 
         if (isLunas) {
           let orderInfo = orderMemory.get(ref_id);
+          // Mengutamakan parameter URL jika memory Vercel ter-reset
           let targetPaketHari = orderInfo?.paket_hari || paket_hari || 7;
           let targetDevId = orderInfo?.device_id || device_id;
 
@@ -162,13 +170,13 @@ export default async function handler(req, res) {
             return res.status(200).json({ is_paid: false, error: 'Device ID tidak ditemukan untuk pembaruan lisensi.' });
           }
 
-          // Hitung estimasi tanggal exp lokal sebagai fallback aman
+          // Tanggal fallback jika Supabase bermasalah
           const hariIniWIB = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
           const fallbackExp = new Date(hariIniWIB + 'T00:00:00');
           fallbackExp.setDate(fallbackExp.getDate() + Number(targetPaketHari));
           const fallbackExpStr = fallbackExp.toISOString().slice(0, 10);
 
-          // Eksekusi pembaruan Supabase terisolasi agar tidak memblokir respon sukses
+          // Eksekusi Supabase terisolasi agar tidak menggagalkan respon is_paid
           let savedInfo = null;
           try {
             savedInfo = await simpanLisensiOtomatis(SUPABASE_URL, SUPABASE_KEY, targetDevId, targetPaketHari, ref_id);
@@ -176,7 +184,6 @@ export default async function handler(req, res) {
             console.error('[SUPABASE TRANSACTION ERROR]', errSupabase);
           }
 
-          // Kunci Utama: Jamin respon { is_paid: true } SELALU terkirim ke Userscript
           return res.status(200).json({
             is_paid: true,
             exp_date: savedInfo?.exp_date || fallbackExpStr

@@ -65,6 +65,8 @@ async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, pake
     const payload = `${expDateNew}|${deviceId}|AutoPayment|MINDSTUDIO2026|${nonce}`;
     const licenseKeyNew = `MIND-${btoa(payload).split('').reverse().join('')}`;
 
+    const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
+
     if (activeLicense) {
       const updateRes = await fetch(`${supabaseUrl}/rest/v1/licenses?device_id=eq.${encodeURIComponent(deviceId)}`, {
         method: 'PATCH',
@@ -78,7 +80,7 @@ async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, pake
           exp_date: expDateNew,
           license_key: licenseKeyNew,
           status: 'active',
-          updated_at: new Date().toISOString()
+          updated_at: timestampWIB
         }),
         cache: 'no-store'
       });
@@ -98,7 +100,8 @@ async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, pake
           license_key: licenseKeyNew,
           exp_date: expDateNew,
           status: 'active',
-          client_name: 'User QRIS / Voucher'
+          client_name: 'User QRIS / Voucher',
+          updated_at: timestampWIB
         }),
         cache: 'no-store'
       });
@@ -134,6 +137,20 @@ export default async function handler(req, res) {
 
   if (action === 'check_version') {
     return res.status(200).json({ version: '1.5.32', download_url: 'https://mindspace-id.vercel.app/sipgn-autofill.user.js' });
+  }
+
+  // GET ALL LICENSES (UNTUK DASHBOARD ADMIN)
+  if (action === 'get_all_licenses') {
+    try {
+      const licRes = await fetch(`${SUPABASE_URL}/rest/v1/licenses?select=*`, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+        cache: 'no-store'
+      });
+      const licenses = await licRes.json();
+      return res.status(200).json({ licenses: Array.isArray(licenses) ? licenses : [] });
+    } catch (e) {
+      return res.status(200).json({ licenses: [] });
+    }
   }
 
   // GET PACKAGES
@@ -191,7 +208,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // SAVE VOUCHERS (Mendukung struktur baru: code, days_value, max_uses, used_count, used_devices)
+  // SAVE VOUCHERS
   if (action === 'save_vouchers' && req.method === 'POST') {
     const newVouchers = body.vouchers;
     try {
@@ -299,7 +316,6 @@ export default async function handler(req, res) {
 
   // POST: KONTROL ADMIN, KLAIM VOUCHER, & WEBHOOK TOKOPAY
   if (req.method === 'POST') {
-    // 1. ENDPOINT KLAIM VOUCHER BARU
     if (body.action === 'claim_voucher') {
       const { voucher_code, device_id: devIdTarget } = body;
       const cleanVoucher = (voucher_code || '').trim().toUpperCase();
@@ -322,17 +338,14 @@ export default async function handler(req, res) {
         const voucher = vData[0];
         const usedDevices = Array.isArray(voucher.used_devices) ? voucher.used_devices : [];
 
-        // Validasi: Apakah Device ID sudah pernah klaim voucher ini?
         if (usedDevices.includes(devIdTarget)) {
           return res.status(400).json({ error: 'Device ID Anda sudah pernah menggunakan voucher ini.' });
         }
 
-        // Validasi: Apakah kuota maksimal penggunaan sudah habis?
         if (voucher.used_count >= voucher.max_uses) {
           return res.status(400).json({ error: 'Kuota penggunaan voucher ini sudah habis.' });
         }
 
-        // Catat penggunaan voucher baru
         usedDevices.push(devIdTarget);
         const newUsedCount = voucher.used_count + 1;
 
@@ -349,7 +362,6 @@ export default async function handler(req, res) {
           })
         });
 
-        // Berikan durasi custom langsung tanpa bayar (transaksi senilai 0)
         const savedInfo = await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, devIdTarget, voucher.days_value, 0);
 
         return res.status(200).json({
@@ -366,6 +378,7 @@ export default async function handler(req, res) {
     if (body.action === 'save_license') {
       await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, body.device_id, body.paket_hari || 7, body.nominal || 0);
 
+      const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
       await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(body.device_id)}`, {
         method: 'PATCH',
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
@@ -373,7 +386,7 @@ export default async function handler(req, res) {
           exp_date: body.exp_date,
           status: body.status,
           license_key: body.license_key,
-          updated_at: new Date().toISOString()
+          updated_at: timestampWIB
         })
       });
       return res.status(200).json({ success: true });

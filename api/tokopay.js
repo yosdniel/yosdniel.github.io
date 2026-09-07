@@ -136,7 +136,26 @@ export default async function handler(req, res) {
   const paket_hari = query.paket_hari || body?.paket_hari;
 
   if (action === 'check_version') {
-    return res.status(200).json({ version: '1.5.33', download_url: 'https://mindspace-id.vercel.app/sipgn-autofill.user.js' });
+    return res.status(200).json({ version: '1.6.0', download_url: 'https://mindspace-id.vercel.app/sipgn-autofill.user.js' });
+  }
+
+  // GET SETTINGS (AMBIL NOMOR ADMIN WHATSAPP)
+  if (action === 'get_settings') {
+    try {
+      const sRes = await fetch(`${SUPABASE_URL}/rest/v1/settings?select=*`, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+        cache: 'no-store'
+      });
+      const settingsData = await sRes.json();
+      let adminWa = '6281234567890';
+      if (Array.isArray(settingsData)) {
+        const found = settingsData.find(s => s.key === 'admin_whatsapp' || s.key === 'whatsapp');
+        if (found) adminWa = found.value;
+      }
+      return res.status(200).json({ admin_whatsapp: adminWa });
+    } catch (e) {
+      return res.status(200).json({ admin_whatsapp: '6281234567890' });
+    }
   }
 
   // GET ALL LICENSES (UNTUK DASHBOARD ADMIN)
@@ -287,6 +306,7 @@ export default async function handler(req, res) {
     }
   }
 
+  // CHECK LICENSE & DEVICE STATUS
   if (action === 'check_license') {
     if (!device_id) return res.status(200).json({ valid: false, msg: 'Device ID tidak ditemukan.' });
 
@@ -308,7 +328,6 @@ export default async function handler(req, res) {
         return res.status(200).json({ valid: false, status: 'expired', exp_date: lic.exp_date, msg: 'Lisensi Anda telah kadaluarsa.' });
       }
 
-      // OTOMATIS UPDATE WAKTU TERAKHIR DIGUNAKAN SAAT SCRIPT / DEVICE MELAKUKAN CHECK LISENSI
       const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
       await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(device_id)}`, {
         method: 'PATCH',
@@ -322,64 +341,157 @@ export default async function handler(req, res) {
     }
   }
 
-  // POST: KONTROL ADMIN, KLAIM VOUCHER, & WEBHOOK TOKOPAY
+  // POST: REGISTER, LOGIN, CLAIM TRIAL, CHANGE PASSWORD, ADMIN & TOKOPAY
   if (req.method === 'POST') {
-    if (body.action === 'claim_voucher') {
-      const { voucher_code, device_id: devIdTarget } = body;
-      const cleanVoucher = (voucher_code || '').trim().toUpperCase();
+    const bodyAction = body?.action;
 
-      if (!cleanVoucher || !devIdTarget) {
-        return res.status(400).json({ error: 'Kode voucher dan Device ID wajib diisi.' });
+    // 1. REGISTRASI AKUN BARU
+    if (bodyAction === 'register') {
+      const { nama_sppg, email, password, device_id: devId } = body;
+      if (!nama_sppg || !email || !password || !devId) {
+        return res.status(200).json({ success: false, error: 'Semua kolom wajib diisi.' });
       }
-
       try {
-        const vRes = await fetch(`${SUPABASE_URL}/rest/v1/vouchers?code=eq.${encodeURIComponent(cleanVoucher)}&select=*`, {
+        const cleanEmail = email.trim().toLowerCase();
+        // Cek email apakah sudah terdaftar
+        const checkU = await fetch(`${SUPABASE_URL}/rest/v1/users?email=eq.${encodeURIComponent(cleanEmail)}&select=*`, {
           headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
           cache: 'no-store'
         });
-        const vData = await vRes.json();
-
-        if (!Array.isArray(vData) || vData.length === 0) {
-          return res.status(400).json({ error: 'Kode voucher tidak valid.' });
+        const uData = await checkU.json();
+        if (Array.isArray(uData) && uData.length > 0) {
+          return res.status(200).json({ success: false, error: 'Email sudah terdaftar. Silakan gunakan menu Login.' });
         }
 
-        const voucher = vData[0];
-        const usedDevices = Array.isArray(voucher.used_devices) ? voucher.used_devices : [];
-
-        if (usedDevices.includes(devIdTarget)) {
-          return res.status(400).json({ error: 'Device ID Anda sudah pernah menggunakan voucher ini.' });
-        }
-
-        if (voucher.used_count >= voucher.max_uses) {
-          return res.status(400).json({ error: 'Kuota penggunaan voucher ini sudah habis.' });
-        }
-
-        usedDevices.push(devIdTarget);
-        const newUsedCount = voucher.used_count + 1;
-
-        await fetch(`${SUPABASE_URL}/rest/v1/vouchers?id=eq.${voucher.id}`, {
-          method: 'PATCH',
-          headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            used_count: newUsedCount,
-            used_devices: usedDevices
-          })
+        // Simpan user baru
+        const insU = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
+          method: 'POST',
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+          body: JSON.stringify({ nama_sppg: nama_sppg.trim(), email: cleanEmail, password: password })
         });
+        const savedUser = await insU.json();
+        if (!Array.isArray(savedUser) || savedUser.length === 0) {
+          return res.status(200).json({ success: false, error: 'Gagal menyimpan data akun.' });
+        }
 
-        const savedInfo = await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, devIdTarget, voucher.days_value, 0);
+        return res.status(200).json({ success: true, message: 'Registrasi berhasil.' });
+      } catch (err) {
+        return res.status(200).json({ success: false, error: 'Terjadi kesalahan pada server.' });
+      }
+    }
+
+    // 2. LOGIN AKUN & DETEKSI DEVICE ID BARU
+    if (bodyAction === 'login') {
+      const { email, password, device_id: devId } = body;
+      if (!email || !password || !devId) {
+        return res.status(200).json({ success: false, error: 'Email dan password wajib diisi.' });
+      }
+      try {
+        const cleanEmail = email.trim().toLowerCase();
+        const uRes = await fetch(`${SUPABASE_URL}/rest/v1/users?email=eq.${encodeURIComponent(cleanEmail)}&select=*`, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+          cache: 'no-store'
+        });
+        const uData = await uRes.json();
+        if (!Array.isArray(uData) || uData.length === 0 || uData[0].password !== password) {
+          return res.status(200).json({ success: false, error: 'Email atau password salah.' });
+        }
+
+        // Cek lisensi berdasarkan device_id ini
+        const lRes = await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(devId)}&select=*`, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+          cache: 'no-store'
+        });
+        const lData = await lRes.json();
+        const license = Array.isArray(lData) && lData.length > 0 ? lData[0] : null;
+
+        const hariIniWIB = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+
+        if (!license || !license.exp_date || license.exp_date < hariIniWIB) {
+          // Device ini belum terdaftar lisensi / expired -> Dianggap perangkat baru yang belum bayar paket
+          return res.status(200).json({
+            success: true,
+            is_new_device: true,
+            message: 'Perangkat baru terdeteksi. Silakan pilih paket.'
+          });
+        }
 
         return res.status(200).json({
           success: true,
-          message: `Voucher berhasil diklaim! Durasi aktif ditambah ${voucher.days_value} hari.`,
+          is_new_device: false,
+          exp_date: license.exp_date,
+          message: 'Login berhasil.'
+        });
+      } catch (err) {
+        return res.status(200).json({ success: false, error: 'Gagal memproses login.' });
+      }
+    }
+
+    // 3. KLAIM FREE TRIAL OTOMATIS (KHUSUS USER BARU SEKALI SEUMUR HIDUP)
+    if (bodyAction === 'claim_trial') {
+      const { device_id: devId } = body;
+      if (!devId) return res.status(200).json({ success: false, error: 'Device ID tidak valid.' });
+
+      try {
+        // Cek apakah device sudah pernah punya data lisensi sebelumnya
+        const checkL = await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(devId)}&select=*`, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+          cache: 'no-store'
+        });
+        const lCheck = await checkL.json();
+        if (Array.isArray(lCheck) && lCheck.length > 0) {
+          return res.status(200).json({ success: false, error: 'Free trial sudah pernah diklaim di perangkat ini.' });
+        }
+
+        // Berikan free trial 3 hari
+        const savedInfo = await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, devId, 3, 0);
+        return res.status(200).json({
+          success: true,
+          message: 'Free trial 3 hari berhasil diaktifkan!',
           exp_date: savedInfo?.exp_date
         });
-
       } catch (err) {
-        return res.status(500).json({ error: 'Gagal memproses klaim voucher.' });
+        return res.status(200).json({ success: false, error: 'Gagal mengaktifkan free trial.' });
+      }
+    }
+
+    // 4. UBAH PASSWORD
+    if (bodyAction === 'change_password') {
+      const { device_id: devId, old_password, new_password } = body;
+      if (!devId || !old_password || !new_password) {
+        return res.status(200).json({ success: false, error: 'Semua kolom wajib diisi.' });
+      }
+      try {
+        // Cari email user berdasarkan license device_id yang aktif
+        const lRes = await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(devId)}&select=*`, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+          cache: 'no-store'
+        });
+        const lData = await lRes.json();
+        if (!Array.isArray(lData) || lData.length === 0 || !lData[0].user_email) {
+          return res.status(200).json({ success: false, error: 'Sesi akun tidak ditemukan pada perangkat ini. Silakan login ulang.' });
+        }
+        const userEmail = lData[0].user_email;
+
+        const uRes = await fetch(`${SUPABASE_URL}/rest/v1/users?email=eq.${encodeURIComponent(userEmail)}&select=*`, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+          cache: 'no-store'
+        });
+        const uData = await uRes.json();
+        if (!Array.isArray(uData) || uData.length === 0 || uData[0].password !== old_password) {
+          return res.status(200).json({ success: false, error: 'Password lama salah.' });
+        }
+
+        // Update password baru
+        await fetch(`${SUPABASE_URL}/rest/v1/users?email=eq.${encodeURIComponent(userEmail)}`, {
+          method: 'PATCH',
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: new_password })
+        });
+
+        return res.status(200).json({ success: true, message: 'Password berhasil diubah.' });
+      } catch (err) {
+        return res.status(200).json({ success: false, error: 'Gagal mengubah password.' });
       }
     }
 
@@ -448,7 +560,6 @@ export default async function handler(req, res) {
     const cleanDevId = (body.device_id || device_id || 'UNKNOWN').replace(/[^a-zA-Z0-9]/g, '');
     const paketHariFix = Number(body.paket_hari || paket_hari || 7);
 
-    // AMBIL NOMINAL HARGA TERBARU DARI DATABASE PACKAGES
     let nominal = Number(body.nominal || 0);
     if (!nominal || nominal <= 0) {
       try {

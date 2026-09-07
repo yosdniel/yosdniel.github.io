@@ -136,7 +136,7 @@ export default async function handler(req, res) {
   const paket_hari = query.paket_hari || body?.paket_hari;
 
   if (action === 'check_version') {
-    return res.status(200).json({ version: '1.5.39', download_url: 'https://mindspace-id.vercel.app/sipgn-autofill.user.js' });
+    return res.status(200).json({ version: '1.5.40', download_url: 'https://mindspace-id.vercel.app/sipgn-autofill.user.js' });
   }
 
   // GET ALL LICENSES (UNTUK DASHBOARD ADMIN)
@@ -287,7 +287,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // SAVE BACKUP DATA KPM KE DATABASE
+  // SAVE BACKUP DATA KPM KE DATABASE (DENGAN FITUR AUTO-DELETE SETELAH 3 HARI)
   if (action === 'save_backup' && req.method === 'POST') {
     const devIdBackup = body.device_id || device_id;
     const backupData = body.backup_data;
@@ -295,7 +295,12 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Device ID dan data backup wajib diisi.' });
     }
     try {
+      const nowWIB = new Date();
+      // Hitung tanggal kedaluwarsa backup persis 3 hari dari sekarang
+      nowWIB.setDate(nowWIB.getDate() + 3);
+      const expiresAtWIB = nowWIB.toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
       const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
+
       const resUpsert = await fetch(`${SUPABASE_URL}/rest/v1/backups`, {
         method: 'POST',
         headers: {
@@ -307,6 +312,7 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           device_id: devIdBackup,
           backup_data: backupData,
+          expires_at: expiresAtWIB, // Kolom waktu kedaluwarsa backup cloud 3 hari
           updated_at: timestampWIB
         })
       });
@@ -317,7 +323,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // GET BACKUP DATA KPM DARI DATABASE
+  // GET BACKUP DATA KPM DARI DATABASE (VALIDASI TTL 3 HARI)
   if (action === 'get_backup') {
     const devIdBackup = query.device_id || body?.device_id;
     if (!devIdBackup) {
@@ -330,7 +336,22 @@ export default async function handler(req, res) {
       });
       const bData = await bRes.json();
       if (Array.isArray(bData) && bData.length > 0) {
-        return res.status(200).json({ success: true, backup_data: bData[0].backup_data });
+        const backupRecord = bData[0];
+        
+        // Cek apakah backup sudah melewati batas waktu 3 hari (expires_at)
+        if (backupRecord.expires_at) {
+          const nowWIBStr = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
+          if (nowWIBStr > backupRecord.expires_at) {
+            // Hapus backup yang sudah kedaluwarsa dari database
+            await fetch(`${SUPABASE_URL}/rest/v1/backups?device_id=eq.${encodeURIComponent(devIdBackup)}`, {
+              method: 'DELETE',
+              headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+            });
+            return res.status(404).json({ error: 'Data backup cloud sudah kedaluwarsa (lebih dari 3 hari) dan telah dihapus otomatis.' });
+          }
+        }
+
+        return res.status(200).json({ success: true, backup_data: backupRecord.backup_data });
       }
       return res.status(404).json({ error: 'Data backup tidak ditemukan di database.' });
     } catch (e) {

@@ -445,11 +445,29 @@ export default async function handler(req, res) {
 
     if (!merchantId || !secretKey) return res.status(500).json({ error: 'Kunci API Tokopay belum diatur.' });
 
-    const nominal = body.nominal || (body.paket_hari == 30 ? 50000 : 100);
     const cleanDevId = (body.device_id || device_id || 'UNKNOWN').replace(/[^a-zA-Z0-9]/g, '');
-    const paketHariFix = body.paket_hari || 7;
-    const refIdOrder = reff_id || `SIPGN__${cleanDevId}__${paketHariFix}__${Date.now()}`;
+    const paketHariFix = Number(body.paket_hari || paket_hari || 7);
 
+    // AMBIL NOMINAL HARGA TERBARU DARI DATABASE PACKAGES
+    let nominal = Number(body.nominal || 0);
+    if (!nominal || nominal <= 0) {
+      try {
+        const pkgRes = await fetch(`${SUPABASE_URL}/rest/v1/packages?hari=eq.${paketHariFix}&select=*`, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+          cache: 'no-store'
+        });
+        const pkgData = await pkgRes.json();
+        if (Array.isArray(pkgData) && pkgData.length > 0) {
+          nominal = Number(pkgData[0].harga || 0);
+        }
+      } catch (err) {}
+    }
+
+    if (!nominal || nominal <= 0) {
+      nominal = paketHariFix === 30 ? 50000 : 100;
+    }
+
+    const refIdOrder = reff_id || `SIPGN__${cleanDevId}__${paketHariFix}__${Date.now()}`;
     const signature = crypto.createHash('md5').update(`${merchantId}:${secretKey}:${refIdOrder}`).digest('hex');
 
     try {

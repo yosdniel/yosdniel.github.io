@@ -287,7 +287,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // SAVE BACKUP DATA KPM KE DATABASE (DENGAN FITUR AUTO-DELETE SETELAH 3 HARI)
+  // SAVE / REPLACE BACKUP DATA KPM KE DATABASE (AUTO-DELETE 3 HARI)
   if (action === 'save_backup' && req.method === 'POST') {
     const devIdBackup = body.device_id || device_id;
     const backupData = body.backup_data;
@@ -296,11 +296,11 @@ export default async function handler(req, res) {
     }
     try {
       const nowWIB = new Date();
-      // Hitung tanggal kedaluwarsa backup persis 3 hari dari sekarang
       nowWIB.setDate(nowWIB.getDate() + 3);
       const expiresAtWIB = nowWIB.toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
       const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
 
+      // Menggunakan method POST dengan merge-duplicates (Upsert) untuk langsung mereplace file backup lama dengan yang baru berdasarkan device_id
       const resUpsert = await fetch(`${SUPABASE_URL}/rest/v1/backups`, {
         method: 'POST',
         headers: {
@@ -312,14 +312,126 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           device_id: devIdBackup,
           backup_data: backupData,
-          expires_at: expiresAtWIB, // Kolom waktu kedaluwarsa backup cloud 3 hari
+          expires_at: expiresAtWIB,
           updated_at: timestampWIB
         })
       });
       const dataResp = await resUpsert.json();
       return res.status(200).json({ success: true, data: dataResp });
     } catch (err) {
-      return res.status(500).json({ error: 'Gagal menyimpan backup ke database.' });
+      return res.status(500).json({ error: 'Gagal menyimpan/mereplace backup ke database.' });
+    }
+  }
+
+  // DELETE BACKUP DATA KPM DARI DATABASE (UNTUK ADMIN / TOMBOL HAPUS)
+  if (action === 'delete_backup' && req.method === 'POST') {
+    const devIdBackup = body.device_id || device_id;
+    if (!devIdBackup) {
+      return res.status(400).json({ error: 'Device ID wajib disertakan.' });
+    }
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/backups?device_id=eq.${encodeURIComponent(devIdBackup)}`, {
+        method: 'DELETE',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      });
+      return res.status(200).json({ success: true, message: 'Data backup berhasil dihapus.' });
+    } catch (e) {
+      return res.status(500).json({ error: 'Gagal menghapus data backup.' });
+    }
+  }
+
+  // TRANSFER / OPER DEVICE ID (MIGRASI LISENSI, STATUS, & BACKUP KE DEVICE BARU)
+  if (action === 'transfer_device' && req.method === 'POST') {
+    const sourceId = body.source_device_id;
+    const targetId = body.target_device_id;
+
+    if (!sourceId || !targetId) {
+      return res.status(400).json({ error: 'Device ID Asal dan Tujuan wajib diisi.' });
+    }
+    if (sourceId === targetId) {
+      return res.status(400).json({ error: 'Device ID Asal dan Tujuan tidak boleh sama.' });
+    }
+
+    try {
+      // 1. Ambil data lisensi device asal
+      const srcLicRes = await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(sourceId)}`, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+        cache: 'no-store'
+      });
+      const srcLicData = await srcLicRes.json();
+      if (!Array.isArray(srcLicData) || srcLicData.length === 0) {
+        return res.status(404).json({ error: 'Device ID Asal tidak ditemukan di database.' });
+      }
+      const sourceLicense = srcLicData[0];
+
+      // 2. Ambil data backup cloud device asal (jika ada)
+      const srcBackupRes = await fetch(`${SUPABASE_URL}/rest/v1/backups?device_id=eq.${encodeURIComponent(sourceId)}&select=*`, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+        cache: 'no-store'
+      });
+      const srcBackupData = await srcBackupRes.json();
+      let backupPayloadToTransfer = null;
+      let expiresAtToTransfer = null;
+      if (Array.isArray(srcBackupData) && srcBackupData.length > 0) {
+        backupPayloadToTransfer = srcBackupData[0].backup_data;
+        expiresAtToTransfer = srcBackupData[0].expires_at;
+      }
+
+      const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
+
+      // 3. Simpan/Upsert lisensi ke device ID tujuan dengan membawa masa aktif (exp_date) dan status yang sama
+      await fetch(`${SUPABASE_URL}/rest/v1/licenses`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates'
+        },
+        body: JSON.stringify({
+          device_id: targetId,
+          license_key: sourceLicense.license_key,
+          exp_date: sourceLicense.exp_date,
+          status: sourceLicense.status,
+          client_name: sourceLicense.client_name || 'Migrasi Oper Device',
+          updated_at: timestampWIB
+        })
+      });
+
+      // 4. Jika ada backup cloud di device asal, pindahkan juga ke device tujuan
+      if (backupPayloadToTransfer) {
+        await fetch(`${SUPABASE_URL}/rest/v1/backups`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=merge-duplicates'
+          },
+          body: JSON.stringify({
+            device_id: targetId,
+            backup_data: backupPayloadToTransfer,
+            expires_at: expiresAtToTransfer,
+            updated_at: timestampWIB
+          })
+        });
+
+        // Hapus backup lama di device asal
+        await fetch(`${SUPABASE_URL}/rest/v1/backups?device_id=eq.${encodeURIComponent(sourceId)}`, {
+          method: 'DELETE',
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+        });
+      }
+
+      // 5. Hapus lisensi lama dari device asal
+      await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(sourceId)}`, {
+        method: 'DELETE',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      });
+
+      return res.status(200).json({ success: true, message: `Berhasil mengoper lisensi dari ${sourceId} ke ${targetId}.` });
+    } catch (e) {
+      return res.status(500).json({ error: 'Gagal melakukan proses oper device.' });
     }
   }
 
@@ -338,11 +450,9 @@ export default async function handler(req, res) {
       if (Array.isArray(bData) && bData.length > 0) {
         const backupRecord = bData[0];
         
-        // Cek apakah backup sudah melewati batas waktu 3 hari (expires_at)
         if (backupRecord.expires_at) {
           const nowWIBStr = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
           if (nowWIBStr > backupRecord.expires_at) {
-            // Hapus backup yang sudah kedaluwarsa dari database
             await fetch(`${SUPABASE_URL}/rest/v1/backups?device_id=eq.${encodeURIComponent(devIdBackup)}`, {
               method: 'DELETE',
               headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
@@ -351,7 +461,7 @@ export default async function handler(req, res) {
           }
         }
 
-        return res.status(200).json({ success: true, backup_data: backupRecord.backup_data });
+        return res.status(200).json({ success: true, backup_data: backupRecord.backup_data, created_at: backupRecord.updated_at });
       }
       return res.status(404).json({ error: 'Data backup tidak ditemukan di database.' });
     } catch (e) {
@@ -380,7 +490,6 @@ export default async function handler(req, res) {
         return res.status(200).json({ valid: false, status: 'expired', exp_date: lic.exp_date, msg: 'Lisensi Anda telah kadaluarsa.' });
       }
 
-      // OTOMATIS UPDATE WAKTU TERAKHIR DIGUNAKAN SAAT SCRIPT / DEVICE MELAKUKAN CHECK LISENSI
       const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
       await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(device_id)}`, {
         method: 'PATCH',
@@ -520,7 +629,6 @@ export default async function handler(req, res) {
     const cleanDevId = (body.device_id || device_id || 'UNKNOWN').replace(/[^a-zA-Z0-9]/g, '');
     const paketHariFix = Number(body.paket_hari || paket_hari || 7);
 
-    // AMBIL NOMINAL HARGA TERBARU DARI DATABASE PACKAGES
     let nominal = Number(body.nominal || 0);
     if (!nominal || nominal <= 0) {
       try {

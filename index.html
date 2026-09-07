@@ -723,7 +723,7 @@
       } catch (err) { showToast('Error koneksi server.', false); }
     }
 
-    // --- KELOLA VOUCHER (DIPERBAIKI DENGAN OPSI DISKON & DURASI) ---
+    // --- KELOLA VOUCHER (DIPERBAIKI DENGAN 3 OPSI: PERSEN, RUPIAH, & HARI) ---
     async function muatDataVoucherServer() {
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=get_vouchers`);
@@ -734,7 +734,11 @@
         if (list.length === 0) {
           tambahBarisVoucherForm('PROMO50', 'percent', 50, 100);
         } else {
-          list.forEach(v => tambahBarisVoucherForm(v.code, v.discount_type || 'percent', v.discount_value, v.quota || 100));
+          list.forEach(v => {
+            const tipeVoucher = v.type || v.discount_type || 'percent';
+            const nilaiVoucher = v.value !== undefined ? v.value : (v.discount_value || 0);
+            tambahBarisVoucherForm(v.code, tipeVoucher, nilaiVoucher, v.quota || 100);
+          });
         }
       } catch (err) {
         showToast('Gagal memuat voucher.', false);
@@ -747,13 +751,13 @@
       div.className = 'voucher-row';
       div.innerHTML = `
         <input type="text" class="inp-code" value="${code}" placeholder="KODE" style="flex: 2; height: 38px; font-size: 12px; text-transform: uppercase;">
-        <select class="inp-type" style="flex: 1.4; height: 38px; font-size: 12px;">
+        <select class="inp-type" style="flex: 1.5; height: 38px; font-size: 12px;">
           <option value="percent" ${type==='percent'?'selected':''}>Diskon (%)</option>
           <option value="fixed" ${type==='fixed'?'selected':''}>Diskon (Rp)</option>
-          <option value="days" ${type==='days'?'selected':''}>Bonus (Hari)</option>
+          <option value="days" ${type==='days' || type==='duration'?'selected':''}>Durasi (Hari)</option>
         </select>
         <input type="number" class="inp-value" value="${value}" placeholder="Nilai" style="flex: 1; height: 38px; font-size: 12px;">
-        <input type="number" class="inp-quota" value="${quota}" placeholder="Kuota" style="flex: 0.9; height: 38px; font-size: 12px;" title="Batas Kuota Penggunaan">
+        <input type="number" class="inp-quota" value="${quota}" placeholder="Kuota" style="flex: 0.8; height: 38px; font-size: 12px;" title="Batas Kuota Penggunaan">
         <button class="btn btn-danger" style="width: 38px; height: 38px;" onclick="this.parentElement.remove()">✕</button>
       `;
       container.appendChild(div);
@@ -764,11 +768,19 @@
       const vouchers = [];
       rows.forEach(r => {
         const code = r.querySelector('.inp-code').value.trim().toUpperCase();
-        const discount_type = r.querySelector('.inp-type').value;
-        const discount_value = Number(r.querySelector('.inp-value').value);
+        const type = r.querySelector('.inp-type').value;
+        const value = Number(r.querySelector('.inp-value').value);
         const quota = Number(r.querySelector('.inp-quota').value) || 100;
-        if (code && !isNaN(discount_value)) {
-          vouchers.push({ code, discount_type, discount_value, quota });
+        
+        if (code && !isNaN(value)) {
+          vouchers.push({ 
+            code, 
+            type, 
+            discount_type: type, 
+            value, 
+            discount_value: value, 
+            quota 
+          });
         }
       });
 

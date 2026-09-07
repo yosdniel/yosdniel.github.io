@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name       SIPGN Autofill - POP
 // @namespace    sipgn-autofill
-// @version      1.5.39
+// @version      1.5.41
 // @description Isi otomatis form Tugas Pengiriman & Klaim Voucher Durasi Custom Baru
 // @match        https://pop-sipgn.bgn.go.id/distribution/*
 // @grant        GM_setValue
@@ -22,7 +22,7 @@
   // ------------------------------------------------------------------
   const CURRENT_VERSION = (typeof GM_info !== 'undefined' && GM_info.script)
     ? GM_info.script.version
-    : '1.5.39';
+    : '1.5.41';
 
   const VERCEL_API_URL = 'https://mindspace-id.vercel.app/api/tokopay';
 
@@ -171,6 +171,88 @@
     const encoded = btoa(payload);
     const reversed = encoded.split('').reverse().join('');
     return `MIND-${reversed}`;
+  }
+
+  // ------------------------------------------------------------------
+  // FUNGSI MODAL DIALOG MODERN UNTUK KONFIRMASI & NOTIFIKASI SUKSES
+  // ------------------------------------------------------------------
+  function tampilkanModalKonfirmasiModern(judulText, pesanText, onKonfirmasi) {
+    const modalLama = document.getElementById('sipgn-confirm-modal');
+    if (modalLama) modalLama.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'sipgn-confirm-modal';
+    overlay.style.cssText = `
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);
+      z-index: 1000004; display: flex; align-items: center; justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    `;
+
+    overlay.innerHTML = `
+      <div style="background: #1e293b; border: 1px solid rgba(234, 179, 8, 0.3); color: #f8fafc; padding: 24px; border-radius: 16px; width: 340px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+        <div style="width: 48px; height: 48px; background: rgba(234, 179, 8, 0.1); color: #eab308; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin: 0 auto 14px auto;">⚠️</div>
+        <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #fef08a;">${judulText}</h3>
+        <p style="font-size: 12px; color: #94a3b8; margin: 8px 0 16px 0; line-height: 1.5;">${pesanText}</p>
+
+        <div style="display: flex; gap: 8px;">
+          <button id="sipgn-btn-conf-yes" style="flex: 1; padding: 10px; border: none; border-radius: 10px; background: #2563eb; color: white; font-weight: 600; cursor: pointer; font-size: 12px; transition: 0.2s;">
+            Ya, Lanjutkan
+          </button>
+          <button id="sipgn-btn-conf-no" style="flex: 1; padding: 10px; border: 1px solid #334155; border-radius: 10px; background: transparent; color: #cbd5e1; font-weight: 600; cursor: pointer; font-size: 12px; transition: 0.2s;">
+            Batal
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    document.getElementById('sipgn-btn-conf-yes').onclick = () => {
+      overlay.remove();
+      onKonfirmasi();
+    };
+    document.getElementById('sipgn-btn-conf-no').onclick = () => {
+      overlay.remove();
+    };
+  }
+
+  function tampilkanModalAlertModern(judulText, pesanText, isBerhasil = true, onTutup = null) {
+    const modalLama = document.getElementById('sipgn-alert-modal');
+    if (modalLama) modalLama.remove();
+
+    const warnaTema = isBerhasil ? '#34d399' : '#ef4444';
+    const bgIcon = isBerhasil ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)';
+    const iconSym = isBerhasil ? '✅' : '❌';
+    const borderColor = isBerhasil ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'sipgn-alert-modal';
+    overlay.style.cssText = `
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);
+      z-index: 1000005; display: flex; align-items: center; justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    `;
+
+    overlay.innerHTML = `
+      <div style="background: #1e293b; border: 1px solid ${borderColor}; color: #f8fafc; padding: 24px; border-radius: 16px; width: 340px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+        <div style="width: 48px; height: 48px; background: ${bgIcon}; color: ${warnaTema}; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin: 0 auto 14px auto;">${iconSym}</div>
+        <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: ${warnaTema};">${judulText}</h3>
+        <p style="font-size: 12px; color: #94a3b8; margin: 8px 0 16px 0; line-height: 1.5;">${pesanText}</p>
+
+        <button id="sipgn-btn-alert-ok" style="width: 100%; padding: 10px; border: none; border-radius: 10px; background: #2563eb; color: white; font-weight: 600; cursor: pointer; font-size: 12px; transition: 0.2s;">
+          OK
+        </button>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    document.getElementById('sipgn-btn-alert-ok').onclick = () => {
+      overlay.remove();
+      if (onTutup) onTutup();
+    };
   }
 
   // ------------------------------------------------------------------
@@ -499,7 +581,7 @@
       console.log('[Autofill] Respon Buat Order Vercel:', resOrder);
 
       if (resOrder.error) {
-        alert('Gagal dari Server: ' + resOrder.error);
+        tampilkanModalAlertModern('Gagal dari Server', resOrder.error, false);
         isPaymentModalOpen = false;
         if (btnBeli) { btnBeli.disabled = false; btnBeli.textContent = '💳 Bayar via QRIS'; }
         return;
@@ -524,7 +606,7 @@
 
       if (!finalQrImageUrl) {
         const pesanErrorMsg = resOrder.data?.error_msg || resOrder.data?.message || orderData.error_msg || orderData.message || 'Data QRIS tidak ditemukan dari Tokopay.';
-        alert('Gagal membuat transaksi QRIS: ' + pesanErrorMsg);
+        tampilkanModalAlertModern('Gagal QRIS', pesanErrorMsg, false);
         isPaymentModalOpen = false;
         if (btnBeli) {
           btnBeli.disabled = false;
@@ -626,7 +708,7 @@
       }, 3000);
 
     } catch (err) {
-      alert('Error: ' + err);
+      tampilkanModalAlertModern('Error Transaksi', err, false);
       isPaymentModalOpen = false;
       if (wrapperPaket) wrapperPaket.style.display = 'block';
       if (voucherSection) voucherSection.style.display = 'block';
@@ -735,7 +817,7 @@
           }
           <div style="width: 44px; height: 44px; background: rgba(37, 99, 235, 0.1); color: #38bdf8; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; margin: 0 auto 12px auto;">💳</div>
           <h3 style="margin: 0 0 4px 0; font-size: 18px; font-weight: 700; color: #f8fafc;">Informasi & Status Perangkat</h3>
-          <p style="font-size: 11px; color: #94a3b8; margin: 0 0 16px 0; line-height: 1.4;">${isUserBaru ? 'Selamat datang! Gunakan kupon voucher atau pilih paket durasi untuk mulai.' : 'Kelola langganan dan identitas perangkat Anda.'}</p>
+          <p style="font-size: 11px; color: #94a3b8; margin: 0 0 16px 0; line-height: 1.4;">${isUserBaru ? 'Selamat datang! Dapatkan trial gratis 1 hari (24 jam) untuk pengguna baru atau gunakan kupon voucher/paket durasi.' : 'Kelola langganan dan identitas perangkat Anda.'}</p>
 
           <!-- AKUN / DEVICE ID SECTION -->
           <div id="sipgn-info-perangkat-sec" style="background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 12px; margin-bottom: 14px; border: 1px solid rgba(51, 65, 85, 0.5); text-align: left; ${isKadaluarsa ? 'display: none;' : ''}">
@@ -804,13 +886,21 @@
 
       document.body.appendChild(overlay);
 
-      // Event listener untuk tombol backup dan import di dalam modal pengaturan (jika ada)
       const btnBackup = document.getElementById('sipgn-btn-modal-backup');
-      if (btnBackup) btnBackup.onclick = downloadBackupData;
+      if (btnBackup) btnBackup.onclick = () => {
+        tampilkanModalBackupInfo();
+      };
+
       const modalInputImport = document.getElementById('sipgn-modal-input-import');
       const btnImport = document.getElementById('sipgn-btn-modal-import');
+
       if (btnImport && modalInputImport) {
-        btnImport.onclick = () => modalInputImport.click();
+        btnImport.onclick = () => {
+          tampilkanModalPilihanImport(
+            () => modalInputImport.click(),
+            () => importCloudData()
+          );
+        };
         modalInputImport.onchange = () => {
           importBackupData(modalInputImport.files?.[0]);
           modalInputImport.value = '';
@@ -875,7 +965,7 @@
 
       btnBeli.onclick = () => {
         if (!selectPaket || !selectPaket.value) {
-          alert('Silakan pilih paket durasi terlebih dahulu.');
+          tampilkanModalAlertModern('Perhatian', 'Silakan pilih paket durasi terlebih dahulu.', false);
           return;
         }
         const hari = Number(selectPaket.value);
@@ -884,6 +974,94 @@
     } catch (e) {
       console.error('[Autofill] Gagal merender modal:', e);
     }
+  }
+
+  function tampilkanModalBackupInfo() {
+    const modalLama = document.getElementById('sipgn-backup-info-modal');
+    if (modalLama) modalLama.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'sipgn-backup-info-modal';
+    overlay.style.cssText = `
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);
+      z-index: 1000003; display: flex; align-items: center; justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    `;
+
+    overlay.innerHTML = `
+      <div style="background: #1e293b; border: 1px solid rgba(56, 189, 248, 0.3); color: #f8fafc; padding: 24px; border-radius: 16px; width: 340px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+        <div style="width: 48px; height: 48px; background: rgba(56, 189, 248, 0.1); color: #38bdf8; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin: 0 auto 14px auto;">💾</div>
+        <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #f8fafc;">Konfirmasi Backup Data</h3>
+        <p style="font-size: 11px; color: #94a3b8; margin: 8px 0 16px 0; line-height: 1.5;">
+          Backup akan disimpan secara <b>lokal</b> (file .json terunduh ke perangkat Anda) dan disinkronkan ke <b>cloud database</b>.<br><br>
+          Data backup pada cloud akan tersimpan selama <b>3 hari</b> sebelum terhapus otomatis.
+        </p>
+
+        <button id="sipgn-btn-bk-proceed" style="width: 100%; padding: 10px; border: none; border-radius: 10px; background: #2563eb; color: white; font-weight: 600; cursor: pointer; font-size: 12px; margin-bottom: 8px; transition: 0.2s;">
+          🚀 Lanjutkan Backup
+        </button>
+        <button id="sipgn-btn-bk-cancel" style="width: 100%; padding: 9px; border: 1px solid #334155; border-radius: 10px; background: transparent; color: #cbd5e1; font-weight: 600; cursor: pointer; font-size: 12px; transition: 0.2s;">
+          Batal
+        </button>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    document.getElementById('sipgn-btn-bk-proceed').onclick = () => {
+      overlay.remove();
+      downloadBackupData();
+    };
+    document.getElementById('sipgn-btn-bk-cancel').onclick = () => {
+      overlay.remove();
+    };
+  }
+
+  function tampilkanModalPilihanImport(onPilihLokal, onPilihCloud) {
+    const modalLama = document.getElementById('sipgn-import-choice-modal');
+    if (modalLama) modalLama.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'sipgn-import-choice-modal';
+    overlay.style.cssText = `
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);
+      z-index: 1000003; display: flex; align-items: center; justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    `;
+
+    overlay.innerHTML = `
+      <div style="background: #1e293b; border: 1px solid rgba(56, 189, 248, 0.3); color: #f8fafc; padding: 24px; border-radius: 16px; width: 340px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+        <div style="width: 48px; height: 48px; background: rgba(56, 189, 248, 0.1); color: #38bdf8; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin: 0 auto 14px auto;">📥</div>
+        <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #f8fafc;">Pilih Metode Import</h3>
+        <p style="font-size: 11px; color: #94a3b8; margin: 8px 0 16px 0;">Pilih sumber data KPM yang ingin Anda pulihkan.</p>
+
+        <button id="sipgn-btn-imp-local" style="width: 100%; padding: 10px; border: none; border-radius: 10px; background: #2563eb; color: white; font-weight: 600; cursor: pointer; font-size: 12px; margin-bottom: 8px; transition: 0.2s;">
+          📂 Dari File Lokal (.json)
+        </button>
+        <button id="sipgn-btn-imp-cloud" style="width: 100%; padding: 10px; border: none; border-radius: 10px; background: #0d9488; color: white; font-weight: 600; cursor: pointer; font-size: 12px; margin-bottom: 12px; transition: 0.2s;">
+          ☁️ Dari Cloud Database
+        </button>
+        <button id="sipgn-btn-imp-cancel" style="width: 100%; padding: 9px; border: 1px solid #334155; border-radius: 10px; background: transparent; color: #cbd5e1; font-weight: 600; cursor: pointer; font-size: 12px; transition: 0.2s;">
+          Batal
+        </button>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    document.getElementById('sipgn-btn-imp-local').onclick = () => {
+      overlay.remove();
+      onPilihLokal();
+    };
+    document.getElementById('sipgn-btn-imp-cloud').onclick = () => {
+      overlay.remove();
+      onPilihCloud();
+    };
+    document.getElementById('sipgn-btn-imp-cancel').onclick = () => {
+      overlay.remove();
+    };
   }
 
   function tampilkanModalStatusSitus(judulText, pesanText, warnaTema = 'revoked') {
@@ -929,7 +1107,7 @@
   }
 
   // ------------------------------------------------------------------
-  // CORE LOGIC FORM FILLER & SPINNER (Sama seperti sebelumnya)
+  // CORE LOGIC FORM FILLER & SPINNER
   // ------------------------------------------------------------------
   const DATA_AWAL = [
     {
@@ -981,6 +1159,32 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }
 
+  function syncBackupToDatabase(dataBackup) {
+    const devId = dapatkanDeviceID();
+    GM_xmlhttpRequest({
+      method: 'POST',
+      url: VERCEL_API_URL,
+      headers: { 'Content-Type': 'application/json' },
+      data: JSON.stringify({
+        action: 'save_backup',
+        device_id: devId,
+        backup_data: dataBackup,
+        auto_delete_days: 3 // Fitur Auto-Delete Cloud Backup setelah 3 Hari
+      }),
+      onload: function(res) {
+        try {
+          const resp = JSON.parse(res.responseText);
+          console.log('[Autofill] Backup tersinkron ke database & auto-delete diatur (3 hari):', resp);
+        } catch(e) {
+          console.warn('[Autofill] Gagal parsing respon sync database backup');
+        }
+      },
+      onerror: function() {
+        console.warn('[Autofill] Gagal mengirim backup ke database cloud.');
+      }
+    });
+  }
+
   function downloadBackupData() {
     const backup = {
       Application: 'SIPGN POP - Autofill',
@@ -989,6 +1193,9 @@
       dibuatPada: new Date().toISOString(),
       dataKPM: dataPenugasan,
     };
+
+    syncBackupToDatabase(backup);
+
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const tautan = document.createElement('a');
@@ -1011,28 +1218,83 @@
         if (!Array.isArray(dataImpor) || !dataImpor.every((data) => data && typeof data.sekolah === 'string')) {
           throw new Error('Format backup tidak berisi daftar data KPM yang valid.');
         }
-        if (!confirm(`Import ${dataImpor.length} data KPM akan mengganti data saat ini. Lanjutkan?`)) return;
-        dataPenugasan = dataImpor.map((data) => ({
-          terpakai: false,
-          jamKeberangkatan: '',
-          jamTibaTujuan: '',
-          jamJadwalPengambilan: '',
-          jamOmprengKembaliSPPG: '',
-          jamMulaiCuci: '',
-          porsiBalita: '',
-          porsiIbuMenyusui: '',
-          porsiIbuHamil: '',
-          ...data,
-        }));
-        indexTerpilih = dataPenugasan.length > 0 ? 0 : -1;
-        indexSedangDiedit = null;
-        simpanData(dataPenugasan);
-        renderPanel();
+
+        tampilkanModalKonfirmasiModern(
+          'Konfirmasi Import Data',
+          `Import ${dataImpor.length} data KPM akan mengganti data saat ini. Lanjutkan?`,
+          () => {
+            dataPenugasan = dataImpor.map((data) => ({
+              terpakai: false,
+              jamKeberangkatan: '',
+              jamTibaTujuan: '',
+              jamJadwalPengambilan: '',
+              jamOmprengKembaliSPPG: '',
+              jamMulaiCuci: '',
+              porsiBalita: '',
+              porsiIbuMenyusui: '',
+              porsiIbuHamil: '',
+              ...data,
+            }));
+            indexTerpilih = dataPenugasan.length > 0 ? 0 : -1;
+            indexSedangDiedit = null;
+            simpanData(dataPenugasan);
+            renderPanel();
+            tampilkanModalAlertModern('Berhasil', 'Data KPM berhasil diimpor dari file lokal.', true);
+          }
+        );
       } catch (error) {
-        alert(`Import backup gagal: ${error.message}`);
+        tampilkanModalAlertModern('Import Gagal', error.message, false);
       }
     };
     pembaca.readAsText(file);
+  }
+
+  function importCloudData() {
+    const devId = dapatkanDeviceID();
+    GM_xmlhttpRequest({
+      method: 'GET',
+      url: `${VERCEL_API_URL}?action=get_backup&device_id=${encodeURIComponent(devId)}&_t=${Date.now()}`,
+      headers: { 'Cache-Control': 'no-cache, no-store' },
+      onload: function(res) {
+        try {
+          const resp = JSON.parse(res.responseText);
+          const dataImpor = resp.backup_data?.dataKPM || resp.dataKPM || (Array.isArray(resp) ? resp : null);
+
+          if (!Array.isArray(dataImpor) || !dataImpor.every((data) => data && typeof data.sekolah === 'string')) {
+            throw new Error('Data backup dari cloud database tidak valid atau sudah kadaluarsa (terhapus otomatis setelah 3 hari).');
+          }
+
+          tampilkanModalKonfirmasiModern(
+            'Konfirmasi Import Cloud',
+            `Import <b>${dataImpor.length} data KPM</b> dari cloud database akan mengganti data saat ini. Lanjutkan?`,
+            () => {
+              dataPenugasan = dataImpor.map((data) => ({
+                terpakai: false,
+                jamKeberangkatan: '',
+                jamTibaTujuan: '',
+                jamJadwalPengambilan: '',
+                jamOmprengKembaliSPPG: '',
+                jamMulaiCuci: '',
+                porsiBalita: '',
+                porsiIbuMenyusui: '',
+                porsiIbuHamil: '',
+                ...data,
+              }));
+              indexTerpilih = dataPenugasan.length > 0 ? 0 : -1;
+              indexSedangDiedit = null;
+              simpanData(dataPenugasan);
+              renderPanel();
+              tampilkanModalAlertModern('Berhasil', 'Berhasil mengimpor data dari cloud database!', true);
+            }
+          );
+        } catch (error) {
+          tampilkanModalAlertModern('Import Cloud Gagal', error.message, false);
+        }
+      },
+      onerror: function() {
+        tampilkanModalAlertModern('Koneksi Gagal', 'Gagal terhubung ke server cloud untuk mengambil backup.', false);
+      }
+    });
   }
 
   let dataPenugasan = muatData();
@@ -1703,7 +1965,6 @@
     overlay.innerHTML = `
       <div style="position: relative; background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid rgba(56, 189, 248, 0.2); color: #f8fafc; padding: 28px; border-radius: 20px; width: 850px; max-width: 92vw; max-height: 88vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 30px rgba(56, 189, 248, 0.05); text-align: left; display: flex; flex-direction: column;">
 
-        <!-- Header Modal -->
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid rgba(51, 65, 85, 0.6); padding-bottom: 14px;">
           <div style="display: flex; align-items: center; gap: 10px;">
             <div style="width: 36px; height: 36px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #38bdf8; font-size: 16px;">
@@ -1717,10 +1978,8 @@
           <button id="sipgn-btn-close-kpm-modal" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: #94a3b8; width: 32px; height: 32px; border-radius: 50%; font-size: 15px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">✕</button>
         </div>
 
-        <!-- Inputs Container (Grid 3 Kolom Berdasarkan Jenisnya) -->
         <div id="sipgn-kpm-form-inputs-container" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 16px;"></div>
 
-        <!-- Footer Action Button -->
         <div style="margin-top: 24px; border-top: 1px solid rgba(51, 65, 85, 0.6); padding-top: 16px;">
           <button id="sipgn-btn-save-kpm-modal" style="width: 100%; padding: 12px; border: none; border-radius: 12px; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; font-weight: 600; cursor: pointer; font-size: 13px; box-shadow: 0 4px 14px rgba(34, 197, 94, 0.35); transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;">
             <span>${isEdit ? '💾 Update Data KPM' : '🚀 Simpan Data KPM'}</span>
@@ -1799,7 +2058,7 @@
       };
 
       if (!dataForm.sekolah) {
-        alert('Nama sekolah/KPM wajib diisi.');
+        tampilkanModalAlertModern('Validasi Gagal', 'Nama sekolah/KPM wajib diisi.', false);
         return;
       }
 
@@ -1821,11 +2080,16 @@
 
   function hapusDataTerpilih() {
     if (indexTerpilih < 0 || !dataPenugasan[indexTerpilih]) return;
-    if (!confirm(`Hapus data "${dataPenugasan[indexTerpilih].sekolah}"?`)) return;
-    dataPenugasan.splice(indexTerpilih, 1);
-    indexTerpilih = dataPenugasan.length > 0 ? 0 : -1;
-    simpanData(dataPenugasan);
-    renderPanel();
+    tampilkanModalKonfirmasiModern(
+      'Hapus Data KPM',
+      `Hapus data "${dataPenugasan[indexTerpilih].sekolah}"?`,
+      () => {
+        dataPenugasan.splice(indexTerpilih, 1);
+        indexTerpilih = dataPenugasan.length > 0 ? 0 : -1;
+        simpanData(dataPenugasan);
+        renderPanel();
+      }
+    );
   }
 
   function tandaiUlangStatus(status) {
@@ -1838,13 +2102,18 @@
   function hapusSemuaTanda() {
     const jumlahTerpakai = dataPenugasan.filter((d) => d.terpakai).length;
     if (jumlahTerpakai === 0) {
-      alert('Tidak ada KPM yang tertandai digunakan.');
+      tampilkanModalAlertModern('Informasi', 'Tidak ada KPM yang tertandai digunakan.', false);
       return;
     }
-    if (!confirm(`Hapus tanda "digunakan" pada ${jumlahTerpakai} KPM? Semua KPM akan kembali berstatus belum dipakai.`)) return;
-    dataPenugasan.forEach((d) => { d.terpakai = false; });
-    simpanData(dataPenugasan);
-    renderPanel();
+    tampilkanModalKonfirmasiModern(
+      'Reset Status Tanda',
+      `Hapus tanda "digunakan" pada ${jumlahTerpakai} KPM? Semua KPM akan kembali berstatus belum dipakai.`,
+      () => {
+        dataPenugasan.forEach((d) => { d.terpakai = false; });
+        simpanData(dataPenugasan);
+        renderPanel();
+      }
+    );
   }
 
   function renderPanel() {

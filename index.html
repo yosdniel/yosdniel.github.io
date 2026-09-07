@@ -207,7 +207,15 @@
         <div><b>Device ID:</b> <span id="dispDeviceId" style="color:#facc15;">-</span></div>
         <div><b>Status Saat Ini:</b> <span id="dispStatus">-</span></div>
         <div><b>Tanggal Kadaluarsa:</b> <span id="dispExpDate" style="color:#38bdf8;">-</span></div>
-        <div><b>Terakhir Digunakan:</b> <span id="dispLastUpdated" style="color:#cbd5e1;">-</span></div>
+        <div><b>Terakhir Digunakan:</b> <span id="dispLastActive" style="color:#cbd5e1;">-</span></div>
+      </div>
+
+      <!-- KONTROL BACKUP KPM -->
+      <div class="card-info" id="backupInfoCard" style="display: none;">
+        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #38bdf8; font-weight: 600; margin-bottom: 6px;">Backup Cloud KPM</div>
+        <div><b>Nama File:</b> <span id="dispBackupFilename" style="color:#facc15; font-family: monospace;">-</span></div>
+        <div><b>Waktu Backup:</b> <span id="dispBackupTime" style="color:#cbd5e1;">-</span></div>
+        <button class="btn btn-primary" style="margin-top: 10px; height: 36px; font-size: 12px;" onclick="downloadBackupCloud()">📥 Download File Backup</button>
       </div>
 
       <div class="field-group">
@@ -286,6 +294,7 @@
 
     let adminPasswordSecret = '';
     let currentLicenseData = null;
+    let currentBackupPayload = null;
 
     function getTanggalHariIniWIB() {
       return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
@@ -472,13 +481,13 @@
           const div = document.createElement('div');
           div.className = 'user-item';
           
-          const rawUpdate = u.updated_at || u.last_extended || u.created_at;
-          let infoPerpanjang = '';
+          const rawLastActive = u.last_active || u.last_seen || u.updated_at || u.created_at;
+          let infoAktivitas = '';
           
-          if (!rawUpdate) {
-            infoPerpanjang = '<span style="color: #f59e0b;">Belum pernah perpanjang / User baru</span>';
+          if (!rawLastActive) {
+            infoAktivitas = '<span style="color: #f59e0b;">Belum pernah aktif</span>';
           } else {
-            infoPerpanjang = `Terakhir digunakan: <b>${formatWaktuRelatif(rawUpdate)}</b>`;
+            infoAktivitas = `Terakhir digunakan: <b>${formatWaktuRelatif(rawLastActive)}</b>`;
           }
 
           const expFormatted = formatTanggalIndo(u.exp_date) || '-';
@@ -486,7 +495,7 @@
           div.innerHTML = `
             <div class="user-item-info">
               <div>${u.device_id}</div>
-              <div>Durasi s/d: <b>${expFormatted}</b><br>${infoPerpanjang}</div>
+              <div>Durasi s/d: <b>${expFormatted}</b><br>${infoAktivitas}</div>
             </div>
             <div><span class="badge ${u.status === 'active' ? 'badge-active' : 'badge-hold'}">${u.status || 'active'}</span></div>
           `;
@@ -496,6 +505,44 @@
       } catch (e) {
         container.innerHTML = '<div style="text-align: center; color: #ef4444; font-size: 12px; padding: 15px;">Gagal memuat daftar user dari server.</div>';
       }
+    }
+
+    async function muatBackupDevice(deviceId) {
+      const backupInfoCard = document.getElementById('backupInfoCard');
+      backupInfoCard.style.display = 'none';
+      currentBackupPayload = null;
+
+      try {
+        const res = await fetch(`${VERCEL_API_URL}?action=get_backup&device_id=${encodeURIComponent(deviceId)}&_t=${Date.now()}`);
+        const data = await res.json();
+        
+        const backupData = data.backup_data || data;
+        if (backupData && (backupData.dataKPM || Array.isArray(backupData))) {
+          currentBackupPayload = backupData;
+          const waktuBackup = data.created_at || backupData.dibuatPada || new Date().toISOString();
+          
+          document.getElementById('dispBackupFilename').textContent = `sipgn-autofill-backup-${deviceId}.json`;
+          document.getElementById('dispBackupTime').textContent = formatWaktuRelatif(waktuBackup);
+          backupInfoCard.style.display = 'block';
+        }
+      } catch (e) {
+        // Abaikan jika backup tidak ditemukan
+      }
+    }
+
+    function downloadBackupCloud() {
+      if (!currentBackupPayload) return showToast('Data backup tidak tersedia.', false);
+      const deviceId = currentLicenseData ? currentLicenseData.device_id : 'backup';
+      const blob = new Blob([JSON.stringify(currentBackupPayload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const tautan = document.createElement('a');
+      const tanggal = new Date().toISOString().slice(0, 10);
+      tautan.href = url;
+      tautan.download = `sipgn-autofill-backup-${deviceId}-${tanggal}.json`;
+      document.body.appendChild(tautan);
+      tautan.click();
+      tautan.remove();
+      URL.revokeObjectURL(url);
     }
 
     function pilihUserDariList(userData) {
@@ -512,10 +559,11 @@
         exp_date: userData.exp_date || hariIni,
         status: statusAktual,
         license_key: userData.license_key || buatLicenseKey(userData.exp_date || hariIni, userData.device_id),
-        last_updated: userData.updated_at || userData.last_extended || userData.created_at || '-',
+        last_active: userData.last_active || userData.last_seen || userData.updated_at || userData.created_at || '-',
         is_new: false
       };
       renderDetailDevice();
+      muatBackupDevice(userData.device_id);
     }
 
     async function cekDeviceId() {
@@ -542,7 +590,7 @@
             exp_date: data.exp_date || hariIni,
             status: statusAktual,
             license_key: data.license_key || buatLicenseKey(data.exp_date || hariIni, deviceId),
-            last_updated: data.updated_at || data.last_extended || data.created_at || '-',
+            last_active: data.last_active || data.last_seen || data.updated_at || data.created_at || '-',
             is_new: false
           };
         } else {
@@ -551,13 +599,14 @@
             exp_date: '-',
             status: 'unregistered',
             license_key: '',
-            last_updated: '-',
+            last_active: '-',
             is_new: true
           };
           showToast('Device ID belum terdaftar.', true);
         }
 
         renderDetailDevice();
+        muatBackupDevice(deviceId);
       } catch (e) {
         showToast('Gagal terhubung ke Server!', false);
       }
@@ -566,14 +615,14 @@
     function renderDetailDevice() {
       document.getElementById('dispExpDate').textContent = currentLicenseData.exp_date !== '-' ? formatTanggalIndo(currentLicenseData.exp_date) : 'Belum Diatur';
       
-      const rawUp = currentLicenseData.last_updated;
+      const rawUp = currentLicenseData.last_active;
       let lastUpFormatted = '';
       if (!rawUp || rawUp === '-') {
-        lastUpFormatted = '<span style="color: #f59e0b;">Belum pernah perpanjang</span>';
+        lastUpFormatted = '<span style="color: #f59e0b;">Belum pernah aktif</span>';
       } else {
         lastUpFormatted = formatWaktuRelatif(rawUp);
       }
-      document.getElementById('dispLastUpdated').textContent = lastUpFormatted;
+      document.getElementById('dispLastActive').textContent = lastUpFormatted;
 
       document.getElementById('editExpDate').value = currentLicenseData.exp_date !== '-' ? currentLicenseData.exp_date : getTanggalHariIniWIB();
       document.getElementById('editStatus').value = currentLicenseData.status;

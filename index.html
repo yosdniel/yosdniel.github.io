@@ -46,6 +46,8 @@
     .btn-danger:hover { background: #b91c1c; }
     .btn-secondary { background: #475569; color: white; }
     .btn-secondary:hover { background: #334155; }
+    .btn-warning { background: #d97706; color: white; }
+    .btn-warning:hover { background: #b45309; }
     
     .card-info {
       background: #0f172a; border: 1px solid #334155; border-radius: 12px;
@@ -163,6 +165,12 @@
           <p>Daftar & kelola user</p>
         </div>
 
+        <div class="menu-card" onclick="bukaFitur('transfer')">
+          <div class="menu-icon">🔄</div>
+          <h3>Oper Device</h3>
+          <p>Migrasi masa aktif & paket</p>
+        </div>
+
         <div class="menu-card" onclick="bukaFitur('packages')">
           <div class="menu-icon">📦</div>
           <h3>Harga Paket</h3>
@@ -174,10 +182,12 @@
           <h3>Set Voucher</h3>
           <p>Buat kupon diskon</p>
         </div>
+      </div>
 
-        <div class="menu-card" onclick="logoutAdmin()" style="border-color: #7f1d1d;">
-          <div class="menu-icon">🚪</div>
-          <h3 style="color: #fca5a5;">Keluar</h3>
+      <div style="margin-top: 10px;">
+        <div class="menu-card" onclick="logoutAdmin()" style="border-color: #7f1d1d; padding: 12px;">
+          <div class="menu-icon" style="font-size: 18px;">🚪</div>
+          <h3 style="color: #fca5a5; margin: 4px 0 2px 0;">Keluar</h3>
           <p>Akhiri sesi admin</p>
         </div>
       </div>
@@ -215,7 +225,10 @@
         <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #38bdf8; font-weight: 600; margin-bottom: 6px;">Backup Cloud KPM</div>
         <div><b>Nama File:</b> <span id="dispBackupFilename" style="color:#facc15; font-family: monospace;">-</span></div>
         <div><b>Waktu Backup:</b> <span id="dispBackupTime" style="color:#cbd5e1;">-</span></div>
-        <button class="btn btn-primary" style="margin-top: 10px; height: 36px; font-size: 12px;" onclick="downloadBackupCloud()">📥 Download File Backup</button>
+        <div style="display: flex; gap: 8px; margin-top: 10px;">
+          <button class="btn btn-primary" style="flex: 1; height: 36px; font-size: 12px;" onclick="downloadBackupCloud()">📥 Download</button>
+          <button class="btn btn-danger" style="flex: 1; height: 36px; font-size: 12px;" onclick="hapusBackupCloud()">🗑️ Hapus Backup</button>
+        </div>
       </div>
 
       <div class="field-group">
@@ -252,6 +265,31 @@
           <button class="btn btn-danger" style="flex: 1;" id="btnHapusLisensi" onclick="hapusLisensi()">🗑️ Hapus</button>
           <button class="btn btn-secondary" style="flex: 1;" onclick="bukaFitur('device')">↩️ Kembali ke Daftar</button>
         </div>
+      </div>
+    </div>
+
+    <!-- VIEW 3.5: FITUR OPER DEVICE ID (TRANSFER LISENSI & PAKET) -->
+    <div id="viewTransferDevice" class="view-section">
+      <div class="card-info" style="border-color: #38bdf8;">
+        <div style="font-size: 13px; font-weight: bold; color: #38bdf8; margin-bottom: 4px;">🔄 Migrasi & Oper Device ID</div>
+        <p style="margin: 0; font-size: 11px; color: #94a3b8; line-height: 1.4;">
+          Fitur ini memungkinkan Anda memindahkan masa aktif lisensi, status, serta data backup cloud dari <b>Device Asal (Sumber)</b> ke <b>Device Tujuan (Baru)</b>. Device asal akan dinonaktifkan/dihapus.
+        </p>
+      </div>
+
+      <div class="field-group">
+        <label for="inputSourceDevice">Device ID Asal (Sumber):</label>
+        <input type="text" id="inputSourceDevice" placeholder="Contoh: DEV-1234-ABCD" style="text-transform: uppercase;">
+      </div>
+
+      <div class="field-group">
+        <label for="inputTargetDevice">Device ID Tujuan (Baru):</label>
+        <input type="text" id="inputTargetDevice" placeholder="Contoh: DEV-9876-WXYZ" style="text-transform: uppercase;">
+      </div>
+
+      <div style="display: flex; gap: 8px; margin-top: 16px;">
+        <button class="btn btn-warning" style="flex: 2;" onclick="eksekusiOperDevice()">🚀 Proses Oper Device</button>
+        <button class="btn btn-secondary" style="flex: 1;" onclick="kembaliKeMenu()">🔙 Menu</button>
       </div>
     </div>
 
@@ -422,6 +460,10 @@
       if (fitur === 'device') {
         muatDaftarSemuaUser();
         gantiView('viewDeviceCheck');
+      } else if (fitur === 'transfer') {
+        document.getElementById('inputSourceDevice').value = '';
+        document.getElementById('inputTargetDevice').value = '';
+        gantiView('viewTransferDevice');
       } else if (fitur === 'packages') {
         muatDataPaketServer();
         gantiView('viewPackages');
@@ -543,6 +585,70 @@
       tautan.click();
       tautan.remove();
       URL.revokeObjectURL(url);
+    }
+
+    async function hapusBackupCloud() {
+      if (!currentLicenseData || !currentLicenseData.device_id) return;
+      const deviceId = currentLicenseData.device_id;
+      if (!confirm(`Hapus data backup cloud untuk Device ID "${deviceId}"?`)) return;
+
+      try {
+        const res = await fetch(VERCEL_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'delete_backup', device_id: deviceId, admin_secret: adminPasswordSecret })
+        });
+        const resData = await res.json();
+        if (res.ok && (resData.success || res.status)) {
+          showToast('Data backup cloud berhasil dihapus!');
+          document.getElementById('backupInfoCard').style.display = 'none';
+          currentBackupPayload = null;
+        } else {
+          showToast('Gagal menghapus backup cloud.', false);
+        }
+      } catch (e) {
+        showToast('Error koneksi server.', false);
+      }
+    }
+
+    // --- FITUR OPER DEVICE ID (MIGRASI LISENSI & BACKUP) ---
+    async function eksekusiOperDevice() {
+      const sourceId = document.getElementById('inputSourceDevice').value.trim().toUpperCase();
+      const targetId = document.getElementById('inputTargetDevice').value.trim().toUpperCase();
+
+      if (!sourceId || !targetId) {
+        return showToast('Masukkan Device ID Asal dan Device ID Tujuan!', false);
+      }
+      if (sourceId === targetId) {
+        return showToast('Device ID Asal dan Tujuan tidak boleh sama!', false);
+      }
+      if (!confirm(`Oper lisensi dari "${sourceId}" ke "${targetId}"? Device asal akan dihapus dan masa aktif dipindahkan.`)) {
+        return;
+      }
+
+      try {
+        const res = await fetch(VERCEL_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'transfer_device',
+            source_device_id: sourceId,
+            target_device_id: targetId,
+            admin_secret: adminPasswordSecret
+          })
+        });
+        const resData = await res.json();
+        if (res.ok && (resData.success || resData.status)) {
+          showToast('Berhasil mengoper device ID dan migrasi data!');
+          document.getElementById('inputSourceDevice').value = '';
+          document.getElementById('inputTargetDevice').value = '';
+          bukaFitur('device');
+        } else {
+          showToast(resData.error || 'Gagal melakukan oper device.', false);
+        }
+      } catch (e) {
+        showToast('Error koneksi server saat oper device.', false);
+      }
     }
 
     function pilihUserDariList(userData) {

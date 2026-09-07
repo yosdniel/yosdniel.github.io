@@ -287,6 +287,57 @@ export default async function handler(req, res) {
     }
   }
 
+  // SAVE BACKUP DATA KPM KE DATABASE
+  if (action === 'save_backup' && req.method === 'POST') {
+    const devIdBackup = body.device_id || device_id;
+    const backupData = body.backup_data;
+    if (!devIdBackup || !backupData) {
+      return res.status(400).json({ error: 'Device ID dan data backup wajib diisi.' });
+    }
+    try {
+      const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
+      const resUpsert = await fetch(`${SUPABASE_URL}/rest/v1/backups`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates,return=representation'
+        },
+        body: JSON.stringify({
+          device_id: devIdBackup,
+          backup_data: backupData,
+          updated_at: timestampWIB
+        })
+      });
+      const dataResp = await resUpsert.json();
+      return res.status(200).json({ success: true, data: dataResp });
+    } catch (err) {
+      return res.status(500).json({ error: 'Gagal menyimpan backup ke database.' });
+    }
+  }
+
+  // GET BACKUP DATA KPM DARI DATABASE
+  if (action === 'get_backup') {
+    const devIdBackup = query.device_id || body?.device_id;
+    if (!devIdBackup) {
+      return res.status(400).json({ error: 'Device ID wajib disertakan.' });
+    }
+    try {
+      const bRes = await fetch(`${SUPABASE_URL}/rest/v1/backups?device_id=eq.${encodeURIComponent(devIdBackup)}&select=*`, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+        cache: 'no-store'
+      });
+      const bData = await bRes.json();
+      if (Array.isArray(bData) && bData.length > 0) {
+        return res.status(200).json({ success: true, backup_data: bData[0].backup_data });
+      }
+      return res.status(404).json({ error: 'Data backup tidak ditemukan di database.' });
+    } catch (e) {
+      return res.status(500).json({ error: 'Gagal mengambil data backup dari cloud.' });
+    }
+  }
+
   if (action === 'check_license') {
     if (!device_id) return res.status(200).json({ valid: false, msg: 'Device ID tidak ditemukan.' });
 

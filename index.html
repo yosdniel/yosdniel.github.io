@@ -150,7 +150,7 @@
       </div>
 
       <div class="chart-container">
-        <div style="font-size: 11px; font-weight: bold; color: #cbd5e1; margin-bottom: 4px;">📊 Grafik Pendapatan 7 Hari Terakhir</div>
+        <div style="font-size: 11px; font-weight: bold; color: #cbd5e1; margin-bottom: 4px;">📊 Grafik Pendapatan Sukses (QRIS) 7 Hari Terakhir</div>
         <div class="chart-bars" id="chartBarsContainer"></div>
       </div>
 
@@ -343,7 +343,6 @@
           const jam = Math.floor(selisihDetik / 3600);
           return `${jam} jam lalu`;
         } else {
-          // Jika sudah lebih dari 24 jam, tampilkan tanggal & waktu (misal: 06 September 2026, 12:00 WIB)
           const tgl = targetDate.toLocaleDateString('id-ID', {
             day: '2-digit',
             month: 'long',
@@ -423,7 +422,7 @@
       }
     }
 
-    // --- STATISTIK & CHART PENDAPATAN ---
+    // --- STATISTIK & CHART PENDAPATAN (MURNI DARI TRANSAKSI PEMBAYARAN QRIS) ---
     async function muatStatistikDashboard() {
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=get_stats`);
@@ -449,7 +448,7 @@
           chartContainer.appendChild(group);
         });
       } catch (e) {
-        // Fallback
+        // Fallback jika gagal mengambil data statistik
       }
     }
 

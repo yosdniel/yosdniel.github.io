@@ -69,6 +69,7 @@
     .btn-quick-lifetime { background: #7c3aed; border-color: #6d28d9; color: #f3e8ff; }
     .btn-quick-lifetime:hover { background: #6d28d9; }
 
+    /* MENU GRID MODERN */
     .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
     .menu-card {
       background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 16px;
@@ -79,6 +80,7 @@
     .menu-card p { margin: 0; font-size: 11px; color: #94a3b8; }
     .menu-icon { font-size: 22px; }
 
+    /* STATS & CHART */
     .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
     .stat-box { background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 10px; text-align: center; }
     .stat-box span { font-size: 10px; color: #94a3b8; display: block; text-transform: uppercase; font-weight: 600; }
@@ -92,6 +94,7 @@
 
     .package-row, .voucher-row { display: flex; gap: 6px; align-items: center; background: #0f172a; padding: 8px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 8px; }
 
+    /* LIST USER STYLING */
     .user-list-container { max-height: 260px; overflow-y: auto; margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; }
     .user-item {
       background: #0f172a; border: 1px solid #334155; padding: 10px 12px; border-radius: 8px;
@@ -169,7 +172,7 @@
         <div class="menu-card" onclick="bukaFitur('vouchers')">
           <div class="menu-icon">🎟️</div>
           <h3>Set Voucher</h3>
-          <p>Buat kupon durasi</p>
+          <p>Buat kupon diskon</p>
         </div>
 
         <div class="menu-card" onclick="logoutAdmin()" style="border-color: #7f1d1d;">
@@ -259,7 +262,7 @@
       </div>
     </div>
 
-    <!-- VIEW 5: FITUR KELOLA VOUCHER -->
+    <!-- VIEW 5: FITUR KELOLA VOUCHER DISKON & DURASI -->
     <div id="viewVouchers" class="view-section">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
         <label style="margin:0;">Kelola Kode Kupon / Voucher:</label>
@@ -278,6 +281,7 @@
   <script>
     const VERCEL_BASE_URL = 'https://mindspace-id.vercel.app';
     const VERCEL_API_URL = `${VERCEL_BASE_URL}/api/tokopay`;
+    const VERIFY_PASS_URL = `${VERCEL_BASE_URL}/api/verify-pass`;
     const SECRET_SALT = 'MINDSTUDIO2026';
 
     let adminPasswordSecret = '';
@@ -305,12 +309,17 @@
       muatStatistikDashboard();
     }
 
+    // --- FORMAT TANGGAL & WAKTU RELATIF ---
     function formatTanggalIndo(dateString) {
       if (!dateString) return null;
       try {
         const d = new Date(dateString);
         if (isNaN(d.getTime())) return dateString;
-        return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+        return d.toLocaleDateString('id-ID', {
+          day: '2-digit',
+          month: 'long',
+          year: 'numeric'
+        });
       } catch (e) {
         return dateString;
       }
@@ -328,12 +337,24 @@
         if (selisihDetik < 60) {
           return 'Baru saja';
         } else if (selisihDetik < 3600) {
-          return `${Math.floor(selisihDetik / 60)} menit lalu`;
+          const menit = Math.floor(selisihDetik / 60);
+          return `${menit} menit lalu`;
         } else if (selisihDetik < 86400) {
-          return `${Math.floor(selisihDetik / 3600)} jam lalu`;
+          const jam = Math.floor(selisihDetik / 3600);
+          return `${jam} jam lalu`;
         } else {
-          const tgl = targetDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
-          const waktu = targetDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Jakarta' });
+          // Jika sudah lebih dari 24 jam, tampilkan tanggal & waktu (misal: 06 September 2026, 12:00 WIB)
+          const tgl = targetDate.toLocaleDateString('id-ID', {
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric'
+          });
+          const waktu = targetDate.toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+            timeZone: 'Asia/Jakarta'
+          });
           return `${tgl}, ${waktu} WIB`;
         }
       } catch (e) {
@@ -357,14 +378,25 @@
       btnLogin.disabled = true;
       btnLogin.textContent = '⏳ Memeriksa...';
 
-      // Sederhanakan autentikasi langsung tembak endpoint atau validasi lokal / lewat action API khusus
       try {
-        adminPasswordSecret = passInput;
-        gantiView('viewMainMenu');
-        muatStatistikDashboard();
-        showToast('Akses Admin Diterima.', true);
+        const res = await fetch(VERIFY_PASS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: passInput })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.status) {
+          adminPasswordSecret = passInput;
+          gantiView('viewMainMenu');
+          muatStatistikDashboard();
+          showToast('Akses Admin Diterima.', true);
+        } else {
+          showToast(data.error || 'Password salah!', false);
+        }
       } catch (e) {
-        showToast('Gagal memproses login admin.', false);
+        showToast('Gagal terhubung ke API Verifikasi Password.', false);
       } finally {
         btnLogin.disabled = false;
         btnLogin.textContent = '🔒 Masuk Ke Dashboard';
@@ -391,6 +423,7 @@
       }
     }
 
+    // --- STATISTIK & CHART PENDAPATAN ---
     async function muatStatistikDashboard() {
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=get_stats`);
@@ -415,35 +448,46 @@
           `;
           chartContainer.appendChild(group);
         });
-      } catch (e) {}
+      } catch (e) {
+        // Fallback
+      }
     }
 
+    // --- DAFTAR SEMUA USER & CEK DEVICE ID ---
     async function muatDaftarSemuaUser() {
       const container = document.getElementById('listAllUsersContainer');
-      container.innerHTML = '<div style="text-align: center; color: #94a3b8; font-size: 12px; padding: 15px;">⏳ Mengambil daftar user...</div>';
+      container.innerHTML = '<div style="text-align: center; color: #94a3b8; font-size: 12px; padding: 15px;">⏳ Mengambil daftar user dari server...</div>';
 
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=get_all_licenses`);
         const data = await res.json();
-        const users = data.licenses || [];
+        const users = data.licenses || data.users || [];
 
         container.innerHTML = '';
         if (users.length === 0) {
-          container.innerHTML = '<div style="text-align: center; color: #94a3b8; font-size: 12px; padding: 15px;">Belum ada user terdaftar.</div>';
+          container.innerHTML = '<div style="text-align: center; color: #94a3b8; font-size: 12px; padding: 15px;">Belum ada user terdaftar di database.</div>';
           return;
         }
 
         users.forEach(u => {
           const div = document.createElement('div');
           div.className = 'user-item';
-          const rawUpdate = u.updated_at || u.created_at;
-          const infoPerpanjang = !rawUpdate ? '<span style="color: #f59e0b;">User baru</span>' : `Aktivitas: <b>${formatWaktuRelatif(rawUpdate)}</b>`;
+          
+          const rawUpdate = u.updated_at || u.last_extended || u.created_at;
+          let infoPerpanjang = '';
+          
+          if (!rawUpdate) {
+            infoPerpanjang = '<span style="color: #f59e0b;">Belum pernah perpanjang / User baru</span>';
+          } else {
+            infoPerpanjang = `Terakhir digunakan: <b>${formatWaktuRelatif(rawUpdate)}</b>`;
+          }
+
           const expFormatted = formatTanggalIndo(u.exp_date) || '-';
 
           div.innerHTML = `
             <div class="user-item-info">
               <div>${u.device_id}</div>
-              <div>Aktif s/d: <b>${expFormatted}</b><br>${infoPerpanjang}</div>
+              <div>Durasi s/d: <b>${expFormatted}</b><br>${infoPerpanjang}</div>
             </div>
             <div><span class="badge ${u.status === 'active' ? 'badge-active' : 'badge-hold'}">${u.status || 'active'}</span></div>
           `;
@@ -451,7 +495,7 @@
           container.appendChild(div);
         });
       } catch (e) {
-        container.innerHTML = '<div style="text-align: center; color: #ef4444; font-size: 12px; padding: 15px;">Gagal memuat data user.</div>';
+        container.innerHTML = '<div style="text-align: center; color: #ef4444; font-size: 12px; padding: 15px;">Gagal memuat daftar user dari server.</div>';
       }
     }
 
@@ -469,7 +513,7 @@
         exp_date: userData.exp_date || hariIni,
         status: statusAktual,
         license_key: userData.license_key || buatLicenseKey(userData.exp_date || hariIni, userData.device_id),
-        last_updated: userData.updated_at || userData.created_at || '-',
+        last_updated: userData.updated_at || userData.last_extended || userData.created_at || '-',
         is_new: false
       };
       renderDetailDevice();
@@ -488,7 +532,7 @@
 
         const hariIni = getTanggalHariIniWIB();
 
-        if (data.status && data.status !== 'unregistered') {
+        if (data.exp_date || data.status) {
           let statusAktual = data.status || 'active';
           if (statusAktual === 'active' && data.exp_date && hariIni > data.exp_date) {
             statusAktual = 'expired';
@@ -499,7 +543,7 @@
             exp_date: data.exp_date || hariIni,
             status: statusAktual,
             license_key: data.license_key || buatLicenseKey(data.exp_date || hariIni, deviceId),
-            last_updated: data.updated_at || '-',
+            last_updated: data.updated_at || data.last_extended || data.created_at || '-',
             is_new: false
           };
         } else {
@@ -522,7 +566,15 @@
 
     function renderDetailDevice() {
       document.getElementById('dispExpDate').textContent = currentLicenseData.exp_date !== '-' ? formatTanggalIndo(currentLicenseData.exp_date) : 'Belum Diatur';
-      document.getElementById('dispLastUpdated').textContent = (!currentLicenseData.last_updated || currentLicenseData.last_updated === '-') ? 'Belum pernah aktif' : formatWaktuRelatif(currentLicenseData.last_updated);
+      
+      const rawUp = currentLicenseData.last_updated;
+      let lastUpFormatted = '';
+      if (!rawUp || rawUp === '-') {
+        lastUpFormatted = '<span style="color: #f59e0b;">Belum pernah perpanjang</span>';
+      } else {
+        lastUpFormatted = formatWaktuRelatif(rawUp);
+      }
+      document.getElementById('dispLastUpdated').textContent = lastUpFormatted;
 
       document.getElementById('editExpDate').value = currentLicenseData.exp_date !== '-' ? currentLicenseData.exp_date : getTanggalHariIniWIB();
       document.getElementById('editStatus').value = currentLicenseData.status;
@@ -591,7 +643,7 @@
           body: JSON.stringify({ action: 'save_license', ...currentLicenseData })
         });
         const resData = await res.json();
-        if (res.ok && resData.success) {
+        if (res.ok && (resData.success || resData.status)) {
           showToast('Lisensi berhasil disimpan!');
           currentLicenseData.is_new = false;
           renderDetailDevice();
@@ -609,7 +661,7 @@
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'delete_license', device_id: currentLicenseData.device_id })
+          body: JSON.stringify({ action: 'delete_license', device_id: currentLicenseData.device_id, admin_secret: adminPasswordSecret })
         });
         const resData = await res.json();
         if (res.ok && resData.success) {
@@ -623,6 +675,7 @@
       }
     }
 
+    // --- KELOLA HARGA PAKET ---
     async function muatDataPaketServer() {
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=get_packages`);
@@ -630,7 +683,7 @@
         const list = data.packages || [];
         const container = document.getElementById('containerListPaket');
         container.innerHTML = '';
-        if (list.length === 0) tambahBarisPaketForm('Paket 7 Hari', 7, 100);
+        if (list.length === 0) tambahBarisPaketForm('Paket 7 Hari', 7, 10000);
         else list.forEach(p => tambahBarisPaketForm(p.nama, p.hari, p.harga));
       } catch (err) {
         showToast('Gagal memuat paket.', false);
@@ -671,6 +724,7 @@
       } catch (err) { showToast('Error koneksi server.', false); }
     }
 
+    // --- KELOLA VOUCHER (DIPERBAIKI DENGAN OPSI DISKON & DURASI) ---
     async function muatDataVoucherServer() {
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=get_vouchers`);
@@ -679,23 +733,28 @@
         const container = document.getElementById('containerListVoucher');
         container.innerHTML = '';
         if (list.length === 0) {
-          tambahBarisVoucherForm('PROMO7', 7, 10);
+          tambahBarisVoucherForm('PROMO50', 'percent', 50, 100);
         } else {
-          list.forEach(v => tambahBarisVoucherForm(v.code, v.days_value || v.days || 7, v.max_uses || 10));
+          list.forEach(v => tambahBarisVoucherForm(v.code, v.discount_type || 'percent', v.discount_value, v.quota || 100));
         }
       } catch (err) {
         showToast('Gagal memuat voucher.', false);
       }
     }
 
-    function tambahBarisVoucherForm(code = '', days_value = 7, max_uses = 10) {
+    function tambahBarisVoucherForm(code = '', type = 'percent', value = '', quota = 100) {
       const container = document.getElementById('containerListVoucher');
       const div = document.createElement('div');
       div.className = 'voucher-row';
       div.innerHTML = `
-        <input type="text" class="inp-code" value="${code}" placeholder="KODE VOUCHER" style="flex: 2; height: 38px; font-size: 12px; text-transform: uppercase;">
-        <input type="number" class="inp-days" value="${days_value}" placeholder="Bonus Hari" style="flex: 1; height: 38px; font-size: 12px;">
-        <input type="number" class="inp-max" value="${max_uses}" placeholder="Kuota" style="flex: 1; height: 38px; font-size: 12px;" title="Batas Kuota Penggunaan">
+        <input type="text" class="inp-code" value="${code}" placeholder="KODE" style="flex: 2; height: 38px; font-size: 12px; text-transform: uppercase;">
+        <select class="inp-type" style="flex: 1.4; height: 38px; font-size: 12px;">
+          <option value="percent" ${type==='percent'?'selected':''}>Diskon (%)</option>
+          <option value="fixed" ${type==='fixed'?'selected':''}>Diskon (Rp)</option>
+          <option value="days" ${type==='days'?'selected':''}>Bonus (Hari)</option>
+        </select>
+        <input type="number" class="inp-value" value="${value}" placeholder="Nilai" style="flex: 1; height: 38px; font-size: 12px;">
+        <input type="number" class="inp-quota" value="${quota}" placeholder="Kuota" style="flex: 0.9; height: 38px; font-size: 12px;" title="Batas Kuota Penggunaan">
         <button class="btn btn-danger" style="width: 38px; height: 38px;" onclick="this.parentElement.remove()">✕</button>
       `;
       container.appendChild(div);
@@ -706,10 +765,11 @@
       const vouchers = [];
       rows.forEach(r => {
         const code = r.querySelector('.inp-code').value.trim().toUpperCase();
-        const days_value = Number(r.querySelector('.inp-days').value);
-        const max_uses = Number(r.querySelector('.inp-max').value) || 10;
-        if (code && !isNaN(days_value)) {
-          vouchers.push({ code, days_value, max_uses });
+        const discount_type = r.querySelector('.inp-type').value;
+        const discount_value = Number(r.querySelector('.inp-value').value);
+        const quota = Number(r.querySelector('.inp-quota').value) || 100;
+        if (code && !isNaN(discount_value)) {
+          vouchers.push({ code, discount_type, discount_value, quota });
         }
       });
 

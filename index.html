@@ -26,12 +26,14 @@
     
     .field-group { margin-bottom: 14px; }
     label { font-size: 12px; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 6px; }
-    input, select {
-      width: 100%; height: 44px; padding: 0 14px; border-radius: 10px;
+    input, select, textarea {
+      width: 100%; padding: 10px 14px; border-radius: 10px;
       border: 1px solid #334155; background: #0f172a; color: #f8fafc; font-size: 14px;
-      outline: none; transition: border-color 0.2s;
+      outline: none; transition: border-color 0.2s; font-family: inherit;
     }
-    input:focus, select:focus { border-color: #38bdf8; }
+    input { height: 44px; }
+    select { height: 44px; }
+    input:focus, select:focus, textarea:focus { border-color: #38bdf8; }
     
     .btn {
       width: 100%; height: 44px; border-radius: 10px; border: none;
@@ -71,7 +73,7 @@
     .btn-quick-lifetime { background: #7c3aed; border-color: #6d28d9; color: #f3e8ff; }
     .btn-quick-lifetime:hover { background: #6d28d9; }
 
-    /* MENU GRID MODERN */
+    /* MENU GRID MODERN (DISESUAIKAN MENJADI MULTI-ROW) */
     .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
     .menu-card {
       background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 16px;
@@ -181,6 +183,13 @@
           <div class="menu-icon">🎟️</div>
           <h3>Set Voucher</h3>
           <p>Buat kupon diskon</p>
+        </div>
+
+        <!-- FITUR BARU: MANAJEMEN UPDATE RELEASE -->
+        <div class="menu-card" onclick="bukaFitur('release')" style="grid-column: span 2; border-color: #0284c7;">
+          <div class="menu-icon">🚀</div>
+          <h3>Update Release</h3>
+          <p>Rilis versi skrip terbaru & changelog</p>
         </div>
       </div>
 
@@ -322,6 +331,37 @@
         <button class="btn btn-secondary" style="flex: 1;" onclick="kembaliKeMenu()">🔙 Menu</button>
       </div>
     </div>
+
+    <!-- VIEW 6: FITUR MANAJEMEN UPDATE RELEASE (BARU) -->
+    <div id="viewRelease" class="view-section">
+      <div class="card-info" style="border-color: #0284c7;">
+        <div style="font-size: 13px; font-weight: bold; color: #38bdf8; margin-bottom: 4px;">🚀 Publikasi Update Versi Terbaru</div>
+        <p style="margin: 0; font-size: 11px; color: #94a3b8; line-height: 1.4;">
+          Data ini digunakan oleh <b>In-App Userscript</b> untuk mengecek pembaruan otomatis dan oleh <b>Landing Page Download</b>.
+        </p>
+      </div>
+
+      <div class="field-group">
+        <label for="inputReleaseVersion">Nomor Versi Terbaru:</label>
+        <input type="text" id="inputReleaseVersion" placeholder="Contoh: 1.5.43">
+      </div>
+
+      <div class="field-group">
+        <label for="inputDownloadUrl">URL Download File (.user.js):</label>
+        <input type="url" id="inputDownloadUrl" placeholder="https://mindspace-id.vercel.app/files/sipgn-autofill.user.js">
+      </div>
+
+      <div class="field-group">
+        <label for="inputChangelog">Catatan Perubahan (Changelog):</label>
+        <textarea id="inputChangelog" rows="4" placeholder="- Perbaikan bug autofill&#10;- Optimasi kecepatan muat data"></textarea>
+      </div>
+
+      <div style="display: flex; gap: 8px; margin-top: 16px;">
+        <button class="btn btn-success" style="flex: 2;" onclick="simpanUpdateReleaseServer()">🚀 Rilis Update Terbaru</button>
+        <button class="btn btn-secondary" style="flex: 1;" onclick="kembaliKeMenu()">🔙 Menu</button>
+      </div>
+    </div>
+
   </div>
 
   <script>
@@ -470,10 +510,13 @@
       } else if (fitur === 'vouchers') {
         muatDataVoucherServer();
         gantiView('viewVouchers');
+      } else if (fitur === 'release') {
+        muatDataReleaseServer();
+        gantiView('viewRelease');
       }
     }
 
-    // --- STATISTIK & CHART PENDAPATAN (MURNI DARI TRANSAKSI PEMBAYARAN QRIS) ---
+    // --- STATISTIK & CHART PENDAPATAN ---
     async function muatStatistikDashboard() {
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=get_stats`);
@@ -878,7 +921,7 @@
       } catch (err) { showToast('Error koneksi server.', false); }
     }
 
-    // --- KELOLA VOUCHER (DIPERBAIKI DENGAN 3 OPSI: PERSEN, RUPIAH, & HARI) ---
+    // --- KELOLA VOUCHER ---
     async function muatDataVoucherServer() {
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=get_vouchers`);
@@ -954,6 +997,55 @@
         }
       } catch (err) { 
         showToast('Error koneksi server.', false); 
+      }
+    }
+
+    // --- KELOLA UPDATE RELEASE (BARU) ---
+    async function muatDataReleaseServer() {
+      try {
+        const res = await fetch(`${VERCEL_API_URL}?action=check_version`);
+        const data = await res.json();
+
+        if (data && data.version) {
+          document.getElementById('inputReleaseVersion').value = data.version || '';
+          document.getElementById('inputDownloadUrl').value = data.download_url || '';
+          document.getElementById('inputChangelog').value = data.changelog || '';
+        }
+      } catch (err) {
+        showToast('Gagal memuat info versi saat ini.', false);
+      }
+    }
+
+    async function simpanUpdateReleaseServer() {
+      const version = document.getElementById('inputReleaseVersion').value.trim();
+      const download_url = document.getElementById('inputDownloadUrl').value.trim();
+      const changelog = document.getElementById('inputChangelog').value.trim();
+
+      if (!version || !download_url) {
+        return showToast('Isi nomor versi dan URL download file!', false);
+      }
+
+      try {
+        const res = await fetch(VERCEL_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'save_release',
+            version,
+            download_url,
+            changelog,
+            admin_secret: adminPasswordSecret
+          })
+        });
+
+        const result = await res.json();
+        if (res.ok && (result.success || result.status)) {
+          showToast(`Versi ${version} berhasil dirilis!`);
+        } else {
+          showToast(result.error || 'Gagal merilis versi baru.', false);
+        }
+      } catch (err) {
+        showToast('Error koneksi server.', false);
       }
     }
   </script>

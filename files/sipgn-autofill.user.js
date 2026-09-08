@@ -1,16 +1,16 @@
 // ==UserScript==
-// @name       SIPGN Autofill - POP
-// @namespace    sipgn-autofill
-// @version      1.5.41
+// @name        SIPGN Autofill - POP
+// @namespace   sipgn-autofill
+// @version     1.5.42
 // @description Isi otomatis form Tugas Pengiriman & Klaim Voucher Durasi Custom Baru
-// @match        https://pop-sipgn.bgn.go.id/distribution/*
-// @grant        GM_setValue
-// @grant        GM_getValue
-// @grant        GM_xmlhttpRequest
-// @connect      mindspace-id.vercel.app
-// @connect      api.qrserver.com
-// @connect      chart.googleapis.com
-// @updateURL    https://mindspace-id.vercel.app/sipgn-autofill.user.js
+// @match       https://pop-sipgn.bgn.go.id/distribution/*
+// @grant       GM_setValue
+// @grant       GM_getValue
+// @grant       GM_xmlhttpRequest
+// @connect     mindspace-id.vercel.app
+// @connect     api.qrserver.com
+// @connect     chart.googleapis.com
+// @updateURL   https://mindspace-id.vercel.app/sipgn-autofill.user.js
 // @downloadURL https://mindspace-id.vercel.app/sipgn-autofill.user.js
 // ==/UserScript==
 
@@ -22,7 +22,7 @@
   // ------------------------------------------------------------------
   const CURRENT_VERSION = (typeof GM_info !== 'undefined' && GM_info.script)
     ? GM_info.script.version
-    : '1.5.41';
+    : '1.5.42';
 
   const VERCEL_API_URL = 'https://mindspace-id.vercel.app/api/tokopay';
 
@@ -258,7 +258,7 @@
   // ------------------------------------------------------------------
   // FUNGSI KOMUNIKASI API VERCEL <-> TOKOPAY & VOUCHER KLAIM
   // ------------------------------------------------------------------
-  function ambilDaftarPaketDanVoucherVercel() {
+  function ambilDaftarPaketDanVercel() {
     return new Promise((resolve, reject) => {
       GM_xmlhttpRequest({
         method: 'GET',
@@ -272,12 +272,20 @@
             onload: function (resVouch) {
               try {
                 const dataPkg = JSON.parse(resPkg.responseText);
-                const listPaket = dataPkg.packages || dataPkg.data || (Array.isArray(dataPkg) ? dataPkg : []);
+
+                let listPaket = [];
+                if (Array.isArray(dataPkg)) {
+                  listPaket = dataPkg;
+                } else if (dataPkg && Array.isArray(dataPkg.packages)) {
+                  listPaket = dataPkg.packages;
+                } else if (dataPkg && Array.isArray(dataPkg.data)) {
+                  listPaket = dataPkg.data;
+                }
 
                 let listVoucher = [];
                 try {
                   const dataVouch = JSON.parse(resVouch.responseText);
-                  listVoucher = dataVouch.vouchers || [];
+                  listVoucher = dataVouch.vouchers || (Array.isArray(dataVouch) ? dataVouch : []);
                 } catch(e) {}
 
                 daftarVouchersGlobal = listVoucher;
@@ -317,6 +325,31 @@
         },
         onerror: function () {
           reject('Gagal menghubungi server Vercel.');
+        }
+      });
+    });
+  }
+
+  function klaimFreeTrialVercel() {
+    return new Promise((resolve, reject) => {
+      GM_xmlhttpRequest({
+        method: 'POST',
+        url: VERCEL_API_URL,
+        headers: { 'Content-Type': 'application/json' },
+        data: JSON.stringify({
+          action: 'claim_trial',
+          device_id: dapatkanDeviceID()
+        }),
+        onload: function (res) {
+          try {
+            const data = JSON.parse(res.responseText);
+            resolve(data);
+          } catch (e) {
+            reject('Respon klaim trial tidak valid.');
+          }
+        },
+        onerror: function () {
+          reject('Gagal terhubung ke server.');
         }
       });
     });
@@ -721,31 +754,60 @@
     }
   }
 
+  // ------------------------------------------------------------------
+  // FUNGSI MUAT DAFTAR PAKET KE SELECT (DIPERBAIKI SECARA PRESISI)
+  // ------------------------------------------------------------------
   function muatDaftarPaketKeSelect(selectEl, btnBeliEl) {
     if (!selectEl) return;
     selectEl.innerHTML = '<option value="">⏳ Memuat paket...</option>';
     if (btnBeliEl) btnBeliEl.disabled = true;
 
-    ambilDaftarPaketDanVoucherVercel()
+    ambilDaftarPaketDanVercel()
       .then((resData) => {
-        const listPaket = resData.packages;
+        let listPaket = [];
+
+        // Ekstraksi terstruktur sesuai bentuk return resolve({ packages, vouchers })
+        if (resData && Array.isArray(resData.packages)) {
+          listPaket = resData.packages;
+        } else if (Array.isArray(resData)) {
+          listPaket = resData;
+        } else if (resData && Array.isArray(resData.data)) {
+          listPaket = resData.data;
+        }
+
+        // Fallback darurat jika paket dari server kosong
+        if (!listPaket || listPaket.length === 0) {
+          listPaket = [
+            { hari: 7, harga: 100, nama: 'Paket 7 Hari' },
+            { hari: 30, harga: 50000, nama: 'Paket 30 Hari' }
+          ];
+        }
+
         selectEl.innerHTML = '';
         listPaket.forEach((p, idx) => {
           const opt = document.createElement('option');
-          const hari = p.hari || p.paket_hari || p.days || p.value;
-          const harga = p.harga || p.price || p.formatted_price;
-          const nama = p.nama || p.label || p.name || `Paket ${hari} Hari`;
+          const hari = p.hari ?? p.paket_hari ?? p.days ?? p.value ?? 7;
+          const harga = p.harga ?? p.price ?? p.formatted_price ?? p.nominal ?? p.total ?? 0;
+          const nama = p.nama ?? p.label ?? p.name ?? `Paket ${hari} Hari`;
 
           opt.value = hari;
-          opt.textContent = harga ? `${nama} - Rp ${Number(harga).toLocaleString('id-ID')}` : nama;
+          opt.textContent = Number(harga) > 0
+            ? `${nama} - Rp ${Number(harga).toLocaleString('id-ID')}`
+            : nama;
+
           if (p.selected || idx === 0) opt.selected = true;
           selectEl.appendChild(opt);
         });
+
         if (btnBeliEl) btnBeliEl.disabled = false;
       })
       .catch((err) => {
-        console.warn('[Autofill] Gagal muat paket Vercel:', err);
-        selectEl.innerHTML = '<option value="">❌ Gagal memuat data paket</option>';
+        console.warn('[Autofill] Gagal muat paket Vercel, menggunakan opsi bawaan:', err);
+        selectEl.innerHTML = `
+          <option value="7">Paket 7 Hari - Rp 100</option>
+          <option value="30">Paket 30 Hari - Rp 50.000</option>
+        `;
+        if (btnBeliEl) btnBeliEl.disabled = false;
       });
   }
 
@@ -817,7 +879,7 @@
           }
           <div style="width: 44px; height: 44px; background: rgba(37, 99, 235, 0.1); color: #38bdf8; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; margin: 0 auto 12px auto;">💳</div>
           <h3 style="margin: 0 0 4px 0; font-size: 18px; font-weight: 700; color: #f8fafc;">Informasi & Status Perangkat</h3>
-          <p style="font-size: 11px; color: #94a3b8; margin: 0 0 16px 0; line-height: 1.4;">${isUserBaru ? 'Selamat datang! Dapatkan trial gratis 1 hari (24 jam) untuk pengguna baru atau gunakan kupon voucher/paket durasi.' : 'Kelola langganan dan identitas perangkat Anda.'}</p>
+          <p style="font-size: 11px; color: #94a3b8; margin: 0 0 16px 0; line-height: 1.4;">${isUserBaru ? 'Selamat datang! Dapatkan trial gratis 1 hari (24 jam) untuk pengguna baru.' : 'Kelola langganan dan identitas perangkat Anda.'}</p>
 
           <!-- AKUN / DEVICE ID SECTION -->
           <div id="sipgn-info-perangkat-sec" style="background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 12px; margin-bottom: 14px; border: 1px solid rgba(51, 65, 85, 0.5); text-align: left; ${isKadaluarsa ? 'display: none;' : ''}">
@@ -837,7 +899,7 @@
           </div>
 
           <!-- PENGATURAN BACKUP & IMPORT DI DALAM MODAL PENGATURAN -->
-          <div id="sipgn-backup-import-sec" style="background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 12px; margin-bottom: 14px; border: 1px solid rgba(51, 65, 85, 0.5); text-align: left; ${isKadaluarsa ? 'display: none;' : ''}">
+          <div id="sipgn-backup-import-sec" style="background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 12px; margin-bottom: 14px; border: 1px solid rgba(51, 65, 85, 0.5); text-align: left; ${(isKadaluarsa || isUserBaru) ? 'display: none;' : ''}">
             <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; font-weight: 600; margin-bottom: 8px;">Backup & Import Data KPM</div>
             <div style="display: flex; gap: 8px;">
               <button id="sipgn-btn-modal-backup" style="flex: 1; padding: 8px; border: none; border-radius: 8px; background: #334155; color: white; cursor: pointer; font-size: 11px; font-weight: 600; transition: background 0.2s;">↓ Backup</button>
@@ -856,26 +918,34 @@
 
           <div id="sipgn-sec-qris" style="display: block; background: rgba(15, 23, 42, 0.4); padding: 14px; border-radius: 12px; border: 1px solid rgba(51, 65, 85, 0.5); margin-bottom: 14px;">
 
-            <div id="sipgn-wrapper-paket" style="text-align: left;">
-              <label style="display: block; font-size: 11px; font-weight: 600; color: #cbd5e1; margin-bottom: 6px;">Pilih Paket Durasi :</label>
-              <select id="sipgn-select-paket" style="width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 12px; margin-bottom: 12px; outline: none;">
-                <option value="">⏳ Memuat paket...</option>
-              </select>
-            </div>
+            ${
+              isUserBaru
+                ? `<!-- TOMBOL CLAIM FREE TRIAL KHUSUS USER BARU -->
+                   <button id="sipgn-btn-claim-trial" style="width: 100%; padding: 12px; border: none; border-radius: 10px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; font-weight: 700; cursor: pointer; font-size: 13px; transition: 0.2s; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);">
+                     🎁 Claim Free Trial (24 Jam)
+                   </button>`
+                : `<!-- TAMPILAN PEMBAYARAN QRIS & VOUCHER UNTUK USER LAMA -->
+                   <div id="sipgn-wrapper-paket" style="text-align: left;">
+                     <label style="display: block; font-size: 11px; font-weight: 600; color: #cbd5e1; margin-bottom: 6px;">Pilih Paket Durasi :</label>
+                     <select id="sipgn-select-paket" style="width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 12px; margin-bottom: 12px; outline: none;">
+                       <option value="">⏳ Memuat paket...</option>
+                     </select>
+                   </div>
 
-            <button id="sipgn-btn-buy-qris" style="width: 100%; padding: 11px; border: none; border-radius: 10px; background: #10b981; color: white; font-weight: 600; cursor: pointer; font-size: 12px; transition: 0.2s; margin-bottom: 12px;">
-              💳 Bayar via QRIS
-            </button>
+                   <button id="sipgn-btn-buy-qris" style="width: 100%; padding: 11px; border: none; border-radius: 10px; background: #10b981; color: white; font-weight: 600; cursor: pointer; font-size: 12px; transition: 0.2s; margin-bottom: 12px;">
+                     💳 Bayar via QRIS
+                   </button>
 
-            <!-- VOUCHER SECTION (DIBAWAH TOMBOL BAYAR QRIS) -->
-            <div id="sipgn-voucher-section" style="text-align: left; border-top: 1px dashed rgba(51, 65, 85, 0.8); padding-top: 12px;">
-              <label style="display: block; font-size: 11px; font-weight: 600; color: #38bdf8; margin-bottom: 6px;">Klaim Kode Voucher:</label>
-              <div style="display: flex; gap: 6px; margin-bottom: 4px;">
-                <input type="text" id="sipgn-input-voucher" placeholder="KODE VOUCHER" style="flex: 2; box-sizing: border-box; padding: 8px 12px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 12px; text-transform: uppercase; outline: none;" />
-                <button id="sipgn-btn-apply-voucher" style="flex: 1; padding: 8px 12px; border: none; border-radius: 10px; background: #2563eb; color: white; font-weight: 600; cursor: pointer; font-size: 12px; transition: 0.2s;">Klaim</button>
-              </div>
-              <div id="sipgn-voucher-feedback" style="font-size: 11px; min-height: 14px; margin-top: 4px;"></div>
-            </div>
+                   <!-- VOUCHER SECTION (DIBAWAH TOMBOL BAYAR QRIS) -->
+                   <div id="sipgn-voucher-section" style="text-align: left; border-top: 1px dashed rgba(51, 65, 85, 0.8); padding-top: 12px;">
+                     <label style="display: block; font-size: 11px; font-weight: 600; color: #38bdf8; margin-bottom: 6px;">Klaim Kode Voucher:</label>
+                     <div style="display: flex; gap: 6px; margin-bottom: 4px;">
+                       <input type="text" id="sipgn-input-voucher" placeholder="KODE VOUCHER" style="flex: 2; box-sizing: border-box; padding: 8px 12px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 12px; text-transform: uppercase; outline: none;" />
+                       <button id="sipgn-btn-apply-voucher" style="flex: 1; padding: 8px 12px; border: none; border-radius: 10px; background: #2563eb; color: white; font-weight: 600; cursor: pointer; font-size: 12px; transition: 0.2s;">Klaim</button>
+                     </div>
+                     <div id="sipgn-voucher-feedback" style="font-size: 11px; min-height: 14px; margin-top: 4px;"></div>
+                   </div>`
+            }
 
             <div id="sipgn-qris-container" style="display: none; text-align: center;"></div>
           </div>
@@ -886,70 +956,110 @@
 
       document.body.appendChild(overlay);
 
-      const btnBackup = document.getElementById('sipgn-btn-modal-backup');
-      if (btnBackup) btnBackup.onclick = () => {
-        tampilkanModalBackupInfo();
-      };
-
-      const modalInputImport = document.getElementById('sipgn-modal-input-import');
-      const btnImport = document.getElementById('sipgn-btn-modal-import');
-
-      if (btnImport && modalInputImport) {
-        btnImport.onclick = () => {
-          tampilkanModalPilihanImport(
-            () => modalInputImport.click(),
-            () => importCloudData()
-          );
+      // Event listener khusus user baru (Free Trial)
+      if (isUserBaru) {
+        const btnClaimTrial = document.getElementById('sipgn-btn-claim-trial');
+        if (btnClaimTrial) {
+          btnClaimTrial.onclick = async () => {
+            btnClaimTrial.disabled = true;
+            btnClaimTrial.textContent = '⏳ Memproses Free Trial...';
+            try {
+              const resTrial = await klaimFreeTrialVercel();
+              if (resTrial.success || resTrial.exp_date) {
+                overlay.remove();
+                eksekusiSuksesPembayaran(1, currentDevId, resTrial.exp_date, 0);
+              } else {
+                tampilkanModalAlertModern('Gagal Klaim Trial', resTrial.error || 'Gagal memproses trial gratis.', false);
+                btnClaimTrial.disabled = false;
+                btnClaimTrial.textContent = '🎁 Claim Free Trial (24 Jam)';
+              }
+            } catch (err) {
+              tampilkanModalAlertModern('Error Trial', 'Gagal terhubung ke server untuk klaim trial.', false);
+              btnClaimTrial.disabled = false;
+              btnClaimTrial.textContent = '🎁 Claim Free Trial (24 Jam)';
+            }
+          };
+        }
+      } else {
+        // Event listener untuk user lama (Modal Pembayaran & Voucher)
+        const btnBackup = document.getElementById('sipgn-btn-modal-backup');
+        if (btnBackup) btnBackup.onclick = () => {
+          tampilkanModalBackupInfo();
         };
-        modalInputImport.onchange = () => {
-          importBackupData(modalInputImport.files?.[0]);
-          modalInputImport.value = '';
-        };
+
+        const modalInputImport = document.getElementById('sipgn-modal-input-import');
+        const btnImport = document.getElementById('sipgn-btn-modal-import');
+
+        if (btnImport && modalInputImport) {
+          btnImport.onclick = () => {
+            tampilkanModalPilihanImport(
+              () => modalInputImport.click(),
+              () => importCloudData()
+            );
+          };
+          modalInputImport.onchange = () => {
+            importBackupData(modalInputImport.files?.[0]);
+            modalInputImport.value = '';
+          };
+        }
+
+        const selectPaket = document.getElementById('sipgn-select-paket');
+        const btnBeli = document.getElementById('sipgn-btn-buy-qris');
+
+        muatDaftarPaketKeSelect(selectPaket, btnBeli);
+
+        const inputVoucher = document.getElementById('sipgn-input-voucher');
+        const btnApplyVoucher = document.getElementById('sipgn-btn-apply-voucher');
+        const voucherFeedback = document.getElementById('sipgn-voucher-feedback');
+
+        if (btnApplyVoucher) {
+          btnApplyVoucher.onclick = async () => {
+            const kode = inputVoucher.value.trim().toUpperCase();
+            if (!kode) {
+              voucherFeedback.textContent = 'Masukkan kode voucher terlebih dahulu.';
+              voucherFeedback.style.color = '#ef4444';
+              return;
+            }
+
+            btnApplyVoucher.disabled = true;
+            btnApplyVoucher.textContent = 'Memeriksa...';
+            voucherFeedback.textContent = '';
+
+            try {
+              const resKlaim = await klaimVoucherVercel(kode);
+              if (resKlaim.success) {
+                voucherFeedback.textContent = resKlaim.message;
+                voucherFeedback.style.color = '#4ade80';
+                setTimeout(() => {
+                  overlay.remove();
+                  eksekusiSuksesPembayaran(0, currentDevId, resKlaim.exp_date, 0);
+                }, 1000);
+              } else {
+                voucherFeedback.textContent = resKlaim.error || 'Voucher tidak valid.';
+                voucherFeedback.style.color = '#ef4444';
+                btnApplyVoucher.disabled = false;
+                btnApplyVoucher.textContent = 'Klaim';
+              }
+            } catch (err) {
+              voucherFeedback.textContent = 'Gagal memproses klaim voucher.';
+              voucherFeedback.style.color = '#ef4444';
+              btnApplyVoucher.disabled = false;
+              btnApplyVoucher.textContent = 'Klaim';
+            }
+          };
+        }
+
+        if (btnBeli) {
+          btnBeli.onclick = () => {
+            if (!selectPaket || !selectPaket.value) {
+              tampilkanModalAlertModern('Perhatian', 'Silakan pilih paket durasi terlebih dahulu.', false);
+              return;
+            }
+            const hari = Number(selectPaket.value);
+            prosesPembayaranOtomatis(hari);
+          };
+        }
       }
-
-      const selectPaket = document.getElementById('sipgn-select-paket');
-      const btnBeli = document.getElementById('sipgn-btn-buy-qris');
-
-      muatDaftarPaketKeSelect(selectPaket, btnBeli);
-
-      const inputVoucher = document.getElementById('sipgn-input-voucher');
-      const btnApplyVoucher = document.getElementById('sipgn-btn-apply-voucher');
-      const voucherFeedback = document.getElementById('sipgn-voucher-feedback');
-
-      btnApplyVoucher.onclick = async () => {
-        const kode = inputVoucher.value.trim().toUpperCase();
-        if (!kode) {
-          voucherFeedback.textContent = 'Masukkan kode voucher terlebih dahulu.';
-          voucherFeedback.style.color = '#ef4444';
-          return;
-        }
-
-        btnApplyVoucher.disabled = true;
-        btnApplyVoucher.textContent = 'Memeriksa...';
-        voucherFeedback.textContent = '';
-
-        try {
-          const resKlaim = await klaimVoucherVercel(kode);
-          if (resKlaim.success) {
-            voucherFeedback.textContent = resKlaim.message;
-            voucherFeedback.style.color = '#4ade80';
-            setTimeout(() => {
-              overlay.remove();
-              eksekusiSuksesPembayaran(0, currentDevId, resKlaim.exp_date, 0);
-            }, 1000);
-          } else {
-            voucherFeedback.textContent = resKlaim.error || 'Voucher tidak valid.';
-            voucherFeedback.style.color = '#ef4444';
-            btnApplyVoucher.disabled = false;
-            btnApplyVoucher.textContent = 'Klaim';
-          }
-        } catch (err) {
-          voucherFeedback.textContent = 'Gagal memproses klaim voucher.';
-          voucherFeedback.style.color = '#ef4444';
-          btnApplyVoucher.disabled = false;
-          btnApplyVoucher.textContent = 'Klaim';
-        }
-      };
 
       if (bisaDitutup || isBerhasil) {
         const btnCloseX = document.getElementById('sipgn-btn-close-x');
@@ -963,14 +1073,6 @@
         }
       }
 
-      btnBeli.onclick = () => {
-        if (!selectPaket || !selectPaket.value) {
-          tampilkanModalAlertModern('Perhatian', 'Silakan pilih paket durasi terlebih dahulu.', false);
-          return;
-        }
-        const hari = Number(selectPaket.value);
-        prosesPembayaranOtomatis(hari);
-      };
     } catch (e) {
       console.error('[Autofill] Gagal merender modal:', e);
     }

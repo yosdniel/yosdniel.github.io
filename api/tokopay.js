@@ -1,5 +1,12 @@
 import crypto from 'crypto';
 
+// In-Memory Fallback Release Data (Jika tabel Supabase 'releases' belum dibuat)
+let globalReleaseCache = {
+  version: '1.5.42',
+  download_url: 'https://mindspace-id.vercel.app/sipgn-autofill.user.js',
+  changelog: 'Pembaruan stabilitas dan peningkatan fitur autofill.'
+};
+
 function calculateExpiryDate(currentExpStr, daysToAdd) {
   const hariIniWIB = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
   let baseDate = new Date(hariIniWIB + 'T00:00:00');
@@ -116,7 +123,7 @@ async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, pake
   }
 }
 
-// Helper Parser Device ID dari reff_id (SIPGN__DEVXXXXYYYY__HARI__TIMESTAMP)
+// Helper Parser Device ID dari reff_id
 function parseReffId(reffId) {
   if (!reffId || typeof reffId !== 'string' || !reffId.includes('__')) {
     return { deviceId: null, paketHari: 7 };
@@ -162,14 +169,90 @@ export default async function handler(req, res) {
   const action = query.action || body?.action;
   const reff_id = query.reff_id || query.ref_id || body?.reff_id || body?.ref_id;
   const device_id = query.device_id || body?.device_id;
-  const paket_hari = query.paket_hari || body?.paket_hari;
+  let paket_hari = query.paket_hari || body?.paket_hari;
 
-  // CHECK VERSION
+  // ==========================================
+  // 1. CHECK VERSION & SAVE RELEASE (DIPERBAIKI)
+  // ==========================================
+  
+  // CEK VERSI SKRIP TERBARU (GET / POST)
   if (action === 'check_version') {
-    return res.status(200).json({ version: '1.5.42', download_url: 'https://mindspace-id.vercel.app/sipgn-autofill.user.js' });
+    try {
+      const relRes = await fetch(`${SUPABASE_URL}/rest/v1/releases?select=*&order=created_at.desc&limit=1`, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+        cache: 'no-store'
+      });
+      const relData = await relRes.json();
+
+      if (Array.isArray(relData) && relData.length > 0) {
+        return res.status(200).json({
+          version: relData[0].version || globalReleaseCache.version,
+          download_url: relData[0].download_url || globalReleaseCache.download_url,
+          changelog: relData[0].changelog || globalReleaseCache.changelog
+        });
+      }
+    } catch (e) {
+      console.error('[Check Version DB Error]:', e);
+    }
+    // Return Fallback jika database tidak memiliki record
+    return res.status(200).json(globalReleaseCache);
   }
 
-  // GET ALL LICENSES (DASHBOARD ADMIN)
+  // SIMPAN RELEASE BARU DARI DASHBOARD ADMIN (POST)
+  if (action === 'save_release' && req.method === 'POST') {
+    const { version, download_url, changelog } = body;
+
+    if (!version || !download_url) {
+      return res.status(400).json({ error: 'Versi dan URL download wajib diisi.' });
+    }
+
+    // Update In-Memory Cache
+    globalReleaseCache = {
+      version: String(version).trim(),
+      download_url: String(download_url).trim(),
+      changelog: String(changelog || '').trim()
+    };
+
+    try {
+      const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
+
+      // Simpan ke Supabase DB 'releases'
+      const saveRes = await fetch(`${SUPABASE_URL}/rest/v1/releases`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify({
+          version: globalReleaseCache.version,
+          download_url: globalReleaseCache.download_url,
+          changelog: globalReleaseCache.changelog,
+          created_at: timestampWIB
+        })
+      });
+
+      if (!saveRes.ok) {
+        console.warn('[Save Release DB Warning]: Gagal simpan ke Supabase, namun cache memori tetap diperbarui.');
+      }
+
+      return res.status(200).json({ 
+        success: true, 
+        message: `Release versi ${globalReleaseCache.version} berhasil diperbarui!` 
+      });
+    } catch (err) {
+      // Jika DB error, tetap return sukses karena cache memori sudah ter-update
+      return res.status(200).json({ 
+        success: true, 
+        message: `Release versi ${globalReleaseCache.version} berhasil diperbarui di memori server.` 
+      });
+    }
+  }
+
+  // ==========================================
+  // 2. GET ALL LICENSES (DASHBOARD ADMIN)
+  // ==========================================
   if (action === 'get_all_licenses') {
     try {
       const licRes = await fetch(`${SUPABASE_URL}/rest/v1/licenses?select=*`, {
@@ -183,7 +266,9 @@ export default async function handler(req, res) {
     }
   }
 
-  // GET PACKAGES
+  // ==========================================
+  // 3. GET & SAVE PACKAGES
+  // ==========================================
   if (action === 'get_packages') {
     const defaultPackages = [
       { hari: 7, harga: 100, nama: 'Paket 7 Hari' },
@@ -208,7 +293,6 @@ export default async function handler(req, res) {
     return res.status(200).json({ packages: defaultPackages });
   }
 
-  // SAVE PACKAGES
   if (action === 'save_packages' && req.method === 'POST') {
     const newPackages = body.packages;
     try {
@@ -229,7 +313,9 @@ export default async function handler(req, res) {
     }
   }
 
-  // GET VOUCHERS
+  // ==========================================
+  // 4. GET & SAVE VOUCHERS
+  // ==========================================
   if (action === 'get_vouchers') {
     try {
       const vRes = await fetch(`${SUPABASE_URL}/rest/v1/vouchers?select=*`, {
@@ -243,7 +329,6 @@ export default async function handler(req, res) {
     }
   }
 
-  // SAVE VOUCHERS
   if (action === 'save_vouchers' && req.method === 'POST') {
     const newVouchers = body.vouchers;
     try {
@@ -272,7 +357,9 @@ export default async function handler(req, res) {
     }
   }
 
-  // GET STATISTIK PENDAPATAN
+  // ==========================================
+  // 5. STATISTIK PENDAPATAN
+  // ==========================================
   if (action === 'get_stats') {
     try {
       const resTrans = await fetch(`${SUPABASE_URL}/rest/v1/transactions?select=*`, {
@@ -322,7 +409,9 @@ export default async function handler(req, res) {
     }
   }
 
-  // SAVE BACKUP DATA KPM (AUTO-DELETE 3 HARI)
+  // ==========================================
+  // 6. BACKUP KPM CLOUD
+  // ==========================================
   if (action === 'save_backup' && req.method === 'POST') {
     const devIdBackup = body.device_id || device_id;
     const backupData = body.backup_data;
@@ -357,7 +446,6 @@ export default async function handler(req, res) {
     }
   }
 
-  // DELETE BACKUP DATA KPM
   if (action === 'delete_backup' && req.method === 'POST') {
     const devIdBackup = body.device_id || device_id;
     if (!devIdBackup) {
@@ -374,7 +462,42 @@ export default async function handler(req, res) {
     }
   }
 
-  // TRANSFER / OPER DEVICE ID
+  if (action === 'get_backup') {
+    const devIdBackup = query.device_id || body?.device_id;
+    if (!devIdBackup) {
+      return res.status(400).json({ error: 'Device ID wajib disertakan.' });
+    }
+    try {
+      const bRes = await fetch(`${SUPABASE_URL}/rest/v1/backups?device_id=eq.${encodeURIComponent(devIdBackup)}&select=*`, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+        cache: 'no-store'
+      });
+      const bData = await bRes.json();
+      if (Array.isArray(bData) && bData.length > 0) {
+        const backupRecord = bData[0];
+        
+        if (backupRecord.expires_at) {
+          const nowWIBStr = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
+          if (nowWIBStr > backupRecord.expires_at) {
+            await fetch(`${SUPABASE_URL}/rest/v1/backups?device_id=eq.${encodeURIComponent(devIdBackup)}`, {
+              method: 'DELETE',
+              headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+            });
+            return res.status(404).json({ error: 'Data backup cloud sudah kedaluwarsa (lebih dari 3 hari) dan telah dihapus otomatis.' });
+          }
+        }
+
+        return res.status(200).json({ success: true, backup_data: backupRecord.backup_data, created_at: backupRecord.updated_at });
+      }
+      return res.status(404).json({ error: 'Data backup tidak ditemukan di database.' });
+    } catch (e) {
+      return res.status(500).json({ error: 'Gagal mengambil data backup dari cloud.' });
+    }
+  }
+
+  // ==========================================
+  // 7. OPER / TRANSFER DEVICE ID
+  // ==========================================
   if (action === 'transfer_device' && req.method === 'POST') {
     const sourceId = body.source_device_id;
     const targetId = body.target_device_id;
@@ -463,41 +586,9 @@ export default async function handler(req, res) {
     }
   }
 
-  // GET BACKUP DATA KPM DARI DATABASE
-  if (action === 'get_backup') {
-    const devIdBackup = query.device_id || body?.device_id;
-    if (!devIdBackup) {
-      return res.status(400).json({ error: 'Device ID wajib disertakan.' });
-    }
-    try {
-      const bRes = await fetch(`${SUPABASE_URL}/rest/v1/backups?device_id=eq.${encodeURIComponent(devIdBackup)}&select=*`, {
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
-        cache: 'no-store'
-      });
-      const bData = await bRes.json();
-      if (Array.isArray(bData) && bData.length > 0) {
-        const backupRecord = bData[0];
-        
-        if (backupRecord.expires_at) {
-          const nowWIBStr = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
-          if (nowWIBStr > backupRecord.expires_at) {
-            await fetch(`${SUPABASE_URL}/rest/v1/backups?device_id=eq.${encodeURIComponent(devIdBackup)}`, {
-              method: 'DELETE',
-              headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-            });
-            return res.status(404).json({ error: 'Data backup cloud sudah kedaluwarsa (lebih dari 3 hari) dan telah dihapus otomatis.' });
-          }
-        }
-
-        return res.status(200).json({ success: true, backup_data: backupRecord.backup_data, created_at: backupRecord.updated_at });
-      }
-      return res.status(404).json({ error: 'Data backup tidak ditemukan di database.' });
-    } catch (e) {
-      return res.status(500).json({ error: 'Gagal mengambil data backup dari cloud.' });
-    }
-  }
-
-  // CHECK LICENSE
+  // ==========================================
+  // 8. CHECK LICENSE
+  // ==========================================
   if (action === 'check_license') {
     if (!device_id) return res.status(200).json({ valid: false, msg: 'Device ID tidak ditemukan.' });
 
@@ -532,10 +623,11 @@ export default async function handler(req, res) {
     }
   }
 
-  // POST ACTION HANDLERS
+  // ==========================================
+  // 9. POST ACTION HANDLERS (LISENSI & PEMBAYARAN)
+  // ==========================================
   if (req.method === 'POST') {
 
-    // FITUR: PENCATATAN TRANSAKSI MANUAL / FALLBACK DARI FRONTEND
     if (body.action === 'record_successful_payment') {
       const devIdTarget = body.device_id || device_id;
       const paketHariTarget = Number(body.paket_hari || 7);
@@ -560,7 +652,6 @@ export default async function handler(req, res) {
       }
     }
 
-    // FITUR: KLAIM FREE TRIAL (24 JAM)
     if (body.action === 'claim_trial') {
       const devIdTarget = body.device_id || device_id;
       if (!devIdTarget) {
@@ -597,7 +688,6 @@ export default async function handler(req, res) {
       }
     }
 
-    // FITUR: KLAIM VOUCHER
     if (body.action === 'claim_voucher') {
       const { voucher_code, device_id: devIdTarget } = body;
       const cleanVoucher = (voucher_code || '').trim().toUpperCase();
@@ -753,7 +843,9 @@ export default async function handler(req, res) {
     }
   }
 
-  // GET: POLLING STATUS PEMBAYARAN
+  // ==========================================
+  // 10. GET: POLLING STATUS PEMBAYARAN
+  // ==========================================
   if (reff_id) {
     const merchantId = process.env.TOKOPAY_MERCHANT_ID;
     const secretKey = process.env.TOKOPAY_SECRET_KEY;

@@ -17,7 +17,7 @@
       display: flex; justify-content: center; align-items: center; min-height: 100vh;
     }
     .container {
-      width: 100%; max-width: 580px; background: #1e293b; border: 1px solid #334155;
+      width: 100%; max-width: 900px; background: #1e293b; border: 1px solid #334155;
       border-radius: 20px; padding: 24px; box-shadow: 0 16px 36px rgba(0,0,0,0.5);
     }
     .header { text-align: center; margin-bottom: 20px; }
@@ -27,8 +27,8 @@
     .field-group { margin-bottom: 14px; }
     label { font-size: 12px; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 6px; }
     input, select {
-      width: 100%; height: 44px; padding: 0 14px; border-radius: 10px;
-      border: 1px solid #334155; background: #0f172a; color: #f8fafc; font-size: 14px;
+      width: 100%; height: 40px; padding: 0 12px; border-radius: 8px;
+      border: 1px solid #334155; background: #0f172a; color: #f8fafc; font-size: 13px;
       outline: none; transition: border-color 0.2s;
     }
     input:focus, select:focus { border-color: #38bdf8; }
@@ -94,17 +94,16 @@
     .chart-bar { width: 24px; background: #2563eb; border-radius: 6px 6px 0 0; transition: height 0.4s; }
     .chart-label { font-size: 10px; color: #94a3b8; margin-top: 6px; }
 
-    .package-row, .voucher-row { display: flex; gap: 6px; align-items: center; background: #0f172a; padding: 8px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 8px; }
-
-    /* LIST USER STYLING */
-    .user-list-container { max-height: 260px; overflow-y: auto; margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; }
-    .user-item {
-      background: #0f172a; border: 1px solid #334155; padding: 10px 12px; border-radius: 8px;
-      cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: 0.2s;
+    /* 3-COLUMN GRID STYLE SEPERTI CONTOH GAMBAR FORM */
+    .grid-3col {
+      max-height: 400px; overflow-y: auto; margin-bottom: 14px;
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 4px;
     }
-    .user-item:hover { border-color: #38bdf8; background: #131c31; }
-    .user-item-info div:first-child { font-weight: 600; font-size: 13px; color: #facc15; }
-    .user-item-info div:last-child { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+    .card-grid-item {
+      background: #0f172a; border: 1px solid #334155; border-radius: 14px; padding: 16px;
+      display: flex; flex-direction: column; gap: 10px; transition: 0.2s; position: relative;
+    }
+    .card-grid-item:hover { border-color: #38bdf8; background: #131c31; }
 
     .toast {
       position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
@@ -113,6 +112,10 @@
     }
 
     .view-section { display: none; }
+
+    @media (max-width: 900px) {
+      .grid-3col { grid-template-columns: repeat(1, 1fr); }
+    }
   </style>
 </head>
 <body>
@@ -193,7 +196,7 @@
       </div>
     </div>
 
-    <!-- VIEW 2: FITUR CEK DEVICE ID & LIST ALL USERS -->
+    <!-- VIEW 2: FITUR CEK DEVICE ID & LIST ALL USERS (GRID 3 KOLOM) -->
     <div id="viewDeviceCheck" class="view-section">
       <div class="field-group">
         <label for="inputDeviceId">Cari / Masukkan Device ID:</label>
@@ -204,8 +207,8 @@
       </div>
 
       <div style="font-size: 12px; font-weight: 600; color: #cbd5e1; margin: 12px 0 6px 0;">Daftar Seluruh User Terdaftar:</div>
-      <div class="user-list-container" id="listAllUsersContainer">
-        <div style="text-align: center; color: #94a3b8; font-size: 12px; padding: 20px;">Memuat data user...</div>
+      <div class="grid-3col" id="listAllUsersContainer">
+        <div style="grid-column: span 3; text-align: center; color: #94a3b8; font-size: 12px; padding: 20px;">Memuat data user...</div>
       </div>
 
       <button class="btn btn-secondary" onclick="kembaliKeMenu()">🔙 Kembali ke Menu Utama</button>
@@ -293,14 +296,16 @@
       </div>
     </div>
 
-    <!-- VIEW 4: FITUR KELOLA HARGA PAKET -->
+    <!-- VIEW 4: FITUR KELOLA HARGA PAKET (GRID 3 KOLOM TERPISAH) -->
     <div id="viewPackages" class="view-section">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
         <label style="margin:0;">Kelola Daftar Paket Langganan:</label>
-        <button class="btn btn-primary" style="width: auto; height: 32px; font-size: 11px; padding: 0 10px;" onclick="tambahBarisPaketForm()">+ Tambah</button>
+        <button class="btn btn-primary" style="width: auto; height: 32px; font-size: 11px; padding: 0 10px;" onclick="tambahBarisPaketForm()">+ Tambah Paket</button>
       </div>
 
-      <div id="containerListPaket" style="margin-bottom: 14px;"></div>
+      <div class="grid-3col" id="containerListPaket">
+        <div style="grid-column: span 3; text-align: center; color: #94a3b8; font-size: 12px; padding: 20px;">Memuat data paket...</div>
+      </div>
 
       <div style="display: flex; gap: 8px;">
         <button class="btn btn-success" style="flex: 2;" onclick="simpanPengaturanPaketServer()">💾 Simpan Paket</button>
@@ -308,14 +313,16 @@
       </div>
     </div>
 
-    <!-- VIEW 5: FITUR KELOLA VOUCHER DISKON & DURASI -->
+    <!-- VIEW 5: FITUR KELOLA VOUCHER (GRID 3 KOLOM TERPISAH) -->
     <div id="viewVouchers" class="view-section">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
         <label style="margin:0;">Kelola Kode Kupon / Voucher:</label>
         <button class="btn btn-primary" style="width: auto; height: 32px; font-size: 11px; padding: 0 10px;" onclick="tambahBarisVoucherForm()">+ Tambah Kupon</button>
       </div>
 
-      <div id="containerListVoucher" style="margin-bottom: 14px; max-height: 280px; overflow-y: auto;"></div>
+      <div class="grid-3col" id="containerListVoucher">
+        <div style="grid-column: span 3; text-align: center; color: #94a3b8; font-size: 12px; padding: 20px;">Memuat data voucher...</div>
+      </div>
 
       <div style="display: flex; gap: 8px;">
         <button class="btn btn-success" style="flex: 2;" onclick="simpanPengaturanVoucherServer()">💾 Simpan Voucher</button>
@@ -473,7 +480,7 @@
       }
     }
 
-    // --- STATISTIK & CHART PENDAPATAN (MURNI DARI TRANSAKSI PEMBAYARAN QRIS) ---
+    // --- STATISTIK & CHART PENDAPATAN ---
     async function muatStatistikDashboard() {
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=get_stats`);
@@ -498,15 +505,13 @@
           `;
           chartContainer.appendChild(group);
         });
-      } catch (e) {
-        // Fallback jika gagal mengambil data statistik
-      }
+      } catch (e) {}
     }
 
-    // --- DAFTAR SEMUA USER & CEK DEVICE ID ---
+    // --- DAFTAR SEMUA USER DALAM GRID 3 KOLOM TERPISAH ---
     async function muatDaftarSemuaUser() {
       const container = document.getElementById('listAllUsersContainer');
-      container.innerHTML = '<div style="text-align: center; color: #94a3b8; font-size: 12px; padding: 15px;">⏳ Mengambil daftar user dari server...</div>';
+      container.innerHTML = '<div style="grid-column: span 3; text-align: center; color: #94a3b8; font-size: 12px; padding: 20px;">⏳ Mengambil daftar user dari server...</div>';
 
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=get_all_licenses`);
@@ -515,13 +520,14 @@
 
         container.innerHTML = '';
         if (users.length === 0) {
-          container.innerHTML = '<div style="text-align: center; color: #94a3b8; font-size: 12px; padding: 15px;">Belum ada user terdaftar di database.</div>';
+          container.innerHTML = '<div style="grid-column: span 3; text-align: center; color: #94a3b8; font-size: 12px; padding: 20px;">Belum ada user terdaftar di database.</div>';
           return;
         }
 
         users.forEach(u => {
-          const div = document.createElement('div');
-          div.className = 'user-item';
+          const card = document.createElement('div');
+          card.className = 'card-grid-item';
+          card.style.cursor = 'pointer';
           
           const rawLastActive = u.last_active || u.last_seen || u.updated_at || u.created_at;
           let infoAktivitas = '';
@@ -529,23 +535,27 @@
           if (!rawLastActive) {
             infoAktivitas = '<span style="color: #f59e0b;">Belum pernah aktif</span>';
           } else {
-            infoAktivitas = `Terakhir digunakan: <b>${formatWaktuRelatif(rawLastActive)}</b>`;
+            infoAktivitas = `Aktif: <b>${formatWaktuRelatif(rawLastActive)}</b>`;
           }
 
           const expFormatted = formatTanggalIndo(u.exp_date) || '-';
+          const badgeClass = u.status === 'active' ? 'badge-active' : 'badge-hold';
 
-          div.innerHTML = `
-            <div class="user-item-info">
-              <div>${u.device_id}</div>
-              <div>Durasi s/d: <b>${expFormatted}</b><br>${infoAktivitas}</div>
+          card.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 4px;">
+              <div style="font-weight: 700; font-size: 12px; color: #facc15; word-break: break-all;">${u.device_id}</div>
+              <span class="badge ${badgeClass}">${u.status || 'active'}</span>
             </div>
-            <div><span class="badge ${u.status === 'active' ? 'badge-active' : 'badge-hold'}">${u.status || 'active'}</span></div>
+            <div style="font-size: 11px; color: #94a3b8; line-height: 1.4;">
+              <div>Durasi s/d: <b>${expFormatted}</b></div>
+              <div style="margin-top: 4px;">${infoAktivitas}</div>
+            </div>
           `;
-          div.onclick = () => pilihUserDariList(u);
-          container.appendChild(div);
+          card.onclick = () => pilihUserDariList(u);
+          container.appendChild(card);
         });
       } catch (e) {
-        container.innerHTML = '<div style="text-align: center; color: #ef4444; font-size: 12px; padding: 15px;">Gagal memuat daftar user dari server.</div>';
+        container.innerHTML = '<div style="grid-column: span 3; text-align: center; color: #ef4444; font-size: 12px; padding: 20px;">Gagal memuat daftar user dari server.</div>';
       }
     }
 
@@ -567,9 +577,7 @@
           document.getElementById('dispBackupTime').textContent = formatWaktuRelatif(waktuBackup);
           backupInfoCard.style.display = 'block';
         }
-      } catch (e) {
-        // Abaikan jika backup tidak ditemukan
-      }
+      } catch (e) {}
     }
 
     function downloadBackupCloud() {
@@ -599,7 +607,7 @@
           body: JSON.stringify({ action: 'delete_backup', device_id: deviceId, admin_secret: adminPasswordSecret })
         });
         const resData = await res.json();
-        if (res.ok && (resData.success || res.status)) {
+        if (res.ok && (resData.success || resData.status)) {
           showToast('Data backup cloud berhasil dihapus!');
           document.getElementById('backupInfoCard').style.display = 'none';
           currentBackupPayload = null;
@@ -611,7 +619,7 @@
       }
     }
 
-    // --- FITUR OPER DEVICE ID (MIGRASI LISENSI & BACKUP) ---
+    // --- FITUR OPER DEVICE ID ---
     async function eksekusiOperDevice() {
       const sourceId = document.getElementById('inputSourceDevice').value.trim().toUpperCase();
       const targetId = document.getElementById('inputTargetDevice').value.trim().toUpperCase();
@@ -829,7 +837,7 @@
       }
     }
 
-    // --- KELOLA HARGA PAKET ---
+    // --- KELOLA HARGA PAKET (GRID 3 KOLOM TERPISAH) ---
     async function muatDataPaketServer() {
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=get_packages`);
@@ -837,8 +845,11 @@
         const list = data.packages || [];
         const container = document.getElementById('containerListPaket');
         container.innerHTML = '';
-        if (list.length === 0) tambahBarisPaketForm('Paket 7 Hari', 7, 10000);
-        else list.forEach(p => tambahBarisPaketForm(p.nama, p.hari, p.harga));
+        if (list.length === 0) {
+          tambahBarisPaketForm('Paket 7 Hari', 7, 10000);
+        } else {
+          list.forEach(p => tambahBarisPaketForm(p.nama, p.hari, p.harga));
+        }
       } catch (err) {
         showToast('Gagal memuat paket.', false);
       }
@@ -846,26 +857,39 @@
 
     function tambahBarisPaketForm(nama = '', hari = '', harga = '') {
       const container = document.getElementById('containerListPaket');
-      const div = document.createElement('div');
-      div.className = 'package-row';
-      div.innerHTML = `
-        <input type="text" class="inp-nama" value="${nama}" placeholder="Nama Paket" style="flex: 2; height: 38px; font-size: 12px;">
-        <input type="number" class="inp-hari" value="${hari}" placeholder="Hari" style="flex: 1; height: 38px; font-size: 12px;">
-        <input type="number" class="inp-harga" value="${harga}" placeholder="Harga (Rp)" style="flex: 1.5; height: 38px; font-size: 12px;">
-        <button class="btn btn-danger" style="width: 38px; height: 38px;" onclick="this.parentElement.remove()">✕</button>
+      const card = document.createElement('div');
+      card.className = 'card-grid-item package-card-item';
+      card.innerHTML = `
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <input type="text" class="inp-nama" value="${nama}" placeholder="Nama Paket" style="font-weight: bold; flex: 1;">
+          <button class="btn btn-danger" style="width: 36px; height: 36px; min-width: 36px;" onclick="this.closest('.package-card-item').remove()" title="Hapus Paket">✕</button>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div>
+            <label style="font-size: 10px; margin-bottom: 2px;">Durasi (Hari):</label>
+            <input type="number" class="inp-hari" value="${hari}" placeholder="Jumlah Hari">
+          </div>
+          <div>
+            <label style="font-size: 10px; margin-bottom: 2px;">Harga (Rp):</label>
+            <input type="number" class="inp-harga" value="${harga}" placeholder="Nominal Harga">
+          </div>
+        </div>
       `;
-      container.appendChild(div);
+      container.appendChild(card);
     }
 
     async function simpanPengaturanPaketServer() {
-      const rows = document.querySelectorAll('.package-row');
+      const cards = document.querySelectorAll('.package-card-item');
       const packages = [];
-      rows.forEach(r => {
-        const nama = r.querySelector('.inp-nama').value.trim();
-        const hari = Number(r.querySelector('.inp-hari').value);
-        const harga = Number(r.querySelector('.inp-harga').value);
-        if (nama && !isNaN(hari) && !isNaN(harga)) packages.push({ nama, hari, harga });
+      cards.forEach(c => {
+        const nama = c.querySelector('.inp-nama').value.trim();
+        const hari = Number(c.querySelector('.inp-hari').value);
+        const harga = Number(c.querySelector('.inp-harga').value);
+        if (nama && !isNaN(hari) && !isNaN(harga)) {
+          packages.push({ nama, hari, harga });
+        }
       });
+
       try {
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
@@ -873,12 +897,18 @@
           body: JSON.stringify({ action: 'save_packages', packages })
         });
         const result = await res.json();
-        if (result.success) { showToast('Paket berhasil disimpan!'); muatDataPaketServer(); }
-        else { showToast('Gagal menyimpan paket.', false); }
-      } catch (err) { showToast('Error koneksi server.', false); }
+        if (result.success) { 
+          showToast('Paket berhasil disimpan!'); 
+          muatDataPaketServer(); 
+        } else { 
+          showToast('Gagal menyimpan paket.', false); 
+        }
+      } catch (err) { 
+        showToast('Error koneksi server.', false); 
+      }
     }
 
-    // --- KELOLA VOUCHER (DIPERBAIKI DENGAN 3 OPSI: PERSEN, RUPIAH, & HARI) ---
+    // --- KELOLA VOUCHER (GRID 3 KOLOM TERPISAH) - LOGIKA DIPERBAIKI ---
     async function muatDataVoucherServer() {
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=get_vouchers`);
@@ -890,9 +920,20 @@
           tambahBarisVoucherForm('PROMO50', 'percent', 50, 100);
         } else {
           list.forEach(v => {
-            const tipeVoucher = v.type || v.discount_type || 'percent';
-            const nilaiVoucher = v.value !== undefined ? v.value : (v.discount_value || 0);
-            tambahBarisVoucherForm(v.code, tipeVoucher, nilaiVoucher, v.quota || 100);
+            // Normalisasi pembacaan properti tipe diskon/durasi dari berbagai varian payload backend
+            const tipe = v.type || v.discount_type || (v.days_value !== undefined && v.value === undefined ? 'days' : 'percent');
+            let nilai = 0;
+            if (tipe === 'percent') {
+              nilai = v.value !== undefined ? v.value : (v.discount_value !== undefined ? v.discount_value : (v.percentage || 0));
+            } else if (tipe === 'fixed') {
+              nilai = v.value !== undefined ? v.value : (v.discount_value !== undefined ? v.discount_value : (v.nominal || 0));
+            } else if (tipe === 'days') {
+              nilai = v.value !== undefined ? v.value : (v.days_value !== undefined ? v.days_value : (v.duration || 7));
+            } else {
+              nilai = v.value !== undefined ? v.value : (v.discount_value || 0);
+            }
+            const quota = v.max_uses !== undefined ? v.max_uses : (v.quota !== undefined ? v.quota : 100);
+            tambahBarisVoucherForm(v.code, tipe, nilai, quota, v.used_count || 0, v.used_devices || []);
           });
         }
       } catch (err) {
@@ -900,32 +941,67 @@
       }
     }
 
-    function tambahBarisVoucherForm(code = '', type = 'percent', value = '', quota = 100) {
+    function tambahBarisVoucherForm(code = '', type = 'percent', value = '', quota = 100, used_count = 0, used_devices = []) {
       const container = document.getElementById('containerListVoucher');
-      const div = document.createElement('div');
-      div.className = 'voucher-row';
-      div.innerHTML = `
-        <input type="text" class="inp-code" value="${code}" placeholder="KODE" style="flex: 2; height: 38px; font-size: 12px; text-transform: uppercase;">
-        <select class="inp-type" style="flex: 1.5; height: 38px; font-size: 12px;">
-          <option value="percent" ${type==='percent'?'selected':''}>Diskon (%)</option>
-          <option value="fixed" ${type==='fixed'?'selected':''}>Diskon (Rp)</option>
-          <option value="days" ${type==='days' || type==='duration'?'selected':''}>Durasi (Hari)</option>
-        </select>
-        <input type="number" class="inp-value" value="${value}" placeholder="Nilai" style="flex: 1; height: 38px; font-size: 12px;">
-        <input type="number" class="inp-quota" value="${quota}" placeholder="Kuota" style="flex: 0.8; height: 38px; font-size: 12px;" title="Batas Kuota Penggunaan">
-        <button class="btn btn-danger" style="width: 38px; height: 38px;" onclick="this.parentElement.remove()">✕</button>
+      const card = document.createElement('div');
+      card.className = 'card-grid-item voucher-card-item';
+      
+      // Simpan state counter dan tracking device yang sudah ada agar tidak tereset saat disave ulang
+      card.dataset.usedCount = used_count;
+      card.dataset.usedDevices = JSON.stringify(used_devices);
+
+      card.innerHTML = `
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <input type="text" class="inp-code" value="${code}" placeholder="KODE VOUCHER" style="text-transform: uppercase; font-weight: bold; flex: 1;">
+          <button class="btn btn-danger" style="width: 36px; height: 36px; min-width: 36px;" onclick="this.closest('.voucher-card-item').remove()" title="Hapus Voucher">✕</button>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div>
+            <label style="font-size: 10px; margin-bottom: 2px;">Tipe Voucher:</label>
+            <select class="inp-type" onchange="updatePlaceholderVoucher(this)">
+              <option value="percent" ${type==='percent'?'selected':''}>Diskon (%)</option>
+              <option value="fixed" ${type==='fixed'?'selected':''}>Diskon Harga (Rp)</option>
+              <option value="days" ${type==='days'||type==='duration'?'selected':''}>Durasi (Hari)</option>
+            </select>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+            <div>
+              <label style="font-size: 10px; margin-bottom: 2px;">Nilai:</label>
+              <input type="number" class="inp-value" value="${value}" placeholder="${type==='percent'?'Persen (%)':type==='fixed'?'Nominal (Rp)':'Hari'}">
+            </div>
+            <div>
+              <label style="font-size: 10px; margin-bottom: 2px;">Maks Kuota:</label>
+              <input type="number" class="inp-quota" value="${quota}" placeholder="Kuota">
+            </div>
+          </div>
+        </div>
       `;
-      container.appendChild(div);
+      container.appendChild(card);
+    }
+
+    function updatePlaceholderVoucher(selectEl) {
+      const val = selectEl.value;
+      const inpVal = selectEl.closest('.voucher-card-item').querySelector('.inp-value');
+      if (val === 'percent') inpVal.placeholder = 'Persen (%)';
+      else if (val === 'fixed') inpVal.placeholder = 'Nominal (Rp)';
+      else if (val === 'days') inpVal.placeholder = 'Hari';
     }
 
     async function simpanPengaturanVoucherServer() {
-      const rows = document.querySelectorAll('.voucher-row');
+      const cards = document.querySelectorAll('.voucher-card-item');
       const vouchers = [];
-      rows.forEach(r => {
-        const code = r.querySelector('.inp-code').value.trim().toUpperCase();
-        const type = r.querySelector('.inp-type').value;
-        const value = Number(r.querySelector('.inp-value').value);
-        const quota = Number(r.querySelector('.inp-quota').value) || 100;
+      cards.forEach(c => {
+        const code = c.querySelector('.inp-code').value.trim().toUpperCase();
+        const type = c.querySelector('.inp-type').value;
+        const value = Number(c.querySelector('.inp-value').value);
+        const quota = Number(c.querySelector('.inp-quota').value) || 100;
+        
+        let existingUsedCount = 0;
+        let existingUsedDevices = [];
+        try {
+          existingUsedCount = Number(c.dataset.usedCount) || 0;
+          existingUsedDevices = c.dataset.usedDevices ? JSON.parse(c.dataset.usedDevices) : [];
+        } catch(e) {}
         
         if (code && !isNaN(value)) {
           vouchers.push({ 
@@ -934,7 +1010,11 @@
             discount_type: type, 
             value, 
             discount_value: value, 
-            quota 
+            days_value: type === 'days' ? value : 7,
+            max_uses: quota,
+            quota,
+            used_count: existingUsedCount,
+            used_devices: existingUsedDevices
           });
         }
       });

@@ -155,24 +155,30 @@ export default async function handler(req, res) {
     }
   }
 
-  // GET PACKAGES
+  // GET PACKAGES (PERBAIKAN: JIKA GAGAL QUERY KE SUPABASE, LANGSUNG KEMBALIKAN FALLBACK DEFAULT)
   if (action === 'get_packages') {
+    const defaultPackages = [
+      { hari: 7, harga: 100, nama: 'Paket 7 Hari' },
+      { hari: 30, harga: 50000, nama: 'Paket 30 Hari' }
+    ];
+
     try {
-      const pkgRes = await fetch(`${SUPABASE_URL}/rest/v1/packages?select=*&order=hari.asc`, {
+      const pkgRes = await fetch(`${SUPABASE_URL}/rest/v1/packages?select=*`, {
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
         cache: 'no-store'
       });
       const dbPackages = await pkgRes.json();
+
       if (Array.isArray(dbPackages) && dbPackages.length > 0) {
+        // Sort manual untuk menghindari error sorting PostgREST
+        dbPackages.sort((a, b) => Number(a.hari || 0) - Number(b.hari || 0));
         return res.status(200).json({ packages: dbPackages });
       }
-    } catch (e) {}
-    return res.status(200).json({
-      packages: [
-        { hari: 7, harga: 100, nama: 'Paket 7 Hari' },
-        { hari: 30, harga: 50000, nama: 'Paket 30 Hari' }
-      ]
-    });
+    } catch (e) {
+      console.error('[Get Packages Error]:', e);
+    }
+
+    return res.status(200).json({ packages: defaultPackages });
   }
 
   // SAVE PACKAGES
@@ -501,9 +507,7 @@ export default async function handler(req, res) {
   // POST: KONTROL ADMIN, KLAIM FREE TRIAL, KLAIM VOUCHER, & WEBHOOK TOKOPAY
   if (req.method === 'POST') {
 
-    // ------------------------------------------------------------------
-    // FITUR BARU: KLAIM FREE TRIAL (24 JAM)
-    // ------------------------------------------------------------------
+    // FITUR: KLAIM FREE TRIAL (24 JAM)
     if (body.action === 'claim_trial') {
       const devIdTarget = body.device_id || device_id;
       if (!devIdTarget) {
@@ -511,7 +515,6 @@ export default async function handler(req, res) {
       }
 
       try {
-        // Cek apakah device sudah pernah terdaftar di Supabase
         const licRes = await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(devIdTarget)}`, {
           headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
           cache: 'no-store'
@@ -522,13 +525,12 @@ export default async function handler(req, res) {
           return res.status(400).json({ error: 'Perangkat Anda sudah pernah terdaftar/mengklaim Free Trial.' });
         }
 
-        // Daftarkan lisensi trial 1 hari (24 jam)
         const savedInfo = await catatTransaksiDanLisensi(
           SUPABASE_URL,
           SUPABASE_KEY,
           devIdTarget,
-          1, // 1 hari
-          0, // nominal
+          1,
+          0,
           'User Free Trial 24 Jam'
         );
 

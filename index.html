@@ -17,7 +17,7 @@
       display: flex; justify-content: center; align-items: center; min-height: 100vh;
     }
     .container {
-      width: 100%; max-width: 860px; background: #1e293b; border: 1px solid #334155;
+      width: 100%; max-width: 900px; background: #1e293b; border: 1px solid #334155;
       border-radius: 20px; padding: 24px; box-shadow: 0 16px 36px rgba(0,0,0,0.5);
     }
     .header { text-align: center; margin-bottom: 20px; }
@@ -94,15 +94,13 @@
     .chart-bar { width: 24px; background: #2563eb; border-radius: 6px 6px 0 0; transition: height 0.4s; }
     .chart-label { font-size: 10px; color: #94a3b8; margin-top: 6px; }
 
-    .package-row { display: flex; gap: 6px; align-items: center; background: #0f172a; padding: 8px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 8px; }
-
-    /* 3-COLUMN GRID CONTAINERS (USER & VOUCHER) */
+    /* 3-COLUMN GRID STYLE SEPERTI CONTOH GAMBAR FORM */
     .grid-3col {
-      max-height: 380px; overflow-y: auto; margin-bottom: 14px;
+      max-height: 400px; overflow-y: auto; margin-bottom: 14px;
       display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 4px;
     }
     .card-grid-item {
-      background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 14px;
+      background: #0f172a; border: 1px solid #334155; border-radius: 14px; padding: 16px;
       display: flex; flex-direction: column; gap: 10px; transition: 0.2s; position: relative;
     }
     .card-grid-item:hover { border-color: #38bdf8; background: #131c31; }
@@ -115,7 +113,7 @@
 
     .view-section { display: none; }
 
-    @media (max-width: 768px) {
+    @media (max-width: 900px) {
       .grid-3col { grid-template-columns: repeat(1, 1fr); }
     }
   </style>
@@ -298,14 +296,16 @@
       </div>
     </div>
 
-    <!-- VIEW 4: FITUR KELOLA HARGA PAKET -->
+    <!-- VIEW 4: FITUR KELOLA HARGA PAKET (GRID 3 KOLOM TERPISAH) -->
     <div id="viewPackages" class="view-section">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
         <label style="margin:0;">Kelola Daftar Paket Langganan:</label>
-        <button class="btn btn-primary" style="width: auto; height: 32px; font-size: 11px; padding: 0 10px;" onclick="tambahBarisPaketForm()">+ Tambah</button>
+        <button class="btn btn-primary" style="width: auto; height: 32px; font-size: 11px; padding: 0 10px;" onclick="tambahBarisPaketForm()">+ Tambah Paket</button>
       </div>
 
-      <div id="containerListPaket" style="margin-bottom: 14px;"></div>
+      <div class="grid-3col" id="containerListPaket">
+        <div style="grid-column: span 3; text-align: center; color: #94a3b8; font-size: 12px; padding: 20px;">Memuat data paket...</div>
+      </div>
 
       <div style="display: flex; gap: 8px;">
         <button class="btn btn-success" style="flex: 2;" onclick="simpanPengaturanPaketServer()">💾 Simpan Paket</button>
@@ -480,7 +480,7 @@
       }
     }
 
-    // --- STATISTIK & CHART PENDAPATAN (MURNI DARI TRANSAKSI PEMBAYARAN QRIS) ---
+    // --- STATISTIK & CHART PENDAPATAN ---
     async function muatStatistikDashboard() {
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=get_stats`);
@@ -505,9 +505,7 @@
           `;
           chartContainer.appendChild(group);
         });
-      } catch (e) {
-        // Fallback jika gagal mengambil data statistik
-      }
+      } catch (e) {}
     }
 
     // --- DAFTAR SEMUA USER DALAM GRID 3 KOLOM TERPISAH ---
@@ -550,7 +548,7 @@
             </div>
             <div style="font-size: 11px; color: #94a3b8; line-height: 1.4;">
               <div>Durasi s/d: <b>${expFormatted}</b></div>
-              <div style="margin-top: 2px;">${infoAktivitas}</div>
+              <div style="margin-top: 4px;">${infoAktivitas}</div>
             </div>
           `;
           card.onclick = () => pilihUserDariList(u);
@@ -579,9 +577,7 @@
           document.getElementById('dispBackupTime').textContent = formatWaktuRelatif(waktuBackup);
           backupInfoCard.style.display = 'block';
         }
-      } catch (e) {
-        // Abaikan jika backup tidak ditemukan
-      }
+      } catch (e) {}
     }
 
     function downloadBackupCloud() {
@@ -623,7 +619,7 @@
       }
     }
 
-    // --- FITUR OPER DEVICE ID (MIGRASI LISENSI & BACKUP) ---
+    // --- FITUR OPER DEVICE ID ---
     async function eksekusiOperDevice() {
       const sourceId = document.getElementById('inputSourceDevice').value.trim().toUpperCase();
       const targetId = document.getElementById('inputTargetDevice').value.trim().toUpperCase();
@@ -841,7 +837,7 @@
       }
     }
 
-    // --- KELOLA HARGA PAKET ---
+    // --- KELOLA HARGA PAKET (GRID 3 KOLOM TERPISAH) ---
     async function muatDataPaketServer() {
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=get_packages`);
@@ -849,8 +845,11 @@
         const list = data.packages || [];
         const container = document.getElementById('containerListPaket');
         container.innerHTML = '';
-        if (list.length === 0) tambahBarisPaketForm('Paket 7 Hari', 7, 10000);
-        else list.forEach(p => tambahBarisPaketForm(p.nama, p.hari, p.harga));
+        if (list.length === 0) {
+          tambahBarisPaketForm('Paket 7 Hari', 7, 10000);
+        } else {
+          list.forEach(p => tambahBarisPaketForm(p.nama, p.hari, p.harga));
+        }
       } catch (err) {
         showToast('Gagal memuat paket.', false);
       }
@@ -858,26 +857,39 @@
 
     function tambahBarisPaketForm(nama = '', hari = '', harga = '') {
       const container = document.getElementById('containerListPaket');
-      const div = document.createElement('div');
-      div.className = 'package-row';
-      div.innerHTML = `
-        <input type="text" class="inp-nama" value="${nama}" placeholder="Nama Paket" style="flex: 2; height: 38px; font-size: 12px;">
-        <input type="number" class="inp-hari" value="${hari}" placeholder="Hari" style="flex: 1; height: 38px; font-size: 12px;">
-        <input type="number" class="inp-harga" value="${harga}" placeholder="Harga (Rp)" style="flex: 1.5; height: 38px; font-size: 12px;">
-        <button class="btn btn-danger" style="width: 38px; height: 38px;" onclick="this.parentElement.remove()">✕</button>
+      const card = document.createElement('div');
+      card.className = 'card-grid-item package-card-item';
+      card.innerHTML = `
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <input type="text" class="inp-nama" value="${nama}" placeholder="Nama Paket" style="font-weight: bold; flex: 1;">
+          <button class="btn btn-danger" style="width: 36px; height: 36px; min-width: 36px;" onclick="this.closest('.package-card-item').remove()" title="Hapus Paket">✕</button>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div>
+            <label style="font-size: 10px; margin-bottom: 2px;">Durasi (Hari):</label>
+            <input type="number" class="inp-hari" value="${hari}" placeholder="Jumlah Hari">
+          </div>
+          <div>
+            <label style="font-size: 10px; margin-bottom: 2px;">Harga (Rp):</label>
+            <input type="number" class="inp-harga" value="${harga}" placeholder="Nominal Harga">
+          </div>
+        </div>
       `;
-      container.appendChild(div);
+      container.appendChild(card);
     }
 
     async function simpanPengaturanPaketServer() {
-      const rows = document.querySelectorAll('.package-row');
+      const cards = document.querySelectorAll('.package-card-item');
       const packages = [];
-      rows.forEach(r => {
-        const nama = r.querySelector('.inp-nama').value.trim();
-        const hari = Number(r.querySelector('.inp-hari').value);
-        const harga = Number(r.querySelector('.inp-harga').value);
-        if (nama && !isNaN(hari) && !isNaN(harga)) packages.push({ nama, hari, harga });
+      cards.forEach(c => {
+        const nama = c.querySelector('.inp-nama').value.trim();
+        const hari = Number(c.querySelector('.inp-hari').value);
+        const harga = Number(c.querySelector('.inp-harga').value);
+        if (nama && !isNaN(hari) && !isNaN(harga)) {
+          packages.push({ nama, hari, harga });
+        }
       });
+
       try {
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
@@ -885,12 +897,18 @@
           body: JSON.stringify({ action: 'save_packages', packages })
         });
         const result = await res.json();
-        if (result.success) { showToast('Paket berhasil disimpan!'); muatDataPaketServer(); }
-        else { showToast('Gagal menyimpan paket.', false); }
-      } catch (err) { showToast('Error koneksi server.', false); }
+        if (result.success) { 
+          showToast('Paket berhasil disimpan!'); 
+          muatDataPaketServer(); 
+        } else { 
+          showToast('Gagal menyimpan paket.', false); 
+        }
+      } catch (err) { 
+        showToast('Error koneksi server.', false); 
+      }
     }
 
-    // --- KELOLA VOUCHER GRID 3 KOLOM TERPISAH (DENGAN PILIHAN DISKON %, DISKON HARGA, & DURASI) ---
+    // --- KELOLA VOUCHER (GRID 3 KOLOM TERPISAH) ---
     async function muatDataVoucherServer() {
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=get_vouchers`);
@@ -916,16 +934,16 @@
     function tambahBarisVoucherForm(code = '', type = 'percent', value = '', quota = 100) {
       const container = document.getElementById('containerListVoucher');
       const card = document.createElement('div');
-      card.className = 'card-grid-item';
+      card.className = 'card-grid-item voucher-card-item';
       card.innerHTML = `
         <div style="display: flex; gap: 6px; align-items: center;">
           <input type="text" class="inp-code" value="${code}" placeholder="KODE VOUCHER" style="text-transform: uppercase; font-weight: bold; flex: 1;">
-          <button class="btn btn-danger" style="width: 36px; height: 36px; min-width: 36px;" onclick="this.closest('.card-grid-item').remove()" title="Hapus Voucher">✕</button>
+          <button class="btn btn-danger" style="width: 36px; height: 36px; min-width: 36px;" onclick="this.closest('.voucher-card-item').remove()" title="Hapus Voucher">✕</button>
         </div>
         <div style="display: flex; flex-direction: column; gap: 8px;">
           <div>
             <label style="font-size: 10px; margin-bottom: 2px;">Tipe Voucher:</label>
-            <select class="inp-type" style="height: 36px; font-size: 12px;" onchange="updatePlaceholderVoucher(this)">
+            <select class="inp-type" onchange="updatePlaceholderVoucher(this)">
               <option value="percent" ${type==='percent'?'selected':''}>Diskon (%)</option>
               <option value="fixed" ${type==='fixed'?'selected':''}>Diskon Harga (Rp)</option>
               <option value="days" ${type==='days'||type==='duration'?'selected':''}>Durasi (Hari)</option>
@@ -934,11 +952,11 @@
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
             <div>
               <label style="font-size: 10px; margin-bottom: 2px;">Nilai:</label>
-              <input type="number" class="inp-value" value="${value}" placeholder="Nilai" style="height: 36px; font-size: 12px;">
+              <input type="number" class="inp-value" value="${value}" placeholder="Nilai">
             </div>
             <div>
               <label style="font-size: 10px; margin-bottom: 2px;">Maks Kuota:</label>
-              <input type="number" class="inp-quota" value="${quota}" placeholder="Kuota" style="height: 36px; font-size: 12px;">
+              <input type="number" class="inp-quota" value="${quota}" placeholder="Kuota">
             </div>
           </div>
         </div>
@@ -948,20 +966,17 @@
 
     function updatePlaceholderVoucher(selectEl) {
       const val = selectEl.value;
-      const inpVal = selectEl.closest('.card-grid-item').querySelector('.inp-value');
+      const inpVal = selectEl.closest('.voucher-card-item').querySelector('.inp-value');
       if (val === 'percent') inpVal.placeholder = 'Persen (%)';
       else if (val === 'fixed') inpVal.placeholder = 'Nominal (Rp)';
       else if (val === 'days') inpVal.placeholder = 'Hari';
     }
 
     async function simpanPengaturanVoucherServer() {
-      const cards = document.querySelectorAll('.card-grid-item');
+      const cards = document.querySelectorAll('.voucher-card-item');
       const vouchers = [];
       cards.forEach(c => {
-        const codeInput = c.querySelector('.inp-code');
-        if (!codeInput) return; // Lewatkan jika bukan card voucher (misal card user sedang aktif di view lain)
-        
-        const code = codeInput.value.trim().toUpperCase();
+        const code = c.querySelector('.inp-code').value.trim().toUpperCase();
         const type = c.querySelector('.inp-type').value;
         const value = Number(c.querySelector('.inp-value').value);
         const quota = Number(c.querySelector('.inp-quota').value) || 100;

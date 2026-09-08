@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        SIPGN Autofill - POP
 // @namespace   sipgn-autofill
-// @version     1.5.42
+// @version     1.5.45
 // @description Isi otomatis form Tugas Pengiriman & Klaim Voucher Durasi Custom Baru
 // @match       https://pop-sipgn.bgn.go.id/distribution/*
 // @grant       GM_setValue
@@ -22,17 +22,19 @@
   // ------------------------------------------------------------------
   const CURRENT_VERSION = (typeof GM_info !== 'undefined' && GM_info.script)
     ? GM_info.script.version
-    : '1.5.42';
+    : '1.5.45';
 
   const VERCEL_API_URL = 'https://mindspace-id.vercel.app/api/tokopay';
 
   const SECRET_SALT = 'MINDSTUDIO2026';
   const LICENSE_STORAGE_KEY = 'sipgn_license_key';
   const DEVICE_STORAGE_KEY = 'sipgn_device_id';
+  const SPPG_NAME_KEY = 'sipgn_sppg_name';
   const STORAGE_KEY = 'sipgnAutofillData';
 
   let currentDatabaseExpDate = null;
   let statusLisensiTerakhir = null;
+  let cachedServerStatus = null; // Cache untuk mempercepat pembukaan modal status perangkat
   let intervalMonitorLisensi = null;
   let isPaymentModalOpen = false;
   let isPaymentSuccess = false;
@@ -40,7 +42,60 @@
   let kodeVoucherTerpakai = null;
 
   // ------------------------------------------------------------------
-  // FITUR IN-APP UPDATE CHECKER & POP-UP NOTIFICATION
+  // HELPER STORAGE & SINKRONISASI NAMA SPPG KE SERVER
+  // ------------------------------------------------------------------
+  function dapatkanNamaSPPG() {
+    try {
+      return GM_getValue(SPPG_NAME_KEY, '') || localStorage.getItem(SPPG_NAME_KEY) || '';
+    } catch (e) {
+      return localStorage.getItem(SPPG_NAME_KEY) || '';
+    }
+  }
+
+  function simpanNamaSPPG(nama) {
+    try {
+      GM_setValue(SPPG_NAME_KEY, nama);
+    } catch (e) {}
+    localStorage.setItem(SPPG_NAME_KEY, nama);
+    kirimNamaSPPGKeDatabase(nama);
+  }
+
+  function kirimNamaSPPGKeDatabase(nama) {
+    const devId = dapatkanDeviceID();
+    GM_xmlhttpRequest({
+      method: 'POST',
+      url: VERCEL_API_URL,
+      headers: { 'Content-Type': 'application/json' },
+      data: JSON.stringify({
+        action: 'register_sppg',
+        device_id: devId,
+        sppg_name: nama
+      }),
+      onload: function (res) {
+        try {
+          console.log('[Autofill] Sinkronisasi nama SPPG ke database berhasil.');
+        } catch (e) {}
+      },
+      onerror: function () {
+        console.warn('[Autofill] Gagal meng-upload nama SPPG ke database server.');
+      }
+    });
+  }
+
+  // ------------------------------------------------------------------
+  // FITUR SMART DELAY (HUMAN-LIKE SIMULATION AUTOMATIC)
+  // ------------------------------------------------------------------
+  function getRandomDelay(min = 300, max = 700) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  async function smartWait(minMs = 300, maxMs = 700) {
+    const delay = getRandomDelay(minMs, maxMs);
+    await wait(delay);
+  }
+
+  // ------------------------------------------------------------------
+  // FITUR IN-APP UPDATE CHECKER & POP-UP NOTIFICATION (2 KOLOM)
   // ------------------------------------------------------------------
   function cekUpdateSkrip() {
     GM_xmlhttpRequest({
@@ -52,7 +107,7 @@
           const data = JSON.parse(res.responseText);
           const latestVersion = data.version;
           const downloadUrl = data.download_url || 'https://mindspace-id.vercel.app/files/sipgn-autofill.user.js';
-          const changelog = data.changelog || '';
+          const changelog = data.changelog || 'Tidak ada catatan perubahan.';
 
           if (latestVersion && latestVersion !== CURRENT_VERSION) {
             tampilkanNotifikasiUpdate(latestVersion, downloadUrl, changelog);
@@ -75,34 +130,69 @@
     overlay.id = 'sipgn-update-modal';
     overlay.style.cssText = `
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(8px);
+      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);
       z-index: 1000000; display: flex; align-items: center; justify-content: center;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     `;
 
-    const changelogSection = changelog ? `
-      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(51, 65, 85, 0.6); border-radius: 8px; padding: 10px; margin-bottom: 16px; text-align: left; max-height: 120px; overflow-y: auto;">
-        <div style="font-size: 10px; font-weight: 700; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Catatan Perubahan (Changelog):</div>
-        <div style="font-size: 11px; color: #cbd5e1; line-height: 1.4; white-space: pre-wrap;">${changelog}</div>
-      </div>
-    ` : '';
-
     overlay.innerHTML = `
-      <div style="position: relative; background: #1e293b; border: 1px solid rgba(234, 179, 8, 0.3); color: #f8fafc; padding: 24px; border-radius: 16px; width: 340px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
-        <button id="sipgn-btn-close-update" style="position: absolute; top: 14px; right: 14px; background: rgba(255,255,255,0.05); border: none; color: #94a3b8; width: 28px; height: 28px; border-radius: 50%; font-size: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s;">✕</button>
-        <div style="width: 48px; height: 48px; background: rgba(234, 179, 8, 0.1); color: #eab308; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; margin: 0 auto 14px auto;">🚀</div>
-        <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #fef08a;">Update Versi Baru Tersedia!</h3>
-        <p style="font-size: 12px; color: #94a3b8; margin: 8px 0 12px 0; line-height: 1.5;">
-          Versi saat ini: <b style="color: #ef4444;">v${CURRENT_VERSION}</b><br>
-          Versi terbaru: <b style="color: #4ade80;">v${versiBaru}</b>
-        </p>
-        ${changelogSection}
-        <a href="${urlDownload}" target="_blank" id="sipgn-link-update" style="display: block; width: 100%; box-sizing: border-box; padding: 10px; background: #eab308; color: #0f172a; font-weight: 600; border-radius: 10px; text-decoration: none; font-size: 13px; margin-bottom: 8px; transition: 0.2s;">
-          📥 Download & Install
-        </a>
-        <button id="sipgn-btn-later-update" style="width: 100%; padding: 10px; border: 1px solid #334155; border-radius: 10px; background: transparent; color: #cbd5e1; font-weight: 600; cursor: pointer; font-size: 13px; transition: 0.2s;">
-          Nanti Saja
-        </button>
+      <style>
+        #sipgn-changelog-box::-webkit-scrollbar {
+          width: 8px;
+        }
+        #sipgn-changelog-box::-webkit-scrollbar-track {
+          background: rgba(15, 23, 42, 0.6);
+          border-radius: 8px;
+        }
+        #sipgn-changelog-box::-webkit-scrollbar-thumb {
+          background: #334155;
+          border-radius: 8px;
+          border: 2px solid rgba(15, 23, 42, 0.6);
+        }
+        #sipgn-changelog-box::-webkit-scrollbar-thumb:hover {
+          background: #475569;
+        }
+        #sipgn-changelog-box {
+          scrollbar-width: thin;
+          scrollbar-color: #334155 rgba(15, 23, 42, 0.6);
+        }
+      </style>
+      <div style="position: relative; background: #1e293b; border: 1px solid rgba(234, 179, 8, 0.4); color: #f8fafc; padding: 28px; border-radius: 20px; width: 680px; max-width: 92vw; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); text-align: left;">
+        <button id="sipgn-btn-close-update" style="position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,0.05); border: none; color: #94a3b8; width: 30px; height: 30px; border-radius: 50%; font-size: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s;">✕</button>
+
+        <div style="display: grid; grid-template-columns: 240px 1fr; gap: 24px; align-items: start;">
+
+          <!-- KOLOM KIRI: INFORMASI UPDATE & TOMBOL -->
+          <div style="display: flex; flex-direction: column; align-items: center; text-align: center; border-right: 1px solid rgba(51, 65, 85, 0.6); padding-right: 20px;">
+            <div style="width: 56px; height: 56px; background: rgba(234, 179, 8, 0.1); color: #eab308; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 28px; margin-bottom: 14px;">🚀</div>
+            <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #fef08a; line-height: 1.3;">Update Versi Baru Tersedia!</h3>
+
+            <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(51, 65, 85, 0.6); border-radius: 10px; padding: 10px 14px; margin: 14px 0; width: 100%; box-sizing: border-box;">
+              <div style="font-size: 11px; color: #94a3b8; margin-bottom: 4px;">Versi Saat Ini: <b style="color: #ef4444;">v${CURRENT_VERSION}</b></div>
+              <div style="font-size: 11px; color: #94a3b8;">Versi Terbaru: <b style="color: #4ade80;">v${versiBaru}</b></div>
+            </div>
+
+            <a href="${urlDownload}" target="_blank" id="sipgn-link-update" style="display: block; width: 100%; box-sizing: border-box; padding: 10px; background: #eab308; color: #0f172a; font-weight: 700; border-radius: 10px; text-decoration: none; font-size: 12px; margin-bottom: 8px; text-align: center; transition: 0.2s;">
+              📥 Download & Install
+            </a>
+            <button id="sipgn-btn-later-update" style="width: 100%; padding: 9px; border: 1px solid #334155; border-radius: 10px; background: transparent; color: #cbd5e1; font-weight: 600; cursor: pointer; font-size: 12px; transition: 0.2s;">
+              Nanti Saja
+            </button>
+          </div>
+
+          <!-- KOLOM KANAN: CHANGELOGS LENGKAP -->
+          <div style="display: flex; flex-direction: column; height: 100%;">
+            <div style="font-size: 11px; font-weight: 700; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+              <span>📋</span> Catatan Perubahan (Changelogs)
+            </div>
+            <div id="sipgn-changelog-box" style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(51, 65, 85, 0.8); border-radius: 12px; padding: 14px; height: 260px; overflow-y: auto; font-size: 12px; color: #cbd5e1; line-height: 1.6; white-space: pre-wrap; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);">
+${changelog}
+            </div>
+          </div>
+
+        </div>
+
+        <div style="margin-top: 18px; padding-top: 4px; text-align: center; font-size: 10px; color: #64748b;">© 2026 - <b>Mindspace Studio</b></div>
       </div>
     `;
 
@@ -180,6 +270,72 @@
     const encoded = btoa(payload);
     const reversed = encoded.split('').reverse().join('');
     return `MIND-${reversed}`;
+  }
+
+  // ------------------------------------------------------------------
+  // FUNGSI MODAL DIALOG WELCOME / INPUT NAMA SPPG WAJIB (USER BARU)
+  // ------------------------------------------------------------------
+  function tampilkanModalWelcomeSPPG(onSelesai) {
+    const modalLama = document.getElementById('sipgn-welcome-sppg-modal');
+    if (modalLama) modalLama.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'sipgn-welcome-sppg-modal';
+    overlay.style.cssText = `
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(10px);
+      z-index: 1000010; display: flex; align-items: center; justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    `;
+
+    overlay.innerHTML = `
+      <div style="background: #1e293b; border: 1px solid rgba(56, 189, 248, 0.4); color: #f8fafc; padding: 28px; border-radius: 20px; width: 380px; text-align: center; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);">
+        <div style="width: 56px; height: 56px; background: rgba(56, 189, 248, 0.1); color: #38bdf8; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 16px auto;">👋</div>
+        <h3 style="margin: 0 0 6px 0; font-size: 18px; font-weight: 700; color: #f8fafc;">Selamat Datang!</h3>
+        <p style="font-size: 12px; color: #94a3b8; margin: 0 0 20px 0; line-height: 1.5;">
+          Sebelum memulai, silakan masukkan <b>Nama SPPG</b> Anda. Nama ini akan ditampilkan pada header panel utama.
+        </p>
+
+        <div style="text-align: left; margin-bottom: 18px;">
+          <label style="display: block; font-size: 11px; font-weight: 600; color: #cbd5e1; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Nama SPPG <span style="color: #ef4444;">*</span></label>
+          <input type="text" id="sipgn-input-nama-sppg" placeholder="Contoh: SPPG MEDAN KOTA" style="width: 100%; box-sizing: border-box; padding: 10px 14px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 13px; font-weight: 600; outline: none; transition: 0.2s;" />
+          <div id="sipgn-sppg-error" style="color: #ef4444; font-size: 11px; margin-top: 4px; display: none;">Nama SPPG wajib diisi!</div>
+        </div>
+
+        <button id="sipgn-btn-save-sppg" style="width: 100%; padding: 12px; border: none; border-radius: 10px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; font-weight: 700; cursor: pointer; font-size: 13px; transition: 0.2s; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);">
+          Lanjutkan 🚀
+        </button>
+        <div style="margin-top: 16px; font-size: 10px; color: #64748b;">© 2026 - <b>Mindspace Studio</b></div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const inputSPPG = document.getElementById('sipgn-input-nama-sppg');
+    const errText = document.getElementById('sipgn-sppg-error');
+    const btnSave = document.getElementById('sipgn-btn-save-sppg');
+
+    inputSPPG.value = dapatkanNamaSPPG();
+    inputSPPG.focus();
+
+    btnSave.onclick = () => {
+      const val = inputSPPG.value.trim();
+      if (!val) {
+        errText.style.display = 'block';
+        inputSPPG.style.borderColor = '#ef4444';
+        return;
+      }
+      simpanNamaSPPG(val);
+      overlay.remove();
+      if (onSelesai) onSelesai();
+    };
+
+    inputSPPG.oninput = () => {
+      if (inputSPPG.value.trim()) {
+        errText.style.display = 'none';
+        inputSPPG.style.borderColor = '#334155';
+      }
+    };
   }
 
   // ------------------------------------------------------------------
@@ -347,7 +503,8 @@
         headers: { 'Content-Type': 'application/json' },
         data: JSON.stringify({
           action: 'claim_trial',
-          device_id: dapatkanDeviceID()
+          device_id: dapatkanDeviceID(),
+          sppg_name: dapatkanNamaSPPG()
         }),
         onload: function (res) {
           try {
@@ -764,7 +921,7 @@
   }
 
   // ------------------------------------------------------------------
-  // FUNGSI MUAT DAFTAR PAKET KE SELECT (DIPERBAIKI SECARA PRESISI)
+  // FUNGSI MUAT DAFTAR PAKET KE SELECT
   // ------------------------------------------------------------------
   function muatDaftarPaketKeSelect(selectEl, btnBeliEl) {
     if (!selectEl) return;
@@ -775,7 +932,6 @@
       .then((resData) => {
         let listPaket = [];
 
-        // Ekstraksi terstruktur sesuai bentuk return resolve({ packages, vouchers })
         if (resData && Array.isArray(resData.packages)) {
           listPaket = resData.packages;
         } else if (Array.isArray(resData)) {
@@ -784,7 +940,6 @@
           listPaket = resData.data;
         }
 
-        // Fallback darurat jika paket dari server kosong
         if (!listPaket || listPaket.length === 0) {
           listPaket = [
             { hari: 7, harga: 100, nama: 'Paket 7 Hari' },
@@ -827,21 +982,25 @@
 
       const currentDevId = dapatkanDeviceID();
 
-      let serverStatusData = { status: 'unregistered', valid: false, exp_date: null, msg: '' };
-      try {
-        const checkRes = await new Promise((resolve) => {
-          GM_xmlhttpRequest({
-            method: 'GET',
-            url: `${VERCEL_API_URL}?action=check_license&device_id=${encodeURIComponent(currentDevId)}&_t=${Date.now()}`,
-            headers: { 'Cache-Control': 'no-cache, no-store' },
-            onload: (res) => {
-              try { resolve(JSON.parse(res.responseText)); } catch(e) { resolve({ valid: false }); }
-            },
-            onerror: () => resolve({ valid: false })
+      let serverStatusData = cachedServerStatus || { status: 'unregistered', valid: false, exp_date: null, msg: '' };
+
+      if (!cachedServerStatus) {
+        try {
+          const checkRes = await new Promise((resolve) => {
+            GM_xmlhttpRequest({
+              method: 'GET',
+              url: `${VERCEL_API_URL}?action=check_license&device_id=${encodeURIComponent(currentDevId)}&_t=${Date.now()}`,
+              headers: { 'Cache-Control': 'no-cache, no-store' },
+              onload: (res) => {
+                try { resolve(JSON.parse(res.responseText)); } catch(e) { resolve({ valid: false }); }
+              },
+              onerror: () => resolve({ valid: false })
+            });
           });
-        });
-        serverStatusData = checkRes;
-      } catch(e) {}
+          serverStatusData = checkRes;
+          cachedServerStatus = checkRes;
+        } catch(e) {}
+      }
 
       const isUserBaru = serverStatusData.status && serverStatusData.status === 'unregistered';
       const rawStatus = serverStatusData.status || (serverStatusData.valid ? 'active' : 'expired');
@@ -965,7 +1124,6 @@
 
       document.body.appendChild(overlay);
 
-      // Event listener khusus user baru (Free Trial)
       if (isUserBaru) {
         const btnClaimTrial = document.getElementById('sipgn-btn-claim-trial');
         if (btnClaimTrial) {
@@ -990,7 +1148,6 @@
           };
         }
       } else {
-        // Event listener untuk user lama (Modal Pembayaran & Voucher)
         const btnBackup = document.getElementById('sipgn-btn-modal-backup');
         if (btnBackup) btnBackup.onclick = () => {
           tampilkanModalBackupInfo();
@@ -1280,7 +1437,7 @@
         action: 'save_backup',
         device_id: devId,
         backup_data: dataBackup,
-        auto_delete_days: 3 // Fitur Auto-Delete Cloud Backup setelah 3 Hari
+        auto_delete_days: 3
       }),
       onload: function(res) {
         try {
@@ -1443,7 +1600,7 @@
         continue;
       }
       setNativeValue(input, nilai);
-      await wait(500);
+      await smartWait(300, 600);
 
       const inputSetelah = cariInputFn();
       if (inputSetelah && String(inputSetelah.value) === String(nilai)) {
@@ -1466,6 +1623,7 @@
     );
 
     if (!tombolOpsi) return false;
+    await smartWait(300, 500);
     tombolOpsi.click();
     return true;
   }
@@ -1549,11 +1707,17 @@
     if (!data) return;
 
     await isiLokasiKPM(data.sekolah);
-    await wait(1200);
+    await smartWait(600, 1000);
 
     await isiRitase(data.ritase);
+    await smartWait(300, 500);
+
     isiBatasWaktu(data.batasWaktu);
+    await smartWait(200, 400);
+
     isiPorsi(data);
+    await smartWait(300, 600);
+
     isiKurirDanPlat(data.namaKurir, data.platNomor);
 
     dataPenugasan[index].terpakai = true;
@@ -1631,6 +1795,7 @@
 
     const triggerSebelum = cariTriggerWaktuKeberangkatan(namaField);
     const teksSebelum = triggerSebelum ? triggerSebelum.textContent : '';
+    await smartWait(200, 400);
     tombolSimpan.click();
     await wait(350);
 
@@ -1912,7 +2077,9 @@
 
     for (let percobaan = 1; percobaan <= 3; percobaan++) {
       await setSpinnerValue('Jam', jamTarget);
+      await smartWait(150, 300);
       await setSpinnerValue('Menit', menitTarget);
+      await smartWait(150, 300);
 
       const jamAkhir = await bacaKolomStabil('Jam');
       const menitAkhir = await bacaKolomStabil('Menit');
@@ -1939,8 +2106,11 @@
     const inputPlat = document.querySelector('input[placeholder="Contoh: B 9999 XYZ"]');
 
     if (inputJumlah) setNativeValue(inputJumlah, String(jumlahOmpreng));
+    await smartWait(200, 400);
     if (inputKurir) setNativeValue(inputKurir, data.namaKurir || '');
+    await smartWait(200, 400);
     if (inputPlat) setNativeValue(inputPlat, data.platNomor || '');
+    await smartWait(300, 500);
 
     return aturWaktuKeberangkatan(data.jamJadwalPengambilan, 'Waktu Dijadwalkan Pengambilan');
   }
@@ -1952,6 +2122,7 @@
     const jumlahOmpreng = hitungTotalPorsi(data);
     const inputJumlah = document.querySelector('input[placeholder="Contoh: 25"]');
     if (inputJumlah) setNativeValue(inputJumlah, String(jumlahOmpreng));
+    await smartWait(300, 500);
 
     return aturWaktuKeberangkatan(data.jamMulaiCuci, 'Waktu Mulai Cuci');
   }
@@ -2246,7 +2417,7 @@
       const halamanTugasBaru = cekHalamanTugasBaru();
 
       const headerContainer = document.createElement('div');
-      headerContainer.style.cssText = 'display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;';
+      headerContainer.style.cssText = 'display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;';
 
       const judul = document.createElement('div');
       judul.textContent = 'SIPGN Autofill';
@@ -2260,20 +2431,46 @@
 
       panel.appendChild(headerContainer);
 
+      // --- SMART KPM COUNTER & SUMMARY BAR WITH SPPG NAME HEADER ---
+      function jenisKPM(data) {
+        return (data.porsiBalita || data.porsiIbuMenyusui || data.porsiIbuHamil) ? 'posyandu' : 'sekolah';
+      }
+
+      const totalSekolah = dataPenugasan.filter((d) => jenisKPM(d) === 'sekolah').length;
+      const totalPosyandu = dataPenugasan.filter((d) => jenisKPM(d) === 'posyandu').length;
+      const totalKPM = dataPenugasan.length;
+      const totalPorsiSemua = dataPenugasan.reduce((acc, curr) => acc + hitungTotalPorsi(curr), 0);
+      const namaSPPG = dapatkanNamaSPPG() || 'SPPG - UNKNOWN';
+
+      const summaryBar = document.createElement('div');
+      summaryBar.style.cssText = `
+        background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(51, 65, 85, 0.6);
+        border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; font-size: 10px;
+      `;
+      summaryBar.innerHTML = `
+        <div style="color: #facc15; font-weight: 700; font-size: 11px; margin-bottom: 6px; border-bottom: 1px dashed rgba(51, 65, 85, 0.8); padding-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">
+          🏢 ${namaSPPG}
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+          <div style="color: #94a3b8;">🏫 Sekolah: <b style="color: #38bdf8;">${totalSekolah}</b></div>
+          <div style="color: #94a3b8;">👶 Posyandu: <b style="color: #f472b6;">${totalPosyandu}</b></div>
+          <div style="color: #94a3b8;">📊 Total KPM: <b style="color: #facc15;">${totalKPM}</b></div>
+          <div style="color: #94a3b8;">📦 Total Porsi: <b style="color: #4ade80;">${totalPorsiSemua.toLocaleString('id-ID')}</b></div>
+        </div>
+      `;
+      panel.appendChild(summaryBar);
+
+      // --- INDIKATOR HALAMAN BERADA TEPAT DI BEWASAN KPM COUNTER ---
       const indikatorHalaman = document.createElement('div');
       indikatorHalaman.textContent = halamanTugasBaru
         ? '📍 Halaman: Buat Penugasan'
         : '📍 Halaman: Detail Distribusi';
-      indikatorHalaman.style.cssText = 'font-size: 11px; color: #94a3b8; margin-bottom: 12px; font-weight: 500;';
+      indikatorHalaman.style.cssText = 'font-size: 11px; color: #94a3b8; margin-bottom: 10px; font-weight: 500;';
       panel.appendChild(indikatorHalaman);
 
       const garis2 = document.createElement('hr');
       garis2.style.cssText = 'border: none; border-top: 1px solid #334155; margin: 0 0 12px 0;';
       panel.appendChild(garis2);
-
-      function jenisKPM(data) {
-        return (data.porsiBalita || data.porsiIbuMenyusui || data.porsiIbuHamil) ? 'posyandu' : 'sekolah';
-      }
 
       function teksOpsi(data) {
         return `${data.terpakai ? '✅ ' : ''}${data.sekolah}${data.terpakai ? ' (digunakan)' : ''}`;
@@ -2636,6 +2833,12 @@
       onload: function (res) {
         try {
           const data = JSON.parse(res.responseText);
+          cachedServerStatus = data; // Simpan cache respon status lisensi
+
+          // PERBAIKAN: Ambil nama SPPG dari database jika ada
+          if (data && data.sppg_name) {
+            simpanNamaSPPG(data.sppg_name);
+          }
 
           if (isPaymentModalOpen || isPaymentSuccess) return;
 
@@ -2663,6 +2866,18 @@
               currentDatabaseExpDate = data.exp_date;
               bersihkanSemuaUI();
               mulaiJalankanSkrip();
+            } else if (statusSekarang === 'unregistered') {
+              if (!dapatkanNamaSPPG()) {
+                tampilkanModalWelcomeSPPG(() => {
+                  currentDatabaseExpDate = data.exp_date || null;
+                  bersihkanSemuaUI();
+                  tampilkanModalAktivasi(data.msg || '', false);
+                });
+              } else {
+                currentDatabaseExpDate = data.exp_date || null;
+                bersihkanSemuaUI();
+                tampilkanModalAktivasi(data.msg || '', false);
+              }
             } else {
               currentDatabaseExpDate = data.exp_date || null;
               bersihkanSemuaUI();

@@ -32,11 +32,11 @@ async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, pake
       if (Array.isArray(pData) && pData.length > 0) {
         finalNominal = Number(pData[0].harga || 0);
       } else {
-        finalNominal = Number(paketHari) === 30 ? 50000 : 0;
+        finalNominal = Number(paketHari) === 30 ? 50000 : 100;
       }
     }
 
-    // Catat Transaksi
+    // 1. Catat Transaksi
     await fetch(`${supabaseUrl}/rest/v1/transactions`, {
       method: 'POST',
       headers: {
@@ -52,7 +52,7 @@ async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, pake
       })
     });
 
-    // Cek Lisensi Eksisting
+    // 2. Cek Lisensi Eksisting
     const getRes = await fetch(`${supabaseUrl}/rest/v1/licenses?device_id=eq.${encodeURIComponent(deviceId)}`, {
       method: 'GET',
       headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` },
@@ -111,8 +111,35 @@ async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, pake
       return Array.isArray(insertedData) && insertedData.length > 0 ? insertedData[0] : { exp_date: expDateNew };
     }
   } catch (err) {
+    console.error('[Catat Transaksi Error]:', err);
     return null;
   }
+}
+
+// Helper Parser Device ID dari reff_id (SIPGN__DEVXXXXYYYY__HARI__TIMESTAMP)
+function parseReffId(reffId) {
+  if (!reffId || typeof reffId !== 'string' || !reffId.includes('__')) {
+    return { deviceId: null, paketHari: 7 };
+  }
+  const parts = reffId.split('__');
+  let deviceId = null;
+  let paketHari = 7;
+
+  if (parts.length >= 3) {
+    const rawDev = parts[1];
+    if (rawDev.startsWith('DEV-')) {
+      deviceId = rawDev;
+    } else if (rawDev.startsWith('DEV')) {
+      deviceId = `DEV-${rawDev.substring(3, 7)}-${rawDev.substring(7)}`;
+    } else {
+      deviceId = rawDev;
+    }
+
+    if (!isNaN(parts[2])) {
+      paketHari = Number(parts[2]);
+    }
+  }
+  return { deviceId, paketHari };
 }
 
 export default async function handler(req, res) {
@@ -131,17 +158,18 @@ export default async function handler(req, res) {
   const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 
-  const { query, body } = req;
+  const { query, body = {} } = req;
   const action = query.action || body?.action;
   const reff_id = query.reff_id || query.ref_id || body?.reff_id || body?.ref_id;
   const device_id = query.device_id || body?.device_id;
   const paket_hari = query.paket_hari || body?.paket_hari;
 
+  // CHECK VERSION
   if (action === 'check_version') {
     return res.status(200).json({ version: '1.5.42', download_url: 'https://mindspace-id.vercel.app/sipgn-autofill.user.js' });
   }
 
-  // GET ALL LICENSES (UNTUK DASHBOARD ADMIN)
+  // GET ALL LICENSES (DASHBOARD ADMIN)
   if (action === 'get_all_licenses') {
     try {
       const licRes = await fetch(`${SUPABASE_URL}/rest/v1/licenses?select=*`, {
@@ -155,7 +183,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // GET PACKAGES (PERBAIKAN: JIKA GAGAL QUERY KE SUPABASE, LANGSUNG KEMBALIKAN FALLBACK DEFAULT)
+  // GET PACKAGES
   if (action === 'get_packages') {
     const defaultPackages = [
       { hari: 7, harga: 100, nama: 'Paket 7 Hari' },
@@ -170,7 +198,6 @@ export default async function handler(req, res) {
       const dbPackages = await pkgRes.json();
 
       if (Array.isArray(dbPackages) && dbPackages.length > 0) {
-        // Sort manual untuk menghindari error sorting PostgREST
         dbPackages.sort((a, b) => Number(a.hari || 0) - Number(b.hari || 0));
         return res.status(200).json({ packages: dbPackages });
       }
@@ -245,7 +272,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // GET STATISTIK PENDAPATAN & CHART BAR
+  // GET STATISTIK PENDAPATAN
   if (action === 'get_stats') {
     try {
       const resTrans = await fetch(`${SUPABASE_URL}/rest/v1/transactions?select=*`, {
@@ -295,7 +322,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // SAVE / REPLACE BACKUP DATA KPM KE DATABASE (AUTO-DELETE 3 HARI)
+  // SAVE BACKUP DATA KPM (AUTO-DELETE 3 HARI)
   if (action === 'save_backup' && req.method === 'POST') {
     const devIdBackup = body.device_id || device_id;
     const backupData = body.backup_data;
@@ -326,11 +353,11 @@ export default async function handler(req, res) {
       const dataResp = await resUpsert.json();
       return res.status(200).json({ success: true, data: dataResp });
     } catch (err) {
-      return res.status(500).json({ error: 'Gagal menyimpan/mereplace backup ke database.' });
+      return res.status(500).json({ error: 'Gagal menyimpan backup ke database.' });
     }
   }
 
-  // DELETE BACKUP DATA KPM DARI DATABASE
+  // DELETE BACKUP DATA KPM
   if (action === 'delete_backup' && req.method === 'POST') {
     const devIdBackup = body.device_id || device_id;
     if (!devIdBackup) {
@@ -470,6 +497,7 @@ export default async function handler(req, res) {
     }
   }
 
+  // CHECK LICENSE
   if (action === 'check_license') {
     if (!device_id) return res.status(200).json({ valid: false, msg: 'Device ID tidak ditemukan.' });
 
@@ -504,8 +532,33 @@ export default async function handler(req, res) {
     }
   }
 
-  // POST: KONTROL ADMIN, KLAIM FREE TRIAL, KLAIM VOUCHER, & WEBHOOK TOKOPAY
+  // POST ACTION HANDLERS
   if (req.method === 'POST') {
+
+    // FITUR: PENCATATAN TRANSAKSI MANUAL / FALLBACK DARI FRONTEND
+    if (body.action === 'record_successful_payment') {
+      const devIdTarget = body.device_id || device_id;
+      const paketHariTarget = Number(body.paket_hari || 7);
+      const amountTarget = Number(body.amount || 0);
+
+      if (!devIdTarget) {
+        return res.status(400).json({ error: 'Device ID wajib disertakan.' });
+      }
+
+      try {
+        const savedInfo = await catatTransaksiDanLisensi(
+          SUPABASE_URL,
+          SUPABASE_KEY,
+          devIdTarget,
+          paketHariTarget,
+          amountTarget,
+          'AutoPayment Frontend'
+        );
+        return res.status(200).json({ success: true, exp_date: savedInfo?.exp_date });
+      } catch (err) {
+        return res.status(500).json({ error: 'Gagal mencatat pembayaran.' });
+      }
+    }
 
     // FITUR: KLAIM FREE TRIAL (24 JAM)
     if (body.action === 'claim_trial') {
@@ -544,6 +597,7 @@ export default async function handler(req, res) {
       }
     }
 
+    // FITUR: KLAIM VOUCHER
     if (body.action === 'claim_voucher') {
       const { voucher_code, device_id: devIdTarget } = body;
       const cleanVoucher = (voucher_code || '').trim().toUpperCase();
@@ -628,6 +682,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
+    // WEBHOOK TOKOPAY
     const merchantId = process.env.TOKOPAY_MERCHANT_ID;
     const secretKey = process.env.TOKOPAY_SECRET_KEY;
     const isWebhookTokopay = body && (body.tr_id || (body.status && !body.paket_hari));
@@ -638,22 +693,8 @@ export default async function handler(req, res) {
       const isLunasCallback = statusCallback === 'success' || statusCallback === 'paid' || statusCallback === 'completed';
 
       if (isLunasCallback && refIdCallback) {
-        let targetDevId = null;
-        let targetPaketHari = 7;
+        const { deviceId: targetDevId, paketHari: targetPaketHari } = parseReffId(refIdCallback);
         let nominalBayar = Number(body.total_bayar || body.nominal || 0);
-
-        if (refIdCallback.includes('__')) {
-          const parts = refIdCallback.split('__');
-          if (parts.length >= 3) {
-            const rawDev = parts[1];
-            if (rawDev.startsWith('DEV')) {
-              targetDevId = `DEV-${rawDev.substring(3, 7)}-${rawDev.substring(7)}`;
-            }
-            if (!isNaN(parts[2])) {
-              targetPaketHari = Number(parts[2]);
-            }
-          }
-        }
 
         if (targetDevId) {
           await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, targetDevId, targetPaketHari, nominalBayar);
@@ -730,24 +771,12 @@ export default async function handler(req, res) {
       const isLunas = statusTransaksi === 'success' || statusTransaksi === 'paid' || statusTransaksi === 'completed' || tokopayData?.is_paid === true;
 
       if (isLunas) {
-        let targetDevId = device_id;
-        let targetPaketHari = paket_hari || 7;
+        let { deviceId: targetDevId, paketHari: targetPaketHari } = parseReffId(reff_id);
+        if (!targetDevId) targetDevId = device_id;
+        if (!paket_hari && targetPaketHari) paket_hari = targetPaketHari;
+
         let nominalBayar = Number(innerData?.total_bayar || innerData?.nominal || 0);
 
-        if (reff_id.includes('__')) {
-          const parts = reff_id.split('__');
-          if (parts.length >= 3) {
-            const rawDev = parts[1];
-            if (!targetDevId && rawDev.startsWith('DEV')) {
-              targetDevId = `DEV-${rawDev.substring(3, 7)}-${rawDev.substring(7)}`;
-            }
-            if (!paket_hari && !isNaN(parts[2])) {
-              targetPaketHari = Number(parts[2]);
-            }
-          }
-        }
-
-        if (!targetDevId) targetDevId = device_id;
         if (!targetDevId) return res.status(200).json({ is_paid: false, error: 'Device ID tidak terdeteksi.' });
 
         const savedInfo = await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, targetDevId, targetPaketHari, nominalBayar);

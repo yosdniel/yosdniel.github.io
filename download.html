@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Download SIPGN Autofill Update</title>
+  <style>
+    body { font-family: sans-serif; background: #0f172a; color: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+    .card { background: #1e293b; padding: 32px; border-radius: 16px; border: 1px solid #334155; width: 380px; text-align: center; }
+    .btn-download { display: block; background: #eab308; color: #0f172a; font-weight: bold; padding: 12px; border-radius: 10px; text-decoration: none; margin-top: 20px; }
+    .changelog { text-align: left; background: #0f172a; padding: 12px; border-radius: 8px; font-size: 12px; color: #94a3b8; margin-top: 15px; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>🚀 SIPGN Autofill</h2>
+    <p style="font-size: 13px; color: #94a3b8;">Skrip Otomatisasi Tugas Pengiriman & Distribusi POP</p>
+    
+    <div style="margin: 20px 0;">
+      <span style="font-size: 12px; color: #cbd5e1;">Versi Terbaru:</span>
+      <b id="latest-version" style="color: #4ade80; font-size: 16px;">v...</b>
+    </div>
+
+    <!-- Tombol Download Langsung -->
+    <a id="download-btn" href="#" target="_blank" class="btn-download">
+      📥 Download & Install Script
+    </a>
+
+    <div class="changelog">
+      <b style="color: #f8fafc;">Catatan Pembaruan:</b>
+      <p id="changelog-text" style="margin: 5px 0 0 0;">Memuat changelog...</p>
+    </div>
+  </div>
+
+  <script>
+    // Ambil data versi terbaru dari API saat halaman dibuka
+    fetch('https://mindspace-id.vercel.app/api/tokopay?action=check_version')
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById('latest-version').innerText = `v${data.version}`;
+        document.getElementById('download-btn').href = data.download_url;
+        document.getElementById('changelog-text').innerText = data.changelog || 'Perbaikan performa dan penyesuaian sistem.';
+      })
+      .catch(() => {
+        document.getElementById('changelog-text').innerText = 'Gagal memuat informasi versi.';
+      });
+  </script>
+</body>
+</html>

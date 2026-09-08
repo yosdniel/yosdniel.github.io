@@ -2,47 +2,72 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Download SIPGN Autofill Update</title>
   <style>
-    body { font-family: sans-serif; background: #0f172a; color: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-    .card { background: #1e293b; padding: 32px; border-radius: 16px; border: 1px solid #334155; width: 380px; text-align: center; }
-    .btn-download { display: block; background: #eab308; color: #0f172a; font-weight: bold; padding: 12px; border-radius: 10px; text-decoration: none; margin-top: 20px; }
-    .changelog { text-align: left; background: #0f172a; padding: 12px; border-radius: 8px; font-size: 12px; color: #94a3b8; margin-top: 15px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 16px; box-sizing: border-box; }
+    .card { background: #1e293b; padding: 32px; border-radius: 16px; border: 1px solid #334155; width: 100%; max-width: 380px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }
+    .btn-download { display: block; background: #eab308; color: #0f172a; font-weight: 700; padding: 12px; border-radius: 10px; text-decoration: none; margin-top: 20px; transition: 0.2s; font-size: 14px; }
+    .btn-download:hover { background: #facc15; }
+    .btn-download.disabled { background: #475569; color: #94a3b8; pointer-events: none; cursor: not-allowed; }
+    .changelog { text-align: left; background: #0f172a; padding: 14px; border-radius: 10px; font-size: 12px; color: #cbd5e1; margin-top: 15px; border: 1px solid #334155; }
+    .changelog-content { margin-top: 6px; color: #94a3b8; line-height: 1.5; white-space: pre-wrap; font-family: inherit; }
   </style>
 </head>
 <body>
 
   <div class="card">
-    <h2>🚀 SIPGN Autofill</h2>
-    <p style="font-size: 13px; color: #94a3b8;">Skrip Otomatisasi Tugas Pengiriman & Distribusi POP</p>
+    <h2 style="margin: 0; font-size: 20px;">🚀 SIPGN Autofill</h2>
+    <p style="font-size: 13px; color: #94a3b8; margin: 6px 0 0 0;">Skrip Otomatisasi Tugas Pengiriman & Distribusi POP</p>
     
     <div style="margin: 20px 0;">
-      <span style="font-size: 12px; color: #cbd5e1;">Versi Terbaru:</span>
-      <b id="latest-version" style="color: #4ade80; font-size: 16px;">v...</b>
+      <span style="font-size: 12px; color: #cbd5e1;">Versi Terbaru:</span><br>
+      <b id="latest-version" style="color: #4ade80; font-size: 18px;">v...</b>
     </div>
 
-    <!-- Tombol Download Langsung -->
-    <a id="download-btn" href="#" target="_blank" class="btn-download">
-      📥 Download & Install Script
+    <!-- Tombol Download (Mulai dari status Loading) -->
+    <a id="download-btn" href="#" target="_blank" class="btn-download disabled">
+      ⏳ Memuat Link Download...
     </a>
 
     <div class="changelog">
-      <b style="color: #f8fafc;">Catatan Pembaruan:</b>
-      <p id="changelog-text" style="margin: 5px 0 0 0;">Memuat changelog...</p>
+      <b style="color: #38bdf8; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">Catatan Pembaruan:</b>
+      <div id="changelog-text" class="changelog-content">Memuat changelog...</div>
     </div>
   </div>
 
   <script>
-    // Ambil data versi terbaru dari API saat halaman dibuka
-    fetch('https://mindspace-id.vercel.app/api/tokopay?action=check_version')
+    const API_URL = 'https://mindspace-id.vercel.app/api/tokopay?action=check_version';
+
+    fetch(API_URL)
       .then(res => res.json())
       .then(data => {
-        document.getElementById('latest-version').innerText = `v${data.version}`;
-        document.getElementById('download-btn').href = data.download_url;
-        document.getElementById('changelog-text').innerText = data.changelog || 'Perbaikan performa dan penyesuaian sistem.';
+        const btn = document.getElementById('download-btn');
+        const verEl = document.getElementById('latest-version');
+        const changeEl = document.getElementById('changelog-text');
+
+        if (data && data.version && data.download_url) {
+          verEl.innerText = `v${data.version}`;
+          
+          // Mengeset link tombol sesuai URL yang diinput Admin
+          btn.href = data.download_url;
+          btn.innerHTML = '📥 Download & Install Script';
+          btn.classList.remove('disabled');
+
+          changeEl.innerText = data.changelog || 'Perbaikan performa dan penyesuaian sistem.';
+        } else {
+          throw new Error('Data tidak lengkap');
+        }
       })
       .catch(() => {
-        document.getElementById('changelog-text').innerText = 'Gagal memuat informasi versi.';
+        const btn = document.getElementById('download-btn');
+        document.getElementById('latest-version').innerText = 'v1.5.42';
+        document.getElementById('changelog-text').innerText = 'Gagal memuat informasi versi dari server.';
+        
+        // Link cadangan jika API terganggu
+        btn.href = 'https://mindspace-id.vercel.app/files/sipgn-autofill.user.js';
+        btn.innerHTML = '📥 Download (Link Cadangan)';
+        btn.classList.remove('disabled');
       });
   </script>
 </body>

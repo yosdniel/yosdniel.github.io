@@ -73,7 +73,7 @@
     .btn-quick-lifetime { background: #7c3aed; border-color: #6d28d9; color: #f3e8ff; }
     .btn-quick-lifetime:hover { background: #6d28d9; }
 
-    /* MENU GRID MODERN (DISESUAIKAN MENJADI MULTI-ROW) */
+    /* MENU GRID MODERN */
     .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
     .menu-card {
       background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 16px;
@@ -99,13 +99,14 @@
     .package-row, .voucher-row { display: flex; gap: 6px; align-items: center; background: #0f172a; padding: 8px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 8px; }
 
     /* LIST USER STYLING */
-    .user-list-container { max-height: 260px; overflow-y: auto; margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; }
+    .user-list-container { max-height: 280px; overflow-y: auto; margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; }
     .user-item {
       background: #0f172a; border: 1px solid #334155; padding: 10px 12px; border-radius: 8px;
       cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: 0.2s;
     }
     .user-item:hover { border-color: #38bdf8; background: #131c31; }
     .user-item-info div:first-child { font-weight: 600; font-size: 13px; color: #facc15; }
+    .user-item-info div:nth-child(2) { font-size: 11px; color: #38bdf8; font-weight: 600; margin-top: 2px; }
     .user-item-info div:last-child { font-size: 11px; color: #94a3b8; margin-top: 2px; }
 
     .toast {
@@ -185,7 +186,7 @@
           <p>Buat kupon diskon</p>
         </div>
 
-        <!-- FITUR BARU: MANAJEMEN UPDATE RELEASE -->
+        <!-- FITUR MANAJEMEN UPDATE RELEASE -->
         <div class="menu-card" onclick="bukaFitur('release')" style="grid-column: span 2; border-color: #0284c7;">
           <div class="menu-icon">🚀</div>
           <h3>Update Release</h3>
@@ -205,11 +206,17 @@
     <!-- VIEW 2: FITUR CEK DEVICE ID & LIST ALL USERS -->
     <div id="viewDeviceCheck" class="view-section">
       <div class="field-group">
-        <label for="inputDeviceId">Cari / Masukkan Device ID:</label>
+        <label for="inputDeviceId">Cari / Masukkan Device ID Manual:</label>
         <div style="display: flex; gap: 8px;">
           <input type="text" id="inputDeviceId" placeholder="DEV-XXXX-XXXX" style="text-transform: uppercase;" onkeyup="if(event.key==='Enter') cekDeviceId()">
           <button class="btn btn-primary" style="width: 110px;" onclick="cekDeviceId()">Cari</button>
         </div>
+      </div>
+
+      <!-- FITUR PENCARIAN USER BERDASARKAN DEVICE ID & NAMA SPPG -->
+      <div class="field-group" style="margin-top: 16px;">
+        <label for="searchUserQuery">Filter List User (Device ID / Nama SPPG):</label>
+        <input type="text" id="searchUserQuery" placeholder="🔍 Ketik Device ID atau Nama SPPG..." oninput="filterUserList()">
       </div>
 
       <div style="font-size: 12px; font-weight: 600; color: #cbd5e1; margin: 12px 0 6px 0;">Daftar Seluruh User Terdaftar:</div>
@@ -224,6 +231,7 @@
     <div id="viewDeviceDetail" class="view-section">
       <div class="card-info">
         <div><b>Device ID:</b> <span id="dispDeviceId" style="color:#facc15;">-</span></div>
+        <div><b>Nama SPPG:</b> <span id="dispSppgName" style="color:#38bdf8;">-</span></div>
         <div><b>Status Saat Ini:</b> <span id="dispStatus">-</span></div>
         <div><b>Tanggal Kadaluarsa:</b> <span id="dispExpDate" style="color:#38bdf8;">-</span></div>
         <div><b>Terakhir Digunakan:</b> <span id="dispLastActive" style="color:#cbd5e1;">-</span></div>
@@ -238,6 +246,12 @@
           <button class="btn btn-primary" style="flex: 1; height: 36px; font-size: 12px;" onclick="downloadBackupCloud()">📥 Download</button>
           <button class="btn btn-danger" style="flex: 1; height: 36px; font-size: 12px;" onclick="hapusBackupCloud()">🗑️ Hapus Backup</button>
         </div>
+      </div>
+
+      <!-- INPUT UBAH NAMA SPPG -->
+      <div class="field-group">
+        <label for="editSppgName">Ubah Nama SPPG:</label>
+        <input type="text" id="editSppgName" placeholder="Contoh: SPPG MEDAN KOTA">
       </div>
 
       <div class="field-group">
@@ -277,12 +291,12 @@
       </div>
     </div>
 
-    <!-- VIEW 3.5: FITUR OPER DEVICE ID (TRANSFER LISENSI & PAKET) -->
+    <!-- VIEW 3.5: FITUR OPER DEVICE ID -->
     <div id="viewTransferDevice" class="view-section">
       <div class="card-info" style="border-color: #38bdf8;">
         <div style="font-size: 13px; font-weight: bold; color: #38bdf8; margin-bottom: 4px;">🔄 Migrasi & Pemindahan Device ID</div>
         <p style="margin: 0; font-size: 11px; color: #94a3b8; line-height: 1.4;">
-          Fitur ini memungkinkan Anda memindahkan masa aktif lisensi, status, serta data backup cloud dari <b>Device Asal (Saat ini)</b> ke <b>Device Tujuan (Baru)</b>. Device asal akan dinonaktifkan/dihapus.
+          Fitur ini memungkinkan Anda memindahkan masa aktif lisensi, status, nama SPPG, serta data backup cloud dari <b>Device Asal (Saat ini)</b> ke <b>Device Tujuan (Baru)</b>. Device asal akan dinonaktifkan/dihapus.
         </p>
       </div>
 
@@ -332,7 +346,7 @@
       </div>
     </div>
 
-    <!-- VIEW 6: FITUR MANAJEMEN UPDATE RELEASE (BARU) -->
+    <!-- VIEW 6: FITUR MANAJEMEN UPDATE RELEASE -->
     <div id="viewRelease" class="view-section">
       <div class="card-info" style="border-color: #0284c7;">
         <div style="font-size: 13px; font-weight: bold; color: #38bdf8; margin-bottom: 4px;">🚀 Publikasi Update Versi Terbaru</div>
@@ -373,6 +387,7 @@
     let adminPasswordSecret = '';
     let currentLicenseData = null;
     let currentBackupPayload = null;
+    let globalUserList = []; // Memory cache untuk daftar user agar live filter cepat
 
     function getTanggalHariIniWIB() {
       return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
@@ -498,6 +513,7 @@
 
     function bukaFitur(fitur) {
       if (fitur === 'device') {
+        document.getElementById('searchUserQuery').value = '';
         muatDaftarSemuaUser();
         gantiView('viewDeviceCheck');
       } else if (fitur === 'transfer') {
@@ -546,7 +562,7 @@
       }
     }
 
-    // --- DAFTAR SEMUA USER & CEK DEVICE ID ---
+    // --- DAFTAR SEMUA USER, PENCARIAN & CEK DEVICE ID ---
     async function muatDaftarSemuaUser() {
       const container = document.getElementById('listAllUsersContainer');
       container.innerHTML = '<div style="text-align: center; color: #94a3b8; font-size: 12px; padding: 15px;">⏳ Mengambil daftar user dari server...</div>';
@@ -554,42 +570,66 @@
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=get_all_licenses`);
         const data = await res.json();
-        const users = data.licenses || data.users || [];
+        globalUserList = data.licenses || data.users || [];
 
-        container.innerHTML = '';
-        if (users.length === 0) {
-          container.innerHTML = '<div style="text-align: center; color: #94a3b8; font-size: 12px; padding: 15px;">Belum ada user terdaftar di database.</div>';
-          return;
-        }
-
-        users.forEach(u => {
-          const div = document.createElement('div');
-          div.className = 'user-item';
-          
-          const rawLastActive = u.last_active || u.last_seen || u.updated_at || u.created_at;
-          let infoAktivitas = '';
-          
-          if (!rawLastActive) {
-            infoAktivitas = '<span style="color: #f59e0b;">Belum pernah aktif</span>';
-          } else {
-            infoAktivitas = `Terakhir digunakan: <b>${formatWaktuRelatif(rawLastActive)}</b>`;
-          }
-
-          const expFormatted = formatTanggalIndo(u.exp_date) || '-';
-
-          div.innerHTML = `
-            <div class="user-item-info">
-              <div>${u.device_id}</div>
-              <div>Durasi s/d: <b>${expFormatted}</b><br>${infoAktivitas}</div>
-            </div>
-            <div><span class="badge ${u.status === 'active' ? 'badge-active' : 'badge-hold'}">${u.status || 'active'}</span></div>
-          `;
-          div.onclick = () => pilihUserDariList(u);
-          container.appendChild(div);
-        });
+        renderUserList(globalUserList);
       } catch (e) {
         container.innerHTML = '<div style="text-align: center; color: #ef4444; font-size: 12px; padding: 15px;">Gagal memuat daftar user dari server.</div>';
       }
+    }
+
+    function renderUserList(users) {
+      const container = document.getElementById('listAllUsersContainer');
+      container.innerHTML = '';
+
+      if (users.length === 0) {
+        container.innerHTML = '<div style="text-align: center; color: #94a3b8; font-size: 12px; padding: 15px;">Tidak ada user yang cocok dengan pencarian.</div>';
+        return;
+      }
+
+      users.forEach(u => {
+        const div = document.createElement('div');
+        div.className = 'user-item';
+        
+        const rawLastActive = u.last_active || u.last_seen || u.updated_at || u.created_at;
+        let infoAktivitas = '';
+        
+        if (!rawLastActive) {
+          infoAktivitas = '<span style="color: #f59e0b;">Belum pernah aktif</span>';
+        } else {
+          infoAktivitas = `Terakhir aktif: <b>${formatWaktuRelatif(rawLastActive)}</b>`;
+        }
+
+        const expFormatted = formatTanggalIndo(u.exp_date) || '-';
+        const namaSppgText = u.sppg_name ? `🏢 ${u.sppg_name}` : '<i style="color:#64748b;">(Belum Set SPPG)</i>';
+
+        div.innerHTML = `
+          <div class="user-item-info">
+            <div>${u.device_id}</div>
+            <div>${namaSppgText}</div>
+            <div>Durasi s/d: <b>${expFormatted}</b><br>${infoAktivitas}</div>
+          </div>
+          <div><span class="badge ${u.status === 'active' ? 'badge-active' : 'badge-hold'}">${u.status || 'active'}</span></div>
+        `;
+        div.onclick = () => pilihUserDariList(u);
+        container.appendChild(div);
+      });
+    }
+
+    function filterUserList() {
+      const query = document.getElementById('searchUserQuery').value.trim().toLowerCase();
+      if (!query) {
+        renderUserList(globalUserList);
+        return;
+      }
+
+      const filtered = globalUserList.filter(u => {
+        const devId = (u.device_id || '').toLowerCase();
+        const sppgName = (u.sppg_name || '').toLowerCase();
+        return devId.includes(query) || sppgName.includes(query);
+      });
+
+      renderUserList(filtered);
     }
 
     async function muatBackupDevice(deviceId) {
@@ -705,6 +745,7 @@
 
       currentLicenseData = {
         device_id: userData.device_id,
+        sppg_name: userData.sppg_name || '',
         exp_date: userData.exp_date || hariIni,
         status: statusAktual,
         license_key: userData.license_key || buatLicenseKey(userData.exp_date || hariIni, userData.device_id),
@@ -736,6 +777,7 @@
 
           currentLicenseData = {
             device_id: deviceId,
+            sppg_name: data.sppg_name || '',
             exp_date: data.exp_date || hariIni,
             status: statusAktual,
             license_key: data.license_key || buatLicenseKey(data.exp_date || hariIni, deviceId),
@@ -745,6 +787,7 @@
         } else {
           currentLicenseData = {
             device_id: deviceId,
+            sppg_name: '',
             exp_date: '-',
             status: 'unregistered',
             license_key: '',
@@ -762,6 +805,9 @@
     }
 
     function renderDetailDevice() {
+      document.getElementById('dispSppgName').textContent = currentLicenseData.sppg_name || 'Belum Diatur';
+      document.getElementById('editSppgName').value = currentLicenseData.sppg_name || '';
+
       document.getElementById('dispExpDate').textContent = currentLicenseData.exp_date !== '-' ? formatTanggalIndo(currentLicenseData.exp_date) : 'Belum Diatur';
       
       const rawUp = currentLicenseData.last_active;
@@ -827,10 +873,13 @@
     async function simpanPerubahanLisensi() {
       const expDateVal = document.getElementById('editExpDate').value;
       let statusVal = document.getElementById('editStatus').value;
+      const sppgNameVal = document.getElementById('editSppgName').value.trim();
+
       if (!expDateVal) return showToast('Pilih tanggal kadaluarsa!', false);
 
       currentLicenseData.exp_date = expDateVal;
       currentLicenseData.status = statusVal;
+      currentLicenseData.sppg_name = sppgNameVal;
       currentLicenseData.license_key = buatLicenseKey(expDateVal, currentLicenseData.device_id);
 
       try {
@@ -841,7 +890,7 @@
         });
         const resData = await res.json();
         if (res.ok && (resData.success || resData.status)) {
-          showToast('Lisensi berhasil disimpan!');
+          showToast('Lisensi & Nama SPPG berhasil disimpan!');
           currentLicenseData.is_new = false;
           renderDetailDevice();
         } else {
@@ -1000,7 +1049,7 @@
       }
     }
 
-    // --- KELOLA UPDATE RELEASE (BARU) ---
+    // --- KELOLA UPDATE RELEASE ---
     async function muatDataReleaseServer() {
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=check_version`);

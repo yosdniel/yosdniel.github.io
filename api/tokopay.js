@@ -18,7 +18,7 @@ function calculateExpiryDate(currentExpStr, daysToAdd) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, paketHari, nominal = 0) {
+async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, paketHari, nominal = 0, clientName = 'User QRIS / Voucher') {
   if (!supabaseUrl || !supabaseKey || !deviceId) return null;
 
   try {
@@ -32,10 +32,11 @@ async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, pake
       if (Array.isArray(pData) && pData.length > 0) {
         finalNominal = Number(pData[0].harga || 0);
       } else {
-        finalNominal = Number(paketHari) === 30 ? 50000 : 100;
+        finalNominal = Number(paketHari) === 30 ? 50000 : 0;
       }
     }
 
+    // Catat Transaksi
     await fetch(`${supabaseUrl}/rest/v1/transactions`, {
       method: 'POST',
       headers: {
@@ -51,6 +52,7 @@ async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, pake
       })
     });
 
+    // Cek Lisensi Eksisting
     const getRes = await fetch(`${supabaseUrl}/rest/v1/licenses?device_id=eq.${encodeURIComponent(deviceId)}`, {
       method: 'GET',
       headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` },
@@ -100,7 +102,7 @@ async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, pake
           license_key: licenseKeyNew,
           exp_date: expDateNew,
           status: 'active',
-          client_name: 'User QRIS / Voucher',
+          client_name: clientName,
           updated_at: timestampWIB
         }),
         cache: 'no-store'
@@ -136,7 +138,7 @@ export default async function handler(req, res) {
   const paket_hari = query.paket_hari || body?.paket_hari;
 
   if (action === 'check_version') {
-    return res.status(200).json({ version: '1.5.41', download_url: 'https://mindspace-id.vercel.app/sipgn-autofill.user.js' });
+    return res.status(200).json({ version: '1.5.42', download_url: 'https://mindspace-id.vercel.app/sipgn-autofill.user.js' });
   }
 
   // GET ALL LICENSES (UNTUK DASHBOARD ADMIN)
@@ -300,7 +302,6 @@ export default async function handler(req, res) {
       const expiresAtWIB = nowWIB.toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
       const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
 
-      // Menggunakan method POST dengan merge-duplicates (Upsert) untuk langsung mereplace file backup lama dengan yang baru berdasarkan device_id
       const resUpsert = await fetch(`${SUPABASE_URL}/rest/v1/backups`, {
         method: 'POST',
         headers: {
@@ -323,7 +324,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // DELETE BACKUP DATA KPM DARI DATABASE (UNTUK ADMIN / TOMBOL HAPUS)
+  // DELETE BACKUP DATA KPM DARI DATABASE
   if (action === 'delete_backup' && req.method === 'POST') {
     const devIdBackup = body.device_id || device_id;
     if (!devIdBackup) {
@@ -340,7 +341,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // TRANSFER / OPER DEVICE ID (MIGRASI LISENSI, STATUS, & BACKUP KE DEVICE BARU)
+  // TRANSFER / OPER DEVICE ID
   if (action === 'transfer_device' && req.method === 'POST') {
     const sourceId = body.source_device_id;
     const targetId = body.target_device_id;
@@ -353,7 +354,6 @@ export default async function handler(req, res) {
     }
 
     try {
-      // 1. Ambil data lisensi device asal
       const srcLicRes = await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(sourceId)}`, {
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
         cache: 'no-store'
@@ -364,7 +364,6 @@ export default async function handler(req, res) {
       }
       const sourceLicense = srcLicData[0];
 
-      // 2. Ambil data backup cloud device asal (jika ada)
       const srcBackupRes = await fetch(`${SUPABASE_URL}/rest/v1/backups?device_id=eq.${encodeURIComponent(sourceId)}&select=*`, {
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
         cache: 'no-store'
@@ -379,7 +378,6 @@ export default async function handler(req, res) {
 
       const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
 
-      // 3. Simpan/Upsert lisensi ke device ID tujuan dengan membawa masa aktif (exp_date) dan status yang sama
       await fetch(`${SUPABASE_URL}/rest/v1/licenses`, {
         method: 'POST',
         headers: {
@@ -398,7 +396,6 @@ export default async function handler(req, res) {
         })
       });
 
-      // 4. Jika ada backup cloud di device asal, pindahkan juga ke device tujuan
       if (backupPayloadToTransfer) {
         await fetch(`${SUPABASE_URL}/rest/v1/backups`, {
           method: 'POST',
@@ -416,14 +413,12 @@ export default async function handler(req, res) {
           })
         });
 
-        // Hapus backup lama di device asal
         await fetch(`${SUPABASE_URL}/rest/v1/backups?device_id=eq.${encodeURIComponent(sourceId)}`, {
           method: 'DELETE',
           headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
         });
       }
 
-      // 5. Hapus lisensi lama dari device asal
       await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(sourceId)}`, {
         method: 'DELETE',
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
@@ -435,7 +430,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // GET BACKUP DATA KPM DARI DATABASE (VALIDASI TTL 3 HARI)
+  // GET BACKUP DATA KPM DARI DATABASE
   if (action === 'get_backup') {
     const devIdBackup = query.device_id || body?.device_id;
     if (!devIdBackup) {
@@ -503,8 +498,50 @@ export default async function handler(req, res) {
     }
   }
 
-  // POST: KONTROL ADMIN, KLAIM VOUCHER, & WEBHOOK TOKOPAY
+  // POST: KONTROL ADMIN, KLAIM FREE TRIAL, KLAIM VOUCHER, & WEBHOOK TOKOPAY
   if (req.method === 'POST') {
+
+    // ------------------------------------------------------------------
+    // FITUR BARU: KLAIM FREE TRIAL (24 JAM)
+    // ------------------------------------------------------------------
+    if (body.action === 'claim_trial') {
+      const devIdTarget = body.device_id || device_id;
+      if (!devIdTarget) {
+        return res.status(400).json({ error: 'Device ID wajib disertakan.' });
+      }
+
+      try {
+        // Cek apakah device sudah pernah terdaftar di Supabase
+        const licRes = await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(devIdTarget)}`, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+          cache: 'no-store'
+        });
+        const licData = await licRes.json();
+
+        if (Array.isArray(licData) && licData.length > 0) {
+          return res.status(400).json({ error: 'Perangkat Anda sudah pernah terdaftar/mengklaim Free Trial.' });
+        }
+
+        // Daftarkan lisensi trial 1 hari (24 jam)
+        const savedInfo = await catatTransaksiDanLisensi(
+          SUPABASE_URL,
+          SUPABASE_KEY,
+          devIdTarget,
+          1, // 1 hari
+          0, // nominal
+          'User Free Trial 24 Jam'
+        );
+
+        return res.status(200).json({
+          success: true,
+          message: 'Free Trial 24 jam berhasil diklaim!',
+          exp_date: savedInfo?.exp_date
+        });
+      } catch (err) {
+        return res.status(500).json({ error: 'Gagal memproses klaim trial.' });
+      }
+    }
+
     if (body.action === 'claim_voucher') {
       const { voucher_code, device_id: devIdTarget } = body;
       const cleanVoucher = (voucher_code || '').trim().toUpperCase();

@@ -917,10 +917,9 @@
         const container = document.getElementById('containerListVoucher');
         container.innerHTML = '';
         if (list.length === 0) {
-          tambahBarisVoucherForm('PROMO50', 'percent', 50, 100);
+          tambahBarisVoucherForm('PROMO50', 'percent', 50, 100, 0, []);
         } else {
           list.forEach(v => {
-            // Normalisasi pembacaan properti tipe diskon/durasi dari berbagai varian payload backend
             const tipe = v.type || v.discount_type || (v.days_value !== undefined && v.value === undefined ? 'days' : 'percent');
             let nilai = 0;
             if (tipe === 'percent') {
@@ -946,7 +945,6 @@
       const card = document.createElement('div');
       card.className = 'card-grid-item voucher-card-item';
       
-      // Simpan state counter dan tracking device yang sudah ada agar tidak tereset saat disave ulang
       card.dataset.usedCount = used_count;
       card.dataset.usedDevices = JSON.stringify(used_devices);
 

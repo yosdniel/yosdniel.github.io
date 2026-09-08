@@ -52,9 +52,10 @@
           const data = JSON.parse(res.responseText);
           const latestVersion = data.version;
           const downloadUrl = data.download_url || 'https://mindspace-id.vercel.app/files/sipgn-autofill.user.js';
+          const changelog = data.changelog || '';
 
           if (latestVersion && latestVersion !== CURRENT_VERSION) {
-            tampilkanNotifikasiUpdate(latestVersion, downloadUrl);
+            tampilkanNotifikasiUpdate(latestVersion, downloadUrl, changelog);
           }
         } catch (e) {
           console.warn('[Autofill] Gagal memproses data update:', e);
@@ -66,7 +67,7 @@
     });
   }
 
-  function tampilkanNotifikasiUpdate(versiBaru, urlDownload) {
+  function tampilkanNotifikasiUpdate(versiBaru, urlDownload, changelog = '') {
     const modalLama = document.getElementById('sipgn-update-modal');
     if (modalLama) modalLama.remove();
 
@@ -79,15 +80,23 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     `;
 
+    const changelogSection = changelog ? `
+      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(51, 65, 85, 0.6); border-radius: 8px; padding: 10px; margin-bottom: 16px; text-align: left; max-height: 120px; overflow-y: auto;">
+        <div style="font-size: 10px; font-weight: 700; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Catatan Perubahan (Changelog):</div>
+        <div style="font-size: 11px; color: #cbd5e1; line-height: 1.4; white-space: pre-wrap;">${changelog}</div>
+      </div>
+    ` : '';
+
     overlay.innerHTML = `
       <div style="position: relative; background: #1e293b; border: 1px solid rgba(234, 179, 8, 0.3); color: #f8fafc; padding: 24px; border-radius: 16px; width: 340px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
         <button id="sipgn-btn-close-update" style="position: absolute; top: 14px; right: 14px; background: rgba(255,255,255,0.05); border: none; color: #94a3b8; width: 28px; height: 28px; border-radius: 50%; font-size: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s;">✕</button>
         <div style="width: 48px; height: 48px; background: rgba(234, 179, 8, 0.1); color: #eab308; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; margin: 0 auto 14px auto;">🚀</div>
         <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #fef08a;">Update Versi Baru Tersedia!</h3>
-        <p style="font-size: 12px; color: #94a3b8; margin: 8px 0 16px 0; line-height: 1.5;">
+        <p style="font-size: 12px; color: #94a3b8; margin: 8px 0 12px 0; line-height: 1.5;">
           Versi saat ini: <b style="color: #ef4444;">v${CURRENT_VERSION}</b><br>
           Versi terbaru: <b style="color: #4ade80;">v${versiBaru}</b>
         </p>
+        ${changelogSection}
         <a href="${urlDownload}" target="_blank" id="sipgn-link-update" style="display: block; width: 100%; box-sizing: border-box; padding: 10px; background: #eab308; color: #0f172a; font-weight: 600; border-radius: 10px; text-decoration: none; font-size: 13px; margin-bottom: 8px; transition: 0.2s;">
           📥 Download & Install
         </a>

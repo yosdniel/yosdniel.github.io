@@ -94,7 +94,17 @@
     .chart-bar { width: 24px; background: #2563eb; border-radius: 6px 6px 0 0; transition: height 0.4s; }
     .chart-label { font-size: 10px; color: #94a3b8; margin-top: 6px; }
 
-    .package-row, .voucher-row { display: flex; gap: 6px; align-items: center; background: #0f172a; padding: 8px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 8px; }
+    .package-row { display: flex; gap: 6px; align-items: center; background: #0f172a; padding: 8px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 8px; }
+
+    /* VOUCHER GRID CARD STYLING */
+    .voucher-grid-container { max-height: 320px; overflow-y: auto; margin-bottom: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .voucher-card-item {
+      background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 12px;
+      display: flex; flex-direction: column; gap: 8px; transition: 0.2s;
+    }
+    .voucher-card-item:hover { border-color: #38bdf8; }
+    .voucher-card-top { display: flex; gap: 8px; align-items: center; }
+    .voucher-card-bottom { display: grid; grid-template-columns: 1.5fr 1fr 1fr auto; gap: 6px; align-items: center; }
 
     /* LIST USER STYLING */
     .user-list-container { max-height: 260px; overflow-y: auto; margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; }
@@ -308,14 +318,16 @@
       </div>
     </div>
 
-    <!-- VIEW 5: FITUR KELOLA VOUCHER DISKON & DURASI -->
+    <!-- VIEW 5: FITUR KELOLA VOUCHER GRID UI -->
     <div id="viewVouchers" class="view-section">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
         <label style="margin:0;">Kelola Kode Kupon / Voucher:</label>
         <button class="btn btn-primary" style="width: auto; height: 32px; font-size: 11px; padding: 0 10px;" onclick="tambahBarisVoucherForm()">+ Tambah Kupon</button>
       </div>
 
-      <div id="containerListVoucher" style="margin-bottom: 14px; max-height: 280px; overflow-y: auto;"></div>
+      <div class="voucher-grid-container" id="containerListVoucher">
+        <div style="text-align: center; color: #94a3b8; font-size: 12px; padding: 20px;">Memuat data voucher...</div>
+      </div>
 
       <div style="display: flex; gap: 8px;">
         <button class="btn btn-success" style="flex: 2;" onclick="simpanPengaturanVoucherServer()">💾 Simpan Voucher</button>
@@ -599,7 +611,7 @@
           body: JSON.stringify({ action: 'delete_backup', device_id: deviceId, admin_secret: adminPasswordSecret })
         });
         const resData = await res.json();
-        if (res.ok && (resData.success || res.status)) {
+        if (res.ok && (resData.success || resData.status)) {
           showToast('Data backup cloud berhasil dihapus!');
           document.getElementById('backupInfoCard').style.display = 'none';
           currentBackupPayload = null;
@@ -878,7 +890,7 @@
       } catch (err) { showToast('Error koneksi server.', false); }
     }
 
-    // --- KELOLA VOUCHER (DIPERBAIKI DENGAN 3 OPSI: PERSEN, RUPIAH, & HARI) ---
+    // --- KELOLA VOUCHER (UI GRID KOTAK & LOGIKA TEPAT SESUAI BACKEND SUPABASE) ---
     async function muatDataVoucherServer() {
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=get_vouchers`);
@@ -887,12 +899,14 @@
         const container = document.getElementById('containerListVoucher');
         container.innerHTML = '';
         if (list.length === 0) {
-          tambahBarisVoucherForm('PROMO50', 'percent', 50, 100);
+          tambahBarisVoucherForm('PROMO7', 7, 10);
         } else {
           list.forEach(v => {
-            const tipeVoucher = v.type || v.discount_type || 'percent';
-            const nilaiVoucher = v.value !== undefined ? v.value : (v.discount_value || 0);
-            tambahBarisVoucherForm(v.code, tipeVoucher, nilaiVoucher, v.quota || 100);
+            // Mapping field database lama/baru: days_value / days / value
+            const daysVal = v.days_value !== undefined ? v.days_value : (v.days !== undefined ? v.days : (v.value || 7));
+            // Mapping batas penggunaan: max_uses / quota
+            const maxUsesVal = v.max_uses !== undefined ? v.max_uses : (v.quota !== undefined ? v.quota : 10);
+            tambahBarisVoucherForm(v.code, daysVal, maxUsesVal);
           });
         }
       } catch (err) {
@@ -900,41 +914,47 @@
       }
     }
 
-    function tambahBarisVoucherForm(code = '', type = 'percent', value = '', quota = 100) {
+    function tambahBarisVoucherForm(code = '', days_value = 7, max_uses = 10) {
       const container = document.getElementById('containerListVoucher');
       const div = document.createElement('div');
-      div.className = 'voucher-row';
+      div.className = 'voucher-card-item';
       div.innerHTML = `
-        <input type="text" class="inp-code" value="${code}" placeholder="KODE" style="flex: 2; height: 38px; font-size: 12px; text-transform: uppercase;">
-        <select class="inp-type" style="flex: 1.5; height: 38px; font-size: 12px;">
-          <option value="percent" ${type==='percent'?'selected':''}>Diskon (%)</option>
-          <option value="fixed" ${type==='fixed'?'selected':''}>Diskon (Rp)</option>
-          <option value="days" ${type==='days' || type==='duration'?'selected':''}>Durasi (Hari)</option>
-        </select>
-        <input type="number" class="inp-value" value="${value}" placeholder="Nilai" style="flex: 1; height: 38px; font-size: 12px;">
-        <input type="number" class="inp-quota" value="${quota}" placeholder="Kuota" style="flex: 0.8; height: 38px; font-size: 12px;" title="Batas Kuota Penggunaan">
-        <button class="btn btn-danger" style="width: 38px; height: 38px;" onclick="this.parentElement.remove()">✕</button>
+        <div class="voucher-card-top">
+          <input type="text" class="inp-code" value="${code}" placeholder="KODE VOUCHER" style="height: 38px; font-size: 13px; text-transform: uppercase; font-weight: bold; flex: 1;">
+          <button class="btn btn-danger" style="width: 38px; height: 38px; min-width: 38px;" onclick="this.closest('.voucher-card-item').remove()" title="Hapus Voucher">✕</button>
+        </div>
+        <div class="voucher-card-bottom">
+          <div>
+            <label style="font-size: 10px; margin-bottom: 2px;">Durasi (Hari):</label>
+            <input type="number" class="inp-days" value="${days_value}" placeholder="Hari" style="height: 36px; font-size: 12px;">
+          </div>
+          <div>
+            <label style="font-size: 10px; margin-bottom: 2px;">Maks Kuota:</label>
+            <input type="number" class="inp-maxuses" value="${max_uses}" placeholder="Kuota" style="height: 36px; font-size: 12px;">
+          </div>
+          <div style="grid-column: span 2; display: flex; align-items: flex-end;">
+            <span style="font-size: 10px; color: #94a3b8; font-style: italic;">*Durasi otomatis menambah masa aktif lisensi user saat diklaim.</span>
+          </div>
+        </div>
       `;
       container.appendChild(div);
     }
 
     async function simpanPengaturanVoucherServer() {
-      const rows = document.querySelectorAll('.voucher-row');
+      const cards = document.querySelectorAll('.voucher-card-item');
       const vouchers = [];
-      rows.forEach(r => {
-        const code = r.querySelector('.inp-code').value.trim().toUpperCase();
-        const type = r.querySelector('.inp-type').value;
-        const value = Number(r.querySelector('.inp-value').value);
-        const quota = Number(r.querySelector('.inp-quota').value) || 100;
+      cards.forEach(c => {
+        const code = c.querySelector('.inp-code').value.trim().toUpperCase();
+        const days_value = Number(c.querySelector('.inp-days').value) || 7;
+        const max_uses = Number(c.querySelector('.inp-maxuses').value) || 10;
         
-        if (code && !isNaN(value)) {
+        if (code) {
           vouchers.push({ 
             code, 
-            type, 
-            discount_type: type, 
-            value, 
-            discount_value: value, 
-            quota 
+            days_value, 
+            max_uses,
+            used_count: 0,
+            used_devices: []
           });
         }
       });

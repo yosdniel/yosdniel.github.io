@@ -588,6 +588,11 @@
 
     async function toggleStatusQrisServer() {
       const newState = !isQrisActiveState;
+      const btn = document.getElementById('btnToggleQris');
+      
+      btn.disabled = true;
+      btn.textContent = '⏳...';
+
       try {
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
@@ -600,14 +605,20 @@
           })
         });
         
-        isQrisActiveState = newState;
-        updateTombolQrisUI();
-        showToast(`Status QRIS berhasil diubah menjadi ${newState ? 'Aktif' : 'Mati'}`);
+        const result = await res.json();
+        if (res.ok && (result.success || result.status)) {
+          isQrisActiveState = newState;
+          updateTombolQrisUI();
+          showToast(`Status QRIS berhasil diubah menjadi ${newState ? 'Aktif' : 'Mati'}`);
+        } else {
+          showToast(result.error || 'Gagal mengubah status QRIS.', false);
+          updateTombolQrisUI();
+        }
       } catch (e) {
-        // Fallback simpan lokal jika belum ada endpoint khusus save_setting
-        isQrisActiveState = newState;
+        showToast('Error koneksi ke server.', false);
         updateTombolQrisUI();
-        showToast('Status QRIS diperbarui.');
+      } finally {
+        btn.disabled = false;
       }
     }
 
@@ -775,7 +786,7 @@
           body: JSON.stringify({ action: 'delete_backup', device_id: deviceId, admin_secret: adminPasswordSecret })
         });
         const resData = await res.json();
-        if (res.ok && (resData.success || res.status)) {
+        if (res.ok && (resData.success || resData.status)) {
           showToast('Data backup cloud berhasil dihapus!');
           document.getElementById('backupInfoCard').style.display = 'none';
           currentBackupPayload = null;

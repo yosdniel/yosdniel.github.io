@@ -2,26 +2,13 @@ import crypto from 'crypto';
 
 // In-Memory Fallback Release Data
 let globalReleaseCache = {
-  version: '1.5.46',
+  version: '1.5.45',
   download_url: 'https://mindspace-id.vercel.app/sipgn-autofill.user.js',
-  changelog: 'Pembaruan fitur sinkronisasi nama SPPG, format license key ringkas 14 karakter & perbaikan tata letak UI.'
+  changelog: 'Pembaruan fitur sinkronisasi nama SPPG & perbaikan tata letak UI.'
 };
 
-// ------------------------------------------------------------------
-// HELPER FORMAT TANGGAL & JAM WIB (ASIA/JAKARTA)
-// ------------------------------------------------------------------
-function getWIBDateString(dateObj = new Date()) {
-  return dateObj.toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
-}
-
-function getWIBTimestamp(dateObj = new Date()) {
-  const dateStr = dateObj.toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
-  const timeStr = dateObj.toLocaleTimeString('en-GB', { timeZone: 'Asia/Jakarta' });
-  return `${dateStr}T${timeStr}`;
-}
-
 function calculateExpiryDate(currentExpStr, daysToAdd) {
-  const hariIniWIB = getWIBDateString();
+  const hariIniWIB = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
   let baseDate = new Date(hariIniWIB + 'T00:00:00');
 
   if (currentExpStr && /^\d{4}-\d{2}-\d{2}$/.test(currentExpStr)) {
@@ -38,146 +25,20 @@ function calculateExpiryDate(currentExpStr, daysToAdd) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-function generateCompactLicenseKey() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  const randomBytes = crypto.randomBytes(10);
-  let result = '';
-  for (let i = 0; i < 10; i++) {
-    result += chars[randomBytes[i] % chars.length];
-  }
-  return `MIND-${result}`;
-}
-
-function generateClean14CharReffId() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  const randomBytes = crypto.randomBytes(10);
-  let result = '';
-  for (let i = 0; i < 10; i++) {
-    result += chars[randomBytes[i] % chars.length];
-  }
-  return `MIND-${result}`;
-}
-
-// ------------------------------------------------------------------
-// HELPER PENCATATAN PENDING ORDER KE DATABASE (FIXED FOR 400 ERROR)
-// ------------------------------------------------------------------
-async function catatPendingOrder(supabaseUrl, supabaseKey, reffId, deviceId, sppgName, paketHari, amount) {
-  if (!supabaseUrl || !supabaseKey || !reffId || !deviceId) {
-    console.warn('[Pending Order] Missing required parameters:', { reffId, deviceId });
-    return null;
-  }
-
-  try {
-    const cleanReffId = String(reffId).trim();
-    const cleanDevId = String(deviceId).trim();
-    const isoNow = new Date().toISOString();
-
-    const payload = {
-      reff_id: cleanReffId,
-      device_id: cleanDevId,
-      sppg_name: sppgName ? String(sppgName).trim() : '',
-      paket_hari: Number(paketHari || 7),
-      amount: Number(amount || 0),
-      status: 'pending',
-      updated_at: isoNow
-    };
-
-    // 1. Cek apakah reff_id sudah ada di database
-    const checkRes = await fetch(`${supabaseUrl}/rest/v1/pending_orders?reff_id=eq.${encodeURIComponent(cleanReffId)}`, {
-      method: 'GET',
-      headers: {
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${supabaseKey}`
-      },
-      cache: 'no-store'
-    });
-
-    const existingOrders = await checkRes.json();
-
-    if (Array.isArray(existingOrders) && existingOrders.length > 0) {
-      // 2. Jika sudah ada, Lakukan Update (PATCH)
-      const patchRes = await fetch(`${supabaseUrl}/rest/v1/pending_orders?reff_id=eq.${encodeURIComponent(cleanReffId)}`, {
-        method: 'PATCH',
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=representation'
-        },
-        body: JSON.stringify(payload)
-      });
-      const patchTxt = await patchRes.text();
-      console.log('[Pending Order Update Success]:', patchTxt);
-    } else {
-      // 3. Jika belum ada, Lakukan Insert Baru (POST)
-      payload.created_at = isoNow;
-
-      const postRes = await fetch(`${supabaseUrl}/rest/v1/pending_orders?on_conflict=reff_id`, {
-        method: 'POST',
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=representation'
-        },
-        body: JSON.stringify(payload)
-      });
-
-      const postTxt = await postRes.text();
-      if (!postRes.ok) {
-        console.error(`[Pending Order Insert Error ${postRes.status}]:`, postTxt);
-      } else {
-        console.log('[Pending Order Insert Success]:', postTxt);
-      }
-    }
-  } catch (err) {
-    console.error('[Catat Pending Order Exception]:', err);
-  }
-}
-
-async function perbaruiStatusPendingOrder(supabaseUrl, supabaseKey, reffId, status = 'success') {
-  if (!supabaseUrl || !supabaseKey || !reffId) return;
-
-  try {
-    const isoNow = new Date().toISOString();
-    await fetch(`${supabaseUrl}/rest/v1/pending_orders?reff_id=eq.${encodeURIComponent(reffId)}`, {
-      method: 'PATCH',
-      headers: {
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${supabaseKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        status: status,
-        updated_at: isoNow
-      })
-    });
-  } catch (err) {
-    console.error('[Perbarui Pending Order Error]:', err);
-  }
-}
-
-// ------------------------------------------------------------------
-// PENYIMPANAN TRANSAKSI & PEMBARUAN LISENSI
-// ------------------------------------------------------------------
 async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, paketHari, nominal = 0, clientName = 'User QRIS / Voucher', sppgName = '') {
   if (!supabaseUrl || !supabaseKey || !deviceId) return null;
 
   try {
     let finalNominal = Number(nominal);
     if (!finalNominal || finalNominal <= 0) {
-      try {
-        const pRes = await fetch(`${supabaseUrl}/rest/v1/packages?hari=eq.${Number(paketHari)}&select=*`, {
-          headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` },
-          cache: 'no-store'
-        });
-        const pData = await pRes.json();
-        if (Array.isArray(pData) && pData.length > 0) {
-          finalNominal = Number(pData[0].harga || 0);
-        } else {
-          finalNominal = Number(paketHari) === 30 ? 50000 : 100;
-        }
-      } catch (e) {
+      const pRes = await fetch(`${supabaseUrl}/rest/v1/packages?hari=eq.${Number(paketHari)}&select=*`, {
+        headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` },
+        cache: 'no-store'
+      });
+      const pData = await pRes.json();
+      if (Array.isArray(pData) && pData.length > 0) {
+        finalNominal = Number(pData[0].harga || 0);
+      } else {
         finalNominal = Number(paketHari) === 30 ? 50000 : 100;
       }
     }
@@ -209,8 +70,11 @@ async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, pake
     const activeLicense = Array.isArray(existing) && existing.length > 0 ? existing[0] : null;
 
     const expDateNew = calculateExpiryDate(activeLicense?.exp_date, paketHari);
-    const licenseKeyNew = activeLicense?.license_key || generateCompactLicenseKey();
-    const timestampWIB = getWIBTimestamp();
+    const nonce = Math.floor(Math.random() * 16777215).toString(16).toUpperCase();
+    const payload = `${expDateNew}|${deviceId}|AutoPayment|MINDSTUDIO2026|${nonce}`;
+    const licenseKeyNew = `MIND-${btoa(payload).split('').reverse().join('')}`;
+
+    const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
 
     const bodyPayload = {
       exp_date: expDateNew,
@@ -221,8 +85,6 @@ async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, pake
 
     if (sppgName) {
       bodyPayload.sppg_name = sppgName;
-    } else if (activeLicense?.sppg_name) {
-      bodyPayload.sppg_name = activeLicense.sppg_name;
     }
 
     if (activeLicense) {
@@ -238,8 +100,7 @@ async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, pake
         cache: 'no-store'
       });
       const updatedData = await updateRes.json();
-      const resItem = Array.isArray(updatedData) && updatedData.length > 0 ? updatedData[0] : null;
-      return { exp_date: resItem?.exp_date || expDateNew, license: resItem };
+      return Array.isArray(updatedData) && updatedData.length > 0 ? updatedData[0] : { exp_date: expDateNew };
     } else {
       bodyPayload.device_id = deviceId;
       bodyPayload.client_name = clientName;
@@ -256,8 +117,7 @@ async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, pake
         cache: 'no-store'
       });
       const insertedData = await insertRes.json();
-      const resItem = Array.isArray(insertedData) && insertedData.length > 0 ? insertedData[0] : null;
-      return { exp_date: resItem?.exp_date || expDateNew, license: resItem };
+      return Array.isArray(insertedData) && insertedData.length > 0 ? insertedData[0] : { exp_date: expDateNew };
     }
   } catch (err) {
     console.error('[Catat Transaksi Error]:', err);
@@ -291,9 +151,6 @@ function parseReffId(reffId) {
   return { deviceId, paketHari };
 }
 
-// ------------------------------------------------------------------
-// HANDLER UTAMA SERVERLESS VERCEL
-// ------------------------------------------------------------------
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
   res.setHeader('Pragma', 'no-cache');
@@ -310,33 +167,19 @@ export default async function handler(req, res) {
   const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 
-  if (!SUPABASE_URL || !SUPABASE_KEY) {
-    return res.status(500).json({ error: 'Database Supabase belum dikonfigurasi di Environment Variables Vercel.' });
-  }
-
-  // Parse body secara aman
-  let parsedBody = req.body || {};
-  if (typeof parsedBody === 'string') {
-    try {
-      parsedBody = JSON.parse(parsedBody);
-    } catch (e) {
-      parsedBody = {};
-    }
-  }
-
-  const query = req.query || {};
-  const action = query.action || parsedBody?.action;
-  const reff_id = query.reff_id || query.ref_id || parsedBody?.reff_id || parsedBody?.ref_id;
-  const device_id = query.device_id || parsedBody?.device_id;
-  const sppg_name = parsedBody?.sppg_name || query?.sppg_name;
-  let paket_hari = query.paket_hari || parsedBody?.paket_hari;
+  const { query, body = {} } = req;
+  const action = query.action || body?.action;
+  const reff_id = query.reff_id || query.ref_id || body?.reff_id || body?.ref_id;
+  const device_id = query.device_id || body?.device_id;
+  const sppg_name = body?.sppg_name || query?.sppg_name;
+  let paket_hari = query.paket_hari || body?.paket_hari;
 
   // ==========================================
-  // SINKRONISASI / REGISTRASI NAMA SPPG
+  // SINKRONISASI / REGISTRASI NAMA SPPG (NEW)
   // ==========================================
   if (action === 'register_sppg' && req.method === 'POST') {
-    const targetDevId = parsedBody.device_id || device_id;
-    const targetSppgName = parsedBody.sppg_name || sppg_name;
+    const targetDevId = body.device_id || device_id;
+    const targetSppgName = body.sppg_name || sppg_name;
 
     if (!targetDevId || !targetSppgName) {
       return res.status(400).json({ error: 'Device ID dan Nama SPPG wajib disertakan.' });
@@ -348,7 +191,7 @@ export default async function handler(req, res) {
         cache: 'no-store'
       });
       const licData = await getRes.json();
-      const timestampWIB = getWIBTimestamp();
+      const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
 
       if (Array.isArray(licData) && licData.length > 0) {
         await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(targetDevId)}`, {
@@ -374,7 +217,6 @@ export default async function handler(req, res) {
           body: JSON.stringify({
             device_id: targetDevId,
             sppg_name: targetSppgName,
-            license_key: generateCompactLicenseKey(),
             status: 'unregistered',
             client_name: 'Registrasi Awal Userscript',
             updated_at: timestampWIB
@@ -413,7 +255,7 @@ export default async function handler(req, res) {
   }
 
   if (action === 'save_release' && req.method === 'POST') {
-    const { version, download_url, changelog } = parsedBody;
+    const { version, download_url, changelog } = body;
 
     if (!version || !download_url) {
       return res.status(400).json({ error: 'Versi dan URL download wajib diisi.' });
@@ -426,9 +268,9 @@ export default async function handler(req, res) {
     };
 
     try {
-      const timestampWIB = getWIBTimestamp();
+      const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
 
-      await fetch(`${SUPABASE_URL}/rest/v1/releases`, {
+      const saveRes = await fetch(`${SUPABASE_URL}/rest/v1/releases`, {
         method: 'POST',
         headers: {
           'apikey': SUPABASE_KEY,
@@ -500,7 +342,7 @@ export default async function handler(req, res) {
   }
 
   if (action === 'save_packages' && req.method === 'POST') {
-    const newPackages = parsedBody.packages;
+    const newPackages = body.packages;
     try {
       await fetch(`${SUPABASE_URL}/rest/v1/packages?id=neq.0`, {
         method: 'DELETE',
@@ -536,7 +378,7 @@ export default async function handler(req, res) {
   }
 
   if (action === 'save_vouchers' && req.method === 'POST') {
-    const newVouchers = parsedBody.vouchers;
+    const newVouchers = body.vouchers;
     try {
       await fetch(`${SUPABASE_URL}/rest/v1/vouchers?id=neq.0`, {
         method: 'DELETE',
@@ -575,7 +417,8 @@ export default async function handler(req, res) {
       const transactions = await resTrans.json();
       const listTrans = Array.isArray(transactions) ? transactions : [];
 
-      const hariIniStr = getWIBDateString();
+      const nowWIB = new Date();
+      const hariIniStr = nowWIB.toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
 
       let harian = 0;
       let mingguan = 0;
@@ -586,7 +429,7 @@ export default async function handler(req, res) {
       for (let i = 6; i >= 0; i--) {
         const d = new Date();
         d.setDate(d.getDate() - i);
-        datesArray.push(getWIBDateString(d));
+        datesArray.push(d.toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }));
       }
 
       listTrans.forEach(t => {
@@ -618,16 +461,16 @@ export default async function handler(req, res) {
   // 6. BACKUP KPM CLOUD
   // ==========================================
   if (action === 'save_backup' && req.method === 'POST') {
-    const devIdBackup = parsedBody.device_id || device_id;
-    const backupData = parsedBody.backup_data;
+    const devIdBackup = body.device_id || device_id;
+    const backupData = body.backup_data;
     if (!devIdBackup || !backupData) {
       return res.status(400).json({ error: 'Device ID dan data backup wajib diisi.' });
     }
     try {
       const nowWIB = new Date();
       nowWIB.setDate(nowWIB.getDate() + 3);
-      const expiresAtWIB = getWIBTimestamp(nowWIB);
-      const timestampWIB = getWIBTimestamp();
+      const expiresAtWIB = nowWIB.toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
+      const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
 
       const resUpsert = await fetch(`${SUPABASE_URL}/rest/v1/backups`, {
         method: 'POST',
@@ -652,7 +495,7 @@ export default async function handler(req, res) {
   }
 
   if (action === 'delete_backup' && req.method === 'POST') {
-    const devIdBackup = parsedBody.device_id || device_id;
+    const devIdBackup = body.device_id || device_id;
     if (!devIdBackup) {
       return res.status(400).json({ error: 'Device ID wajib disertakan.' });
     }
@@ -668,7 +511,7 @@ export default async function handler(req, res) {
   }
 
   if (action === 'get_backup') {
-    const devIdBackup = query.device_id || parsedBody?.device_id;
+    const devIdBackup = query.device_id || body?.device_id;
     if (!devIdBackup) {
       return res.status(400).json({ error: 'Device ID wajib disertakan.' });
     }
@@ -682,7 +525,7 @@ export default async function handler(req, res) {
         const backupRecord = bData[0];
 
         if (backupRecord.expires_at) {
-          const nowWIBStr = getWIBTimestamp();
+          const nowWIBStr = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
           if (nowWIBStr > backupRecord.expires_at) {
             await fetch(`${SUPABASE_URL}/rest/v1/backups?device_id=eq.${encodeURIComponent(devIdBackup)}`, {
               method: 'DELETE',
@@ -704,8 +547,8 @@ export default async function handler(req, res) {
   // 7. OPER / TRANSFER DEVICE ID
   // ==========================================
   if (action === 'transfer_device' && req.method === 'POST') {
-    const sourceId = parsedBody.source_device_id;
-    const targetId = parsedBody.target_device_id;
+    const sourceId = body.source_device_id;
+    const targetId = body.target_device_id;
 
     if (!sourceId || !targetId) {
       return res.status(400).json({ error: 'Device ID Asal dan Tujuan wajib diisi.' });
@@ -737,7 +580,7 @@ export default async function handler(req, res) {
         expiresAtToTransfer = srcBackupData[0].expires_at;
       }
 
-      const timestampWIB = getWIBTimestamp();
+      const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
 
       await fetch(`${SUPABASE_URL}/rest/v1/licenses`, {
         method: 'POST',
@@ -750,7 +593,7 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           device_id: targetId,
           sppg_name: sourceLicense.sppg_name || '',
-          license_key: sourceLicense.license_key || generateCompactLicenseKey(),
+          license_key: sourceLicense.license_key,
           exp_date: sourceLicense.exp_date,
           status: sourceLicense.status,
           client_name: sourceLicense.client_name || 'Migrasi Oper Device',
@@ -811,12 +654,12 @@ export default async function handler(req, res) {
       if (lic.status === 'revoked') return res.status(200).json({ valid: false, status: 'revoked', msg: 'Akses dicabut oleh Admin.' });
       if (lic.status === 'hold') return res.status(200).json({ valid: false, status: 'hold', msg: 'Lisensi dalam penangguhan.' });
 
-      const hariIniWIB = getWIBDateString();
+      const hariIniWIB = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
       if (lic.exp_date && lic.exp_date < hariIniWIB) {
         return res.status(200).json({ valid: false, status: 'expired', exp_date: lic.exp_date, sppg_name: lic.sppg_name || '', msg: 'Lisensi Anda telah kadaluarsa.' });
       }
 
-      const timestampWIB = getWIBTimestamp();
+      const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
       await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(device_id)}`, {
         method: 'PATCH',
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
@@ -834,37 +677,11 @@ export default async function handler(req, res) {
   // ==========================================
   if (req.method === 'POST') {
 
-    // PROSES HANDLER WEBHOOK TOKOPAY RESMI
-    const isWebhookTokopay = parsedBody && (parsedBody.status || parsedBody.reference || (parsedBody.data && parsedBody.data.merchant_id));
-
-    if (isWebhookTokopay) {
-      const statusCallback = String(parsedBody.status || parsedBody.data?.status || parsedBody.raw_status || '').toLowerCase();
-      const refIdCallback = parsedBody.reff_id || parsedBody.ref_id || parsedBody.data?.reff_id || parsedBody.custom_int;
-      const isLunasCallback = statusCallback === 'success' || statusCallback === 'paid' || statusCallback === 'completed';
-
-      if (isLunasCallback && refIdCallback) {
-        let { deviceId: targetDevId, paketHari: targetPaketHari } = parseReffId(refIdCallback);
-
-        if (!targetDevId) {
-          targetDevId = parsedBody.device_id || device_id;
-        }
-
-        let nominalBayar = Number(parsedBody.data?.total_diterima || parsedBody.data?.total_dibayar || parsedBody.total_bayar || parsedBody.nominal || 0);
-
-        if (targetDevId) {
-          await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, targetDevId, targetPaketHari, nominalBayar, 'Webhook Tokopay', sppg_name || '');
-          await perbaruiStatusPendingOrder(SUPABASE_URL, SUPABASE_KEY, refIdCallback, 'success');
-          return res.status(200).json({ status: true, message: 'Webhook processed successfully' });
-        }
-      }
-      return res.status(200).json({ status: true, message: 'Callback received' });
-    }
-
-    if (parsedBody.action === 'record_successful_payment') {
-      const devIdTarget = parsedBody.device_id || device_id;
-      const paketHariTarget = Number(parsedBody.paket_hari || 7);
-      const amountTarget = Number(parsedBody.amount || 0);
-      const sppgTarget = parsedBody.sppg_name || sppg_name || '';
+    if (body.action === 'record_successful_payment') {
+      const devIdTarget = body.device_id || device_id;
+      const paketHariTarget = Number(body.paket_hari || 7);
+      const amountTarget = Number(body.amount || 0);
+      const sppgTarget = body.sppg_name || sppg_name || '';
 
       if (!devIdTarget) {
         return res.status(400).json({ error: 'Device ID wajib disertakan.' });
@@ -880,18 +697,15 @@ export default async function handler(req, res) {
           'AutoPayment Frontend',
           sppgTarget
         );
-        if (reff_id) {
-          await perbaruiStatusPendingOrder(SUPABASE_URL, SUPABASE_KEY, reff_id, 'success');
-        }
         return res.status(200).json({ success: true, exp_date: savedInfo?.exp_date });
       } catch (err) {
         return res.status(500).json({ error: 'Gagal mencatat pembayaran.' });
       }
     }
 
-    if (parsedBody.action === 'claim_trial') {
-      const devIdTarget = parsedBody.device_id || device_id;
-      const sppgTarget = parsedBody.sppg_name || sppg_name || '';
+    if (body.action === 'claim_trial') {
+      const devIdTarget = body.device_id || device_id;
+      const sppgTarget = body.sppg_name || sppg_name || '';
 
       if (!devIdTarget) {
         return res.status(400).json({ error: 'Device ID wajib disertakan.' });
@@ -928,8 +742,8 @@ export default async function handler(req, res) {
       }
     }
 
-    if (parsedBody.action === 'claim_voucher') {
-      const { voucher_code, device_id: devIdTarget, sppg_name: sppgTarget } = parsedBody;
+    if (body.action === 'claim_voucher') {
+      const { voucher_code, device_id: devIdTarget, sppg_name: sppgTarget } = body;
       const cleanVoucher = (voucher_code || '').trim().toUpperCase();
 
       if (!cleanVoucher || !devIdTarget) {
@@ -987,21 +801,21 @@ export default async function handler(req, res) {
       }
     }
 
-    if (parsedBody.action === 'save_license') {
-      const sppgTarget = parsedBody.sppg_name || sppg_name || '';
-      await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, parsedBody.device_id, parsedBody.paket_hari || 7, parsedBody.nominal || 0, 'Admin Manual', sppgTarget);
+    if (body.action === 'save_license') {
+      const sppgTarget = body.sppg_name || sppg_name || '';
+      await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, body.device_id, body.paket_hari || 7, body.nominal || 0, 'Admin Manual', sppgTarget);
 
-      const timestampWIB = getWIBTimestamp();
+      const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
       const patchPayload = {
-        exp_date: parsedBody.exp_date,
-        status: parsedBody.status,
-        license_key: parsedBody.license_key || generateCompactLicenseKey(),
+        exp_date: body.exp_date,
+        status: body.status,
+        license_key: body.license_key,
         updated_at: timestampWIB
       };
 
       if (sppgTarget) patchPayload.sppg_name = sppgTarget;
 
-      await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(parsedBody.device_id)}`, {
+      await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(body.device_id)}`, {
         method: 'PATCH',
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(patchPayload)
@@ -1009,24 +823,42 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
-    if (parsedBody.action === 'delete_license') {
-      await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(parsedBody.device_id)}`, {
+    if (body.action === 'delete_license') {
+      await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(body.device_id)}`, {
         method: 'DELETE',
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
       });
       return res.status(200).json({ success: true });
     }
 
-    // ==========================================
-    // PROSES CREATE ORDER DENGAN CATATAN PENDING
-    // ==========================================
+    // WEBHOOK TOKOPAY
     const merchantId = process.env.TOKOPAY_MERCHANT_ID;
     const secretKey = process.env.TOKOPAY_SECRET_KEY;
+    const isWebhookTokopay = body && (body.tr_id || (body.status && !body.paket_hari));
+
+    if (isWebhookTokopay) {
+      const statusCallback = String(body.status || body.raw_status || '').toLowerCase();
+      const refIdCallback = body.reff_id || body.ref_id || body.custom_int;
+      const isLunasCallback = statusCallback === 'success' || statusCallback === 'paid' || statusCallback === 'completed';
+
+      if (isLunasCallback && refIdCallback) {
+        const { deviceId: targetDevId, paketHari: targetPaketHari } = parseReffId(refIdCallback);
+        let nominalBayar = Number(body.total_bayar || body.nominal || 0);
+
+        if (targetDevId) {
+          await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, targetDevId, targetPaketHari, nominalBayar);
+          return res.status(200).json({ status: true, message: 'Webhook processed successfully' });
+        }
+      }
+      return res.status(200).json({ status: true, message: 'Callback received' });
+    }
+
     if (!merchantId || !secretKey) return res.status(500).json({ error: 'Kunci API Tokopay belum diatur.' });
 
-    const paketHariFix = Number(parsedBody.paket_hari || paket_hari || 7);
+    const cleanDevId = (body.device_id || device_id || 'UNKNOWN').replace(/[^a-zA-Z0-9]/g, '');
+    const paketHariFix = Number(body.paket_hari || paket_hari || 7);
 
-    let nominal = Number(parsedBody.nominal || 0);
+    let nominal = Number(body.nominal || 0);
     if (!nominal || nominal <= 0) {
       try {
         const pkgRes = await fetch(`${SUPABASE_URL}/rest/v1/packages?hari=eq.${paketHariFix}&select=*`, {
@@ -1044,50 +876,17 @@ export default async function handler(req, res) {
       nominal = paketHariFix === 30 ? 50000 : 100;
     }
 
-    let refIdOrder = parsedBody.reff_id || parsedBody.ref_id || query.reff_id || query.ref_id;
-    if (!refIdOrder || typeof refIdOrder !== 'string') {
-      refIdOrder = generateClean14CharReffId();
-    }
-
-    const targetDevId = parsedBody.device_id || device_id;
-    const targetSppg = parsedBody.sppg_name || sppg_name || '';
-
-    // Catat data awal ke tabel pending_orders
-    if (targetDevId) {
-      await catatPendingOrder(
-        SUPABASE_URL,
-        SUPABASE_KEY,
-        refIdOrder,
-        targetDevId,
-        targetSppg,
-        paketHariFix,
-        nominal
-      );
-    }
-
+    const refIdOrder = reff_id || `SIPGN__${cleanDevId}__${paketHariFix}__${Date.now()}`;
     const signature = crypto.createHash('md5').update(`${merchantId}:${secretKey}:${refIdOrder}`).digest('hex');
 
     try {
-      const tokopayRes = await fetch(`https://api.tokopay.id/v1/order?merchant=${merchantId}&secret=${secretKey}&reff_id=${encodeURIComponent(refIdOrder)}&ref_id=${encodeURIComponent(refIdOrder)}&nominal=${nominal}&metode=${parsedBody.metode || 'QRISREALTIME'}&signature=${signature}`, { cache: 'no-store' });
+      const tokopayRes = await fetch(`https://api.tokopay.id/v1/order?merchant=${merchantId}&secret=${secretKey}&reff_id=${encodeURIComponent(refIdOrder)}&ref_id=${encodeURIComponent(refIdOrder)}&nominal=${nominal}&metode=${body.metode || 'QRISREALTIME'}&signature=${signature}`, { cache: 'no-store' });
       const tokopayData = await tokopayRes.json();
 
       const innerData = tokopayData?.data?.data || tokopayData?.data || tokopayData;
       const qr_link = innerData?.qr_link || innerData?.qr_url || innerData?.pay_url || null;
       const qr_string = innerData?.qr_string || innerData?.qr_code || innerData?.qr_content || null;
       const total_bayar = innerData?.total_bayar || innerData?.nominal || innerData?.total || nominal;
-
-      // Update nominal pasti jika terdapat penyesuaian nominal dari Tokopay
-      if (targetDevId && total_bayar !== nominal) {
-        await catatPendingOrder(
-          SUPABASE_URL,
-          SUPABASE_KEY,
-          refIdOrder,
-          targetDevId,
-          targetSppg,
-          paketHariFix,
-          total_bayar
-        );
-      }
 
       return res.status(200).json({
         success: true,
@@ -1111,46 +910,38 @@ export default async function handler(req, res) {
     const secretKey = process.env.TOKOPAY_SECRET_KEY;
     if (!merchantId || !secretKey) return res.status(200).json({ is_paid: false, error: 'Kunci Tokopay belum diatur.' });
 
-    const cleanReffId = String(reff_id).trim();
-    const signature = crypto.createHash('md5').update(`${merchantId}:${secretKey}:${cleanReffId}`).digest('hex');
+    const signature = crypto.createHash('md5').update(`${merchantId}:${secretKey}:${reff_id}`).digest('hex');
 
     try {
-      const tokopayRes = await fetch(`https://api.tokopay.id/v1/order/status?merchant=${merchantId}&secret=${secretKey}&reff_id=${encodeURIComponent(cleanReffId)}&ref_id=${encodeURIComponent(cleanReffId)}&signature=${signature}`, { cache: 'no-store' });
+      const tokopayRes = await fetch(`https://api.tokopay.id/v1/order/status?merchant=${merchantId}&secret=${secretKey}&reff_id=${encodeURIComponent(reff_id)}&ref_id=${encodeURIComponent(reff_id)}&signature=${signature}`, { cache: 'no-store' });
       const tokopayData = await tokopayRes.json();
 
       const innerData = tokopayData?.data?.data || tokopayData?.data || tokopayData;
-
-      const statusTransaksi = String(tokopayData?.status || innerData?.status || innerData?.raw_status || '').toLowerCase();
+      const statusTransaksi = String(innerData?.status || innerData?.raw_status || tokopayData?.status || '').toLowerCase();
 
       const isLunas = statusTransaksi === 'success' || statusTransaksi === 'paid' || statusTransaksi === 'completed' || tokopayData?.is_paid === true;
 
       if (isLunas) {
-        let { deviceId: parsedDevId, paketHari: parsedPaketHari } = parseReffId(cleanReffId);
+        let { deviceId: targetDevId, paketHari: targetPaketHari } = parseReffId(reff_id);
+        if (!targetDevId) targetDevId = device_id;
+        if (!paket_hari && targetPaketHari) paket_hari = targetPaketHari;
 
-        let targetDevId = device_id || query.device_id || parsedBody?.device_id || parsedDevId;
-        let targetPaketHari = Number(paket_hari || query.paket_hari || parsedBody?.paket_hari || parsedPaketHari || 7);
-        let targetSppgName = sppg_name || query.sppg_name || parsedBody?.sppg_name || '';
+        let nominalBayar = Number(innerData?.total_bayar || innerData?.nominal || 0);
 
-        let nominalBayar = Number(tokopayData?.data?.total_diterima || tokopayData?.data?.total_dibayar || innerData?.total_bayar || innerData?.nominal || 0);
+        if (!targetDevId) return res.status(200).json({ is_paid: false, error: 'Device ID tidak terdeteksi.' });
 
-        if (!targetDevId) return res.status(200).json({ is_paid: false, error: 'Device ID tidak terdeteksi dari request browser.' });
-
-        const savedInfo = await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, targetDevId, targetPaketHari, nominalBayar, 'User QRIS Realtime', targetSppgName);
-
-        // Tandai status pending_orders sebagai success
-        await perbaruiStatusPendingOrder(SUPABASE_URL, SUPABASE_KEY, cleanReffId, 'success');
+        const savedInfo = await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, targetDevId, targetPaketHari, nominalBayar);
 
         return res.status(200).json({
           is_paid: true,
-          success: true,
           status: 'Success',
           exp_date: savedInfo?.exp_date || null
         });
       }
 
-      return res.status(200).json({ is_paid: false, success: false, raw_status: tokopayData?.status || innerData?.status || 'Unpaid' });
+      return res.status(200).json({ is_paid: false, raw_status: innerData?.status || 'Unpaid' });
     } catch (err) {
-      return res.status(200).json({ is_paid: false, success: false, error: 'Gagal mengecek status Tokopay.' });
+      return res.status(200).json({ is_paid: false, error: 'Gagal mengecek status Tokopay.' });
     }
   }
 

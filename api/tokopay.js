@@ -62,20 +62,25 @@ function generateClean14CharReffId() {
 // HELPER PENCATATAN PENDING ORDER KE DATABASE
 // ------------------------------------------------------------------
 async function catatPendingOrder(supabaseUrl, supabaseKey, reffId, deviceId, sppgName, paketHari, amount) {
-  if (!supabaseUrl || !supabaseKey || !reffId || !deviceId) return null;
+  if (!supabaseUrl || !supabaseKey || !reffId || !deviceId) {
+    console.warn('[Pending Order] Missing required parameters:', { reffId, deviceId });
+    return null;
+  }
 
   try {
-    const timestampWIB = getWIBTimestamp();
+    const isoNow = new Date().toISOString();
     const payload = {
-      reff_id: reffId,
-      device_id: deviceId,
-      sppg_name: sppgName || '',
+      reff_id: String(reffId).trim(),
+      device_id: String(deviceId).trim(),
+      sppg_name: sppgName ? String(sppgName).trim() : '',
       paket_hari: Number(paketHari || 7),
       amount: Number(amount || 0),
       status: 'pending',
-      created_at: timestampWIB,
-      updated_at: timestampWIB
+      created_at: isoNow,
+      updated_at: isoNow
     };
+
+    console.log('[Pending Order] Inserting to Supabase:', payload);
 
     const resUpsert = await fetch(`${supabaseUrl}/rest/v1/pending_orders`, {
       method: 'POST',
@@ -88,23 +93,22 @@ async function catatPendingOrder(supabaseUrl, supabaseKey, reffId, deviceId, spp
       body: JSON.stringify(payload)
     });
 
+    const resText = await resUpsert.text();
     if (!resUpsert.ok) {
-      const errTxt = await resUpsert.text();
-      console.error('[Pending Order DB Error]:', errTxt);
+      console.error(`[Pending Order DB Error ${resUpsert.status}]:`, resText);
     } else {
-      console.log(`[Pending Order DB Success] Order ${reffId} tercatat sebagai pending.`);
+      console.log('[Pending Order DB Success]:', resText);
     }
   } catch (err) {
     console.error('[Catat Pending Order Exception]:', err);
   }
 }
 
-// Helper Update Status Pending Order & Hapus Order Lama (> 24 Jam)
 async function perbaruiStatusPendingOrder(supabaseUrl, supabaseKey, reffId, status = 'success') {
   if (!supabaseUrl || !supabaseKey || !reffId) return;
 
   try {
-    const timestampWIB = getWIBTimestamp();
+    const isoNow = new Date().toISOString();
     await fetch(`${supabaseUrl}/rest/v1/pending_orders?reff_id=eq.${encodeURIComponent(reffId)}`, {
       method: 'PATCH',
       headers: {
@@ -114,18 +118,8 @@ async function perbaruiStatusPendingOrder(supabaseUrl, supabaseKey, reffId, stat
       },
       body: JSON.stringify({
         status: status,
-        updated_at: timestampWIB
+        updated_at: isoNow
       })
-    });
-
-    // Opsional: Hapus record pending_orders yang sudah berumur lebih dari 24 jam
-    const batasWaktu24Jam = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    await fetch(`${supabaseUrl}/rest/v1/pending_orders?created_at=lt.${encodeURIComponent(batasWaktu24Jam)}`, {
-      method: 'DELETE',
-      headers: {
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${supabaseKey}`
-      }
     });
   } catch (err) {
     console.error('[Perbarui Pending Order Error]:', err);
@@ -855,11 +849,9 @@ export default async function handler(req, res) {
           'AutoPayment Frontend',
           sppgTarget
         );
-        
         if (reff_id) {
           await perbaruiStatusPendingOrder(SUPABASE_URL, SUPABASE_KEY, reff_id, 'success');
         }
-
         return res.status(200).json({ success: true, exp_date: savedInfo?.exp_date });
       } catch (err) {
         return res.status(500).json({ error: 'Gagal mencatat pembayaran.' });
@@ -995,7 +987,7 @@ export default async function handler(req, res) {
     }
 
     // ==========================================
-    // PROSES CREATE ORDER (BUAT QRIS & CATAT PENDING ORDER)
+    // PROSES CREATE ORDER DENGAN CATATAN PENDING
     // ==========================================
     const merchantId = process.env.TOKOPAY_MERCHANT_ID;
     const secretKey = process.env.TOKOPAY_SECRET_KEY;
@@ -1026,6 +1018,22 @@ export default async function handler(req, res) {
       refIdOrder = generateClean14CharReffId();
     }
 
+    const targetDevId = parsedBody.device_id || device_id;
+    const targetSppg = parsedBody.sppg_name || sppg_name || '';
+
+    // Catat data awal ke tabel pending_orders
+    if (targetDevId) {
+      await catatPendingOrder(
+        SUPABASE_URL,
+        SUPABASE_KEY,
+        refIdOrder,
+        targetDevId,
+        targetSppg,
+        paketHariFix,
+        nominal
+      );
+    }
+
     const signature = crypto.createHash('md5').update(`${merchantId}:${secretKey}:${refIdOrder}`).digest('hex');
 
     try {
@@ -1037,13 +1045,8 @@ export default async function handler(req, res) {
       const qr_string = innerData?.qr_string || innerData?.qr_code || innerData?.qr_content || null;
       const total_bayar = innerData?.total_bayar || innerData?.nominal || innerData?.total || nominal;
 
-      // -------------------------------------------------------------
-      // DI SINI PERBAIKAN UTAMA: CATAT ORDER PENDING KE SUPABASE
-      // -------------------------------------------------------------
-      const targetDevId = parsedBody.device_id || device_id;
-      const targetSppg = parsedBody.sppg_name || sppg_name || '';
-
-      if (targetDevId) {
+      // Update nominal pasti jika berbeda setelah perhitungan Tokopay
+      if (targetDevId && total_bayar !== nominal) {
         await catatPendingOrder(
           SUPABASE_URL,
           SUPABASE_KEY,
@@ -1103,7 +1106,7 @@ export default async function handler(req, res) {
 
         const savedInfo = await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, targetDevId, targetPaketHari, nominalBayar, 'User QRIS Realtime', targetSppgName);
 
-        // PERBARUI STATUS PENDING ORDER MENJADI SUCCESS
+        // Tandai status pending_orders sebagai success
         await perbaruiStatusPendingOrder(SUPABASE_URL, SUPABASE_KEY, cleanReffId, 'success');
 
         return res.status(200).json({

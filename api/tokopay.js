@@ -636,12 +636,25 @@ export default async function handler(req, res) {
   }
 
   // ==========================================
-  // 8. CHECK LICENSE
+  // 8. CHECK LICENSE (MENGIRIM STATUS Qris Enabled)
   // ==========================================
   if (action === 'check_license') {
     if (!device_id) return res.status(200).json({ valid: false, msg: 'Device ID tidak ditemukan.' });
 
     try {
+      // Ambil status saklar QRIS dari tabel settings (jika ada, default true)
+      let qrisEnabled = true;
+      try {
+        const setRes = await fetch(`${SUPABASE_URL}/rest/v1/settings?key=eq.qris_enabled&select=*`, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+          cache: 'no-store'
+        });
+        const setData = await setRes.json();
+        if (Array.isArray(setData) && setData.length > 0) {
+          qrisEnabled = setData[0].value === true || setData[0].value === 'true' || setData[0].value === '1';
+        }
+      } catch (e) {}
+
       const getRes = await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(device_id)}`, {
         method: 'GET',
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
@@ -650,13 +663,13 @@ export default async function handler(req, res) {
       const licenses = await getRes.json();
       const lic = Array.isArray(licenses) && licenses.length > 0 ? licenses[0] : null;
 
-      if (!lic) return res.status(200).json({ valid: false, status: 'unregistered', msg: 'Device ID belum terdaftar.' });
-      if (lic.status === 'revoked') return res.status(200).json({ valid: false, status: 'revoked', msg: 'Akses dicabut oleh Admin.' });
-      if (lic.status === 'hold') return res.status(200).json({ valid: false, status: 'hold', msg: 'Lisensi dalam penangguhan.' });
+      if (!lic) return res.status(200).json({ valid: false, status: 'unregistered', qris_enabled: qrisEnabled, msg: 'Device ID belum terdaftar.' });
+      if (lic.status === 'revoked') return res.status(200).json({ valid: false, status: 'revoked', qris_enabled: qrisEnabled, msg: 'Akses dicabut oleh Admin.' });
+      if (lic.status === 'hold') return res.status(200).json({ valid: false, status: 'hold', qris_enabled: qrisEnabled, msg: 'Lisensi dalam penangguhan.' });
 
       const hariIniWIB = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
       if (lic.exp_date && lic.exp_date < hariIniWIB) {
-        return res.status(200).json({ valid: false, status: 'expired', exp_date: lic.exp_date, sppg_name: lic.sppg_name || '', msg: 'Lisensi Anda telah kadaluarsa.' });
+        return res.status(200).json({ valid: false, status: 'expired', exp_date: lic.exp_date, qris_enabled: qrisEnabled, sppg_name: lic.sppg_name || '', msg: 'Lisensi Anda telah kadaluarsa.' });
       }
 
       const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
@@ -666,9 +679,9 @@ export default async function handler(req, res) {
         body: JSON.stringify({ updated_at: timestampWIB })
       });
 
-      return res.status(200).json({ valid: true, status: 'active', exp_date: lic.exp_date, sppg_name: lic.sppg_name || '' });
+      return res.status(200).json({ valid: true, status: 'active', qris_enabled: qrisEnabled, exp_date: lic.exp_date, sppg_name: lic.sppg_name || '' });
     } catch (e) {
-      return res.status(200).json({ valid: false, msg: 'Gagal verifikasi lisensi.' });
+      return res.status(200).json({ valid: false, qris_enabled: true, msg: 'Gagal verifikasi lisensi.' });
     }
   }
 

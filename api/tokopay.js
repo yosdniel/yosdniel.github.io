@@ -651,7 +651,12 @@ export default async function handler(req, res) {
         const setData = await setRes.json();
         if (Array.isArray(setData) && setData.length > 0) {
           const val = setData[0].value;
-          qrisEnabled = val === true || val === 'true' || val === 1 || val === '1';
+          // Perbaikan logika evaluasi agar akurat mendeteksi false/0 baik berupa string maupun boolean
+          if (val === false || val === 'false' || val === 0 || val === '0') {
+            qrisEnabled = false;
+          } else if (val === true || val === 'true' || val === 1 || val === '1') {
+            qrisEnabled = true;
+          }
         }
       } catch (e) {}
 

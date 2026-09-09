@@ -22,7 +22,7 @@
   // ------------------------------------------------------------------
   const CURRENT_VERSION = (typeof GM_info !== 'undefined' && GM_info.script)
     ? GM_info.script.version
-    : '1.5.45';
+    : '1.5.48';
 
   const VERCEL_API_URL = 'https://mindspace-id.vercel.app/api/tokopay';
 
@@ -982,7 +982,7 @@ ${changelog}
 
       const currentDevId = dapatkanDeviceID();
 
-      let serverStatusData = cachedServerStatus || { status: 'unregistered', valid: false, exp_date: null, msg: '' };
+      let serverStatusData = cachedServerStatus || { status: 'unregistered', valid: false, exp_date: null, msg: '', qris_enabled: true };
 
       if (!cachedServerStatus) {
         try {
@@ -992,15 +992,18 @@ ${changelog}
               url: `${VERCEL_API_URL}?action=check_license&device_id=${encodeURIComponent(currentDevId)}&_t=${Date.now()}`,
               headers: { 'Cache-Control': 'no-cache, no-store' },
               onload: (res) => {
-                try { resolve(JSON.parse(res.responseText)); } catch(e) { resolve({ valid: false }); }
+                try { resolve(JSON.parse(res.responseText)); } catch(e) { resolve({ valid: false, qris_enabled: true }); }
               },
-              onerror: () => resolve({ valid: false })
+              onerror: () => resolve({ valid: false, qris_enabled: true })
             });
           });
           serverStatusData = checkRes;
           cachedServerStatus = checkRes;
         } catch(e) {}
       }
+
+      // PERIKSA SAKLAR PEMBAYARAN QRIS DARI AKUN/SETTINGS ADMIN DARD-BOARD
+      const isQrisEnabled = serverStatusData.qris_enabled !== false;
 
       const isUserBaru = serverStatusData.status && serverStatusData.status === 'unregistered';
       const rawStatus = serverStatusData.status || (serverStatusData.valid ? 'active' : 'expired');
@@ -1093,18 +1096,25 @@ ${changelog}
                      🎁 Claim Free Trial (24 Jam)
                    </button>`
                 : `<!-- TAMPILAN PEMBAYARAN QRIS & VOUCHER UNTUK USER LAMA -->
-                   <div id="sipgn-wrapper-paket" style="text-align: left;">
-                     <label style="display: block; font-size: 11px; font-weight: 600; color: #cbd5e1; margin-bottom: 6px;">Pilih Paket Durasi :</label>
-                     <select id="sipgn-select-paket" style="width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 12px; margin-bottom: 12px; outline: none;">
-                       <option value="">⏳ Memuat paket...</option>
-                     </select>
-                   </div>
+                   ${isQrisEnabled ? `
+                     <div id="sipgn-wrapper-paket" style="text-align: left;">
+                       <label style="display: block; font-size: 11px; font-weight: 600; color: #cbd5e1; margin-bottom: 6px;">Pilih Paket Durasi :</label>
+                       <select id="sipgn-select-paket" style="width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 12px; margin-bottom: 12px; outline: none;">
+                         <option value="">⏳ Memuat paket...</option>
+                       </select>
+                     </div>
 
-                   <button id="sipgn-btn-buy-qris" style="width: 100%; padding: 11px; border: none; border-radius: 10px; background: #10b981; color: white; font-weight: 600; cursor: pointer; font-size: 12px; transition: 0.2s; margin-bottom: 12px;">
-                     💳 Bayar via QRIS
-                   </button>
+                     <button id="sipgn-btn-buy-qris" style="width: 100%; padding: 11px; border: none; border-radius: 10px; background: #10b981; color: white; font-weight: 600; cursor: pointer; font-size: 12px; transition: 0.2s; margin-bottom: 12px;">
+                       💳 Bayar via QRIS
+                     </button>
+                   ` : `
+                     <!-- INFOBAR JIKA QRIS DIMATIKAN ADMIN -->
+                     <div style="background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3); color: #fef08a; padding: 10px 12px; border-radius: 10px; font-size: 11px; text-align: center; margin-bottom: 12px; line-height: 1.4;">
+                       ⚠️ <b>Pembayaran QRIS Ditutup Sementara.</b><br>Silakan gunakan kode voucher untuk melakukan perpanjangan lisensi.
+                     </div>
+                   `}
 
-                   <!-- VOUCHER SECTION (DIBAWAH TOMBOL BAYAR QRIS) -->
+                   <!-- VOUCHER SECTION -->
                    <div id="sipgn-voucher-section" style="text-align: left; border-top: 1px dashed rgba(51, 65, 85, 0.8); padding-top: 12px;">
                      <label style="display: block; font-size: 11px; font-weight: 600; color: #38bdf8; margin-bottom: 6px;">Klaim Kode Voucher:</label>
                      <div style="display: flex; gap: 6px; margin-bottom: 4px;">
@@ -1169,10 +1179,23 @@ ${changelog}
           };
         }
 
-        const selectPaket = document.getElementById('sipgn-select-paket');
-        const btnBeli = document.getElementById('sipgn-btn-buy-qris');
+        if (isQrisEnabled) {
+          const selectPaket = document.getElementById('sipgn-select-paket');
+          const btnBeli = document.getElementById('sipgn-btn-buy-qris');
 
-        muatDaftarPaketKeSelect(selectPaket, btnBeli);
+          muatDaftarPaketKeSelect(selectPaket, btnBeli);
+
+          if (btnBeli) {
+            btnBeli.onclick = () => {
+              if (!selectPaket || !selectPaket.value) {
+                tampilkanModalAlertModern('Perhatian', 'Silakan pilih paket durasi terlebih dahulu.', false);
+                return;
+              }
+              const hari = Number(selectPaket.value);
+              prosesPembayaranOtomatis(hari);
+            };
+          }
+        }
 
         const inputVoucher = document.getElementById('sipgn-input-voucher');
         const btnApplyVoucher = document.getElementById('sipgn-btn-apply-voucher');
@@ -1212,17 +1235,6 @@ ${changelog}
               btnApplyVoucher.disabled = false;
               btnApplyVoucher.textContent = 'Klaim';
             }
-          };
-        }
-
-        if (btnBeli) {
-          btnBeli.onclick = () => {
-            if (!selectPaket || !selectPaket.value) {
-              tampilkanModalAlertModern('Perhatian', 'Silakan pilih paket durasi terlebih dahulu.', false);
-              return;
-            }
-            const hari = Number(selectPaket.value);
-            prosesPembayaranOtomatis(hari);
           };
         }
       }
@@ -2835,7 +2847,6 @@ ${changelog}
           const data = JSON.parse(res.responseText);
           cachedServerStatus = data; // Simpan cache respon status lisensi
 
-          // PERBAIKAN: Ambil nama SPPG dari database jika ada
           if (data && data.sppg_name) {
             simpanNamaSPPG(data.sppg_name);
           }

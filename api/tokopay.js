@@ -651,7 +651,7 @@ export default async function handler(req, res) {
         const setData = await setRes.json();
         if (Array.isArray(setData) && setData.length > 0) {
           const val = setData[0].value;
-          // Perbaikan logika evaluasi agar akurat mendeteksi false/0 baik berupa string maupun boolean
+          // Mendukung pengecekan baik tipe boolean maupun string teks dari kolom database
           if (val === false || val === 'false' || val === 0 || val === '0') {
             qrisEnabled = false;
           } else if (val === true || val === 'true' || val === 1 || val === '1') {
@@ -697,7 +697,8 @@ export default async function handler(req, res) {
 
     if (body.action === 'save_setting') {
       const settingKey = body.key;
-      const settingValue = body.value;
+      // Konversi nilai boolean menjadi string jika diperlukan agar sesuai dengan kolom database bertipe text
+      const settingValue = typeof body.value === 'boolean' ? String(body.value) : body.value;
 
       if (!settingKey) {
         return res.status(400).json({ error: 'Key setting wajib diisi.' });

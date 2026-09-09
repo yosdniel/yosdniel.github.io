@@ -2,9 +2,9 @@ import crypto from 'crypto';
 
 // In-Memory Fallback Release Data
 let globalReleaseCache = {
-  version: '1.5.45',
+  version: '1.5.46',
   download_url: 'https://mindspace-id.vercel.app/sipgn-autofill.user.js',
-  changelog: 'Pembaruan fitur sinkronisasi nama SPPG & perbaikan tata letak UI.'
+  changelog: 'Pembaruan fitur sinkronisasi nama SPPG, format license key ringkas 14 karakter & perbaikan tata letak UI.'
 };
 
 function calculateExpiryDate(currentExpStr, daysToAdd) {
@@ -23,6 +23,17 @@ function calculateExpiryDate(currentExpStr, daysToAdd) {
   const mm = String(baseDate.getMonth() + 1).padStart(2, '0');
   const dd = String(baseDate.getDate()).padStart(2, '0');
   return `${yyyy}-${mm}-${dd}`;
+}
+
+// Helper untuk menghasilkan License Key ringkas (Total 14 Karakter: MIND-XXXXXXXXXX)
+function generateCompactLicenseKey() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  const randomBytes = crypto.randomBytes(10);
+  let result = '';
+  for (let i = 0; i < 10; i++) {
+    result += chars[randomBytes[i] % chars.length];
+  }
+  return `MIND-${result}`;
 }
 
 async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, paketHari, nominal = 0, clientName = 'User QRIS / Voucher', sppgName = '') {
@@ -70,9 +81,9 @@ async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, pake
     const activeLicense = Array.isArray(existing) && existing.length > 0 ? existing[0] : null;
 
     const expDateNew = calculateExpiryDate(activeLicense?.exp_date, paketHari);
-    const nonce = Math.floor(Math.random() * 16777215).toString(16).toUpperCase();
-    const payload = `${expDateNew}|${deviceId}|AutoPayment|MINDSTUDIO2026|${nonce}`;
-    const licenseKeyNew = `MIND-${btoa(payload).split('').reverse().join('')}`;
+    
+    // Gunakan Key lama jika ada, jika tidak buat baru format MIND-XXXXXXXXXX (14 karakter)
+    const licenseKeyNew = activeLicense?.license_key || generateCompactLicenseKey();
 
     const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
 
@@ -175,7 +186,7 @@ export default async function handler(req, res) {
   let paket_hari = query.paket_hari || body?.paket_hari;
 
   // ==========================================
-  // SINKRONISASI / REGISTRASI NAMA SPPG (NEW)
+  // SINKRONISASI / REGISTRASI NAMA SPPG
   // ==========================================
   if (action === 'register_sppg' && req.method === 'POST') {
     const targetDevId = body.device_id || device_id;
@@ -217,6 +228,7 @@ export default async function handler(req, res) {
           body: JSON.stringify({
             device_id: targetDevId,
             sppg_name: targetSppgName,
+            license_key: generateCompactLicenseKey(),
             status: 'unregistered',
             client_name: 'Registrasi Awal Userscript',
             updated_at: timestampWIB
@@ -270,7 +282,7 @@ export default async function handler(req, res) {
     try {
       const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
 
-      const saveRes = await fetch(`${SUPABASE_URL}/rest/v1/releases`, {
+      await fetch(`${SUPABASE_URL}/rest/v1/releases`, {
         method: 'POST',
         headers: {
           'apikey': SUPABASE_KEY,
@@ -593,7 +605,7 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           device_id: targetId,
           sppg_name: sourceLicense.sppg_name || '',
-          license_key: sourceLicense.license_key,
+          license_key: sourceLicense.license_key || generateCompactLicenseKey(),
           exp_date: sourceLicense.exp_date,
           status: sourceLicense.status,
           client_name: sourceLicense.client_name || 'Migrasi Oper Device',
@@ -809,7 +821,7 @@ export default async function handler(req, res) {
       const patchPayload = {
         exp_date: body.exp_date,
         status: body.status,
-        license_key: body.license_key,
+        license_key: body.license_key || generateCompactLicenseKey(),
         updated_at: timestampWIB
       };
 
@@ -876,7 +888,9 @@ export default async function handler(req, res) {
       nominal = paketHariFix === 30 ? 50000 : 100;
     }
 
-    const refIdOrder = reff_id || `SIPGN__${cleanDevId}__${paketHariFix}__${Date.now()}`;
+    // Reff ID Unik (Timestamp + Random Hex)
+    const randomHex = crypto.randomBytes(3).toString('hex').toUpperCase();
+    const refIdOrder = reff_id || `SIPGN__${cleanDevId}__${paketHariFix}__${Date.now()}_${randomHex}`;
     const signature = crypto.createHash('md5').update(`${merchantId}:${secretKey}:${refIdOrder}`).digest('hex');
 
     try {
@@ -934,14 +948,15 @@ export default async function handler(req, res) {
 
         return res.status(200).json({
           is_paid: true,
+          success: true,
           status: 'Success',
           exp_date: savedInfo?.exp_date || null
         });
       }
 
-      return res.status(200).json({ is_paid: false, raw_status: innerData?.status || 'Unpaid' });
+      return res.status(200).json({ is_paid: false, success: false, raw_status: innerData?.status || 'Unpaid' });
     } catch (err) {
-      return res.status(200).json({ is_paid: false, error: 'Gagal mengecek status Tokopay.' });
+      return res.status(200).json({ is_paid: false, success: false, error: 'Gagal mengecek status Tokopay.' });
     }
   }
 

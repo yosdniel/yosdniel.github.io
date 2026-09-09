@@ -600,7 +600,7 @@
           body: JSON.stringify({
             action: 'save_setting',
             key: 'qris_enabled',
-            value: newState,
+            value: newState, // Mengirim boolean murni (true/false) agar tersimpan konsisten di database
             admin_secret: adminPasswordSecret
           })
         });

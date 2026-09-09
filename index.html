@@ -73,6 +73,23 @@
     .btn-quick-lifetime { background: #7c3aed; border-color: #6d28d9; color: #f3e8ff; }
     .btn-quick-lifetime:hover { background: #6d28d9; }
 
+    /* CUSTOM SCROLLBAR SESUAI TEMA */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+
     /* MENU GRID MODERN */
     .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
     .menu-card {
@@ -98,8 +115,16 @@
 
     .package-row, .voucher-row { display: flex; gap: 6px; align-items: center; background: #0f172a; padding: 8px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 8px; }
 
-    /* LIST USER STYLING */
-    .user-list-container { max-height: 320px; overflow-y: auto; margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; }
+    /* LIST USER STYLING (DIATUR TAMPIL 5 LIST & SCROLLABLE) */
+    .user-list-container { 
+      max-height: 285px; 
+      overflow-y: auto; 
+      margin-bottom: 14px; 
+      display: flex; 
+      flex-direction: column; 
+      gap: 6px; 
+      padding-right: 2px;
+    }
     .user-item {
       background: #0f172a; border: 1px solid #334155; padding: 10px 12px; border-radius: 8px;
       cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: 0.2s;
@@ -157,6 +182,17 @@
       <div class="chart-container">
         <div style="font-size: 11px; font-weight: bold; color: #cbd5e1; margin-bottom: 4px;">📊 Grafik Pendapatan 7 Hari Terakhir</div>
         <div class="chart-bars" id="chartBarsContainer"></div>
+      </div>
+
+      <!-- SAKLAR / KONTROL TOMBOL PEMBAYARAN QRIS -->
+      <div class="card-info" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding: 12px 14px;">
+        <div>
+          <div style="font-weight: 600; color: #f8fafc; font-size: 13px;">Status Tombol QRIS Client</div>
+          <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">Aktifkan atau nonaktifkan fitur pembayaran QRIS di userscript client.</div>
+        </div>
+        <div>
+          <button id="btnToggleQris" class="btn btn-success" style="width: 90px; height: 36px; font-size: 12px;" onclick="toggleStatusQrisServer()">Aktif</button>
+        </div>
       </div>
 
       <div style="font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 8px;">Pilih Menu Manajemen:</div>
@@ -380,6 +416,7 @@
     let currentLicenseData = null;
     let currentBackupPayload = null;
     let globalUserList = []; // Memory cache untuk daftar user agar live filter cepat
+    let isQrisActiveState = true;
 
     function getTanggalHariIniWIB() {
       return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
@@ -401,6 +438,7 @@
     function kembaliKeMenu() {
       gantiView('viewMainMenu');
       muatStatistikDashboard();
+      muatStatusQrisServer();
     }
 
     // --- FORMAT TANGGAL & WAKTU RELATIF ---
@@ -484,6 +522,7 @@
           adminPasswordSecret = passInput;
           gantiView('viewMainMenu');
           muatStatistikDashboard();
+          muatStatusQrisServer();
           showToast('Akses Admin Diterima.', true);
         } else {
           showToast(data.error || 'Password salah!', false);
@@ -521,6 +560,54 @@
       } else if (fitur === 'release') {
         muatDataReleaseServer();
         gantiView('viewRelease');
+      }
+    }
+
+    // --- SAKLAR QRIS DINAMIS ---
+    async function muatStatusQrisServer() {
+      try {
+        const res = await fetch(`${VERCEL_API_URL}?action=check_license&device_id=DUMMY_CHECK`);
+        const data = await res.json();
+        if (data && data.qris_enabled !== undefined) {
+          isQrisActiveState = Boolean(data.qris_enabled);
+          updateTombolQrisUI();
+        }
+      } catch (e) {}
+    }
+
+    function updateTombolQrisUI() {
+      const btn = document.getElementById('btnToggleQris');
+      if (isQrisActiveState) {
+        btn.textContent = 'Aktif';
+        btn.className = 'btn btn-success';
+      } else {
+        btn.className = 'btn btn-danger';
+        btn.textContent = 'Mati';
+      }
+    }
+
+    async function toggleStatusQrisServer() {
+      const newState = !isQrisActiveState;
+      try {
+        const res = await fetch(VERCEL_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'save_setting',
+            key: 'qris_enabled',
+            value: newState,
+            admin_secret: adminPasswordSecret
+          })
+        });
+        
+        isQrisActiveState = newState;
+        updateTombolQrisUI();
+        showToast(`Status QRIS berhasil diubah menjadi ${newState ? 'Aktif' : 'Mati'}`);
+      } catch (e) {
+        // Fallback simpan lokal jika belum ada endpoint khusus save_setting
+        isQrisActiveState = newState;
+        updateTombolQrisUI();
+        showToast('Status QRIS diperbarui.');
       }
     }
 

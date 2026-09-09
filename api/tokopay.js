@@ -59,7 +59,7 @@ function generateClean14CharReffId() {
 }
 
 // ------------------------------------------------------------------
-// HELPER PENCATATAN PENDING ORDER KE DATABASE
+// HELPER PENCATATAN PENDING ORDER KE DATABASE (FIXED FOR 400 ERROR)
 // ------------------------------------------------------------------
 async function catatPendingOrder(supabaseUrl, supabaseKey, reffId, deviceId, sppgName, paketHari, amount) {
   if (!supabaseUrl || !supabaseKey || !reffId || !deviceId) {
@@ -68,36 +68,67 @@ async function catatPendingOrder(supabaseUrl, supabaseKey, reffId, deviceId, spp
   }
 
   try {
+    const cleanReffId = String(reffId).trim();
+    const cleanDevId = String(deviceId).trim();
     const isoNow = new Date().toISOString();
+
     const payload = {
-      reff_id: String(reffId).trim(),
-      device_id: String(deviceId).trim(),
+      reff_id: cleanReffId,
+      device_id: cleanDevId,
       sppg_name: sppgName ? String(sppgName).trim() : '',
       paket_hari: Number(paketHari || 7),
       amount: Number(amount || 0),
       status: 'pending',
-      created_at: isoNow,
       updated_at: isoNow
     };
 
-    console.log('[Pending Order] Inserting to Supabase:', payload);
-
-    const resUpsert = await fetch(`${supabaseUrl}/rest/v1/pending_orders`, {
-      method: 'POST',
+    // 1. Cek apakah reff_id sudah ada di database
+    const checkRes = await fetch(`${supabaseUrl}/rest/v1/pending_orders?reff_id=eq.${encodeURIComponent(cleanReffId)}`, {
+      method: 'GET',
       headers: {
         'apikey': supabaseKey,
-        'Authorization': `Bearer ${supabaseKey}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates,return=representation'
+        'Authorization': `Bearer ${supabaseKey}`
       },
-      body: JSON.stringify(payload)
+      cache: 'no-store'
     });
 
-    const resText = await resUpsert.text();
-    if (!resUpsert.ok) {
-      console.error(`[Pending Order DB Error ${resUpsert.status}]:`, resText);
+    const existingOrders = await checkRes.json();
+
+    if (Array.isArray(existingOrders) && existingOrders.length > 0) {
+      // 2. Jika sudah ada, Lakukan Update (PATCH)
+      const patchRes = await fetch(`${supabaseUrl}/rest/v1/pending_orders?reff_id=eq.${encodeURIComponent(cleanReffId)}`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify(payload)
+      });
+      const patchTxt = await patchRes.text();
+      console.log('[Pending Order Update Success]:', patchTxt);
     } else {
-      console.log('[Pending Order DB Success]:', resText);
+      // 3. Jika belum ada, Lakukan Insert Baru (POST)
+      payload.created_at = isoNow;
+
+      const postRes = await fetch(`${supabaseUrl}/rest/v1/pending_orders?on_conflict=reff_id`, {
+        method: 'POST',
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const postTxt = await postRes.text();
+      if (!postRes.ok) {
+        console.error(`[Pending Order Insert Error ${postRes.status}]:`, postTxt);
+      } else {
+        console.log('[Pending Order Insert Success]:', postTxt);
+      }
     }
   } catch (err) {
     console.error('[Catat Pending Order Exception]:', err);
@@ -234,7 +265,7 @@ async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, pake
   }
 }
 
-// Helper Parser Device ID dari reff_id (Cadangan untuk format lama)
+// Helper Parser Device ID dari reff_id
 function parseReffId(reffId) {
   if (!reffId || typeof reffId !== 'string' || !reffId.includes('__')) {
     return { deviceId: null, paketHari: 7 };
@@ -283,7 +314,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Database Supabase belum dikonfigurasi di Environment Variables Vercel.' });
   }
 
-  // Parse body secara aman jika berupa JSON string
+  // Parse body secara aman
   let parsedBody = req.body || {};
   if (typeof parsedBody === 'string') {
     try {
@@ -1045,7 +1076,7 @@ export default async function handler(req, res) {
       const qr_string = innerData?.qr_string || innerData?.qr_code || innerData?.qr_content || null;
       const total_bayar = innerData?.total_bayar || innerData?.nominal || innerData?.total || nominal;
 
-      // Update nominal pasti jika berbeda setelah perhitungan Tokopay
+      // Update nominal pasti jika terdapat penyesuaian nominal dari Tokopay
       if (targetDevId && total_bayar !== nominal) {
         await catatPendingOrder(
           SUPABASE_URL,

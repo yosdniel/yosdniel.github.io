@@ -175,6 +175,28 @@ export default async function handler(req, res) {
   let paket_hari = query.paket_hari || body?.paket_hari;
 
   // ==========================================
+  // GET GLOBAL SETTING (QRIS STATUS, DLL)
+  // ==========================================
+  if (action === 'get_setting' || (query.action === 'get_settings' && query.key)) {
+    const targetKey = query.key || 'qris_enabled';
+    try {
+      const setRes = await fetch(`${SUPABASE_URL}/rest/v1/settings?key=eq.${targetKey}&select=*`, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+        cache: 'no-store'
+      });
+      const setData = await setRes.json();
+      if (Array.isArray(setData) && setData.length > 0) {
+        const val = setData[0].value;
+        const isEnabled = !(val === false || val === 'false' || val === 0 || val === '0');
+        return res.status(200).json({ success: true, key: targetKey, value: isEnabled });
+      }
+      return res.status(200).json({ success: true, key: targetKey, value: true });
+    } catch (e) {
+      return res.status(200).json({ success: true, key: targetKey, value: true });
+    }
+  }
+
+  // ==========================================
   // SINKRONISASI / REGISTRASI NAMA SPPG (NEW)
   // ==========================================
   if (action === 'register_sppg' && req.method === 'POST') {

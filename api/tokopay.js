@@ -142,7 +142,7 @@ async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, pake
   }
 }
 
-// Helper Parser Device ID dari reff_id
+// Helper Parser Device ID dari reff_id (Cadangan untuk format lama)
 function parseReffId(reffId) {
   if (!reffId || typeof reffId !== 'string') {
     return { deviceId: null, paketHari: 7 };
@@ -948,19 +948,21 @@ export default async function handler(req, res) {
 
       const innerData = tokopayData?.data?.data || tokopayData?.data || tokopayData;
 
-      // Dukun Status Pengecekan (Sesuai Struktur Payload Tokopay Resmi)
+      // Status Pengecekan Sesuai Struktur Payload Tokopay Resmi
       const statusTransaksi = String(tokopayData?.status || innerData?.status || innerData?.raw_status || '').toLowerCase();
 
       const isLunas = statusTransaksi === 'success' || statusTransaksi === 'paid' || statusTransaksi === 'completed' || tokopayData?.is_paid === true;
 
       if (isLunas) {
         let { deviceId: parsedDevId, paketHari: parsedPaketHari } = parseReffId(cleanReffId);
-        let targetDevId = device_id || parsedDevId;
-        let targetPaketHari = Number(paket_hari || parsedPaketHari || 7);
+        
+        // Ambil Device ID langsung dari parameter request client polling
+        let targetDevId = device_id || query.device_id || body?.device_id || parsedDevId;
+        let targetPaketHari = Number(paket_hari || query.paket_hari || body?.paket_hari || parsedPaketHari || 7);
 
-        let nominalBayar = Number(tokopayData?.data?.total_diterima || innerData?.total_bayar || innerData?.nominal || 0);
+        let nominalBayar = Number(tokopayData?.data?.total_diterima || tokopayData?.data?.total_dibayar || innerData?.total_bayar || innerData?.nominal || 0);
 
-        if (!targetDevId) return res.status(200).json({ is_paid: false, error: 'Device ID tidak terdeteksi.' });
+        if (!targetDevId) return res.status(200).json({ is_paid: false, error: 'Device ID tidak terdeteksi dari request browser.' });
 
         const savedInfo = await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, targetDevId, targetPaketHari, nominalBayar);
 

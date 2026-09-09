@@ -636,13 +636,12 @@ export default async function handler(req, res) {
   }
 
   // ==========================================
-  // 8. CHECK LICENSE (MENGIRIM STATUS Qris Enabled)
+  // 8. CHECK LICENSE
   // ==========================================
   if (action === 'check_license') {
     if (!device_id) return res.status(200).json({ valid: false, msg: 'Device ID tidak ditemukan.' });
 
     try {
-      // Ambil status saklar QRIS dari tabel settings (jika ada, default true)
       let qrisEnabled = true;
       try {
         const setRes = await fetch(`${SUPABASE_URL}/rest/v1/settings?key=eq.qris_enabled&select=*`, {
@@ -651,7 +650,8 @@ export default async function handler(req, res) {
         });
         const setData = await setRes.json();
         if (Array.isArray(setData) && setData.length > 0) {
-          qrisEnabled = setData[0].value === true || setData[0].value === 'true' || setData[0].value === '1';
+          const val = setData[0].value;
+          qrisEnabled = val === true || val === 'true' || val === 1 || val === '1';
         }
       } catch (e) {}
 
@@ -689,6 +689,38 @@ export default async function handler(req, res) {
   // 9. POST ACTION HANDLERS (LISENSI & PEMBAYARAN)
   // ==========================================
   if (req.method === 'POST') {
+
+    if (body.action === 'save_setting') {
+      const settingKey = body.key;
+      const settingValue = body.value;
+
+      if (!settingKey) {
+        return res.status(400).json({ error: 'Key setting wajib diisi.' });
+      }
+
+      try {
+        const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
+        
+        await fetch(`${SUPABASE_URL}/rest/v1/settings`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=merge-duplicates'
+          },
+          body: JSON.stringify({
+            key: settingKey,
+            value: settingValue,
+            updated_at: timestampWIB
+          })
+        });
+
+        return res.status(200).json({ success: true, message: 'Setting berhasil disimpan.' });
+      } catch (err) {
+        return res.status(500).json({ error: 'Gagal menyimpan setting ke database.' });
+      }
+    }
 
     if (body.action === 'record_successful_payment') {
       const devIdTarget = body.device_id || device_id;

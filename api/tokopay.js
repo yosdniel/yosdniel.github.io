@@ -59,6 +59,80 @@ function generateClean14CharReffId() {
 }
 
 // ------------------------------------------------------------------
+// HELPER PENCATATAN PENDING ORDER KE DATABASE
+// ------------------------------------------------------------------
+async function catatPendingOrder(supabaseUrl, supabaseKey, reffId, deviceId, sppgName, paketHari, amount) {
+  if (!supabaseUrl || !supabaseKey || !reffId || !deviceId) return null;
+
+  try {
+    const timestampWIB = getWIBTimestamp();
+    const payload = {
+      reff_id: reffId,
+      device_id: deviceId,
+      sppg_name: sppgName || '',
+      paket_hari: Number(paketHari || 7),
+      amount: Number(amount || 0),
+      status: 'pending',
+      created_at: timestampWIB,
+      updated_at: timestampWIB
+    };
+
+    const resUpsert = await fetch(`${supabaseUrl}/rest/v1/pending_orders`, {
+      method: 'POST',
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates,return=representation'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!resUpsert.ok) {
+      const errTxt = await resUpsert.text();
+      console.error('[Pending Order DB Error]:', errTxt);
+    } else {
+      console.log(`[Pending Order DB Success] Order ${reffId} tercatat sebagai pending.`);
+    }
+  } catch (err) {
+    console.error('[Catat Pending Order Exception]:', err);
+  }
+}
+
+// Helper Update Status Pending Order & Hapus Order Lama (> 24 Jam)
+async function perbaruiStatusPendingOrder(supabaseUrl, supabaseKey, reffId, status = 'success') {
+  if (!supabaseUrl || !supabaseKey || !reffId) return;
+
+  try {
+    const timestampWIB = getWIBTimestamp();
+    await fetch(`${supabaseUrl}/rest/v1/pending_orders?reff_id=eq.${encodeURIComponent(reffId)}`, {
+      method: 'PATCH',
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        status: status,
+        updated_at: timestampWIB
+      })
+    });
+
+    // Opsional: Hapus record pending_orders yang sudah berumur lebih dari 24 jam
+    const batasWaktu24Jam = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    await fetch(`${supabaseUrl}/rest/v1/pending_orders?created_at=lt.${encodeURIComponent(batasWaktu24Jam)}`, {
+      method: 'DELETE',
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`
+      }
+    });
+  } catch (err) {
+    console.error('[Perbarui Pending Order Error]:', err);
+  }
+}
+
+// ------------------------------------------------------------------
 // PENYIMPANAN TRANSAKSI & PEMBARUAN LISENSI
 // ------------------------------------------------------------------
 async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, paketHari, nominal = 0, clientName = 'User QRIS / Voucher', sppgName = '') {
@@ -120,7 +194,6 @@ async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, pake
       updated_at: timestampWIB
     };
 
-    // Pertahankan nama SPPG jika dikirim atau gunakan nama SPPG lama dari DB
     if (sppgName) {
       bodyPayload.sppg_name = sppgName;
     } else if (activeLicense?.sppg_name) {
@@ -755,6 +828,7 @@ export default async function handler(req, res) {
 
         if (targetDevId) {
           await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, targetDevId, targetPaketHari, nominalBayar, 'Webhook Tokopay', sppg_name || '');
+          await perbaruiStatusPendingOrder(SUPABASE_URL, SUPABASE_KEY, refIdCallback, 'success');
           return res.status(200).json({ status: true, message: 'Webhook processed successfully' });
         }
       }
@@ -781,6 +855,11 @@ export default async function handler(req, res) {
           'AutoPayment Frontend',
           sppgTarget
         );
+        
+        if (reff_id) {
+          await perbaruiStatusPendingOrder(SUPABASE_URL, SUPABASE_KEY, reff_id, 'success');
+        }
+
         return res.status(200).json({ success: true, exp_date: savedInfo?.exp_date });
       } catch (err) {
         return res.status(500).json({ error: 'Gagal mencatat pembayaran.' });
@@ -915,6 +994,9 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
+    // ==========================================
+    // PROSES CREATE ORDER (BUAT QRIS & CATAT PENDING ORDER)
+    // ==========================================
     const merchantId = process.env.TOKOPAY_MERCHANT_ID;
     const secretKey = process.env.TOKOPAY_SECRET_KEY;
     if (!merchantId || !secretKey) return res.status(500).json({ error: 'Kunci API Tokopay belum diatur.' });
@@ -955,6 +1037,24 @@ export default async function handler(req, res) {
       const qr_string = innerData?.qr_string || innerData?.qr_code || innerData?.qr_content || null;
       const total_bayar = innerData?.total_bayar || innerData?.nominal || innerData?.total || nominal;
 
+      // -------------------------------------------------------------
+      // DI SINI PERBAIKAN UTAMA: CATAT ORDER PENDING KE SUPABASE
+      // -------------------------------------------------------------
+      const targetDevId = parsedBody.device_id || device_id;
+      const targetSppg = parsedBody.sppg_name || sppg_name || '';
+
+      if (targetDevId) {
+        await catatPendingOrder(
+          SUPABASE_URL,
+          SUPABASE_KEY,
+          refIdOrder,
+          targetDevId,
+          targetSppg,
+          paketHariFix,
+          total_bayar
+        );
+      }
+
       return res.status(200).json({
         success: true,
         reff_id: refIdOrder,
@@ -986,7 +1086,6 @@ export default async function handler(req, res) {
 
       const innerData = tokopayData?.data?.data || tokopayData?.data || tokopayData;
 
-      // Status Pengecekan Sesuai Struktur Payload Tokopay Resmi
       const statusTransaksi = String(tokopayData?.status || innerData?.status || innerData?.raw_status || '').toLowerCase();
 
       const isLunas = statusTransaksi === 'success' || statusTransaksi === 'paid' || statusTransaksi === 'completed' || tokopayData?.is_paid === true;
@@ -994,7 +1093,6 @@ export default async function handler(req, res) {
       if (isLunas) {
         let { deviceId: parsedDevId, paketHari: parsedPaketHari } = parseReffId(cleanReffId);
 
-        // Ambil Device ID langsung dari parameter request client polling
         let targetDevId = device_id || query.device_id || parsedBody?.device_id || parsedDevId;
         let targetPaketHari = Number(paket_hari || query.paket_hari || parsedBody?.paket_hari || parsedPaketHari || 7);
         let targetSppgName = sppg_name || query.sppg_name || parsedBody?.sppg_name || '';
@@ -1004,6 +1102,9 @@ export default async function handler(req, res) {
         if (!targetDevId) return res.status(200).json({ is_paid: false, error: 'Device ID tidak terdeteksi dari request browser.' });
 
         const savedInfo = await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, targetDevId, targetPaketHari, nominalBayar, 'User QRIS Realtime', targetSppgName);
+
+        // PERBARUI STATUS PENDING ORDER MENJADI SUCCESS
+        await perbaruiStatusPendingOrder(SUPABASE_URL, SUPABASE_KEY, cleanReffId, 'success');
 
         return res.status(200).json({
           is_paid: true,

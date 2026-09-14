@@ -13,46 +13,139 @@
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: #0b1329; color: #f8fafc; margin: 0; padding: 16px;
+      background: radial-gradient(circle at 50% 20%, #1e1b4b 0%, #0b1329 60%, #030712 100%);
+      color: #f8fafc; margin: 0; padding: 16px;
       display: flex; justify-content: center; align-items: center; min-height: 100vh;
+      perspective: 1200px;
+      overflow-x: hidden;
     }
-    .container {
-      width: 100%; max-width: 580px; background: #1e293b; border: 1px solid #334155;
-      border-radius: 20px; padding: 24px; box-shadow: 0 16px 36px rgba(0,0,0,0.5);
-    }
-    .header { text-align: center; margin-bottom: 20px; }
-    .header h1 { font-size: 20px; font-weight: 700; margin: 0; color: #f8fafc; }
-    .header p { font-size: 12px; color: #94a3b8; margin-top: 4px; }
     
+    /* 3D CONTAINER & CARD EFFECT */
+    .container {
+      width: 100%; max-width: 620px; 
+      background: rgba(30, 41, 59, 0.75); 
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 24px; padding: 28px; 
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7),
+                  0 0 40px rgba(37, 99, 235, 0.15),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      transform-style: preserve-3d;
+      transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.4s ease;
+      position: relative;
+    }
+
+    /* TOP BAR UTAMA UNTUK TOMBOL LOGIN DI POJOK KANAN ATAS */
+    .top-nav {
+      position: absolute;
+      top: 20px; right: 24px;
+      z-index: 10;
+    }
+    .btn-login-header {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: white; border: 1px solid rgba(56, 189, 248, 0.4);
+      padding: 6px 14px; border-radius: 8px; font-size: 11px; font-weight: 700;
+      cursor: pointer; transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+    }
+    .btn-login-header:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.6);
+      background: linear-gradient(135deg, #1d4ed8, #1e40af);
+    }
+
+    .header { text-align: center; margin-bottom: 24px; position: relative; }
+    .header h1 { font-size: 22px; font-weight: 800; margin: 0; background: linear-gradient(to right, #f8fafc, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .header p { font-size: 12px; color: #94a3b8; margin-top: 6px; letter-spacing: 0.5px; }
+    
+    /* 3D LANDING PAGE STYLING */
+    .landing-hero {
+      text-align: center;
+      padding: 10px 0 20px 0;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(37, 99, 235, 0.2);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      color: #38bdf8;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      margin-bottom: 14px;
+      animation: floatBadge 3s ease-in-out infinite;
+    }
+    @keyframes floatBadge {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-5px); }
+    }
+    .hero-cube-3d {
+      width: 80px; height: 80px;
+      margin: 0 auto 16px auto;
+      background: linear-gradient(135deg, #2563eb, #38bdf8);
+      border-radius: 18px;
+      box-shadow: 0 10px 30px rgba(37, 99, 235, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.4);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px;
+      transform: rotateX(15deg) rotateY(25deg);
+      animation: pulseCube 4s ease-in-out infinite;
+    }
+    @keyframes pulseCube {
+      0%, 100% { transform: rotateX(15deg) rotateY(25deg) scale(1); }
+      50% { transform: rotateX(25deg) rotateY(45deg) scale(1.05); box-shadow: 0 15px 35px rgba(56, 189, 248, 0.6); }
+    }
+    .landing-features {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px;
+    }
+    .landing-card {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(51, 65, 85, 0.8);
+      border-radius: 14px; padding: 14px; text-align: left;
+      transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      transform: translateZ(10px);
+    }
+    .landing-card:hover {
+      border-color: #38bdf8;
+      transform: translateY(-4px) translateZ(15px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4), 0 0 15px rgba(56, 189, 248, 0.15);
+      background: rgba(19, 28, 49, 0.9);
+    }
+    .landing-card h4 { margin: 0 0 4px 0; font-size: 13px; color: #f8fafc; }
+    .landing-card p { margin: 0; font-size: 11px; color: #94a3b8; line-height: 1.4; }
+
     .field-group { margin-bottom: 14px; }
     label { font-size: 12px; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 6px; }
     input, select, textarea {
       width: 100%; padding: 10px 14px; border-radius: 10px;
       border: 1px solid #334155; background: #0f172a; color: #f8fafc; font-size: 14px;
-      outline: none; transition: border-color 0.2s; font-family: inherit;
+      outline: none; transition: border-color 0.2s, box-shadow 0.2s; font-family: inherit;
     }
     input { height: 44px; }
     select { height: 44px; }
-    input:focus, select:focus, textarea:focus { border-color: #38bdf8; }
+    input:focus, select:focus, textarea:focus { 
+      border-color: #38bdf8; 
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+    }
     
     .btn {
       width: 100%; height: 44px; border-radius: 10px; border: none;
       font-weight: 700; font-size: 13px; cursor: pointer; transition: 0.2s;
       display: flex; align-items: center; justify-content: center; gap: 8px;
     }
-    .btn-primary { background: #2563eb; color: white; }
-    .btn-primary:hover { background: #1d4ed8; }
-    .btn-success { background: #059669; color: white; }
-    .btn-success:hover { background: #047857; }
-    .btn-danger { background: #dc2626; color: white; }
-    .btn-danger:hover { background: #b91c1c; }
+    .btn-primary { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
+    .btn-primary:hover { background: linear-gradient(135deg, #1d4ed8, #1e40af); transform: translateY(-1px); }
+    .btn-success { background: linear-gradient(135deg, #059669, #047857); color: white; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3); }
+    .btn-success:hover { background: linear-gradient(135deg, #047857, #065f46); }
+    .btn-danger { background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3); }
+    .btn-danger:hover { background: linear-gradient(135deg, #b91c1c, #991b1b); }
     .btn-secondary { background: #475569; color: white; }
     .btn-secondary:hover { background: #334155; }
-    .btn-warning { background: #d97706; color: white; }
-    .btn-warning:hover { background: #b45309; }
+    .btn-warning { background: linear-gradient(135deg, #d97706, #b45309); color: white; }
+    .btn-warning:hover { background: linear-gradient(135deg, #b45309, #92400e); }
     
     .card-info {
-      background: #0f172a; border: 1px solid #334155; border-radius: 12px;
+      background: rgba(15, 23, 42, 0.8); border: 1px solid #334155; border-radius: 12px;
       padding: 14px; margin-bottom: 14px; font-size: 13px; line-height: 1.6;
     }
     .badge {
@@ -74,21 +167,10 @@
     .btn-quick-lifetime:hover { background: #6d28d9; }
 
     /* CUSTOM SCROLLBAR SESUAI TEMA */
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #0f172a;
-      border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #334155;
-      border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #475569;
-    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
 
     /* MENU GRID MODERN */
     .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
@@ -115,7 +197,7 @@
 
     .package-row, .voucher-row { display: flex; gap: 6px; align-items: center; background: #0f172a; padding: 8px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 8px; }
 
-    /* LIST USER STYLING (DIATUR TAMPIL 5 LIST & SCROLLABLE) */
+    /* LIST USER STYLING */
     .user-list-container { 
       max-height: 285px; 
       overflow-y: auto; 
@@ -138,6 +220,7 @@
       position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
       background: #0f172a; border: 1px solid #334155; padding: 12px 20px;
       border-radius: 10px; font-size: 13px; display: none; z-index: 999; color: white;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
     }
 
     .view-section { display: none; }
@@ -147,19 +230,50 @@
 
   <div id="toast" class="toast"></div>
 
-  <div class="container">
+  <div class="container" id="mainContainer">
+    <!-- TOMBOL LOGIN DI POJOK KANAN ATAS -->
+    <div class="top-nav" id="topNavLogin">
+      <button class="btn-login-header" onclick="bukaHalamanLogin()">🔐 Admin Login</button>
+    </div>
+
     <div class="header">
-      <h1>Dashboard Admin Lisensi</h1>
-      <p>Mindspace Studio Admin Panel</p>
+      <h1 id="appTitle">Mindspace Studio</h1>
+      <p id="appSubtitle">Sistem Manajemen Lisensi & Automasi Cloud</p>
+    </div>
+
+    <!-- VIEW -1: LANDING PAGE 3D DESIGN -->
+    <div id="viewLandingPage" class="view-section" style="display: block;">
+      <div class="landing-hero">
+        <div class="hero-badge">⚡ Next-Gen License & Script Panel</div>
+        <div class="hero-cube-3d">🛡️</div>
+        <h2 style="font-size: 18px; margin: 0 0 8px 0; color: #f8fafc;">Welcome to Mindspace Studio</h2>
+        <p style="font-size: 12px; color: #94a3b8; margin: 0 0 20px 0; line-height: 1.5;">
+          Platform otorisasi lisensi aman, manajemen pengguna real-time, serta kontrol penuh skrip automasi dalam satu tampilan 3D modern.
+        </p>
+
+        <div class="landing-features">
+          <div class="landing-card">
+            <h4>🔒 Secure Auth</h4>
+            <p>Proteksi tingkat lanjut dengan enkripsi kunci unik per device.</p>
+          </div>
+          <div class="landing-card">
+            <h4>📊 Analytics</h4>
+            <p>Pantau statistik pendapatan & aktivitas harian secara akurat.</p>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="bukaHalamanLogin()" style="margin-top: 10px;">🚀 Masuk ke Dashboard Admin</button>
+      </div>
     </div>
 
     <!-- VIEW 0: LOGIN ADMIN -->
-    <div id="viewLogin" class="view-section" style="display: block;">
+    <div id="viewLogin" class="view-section">
       <div class="field-group">
         <label for="inputAdminPassword">Password Admin:</label>
         <input type="password" id="inputAdminPassword" placeholder="••••••••••••" onkeyup="if(event.key==='Enter') verifikasiAdminPassword()">
       </div>
-      <button class="btn btn-primary" id="btnLogin" onclick="verifikasiAdminPassword()">🔒 Masuk Ke Dashboard</button>
+      <button class="btn btn-primary" id="btnLogin" onclick="verifikasiAdminPassword()">🔒 Autentikasi Masuk</button>
+      <button class="btn btn-secondary" onclick="gantiView('viewLandingPage')" style="margin-top: 8px;">🔙 Kembali ke Beranda</button>
     </div>
 
     <!-- VIEW 1: MENU UTAMA & STATISTIK -->
@@ -241,10 +355,9 @@
 
     <!-- VIEW 2: FITUR LIST ALL USERS DENGAN TUNGGAL SEARCH FILTER -->
     <div id="viewDeviceCheck" class="view-section">
-      <!-- FITUR PENCARIAN TUNGGAL USER BERDASARKAN DEVICE ID & NAMA SPPG -->
       <div class="field-group">
-        <label for="searchUserQuery">Filter List User (Device ID / Nama SPPG):</label>
-        <input type="text" id="searchUserQuery" placeholder="🔍 Ketik Device ID atau Nama SPPG..." oninput="filterUserList()">
+        <label for="searchUserQuery">Filter List User (Device ID / Nama):</label>
+        <input type="text" id="searchUserQuery" placeholder="🔍 Ketik Device ID atau Nama..." oninput="filterUserList()">
       </div>
 
       <div style="font-size: 12px; font-weight: 600; color: #cbd5e1; margin: 12px 0 6px 0;">Daftar Seluruh User Terdaftar:</div>
@@ -259,15 +372,15 @@
     <div id="viewDeviceDetail" class="view-section">
       <div class="card-info">
         <div><b>Device ID:</b> <span id="dispDeviceId" style="color:#facc15;">-</span></div>
-        <div><b>Nama SPPG:</b> <span id="dispSppgName" style="color:#38bdf8;">-</span></div>
+        <div><b>Nama:</b> <span id="dispSppgName" style="color:#38bdf8;">-</span></div>
         <div><b>Status Saat Ini:</b> <span id="dispStatus">-</span></div>
         <div><b>Tanggal Kadaluarsa:</b> <span id="dispExpDate" style="color:#38bdf8;">-</span></div>
         <div><b>Terakhir Digunakan:</b> <span id="dispLastActive" style="color:#cbd5e1;">-</span></div>
       </div>
 
-      <!-- KONTROL BACKUP KPM -->
+      <!-- KONTROL BACKUP CLOUD -->
       <div class="card-info" id="backupInfoCard" style="display: none;">
-        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #38bdf8; font-weight: 600; margin-bottom: 6px;">Backup Cloud KPM</div>
+        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #38bdf8; font-weight: 600; margin-bottom: 6px;">Backup Cloud Data</div>
         <div><b>Nama File:</b> <span id="dispBackupFilename" style="color:#facc15; font-family: monospace;">-</span></div>
         <div><b>Waktu Backup:</b> <span id="dispBackupTime" style="color:#cbd5e1;">-</span></div>
         <div style="display: flex; gap: 8px; margin-top: 10px;">
@@ -276,10 +389,9 @@
         </div>
       </div>
 
-      <!-- INPUT UBAH NAMA SPPG -->
       <div class="field-group">
-        <label for="editSppgName">Ubah Nama SPPG:</label>
-        <input type="text" id="editSppgName" placeholder="Contoh: SPPG MEDAN KOTA">
+        <label for="editSppgName">Ubah Nama:</label>
+        <input type="text" id="editSppgName" placeholder="Contoh: Admin Studio">
       </div>
 
       <div class="field-group">
@@ -324,7 +436,7 @@
       <div class="card-info" style="border-color: #38bdf8;">
         <div style="font-size: 13px; font-weight: bold; color: #38bdf8; margin-bottom: 4px;">🔄 Migrasi & Pemindahan Device ID</div>
         <p style="margin: 0; font-size: 11px; color: #94a3b8; line-height: 1.4;">
-          Fitur ini memungkinkan Anda memindahkan masa aktif lisensi, status, nama SPPG, serta data backup cloud dari <b>Device Asal (Saat ini)</b> ke <b>Device Tujuan (Baru)</b>. Device asal akan dinonaktifkan/dihapus.
+          Pindahkan masa aktif lisensi, status, nama, serta data backup cloud dari <b>Device Asal</b> ke <b>Device Tujuan (Baru)</b>.
         </p>
       </div>
 
@@ -359,7 +471,7 @@
       </div>
     </div>
 
-    <!-- VIEW 5: FITUR KELOLA VOUCHER DISKON & DURASI -->
+    <!-- VIEW 5: FITUR KELOLA VOUCHER -->
     <div id="viewVouchers" class="view-section">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
         <label style="margin:0;">Kelola Kode Kupon / Voucher:</label>
@@ -379,7 +491,7 @@
       <div class="card-info" style="border-color: #0284c7;">
         <div style="font-size: 13px; font-weight: bold; color: #38bdf8; margin-bottom: 4px;">🚀 Publikasi Update Versi Terbaru</div>
         <p style="margin: 0; font-size: 11px; color: #94a3b8; line-height: 1.4;">
-          Data ini digunakan oleh <b>In-App Userscript</b> untuk mengecek pembaruan otomatis dan oleh <b>Landing Page Download</b>.
+          Data ini digunakan oleh <b>In-App Userscript</b> untuk mengecek pembaruan otomatis.
         </p>
       </div>
 
@@ -390,12 +502,12 @@
 
       <div class="field-group">
         <label for="inputDownloadUrl">URL Download File (.user.js):</label>
-        <input type="url" id="inputDownloadUrl" placeholder="https://mindspace-id.vercel.app/files/sipgn-autofill.user.js">
+        <input type="url" id="inputDownloadUrl" placeholder="https://mindspace-id.vercel.app/files/script.user.js">
       </div>
 
       <div class="field-group">
         <label for="inputChangelog">Catatan Perubahan (Changelog):</label>
-        <textarea id="inputChangelog" rows="4" placeholder="- Perbaikan bug autofill&#10;- Optimasi kecepatan muat data"></textarea>
+        <textarea id="inputChangelog" rows="4" placeholder="- Perbaikan bug&#10;- Optimasi kecepatan muat data"></textarea>
       </div>
 
       <div style="display: flex; gap: 8px; margin-top: 16px;">
@@ -415,8 +527,20 @@
     let adminPasswordSecret = '';
     let currentLicenseData = null;
     let currentBackupPayload = null;
-    let globalUserList = []; // Memory cache untuk daftar user agar live filter cepat
+    let globalUserList = [];
     let isQrisActiveState = true;
+
+    // Efek Interaktif 3D Tilt pada Container Utama berdasarkan Gerakan Mouse
+    const container = document.getElementById('mainContainer');
+    document.addEventListener('mousemove', (e) => {
+      const xAxis = (window.innerWidth / 2 - e.pageX) / 45;
+      const yAxis = (window.innerHeight / 2 - e.pageY) / 45;
+      container.style.transform = `rotateY(${xAxis}deg) rotateX(${yAxis}deg)`;
+    });
+
+    document.addEventListener('mouseleave', () => {
+      container.style.transform = `rotateY(0deg) rotateX(0deg)`;
+    });
 
     function getTanggalHariIniWIB() {
       return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
@@ -433,6 +557,26 @@
     function gantiView(viewId) {
       document.querySelectorAll('.view-section').forEach(el => el.style.display = 'none');
       document.getElementById(viewId).style.display = 'block';
+
+      // Sembunyikan tombol login di pojok kanan atas jika sedang di halaman login atau dashboard admin
+      const topNav = document.getElementById('topNavLogin');
+      if (viewId === 'viewLandingPage') {
+        topNav.style.display = 'block';
+        document.getElementById('appTitle').textContent = 'Mindspace Studio';
+        document.getElementById('appSubtitle').textContent = 'Sistem Manajemen Lisensi & Automasi Cloud';
+      } else if (viewId === 'viewLogin') {
+        topNav.style.display = 'none';
+        document.getElementById('appTitle').textContent = 'Admin Login';
+        document.getElementById('appSubtitle').textContent = 'Masukkan kata sandi akses administrator';
+      } else {
+        topNav.style.display = 'none';
+        document.getElementById('appTitle').textContent = 'Dashboard Admin Lisensi';
+        document.getElementById('appSubtitle').textContent = 'Mindspace Studio Admin Panel';
+      }
+    }
+
+    function bukaHalamanLogin() {
+      gantiView('viewLogin');
     }
 
     function kembaliKeMenu() {
@@ -441,20 +585,13 @@
       muatStatusQrisServer();
     }
 
-    // --- FORMAT TANGGAL & WAKTU RELATIF ---
     function formatTanggalIndo(dateString) {
       if (!dateString) return null;
       try {
         const d = new Date(dateString);
         if (isNaN(d.getTime())) return dateString;
-        return d.toLocaleDateString('id-ID', {
-          day: '2-digit',
-          month: 'long',
-          year: 'numeric'
-        });
-      } catch (e) {
-        return dateString;
-      }
+        return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+      } catch (e) { return dateString; }
     }
 
     function formatWaktuRelatif(dateString) {
@@ -462,35 +599,16 @@
       try {
         const targetDate = new Date(dateString);
         if (isNaN(targetDate.getTime())) return dateString;
-
         const sekarang = new Date();
         const selisihDetik = Math.floor((sekarang - targetDate) / 1000);
 
-        if (selisihDetik < 60) {
-          return 'Baru saja';
-        } else if (selisihDetik < 3600) {
-          const menit = Math.floor(selisihDetik / 60);
-          return `${menit} menit lalu`;
-        } else if (selisihDetik < 86400) {
-          const jam = Math.floor(selisihDetik / 3600);
-          return `${jam} jam lalu`;
-        } else {
-          const tgl = targetDate.toLocaleDateString('id-ID', {
-            day: '2-digit',
-            month: 'long',
-            year: 'numeric'
-          });
-          const waktu = targetDate.toLocaleTimeString('id-ID', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false,
-            timeZone: 'Asia/Jakarta'
-          });
-          return `${tgl}, ${waktu} WIB`;
+        if (selisihDetik < 60) return 'Baru saja';
+        else if (selisihDetik < 3600) return `${Math.floor(selisihDetik / 60)} menit lalu`;
+        else if (selisihDetik < 86400) return `${Math.floor(selisihDetik / 3600)} jam lalu`;
+        else {
+          return targetDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
         }
-      } catch (e) {
-        return dateString;
-      }
+      } catch (e) { return dateString; }
     }
 
     function buatLicenseKey(expDate, deviceId) {
@@ -515,7 +633,6 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ password: passInput })
         });
-
         const data = await res.json();
 
         if (res.ok && data.status) {
@@ -531,14 +648,14 @@
         showToast('Gagal terhubung ke API Verifikasi Password.', false);
       } finally {
         btnLogin.disabled = false;
-        btnLogin.textContent = '🔒 Masuk Ke Dashboard';
+        btnLogin.textContent = '🔒 Autentikasi Masuk';
       }
     }
 
     function logoutAdmin() {
       adminPasswordSecret = '';
       document.getElementById('inputAdminPassword').value = '';
-      gantiView('viewLogin');
+      gantiView('viewLandingPage');
       showToast('Berhasil keluar.', true);
     }
 
@@ -563,7 +680,6 @@
       }
     }
 
-    // --- SAKLAR QRIS DINAMIS ---
     async function muatStatusQrisServer() {
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=check_license&device_id=DUMMY_CHECK`);
@@ -589,7 +705,6 @@
     async function toggleStatusQrisServer() {
       const newState = !isQrisActiveState;
       const btn = document.getElementById('btnToggleQris');
-      
       btn.disabled = true;
       btn.textContent = '⏳...';
 
@@ -600,11 +715,10 @@
           body: JSON.stringify({
             action: 'save_setting',
             key: 'qris_enabled',
-            value: newState, // Mengirim boolean murni (true/false) agar tersimpan konsisten di database
+            value: newState,
             admin_secret: adminPasswordSecret
           })
         });
-        
         const result = await res.json();
         if (res.ok && (result.success || result.status)) {
           isQrisActiveState = newState;
@@ -622,7 +736,6 @@
       }
     }
 
-    // --- STATISTIK & CHART PENDAPATAN ---
     async function muatStatistikDashboard() {
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=get_stats`);
@@ -647,12 +760,9 @@
           `;
           chartContainer.appendChild(group);
         });
-      } catch (e) {
-        // Fallback jika gagal mengambil data statistik
-      }
+      } catch (e) {}
     }
 
-    // --- DAFTAR SEMUA USER & FITUR PENCARIAN ---
     async function muatDaftarSemuaUser() {
       const container = document.getElementById('listAllUsersContainer');
       container.innerHTML = '<div style="text-align: center; color: #94a3b8; font-size: 12px; padding: 15px;">⏳ Mengambil daftar user dari server...</div>';
@@ -661,7 +771,6 @@
         const res = await fetch(`${VERCEL_API_URL}?action=get_all_licenses`);
         const data = await res.json();
         globalUserList = data.licenses || data.users || [];
-
         renderUserList(globalUserList);
       } catch (e) {
         container.innerHTML = '<div style="text-align: center; color: #ef4444; font-size: 12px; padding: 15px;">Gagal memuat daftar user dari server.</div>';
@@ -684,22 +793,12 @@
         div.className = 'user-item';
         
         const rawLastActive = u.last_active || u.last_seen || u.updated_at || u.created_at;
-        let infoAktivitas = '';
-        
-        if (!rawLastActive) {
-          infoAktivitas = '<span style="color: #f59e0b;">Belum pernah aktif</span>';
-        } else {
-          infoAktivitas = `Terakhir aktif: <b>${formatWaktuRelatif(rawLastActive)}</b>`;
-        }
-
+        let infoAktivitas = !rawLastActive ? '<span style="color: #f59e0b;">Belum pernah aktif</span>' : `Terakhir aktif: <b>${formatWaktuRelatif(rawLastActive)}</b>`;
         const expFormatted = formatTanggalIndo(u.exp_date) || '-';
-        const namaSppgText = u.sppg_name ? `🏢 ${u.sppg_name}` : '<i style="color:#64748b;">(Belum Set SPPG)</i>';
+        const namaText = u.sppg_name ? `🏢 ${u.sppg_name}` : '<i style="color:#64748b;">(Tanpa Nama)</i>';
 
-        // PENENTUAN STATUS SEBENARNYA PADA DAFTAR LIST USER
         let statusAktual = u.status || 'active';
-        if (statusAktual === 'active' && u.exp_date && hariIni > u.exp_date) {
-          statusAktual = 'expired';
-        }
+        if (statusAktual === 'active' && u.exp_date && hariIni > u.exp_date) statusAktual = 'expired';
 
         let badgeClass = 'badge-unregistered';
         if (statusAktual === 'active') badgeClass = 'badge-active';
@@ -710,7 +809,7 @@
         div.innerHTML = `
           <div class="user-item-info">
             <div>${u.device_id}</div>
-            <div>${namaSppgText}</div>
+            <div>${namaText}</div>
             <div>Durasi s/d: <b>${expFormatted}</b><br>${infoAktivitas}</div>
           </div>
           <div><span class="badge ${badgeClass}">${statusAktual}</span></div>
@@ -722,17 +821,8 @@
 
     function filterUserList() {
       const query = document.getElementById('searchUserQuery').value.trim().toLowerCase();
-      if (!query) {
-        renderUserList(globalUserList);
-        return;
-      }
-
-      const filtered = globalUserList.filter(u => {
-        const devId = (u.device_id || '').toLowerCase();
-        const sppgName = (u.sppg_name || '').toLowerCase();
-        return devId.includes(query) || sppgName.includes(query);
-      });
-
+      if (!query) { renderUserList(globalUserList); return; }
+      const filtered = globalUserList.filter(u => (u.device_id || '').toLowerCase().includes(query) || (u.sppg_name || '').toLowerCase().includes(query));
       renderUserList(filtered);
     }
 
@@ -744,19 +834,14 @@
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=get_backup&device_id=${encodeURIComponent(deviceId)}&_t=${Date.now()}`);
         const data = await res.json();
-        
         const backupData = data.backup_data || data;
         if (backupData && (backupData.dataKPM || Array.isArray(backupData))) {
           currentBackupPayload = backupData;
-          const waktuBackup = data.created_at || backupData.dibuatPada || new Date().toISOString();
-          
-          document.getElementById('dispBackupFilename').textContent = `sipgn-autofill-backup-${deviceId}.json`;
-          document.getElementById('dispBackupTime').textContent = formatWaktuRelatif(waktuBackup);
+          document.getElementById('dispBackupFilename').textContent = `backup-${deviceId}.json`;
+          document.getElementById('dispBackupTime').textContent = formatWaktuRelatif(data.created_at || new Date().toISOString());
           backupInfoCard.style.display = 'block';
         }
-      } catch (e) {
-        // Abaikan jika backup tidak ditemukan
-      }
+      } catch (e) {}
     }
 
     function downloadBackupCloud() {
@@ -765,9 +850,8 @@
       const blob = new Blob([JSON.stringify(currentBackupPayload, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const tautan = document.createElement('a');
-      const tanggal = new Date().toISOString().slice(0, 10);
       tautan.href = url;
-      tautan.download = `sipgn-autofill-backup-${deviceId}-${tanggal}.json`;
+      tautan.download = `backup-${deviceId}-${new Date().toISOString().slice(0, 10)}.json`;
       document.body.appendChild(tautan);
       tautan.click();
       tautan.remove();
@@ -793,49 +877,31 @@
         } else {
           showToast('Gagal menghapus backup cloud.', false);
         }
-      } catch (e) {
-        showToast('Error koneksi server.', false);
-      }
+      } catch (e) { showToast('Error koneksi server.', false); }
     }
 
-    // --- FITUR OPER DEVICE ID (MIGRASI LISENSI & BACKUP) ---
     async function eksekusiOperDevice() {
       const sourceId = document.getElementById('inputSourceDevice').value.trim().toUpperCase();
       const targetId = document.getElementById('inputTargetDevice').value.trim().toUpperCase();
 
-      if (!sourceId || !targetId) {
-        return showToast('Masukkan Device ID Asal dan Device ID Tujuan!', false);
-      }
-      if (sourceId === targetId) {
-        return showToast('Device ID Asal dan Tujuan tidak boleh sama!', false);
-      }
-      if (!confirm(`Oper lisensi dari "${sourceId}" ke "${targetId}"? Device asal akan dihapus dan masa aktif dipindahkan.`)) {
-        return;
-      }
+      if (!sourceId || !targetId) return showToast('Masukkan Device ID Asal dan Tujuan!', false);
+      if (sourceId === targetId) return showToast('Device ID Asal dan Tujuan tidak boleh sama!', false);
+      if (!confirm(`Oper lisensi dari "${sourceId}" ke "${targetId}"?`)) return;
 
       try {
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'transfer_device',
-            source_device_id: sourceId,
-            target_device_id: targetId,
-            admin_secret: adminPasswordSecret
-          })
+          body: JSON.stringify({ action: 'transfer_device', source_device_id: sourceId, target_device_id: targetId, admin_secret: adminPasswordSecret })
         });
         const resData = await res.json();
         if (res.ok && (resData.success || resData.status)) {
           showToast('Berhasil mengoper device ID dan migrasi data!');
-          document.getElementById('inputSourceDevice').value = '';
-          document.getElementById('inputTargetDevice').value = '';
           bukaFitur('device');
         } else {
           showToast(resData.error || 'Gagal melakukan oper device.', false);
         }
-      } catch (e) {
-        showToast('Error koneksi server saat oper device.', false);
-      }
+      } catch (e) { showToast('Error koneksi server.', false); }
     }
 
     function pilihUserDariList(userData) {
@@ -843,9 +909,7 @@
       document.getElementById('dispDeviceId').textContent = userData.device_id;
       const hariIni = getTanggalHariIniWIB();
       let statusAktual = userData.status || 'active';
-      if (statusAktual === 'active' && userData.exp_date && hariIni > userData.exp_date) {
-        statusAktual = 'expired';
-      }
+      if (statusAktual === 'active' && userData.exp_date && hariIni > userData.exp_date) statusAktual = 'expired';
 
       currentLicenseData = {
         device_id: userData.device_id,
@@ -863,17 +927,10 @@
     function renderDetailDevice() {
       document.getElementById('dispSppgName').textContent = currentLicenseData.sppg_name || 'Belum Diatur';
       document.getElementById('editSppgName').value = currentLicenseData.sppg_name || '';
-
       document.getElementById('dispExpDate').textContent = currentLicenseData.exp_date !== '-' ? formatTanggalIndo(currentLicenseData.exp_date) : 'Belum Diatur';
       
       const rawUp = currentLicenseData.last_active;
-      let lastUpFormatted = '';
-      if (!rawUp || rawUp === '-') {
-        lastUpFormatted = '<span style="color: #f59e0b;">Belum pernah aktif</span>';
-      } else {
-        lastUpFormatted = formatWaktuRelatif(rawUp);
-      }
-      document.getElementById('dispLastActive').textContent = lastUpFormatted;
+      document.getElementById('dispLastActive').textContent = (!rawUp || rawUp === '-') ? '<span style="color: #f59e0b;">Belum pernah aktif</span>' : formatWaktuRelatif(rawUp);
 
       document.getElementById('editExpDate').value = currentLicenseData.exp_date !== '-' ? currentLicenseData.exp_date : getTanggalHariIniWIB();
       document.getElementById('editStatus').value = currentLicenseData.status;
@@ -928,7 +985,7 @@
 
     async function simpanPerubahanLisensi() {
       const expDateVal = document.getElementById('editExpDate').value;
-      let statusVal = document.getElementById('editStatus').value;
+      const statusVal = document.getElementById('editStatus').value;
       const sppgNameVal = document.getElementById('editSppgName').value.trim();
 
       if (!expDateVal) return showToast('Pilih tanggal kadaluarsa!', false);
@@ -946,15 +1003,13 @@
         });
         const resData = await res.json();
         if (res.ok && (resData.success || resData.status)) {
-          showToast('Lisensi & Nama SPPG berhasil disimpan!');
+          showToast('Data lisensi berhasil disimpan!');
           currentLicenseData.is_new = false;
           renderDetailDevice();
         } else {
           showToast('Gagal menyimpan lisensi.', false);
         }
-      } catch (e) {
-        showToast('Error koneksi server.', false);
-      }
+      } catch (e) { showToast('Error koneksi server.', false); }
     }
 
     async function hapusLisensi() {
@@ -972,12 +1027,9 @@
         } else {
           showToast('Gagal menghapus lisensi.', false);
         }
-      } catch (e) {
-        showToast('Error koneksi server.', false);
-      }
+      } catch (e) { showToast('Error koneksi server.', false); }
     }
 
-    // --- KELOLA HARGA PAKET ---
     async function muatDataPaketServer() {
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=get_packages`);
@@ -987,9 +1039,7 @@
         container.innerHTML = '';
         if (list.length === 0) tambahBarisPaketForm('Paket 7 Hari', 7, 10000);
         else list.forEach(p => tambahBarisPaketForm(p.nama, p.hari, p.harga));
-      } catch (err) {
-        showToast('Gagal memuat paket.', false);
-      }
+      } catch (err) { showToast('Gagal memuat paket.', false); }
     }
 
     function tambahBarisPaketForm(nama = '', hari = '', harga = '') {
@@ -1026,7 +1076,6 @@
       } catch (err) { showToast('Error koneksi server.', false); }
     }
 
-    // --- KELOLA VOUCHER ---
     async function muatDataVoucherServer() {
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=get_vouchers`);
@@ -1043,9 +1092,7 @@
             tambahBarisVoucherForm(v.code, tipeVoucher, nilaiVoucher, v.quota || 100);
           });
         }
-      } catch (err) {
-        showToast('Gagal memuat voucher.', false);
-      }
+      } catch (err) { showToast('Gagal memuat voucher.', false); }
     }
 
     function tambahBarisVoucherForm(code = '', type = 'percent', value = '', quota = 100) {
@@ -1057,10 +1104,10 @@
         <select class="inp-type" style="flex: 1.5; height: 38px; font-size: 12px;">
           <option value="percent" ${type==='percent'?'selected':''}>Diskon (%)</option>
           <option value="fixed" ${type==='fixed'?'selected':''}>Diskon (Rp)</option>
-          <option value="days" ${type==='days' || type==='duration'?'selected':''}>Durasi (Hari)</option>
+          <option value="days" ${type==='days'||type==='duration'?'selected':''}>Durasi (Hari)</option>
         </select>
         <input type="number" class="inp-value" value="${value}" placeholder="Nilai" style="flex: 1; height: 38px; font-size: 12px;">
-        <input type="number" class="inp-quota" value="${quota}" placeholder="Kuota" style="flex: 0.8; height: 38px; font-size: 12px;" title="Batas Kuota Penggunaan">
+        <input type="number" class="inp-quota" value="${quota}" placeholder="Kuota" style="flex: 0.8; height: 38px; font-size: 12px;">
         <button class="btn btn-danger" style="width: 38px; height: 38px;" onclick="this.parentElement.remove()">✕</button>
       `;
       container.appendChild(div);
@@ -1074,19 +1121,10 @@
         const type = r.querySelector('.inp-type').value;
         const value = Number(r.querySelector('.inp-value').value);
         const quota = Number(r.querySelector('.inp-quota').value) || 100;
-        
         if (code && !isNaN(value)) {
-          vouchers.push({ 
-            code, 
-            type, 
-            discount_type: type, 
-            value, 
-            discount_value: value, 
-            quota 
-          });
+          vouchers.push({ code, type, discount_type: type, value, discount_value: value, quota });
         }
       });
-
       try {
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
@@ -1094,31 +1132,21 @@
           body: JSON.stringify({ action: 'save_vouchers', vouchers })
         });
         const result = await res.json();
-        if (result.success) { 
-          showToast('Voucher berhasil disimpan!'); 
-          muatDataVoucherServer(); 
-        } else { 
-          showToast('Gagal menyimpan voucher.', false); 
-        }
-      } catch (err) { 
-        showToast('Error koneksi server.', false); 
-      }
+        if (result.success) { showToast('Voucher berhasil disimpan!'); muatDataVoucherServer(); }
+        else { showToast('Gagal menyimpan voucher.', false); }
+      } catch (err) { showToast('Error koneksi server.', false); }
     }
 
-    // --- KELOLA UPDATE RELEASE ---
     async function muatDataReleaseServer() {
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=check_version`);
         const data = await res.json();
-
         if (data && data.version) {
           document.getElementById('inputReleaseVersion').value = data.version || '';
           document.getElementById('inputDownloadUrl').value = data.download_url || '';
           document.getElementById('inputChangelog').value = data.changelog || '';
         }
-      } catch (err) {
-        showToast('Gagal memuat info versi saat ini.', false);
-      }
+      } catch (err) { showToast('Gagal memuat info versi saat ini.', false); }
     }
 
     async function simpanUpdateReleaseServer() {
@@ -1126,32 +1154,21 @@
       const download_url = document.getElementById('inputDownloadUrl').value.trim();
       const changelog = document.getElementById('inputChangelog').value.trim();
 
-      if (!version || !download_url) {
-        return showToast('Isi nomor versi dan URL download file!', false);
-      }
+      if (!version || !download_url) return showToast('Isi nomor versi dan URL download file!', false);
 
       try {
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'save_release',
-            version,
-            download_url,
-            changelog,
-            admin_secret: adminPasswordSecret
-          })
+          body: JSON.stringify({ action: 'save_release', version, download_url, changelog, admin_secret: adminPasswordSecret })
         });
-
         const result = await res.json();
         if (res.ok && (result.success || result.status)) {
           showToast(`Versi ${version} berhasil dirilis!`);
         } else {
           showToast(result.error || 'Gagal merilis versi baru.', false);
         }
-      } catch (err) {
-        showToast('Error koneksi server.', false);
-      }
+      } catch (err) { showToast('Error koneksi server.', false); }
     }
   </script>
 </body>

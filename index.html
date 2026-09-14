@@ -3,40 +3,44 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mindspace Nexus 3D - Advanced License & Cloud Operating System</title>
+  <title>Mindspace Nexus - Ultra High-End 3D License Hub</title>
   
   <!-- FAVICON & PWA MANIFEST -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2338bdf8'><path d='M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z'/></svg>">
   <meta name="theme-color" content="#2563eb">
 
-  <!-- THREE.JS ENGINE VIA CDN FOR ADVANCED 3D RENDERING -->
+  <!-- THREE.JS ENGINE VIA CDN FOR ULTRA HIGH-END 3D GRAPHICS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
   <style>
     :root {
       --bg-color: #030712;
-      --card-bg: rgba(15, 23, 42, 0.75);
-      --card-border: rgba(56, 189, 248, 0.3);
+      --card-bg: rgba(15, 23, 42, 0.65);
+      --card-border: rgba(56, 189, 248, 0.25);
+      --card-glow: rgba(56, 189, 248, 0.15);
       --text-color: #f8fafc;
       --text-muted: #94a3b8;
-      --input-bg: rgba(15, 23, 42, 0.9);
-      --input-border: #334155;
+      --input-bg: rgba(15, 23, 42, 0.85);
+      --input-border: rgba(51, 65, 85, 0.8);
       --accent-color: #38bdf8;
+      --accent-gradient: linear-gradient(135deg, #38bdf8 0%, #3b82f6 50%, #8b5cf6 100%);
       --accent-glow: rgba(56, 189, 248, 0.4);
-      --shadow-3d: 0 30px 60px -12px rgba(0, 0, 0, 0.9), 0 0 50px rgba(56, 189, 248, 0.25);
+      --shadow-3d: 0 30px 60px -12px rgba(0, 0, 0, 0.9), 0 0 50px rgba(56, 189, 248, 0.2);
     }
 
     [data-theme="light"] {
-      --bg-color: #f1f5f9;
-      --card-bg: rgba(255, 255, 255, 0.85);
-      --card-border: rgba(37, 99, 235, 0.35);
+      --bg-color: #f8fafc;
+      --card-bg: rgba(255, 255, 255, 0.8);
+      --card-border: rgba(37, 99, 235, 0.3);
+      --card-glow: rgba(37, 99, 235, 0.1);
       --text-color: #0f172a;
       --text-muted: #64748b;
-      --input-bg: rgba(255, 255, 255, 0.95);
+      --input-bg: rgba(241, 245, 249, 0.9);
       --input-border: #cbd5e1;
       --accent-color: #2563eb;
-      --accent-glow: rgba(37, 99, 235, 0.3);
-      --shadow-3d: 0 30px 60px -12px rgba(0, 0, 0, 0.15), 0 0 35px rgba(37, 99, 235, 0.15);
+      --accent-gradient: linear-gradient(135deg, #2563eb 0%, #1d4ed8 50%, #6d28d9 100%);
+      --accent-glow: rgba(37, 99, 235, 0.25);
+      --shadow-3d: 0 30px 60px -12px rgba(0, 0, 0, 0.1), 0 0 35px rgba(37, 99, 235, 0.12);
     }
 
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -54,189 +58,175 @@
       z-index: 0; pointer-events: none;
     }
 
-    /* TOP NAVBAR FUTURISTIK GLASSMORPHISM */
+    /* TOP NAVBAR ULTRA HIGH-END */
     .top-navbar {
       position: fixed; top: 0; left: 0; width: 100%;
       display: flex; justify-content: space-between; align-items: center;
-      padding: 14px 28px; background: rgba(11, 19, 41, 0.6);
-      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      padding: 16px 36px; background: rgba(3, 7, 18, 0.5);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
       border-bottom: 1px solid var(--card-border); z-index: 1000;
     }
     .brand-logo {
-      font-size: 16px; font-weight: 800; color: var(--text-color);
-      display: flex; align-items: center; gap: 8px; cursor: pointer;
+      font-size: 17px; font-weight: 800; color: var(--text-color);
+      display: flex; align-items: center; gap: 10px; cursor: pointer;
       letter-spacing: 0.5px;
     }
-    .brand-logo span { color: var(--accent-color); }
+    .brand-logo span { 
+      background: var(--accent-gradient); 
+      -webkit-background-clip: text; 
+      -webkit-text-fill-color: transparent; 
+    }
 
-    .nav-actions { display: flex; align-items: center; gap: 10px; }
+    .nav-actions { display: flex; align-items: center; gap: 12px; }
 
     .btn-icon-nav {
       background: var(--input-bg); border: 1px solid var(--input-border);
-      color: var(--text-color); border-radius: 10px; padding: 6px 12px;
-      font-size: 13px; cursor: pointer; transition: all 0.2s ease;
-      display: flex; align-items: center; gap: 6px;
+      color: var(--text-color); border-radius: 12px; padding: 8px 14px;
+      font-size: 13px; cursor: pointer; transition: all 0.25s ease;
+      display: flex; align-items: center; gap: 6px; font-weight: 600;
     }
-    .btn-icon-nav:hover { border-color: var(--accent-color); transform: scale(1.05); }
+    .btn-icon-nav:hover { border-color: var(--accent-color); transform: translateY(-2px); box-shadow: 0 0 15px var(--accent-glow); }
 
     .btn-login-header {
-      background: linear-gradient(135deg, #2563eb, #1d4ed8);
-      color: white; border: 1px solid rgba(56, 189, 248, 0.4);
-      padding: 8px 16px; border-radius: 10px; font-size: 12px; font-weight: 700;
+      background: var(--accent-gradient);
+      color: white; border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 8px 18px; border-radius: 12px; font-size: 12px; font-weight: 700;
       cursor: pointer; transition: all 0.25s ease;
-      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+      box-shadow: 0 4px 20px var(--accent-glow);
     }
     .btn-login-header:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.6);
-      background: linear-gradient(135deg, #1d4ed8, #1e40af);
+      box-shadow: 0 6px 25px var(--accent-glow);
+      filter: brightness(1.1);
     }
 
     /* CONTAINER WRAPPER UTAMA PANEL */
     .page-wrapper {
       position: relative; z-index: 1; width: 100%; min-height: 100vh;
       display: flex; justify-content: center; align-items: center;
-      padding: 95px 16px 40px 16px;
+      padding: 100px 16px 40px 16px;
     }
     .container {
-      width: 100%; max-width: 720px; background: var(--card-bg);
-      backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-      border: 1px solid var(--card-border); border-radius: 24px; padding: 28px;
+      width: 100%; max-width: 760px; background: var(--card-bg);
+      backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
+      border: 1px solid var(--card-border); border-radius: 28px; padding: 32px;
       box-shadow: var(--shadow-3d); transform-style: preserve-3d;
       transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
       position: relative;
     }
 
-    .header { text-align: center; margin-bottom: 20px; transform: translateZ(20px); }
-    .header h1 { font-size: 24px; font-weight: 800; margin: 0; background: linear-gradient(to right, var(--text-color), var(--accent-color)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .header p { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+    .header { text-align: center; margin-bottom: 24px; transform: translateZ(20px); }
+    .header h1 { font-size: 26px; font-weight: 800; margin: 0; background: linear-gradient(to right, var(--text-color), var(--accent-color)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .header p { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
 
-    /* LANDING PAGE BENTO GRID & TERMINAL */
+    /* LANDING HERO & BENTO GRID */
     .landing-hero { text-align: center; padding: 10px 0 10px 0; transform-style: preserve-3d; }
     .hero-badge {
-      display: inline-block; background: rgba(56, 189, 248, 0.15);
+      display: inline-block; background: rgba(56, 189, 248, 0.12);
       border: 1px solid var(--accent-glow); color: var(--accent-color);
-      padding: 4px 14px; border-radius: 20px; font-size: 11px; font-weight: 700;
-      margin-bottom: 14px; transform: translateZ(15px);
+      padding: 6px 16px; border-radius: 20px; font-size: 11px; font-weight: 700;
+      margin-bottom: 16px; transform: translateZ(15px); letter-spacing: 0.5px;
     }
     
     .portfolio-grid {
-      display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 20px 0;
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin: 24px 0;
       transform-style: preserve-3d;
     }
-    @media(max-width: 550px) { .portfolio-grid { grid-template-columns: 1fr; } }
+    @media(max-width: 580px) { .portfolio-grid { grid-template-columns: 1fr; } }
     
     .portfolio-card {
       background: var(--input-bg); border: 1px solid var(--input-border);
-      border-radius: 16px; padding: 16px; text-align: left;
+      border-radius: 20px; padding: 20px; text-align: left;
       transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-      transform-style: preserve-3d; cursor: pointer; position: relative; overflow: hidden;
+      transform-style: preserve-3d; position: relative; overflow: hidden;
     }
     .portfolio-card:hover {
       border-color: var(--accent-color);
       transform: translateY(-6px) translateZ(20px);
-      box-shadow: 0 15px 30px rgba(0,0,0,0.4), 0 0 20px var(--accent-glow);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5), 0 0 25px var(--accent-glow);
     }
-    .card-3d-icon { font-size: 28px; margin-bottom: 8px; display: inline-block; transform: translateZ(25px); }
-    .portfolio-card h4 { margin: 0 0 4px 0; font-size: 13.5px; color: var(--text-color); transform: translateZ(15px); }
-    .portfolio-card p { margin: 0; font-size: 11px; color: var(--text-muted); line-height: 1.4; transform: translateZ(10px); }
-
-    /* INTERACTIVE TERMINAL CONSOLE */
-    .terminal-box {
-      background: #090d16; border: 1px solid var(--input-border);
-      border-radius: 14px; padding: 14px; font-family: monospace; font-size: 12px;
-      text-align: left; margin-top: 20px; color: #34d399; transform: translateZ(15px);
-      box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.8);
-    }
-    .terminal-header {
-      display: flex; justify-content: space-between; align-items: center;
-      border-bottom: 1px solid #1e293b; padding-bottom: 8px; margin-bottom: 10px; color: #94a3b8; font-size: 11px;
-    }
-    .terminal-logs { max-height: 90px; overflow-y: auto; margin-bottom: 8px; line-height: 1.5; }
-    .terminal-input-row { display: flex; gap: 6px; align-items: center; }
-    .terminal-input-row input {
-      background: transparent; border: none; outline: none; color: #38bdf8;
-      font-family: monospace; font-size: 12px; width: 100%; height: 24px; padding: 0;
-    }
+    .card-3d-icon { font-size: 30px; margin-bottom: 10px; display: inline-block; transform: translateZ(25px); }
+    .portfolio-card h4 { margin: 0 0 6px 0; font-size: 14px; color: var(--text-color); transform: translateZ(15px); font-weight: 700; }
+    .portfolio-card p { margin: 0; font-size: 12px; color: var(--text-muted); line-height: 1.5; transform: translateZ(10px); }
 
     /* FORM & BUTTON STYLING */
-    .field-group { margin-bottom: 14px; text-align: left; transform: translateZ(10px); }
-    label { font-size: 12px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px; }
+    .field-group { margin-bottom: 16px; text-align: left; transform: translateZ(10px); }
+    label { font-size: 12px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
     input, select, textarea {
-      width: 100%; padding: 10px 14px; border-radius: 10px;
+      width: 100%; padding: 12px 16px; border-radius: 12px;
       border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-color); font-size: 14px;
-      outline: none; transition: border-color 0.2s, box-shadow 0.2s; font-family: inherit;
+      outline: none; transition: all 0.25s ease; font-family: inherit;
     }
-    input { height: 44px; } select { height: 44px; }
-    input:focus, select:focus, textarea:focus { border-color: var(--accent-color); box-shadow: 0 0 12px var(--accent-glow); }
+    input { height: 46px; } select { height: 46px; }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent-color); box-shadow: 0 0 15px var(--accent-glow); }
 
     .btn {
-      width: 100%; height: 44px; border-radius: 10px; border: none;
-      font-weight: 700; font-size: 13px; cursor: pointer; transition: 0.2s;
+      width: 100%; height: 46px; border-radius: 12px; border: none;
+      font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.25s ease;
       display: flex; align-items: center; justify-content: center; gap: 8px;
     }
-    .btn-primary { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4); }
-    .btn-primary:hover { background: linear-gradient(135deg, #1d4ed8, #1e40af); transform: translateY(-1px); }
-    .btn-success { background: linear-gradient(135deg, #059669, #047857); color: white; }
-    .btn-success:hover { background: linear-gradient(135deg, #047857, #065f46); }
-    .btn-danger { background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; }
-    .btn-danger:hover { background: linear-gradient(135deg, #b91c1c, #991b1b); }
-    .btn-secondary { background: #475569; color: white; }
-    .btn-secondary:hover { background: #334155; }
-    .btn-warning { background: linear-gradient(135deg, #d97706, #b45309); color: white; }
-    .btn-warning:hover { background: linear-gradient(135deg, #b45309, #92400e); }
+    .btn-primary { background: var(--accent-gradient); color: white; box-shadow: 0 4px 18px var(--accent-glow); }
+    .btn-primary:hover { transform: translateY(-2px); filter: brightness(1.1); box-shadow: 0 6px 22px var(--accent-glow); }
+    .btn-success { background: linear-gradient(135deg, #059669, #047857); color: white; box-shadow: 0 4px 15px rgba(5, 150, 105, 0.3); }
+    .btn-success:hover { background: linear-gradient(135deg, #047857, #065f46); transform: translateY(-2px); }
+    .btn-danger { background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3); }
+    .btn-danger:hover { background: linear-gradient(135deg, #b91c1c, #991b1b); transform: translateY(-2px); }
+    .btn-secondary { background: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-color); }
+    .btn-secondary:hover { border-color: var(--accent-color); transform: translateY(-2px); }
+    .btn-warning { background: linear-gradient(135deg, #d97706, #b45309); color: white; box-shadow: 0 4px 15px rgba(217, 119, 6, 0.3); }
+    .btn-warning:hover { background: linear-gradient(135deg, #b45309, #92400e); transform: translateY(-2px); }
 
     .card-info {
-      background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 12px;
-      padding: 14px; margin-bottom: 14px; font-size: 13px; line-height: 1.6; text-align: left; transform: translateZ(10px);
+      background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 16px;
+      padding: 16px; margin-bottom: 16px; font-size: 13px; line-height: 1.6; text-align: left; transform: translateZ(10px);
     }
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; text-transform: capitalize; }
-    .badge-active { background: #065f46; color: #34d399; }
-    .badge-hold { background: #78350f; color: #fbbf24; }
-    .badge-revoked { background: #7f1d1d; color: #fca5a5; }
-    .badge-expired { background: #9a3412; color: #ffedd5; }
-    .badge-unregistered { background: #334155; color: #94a3b8; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; text-transform: capitalize; }
+    .badge-active { background: rgba(6, 95, 70, 0.4); border: 1px solid #059669; color: #34d399; }
+    .badge-hold { background: rgba(120, 53, 15, 0.4); border: 1px solid #d97706; color: #fbbf24; }
+    .badge-revoked { background: rgba(127, 29, 29, 0.4); border: 1px solid #dc2626; color: #fca5a5; }
+    .badge-expired { background: rgba(154, 52, 18, 0.4); border: 1px solid #ea580c; color: #ffedd5; }
+    .badge-unregistered { background: rgba(51, 65, 85, 0.4); border: 1px solid #475569; color: #94a3b8; }
 
-    .grid-durasi { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
-    .btn-quick { height: 38px; background: var(--input-border); color: var(--text-color); border: 1px solid var(--input-border); border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
-    .btn-quick:hover { background: #475569; color: white; }
-    .btn-quick-lifetime { background: #7c3aed; border-color: #6d28d9; color: #f3e8ff; }
-    .btn-quick-lifetime:hover { background: #6d28d9; }
+    .grid-durasi { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+    .btn-quick { height: 40px; background: var(--input-bg); color: var(--text-color); border: 1px solid var(--input-border); border-radius: 10px; font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+    .btn-quick:hover { border-color: var(--accent-color); transform: translateY(-2px); }
+    .btn-quick-lifetime { background: linear-gradient(135deg, #7c3aed, #6d28d9); color: white; border: none; }
+    .btn-quick-lifetime:hover { filter: brightness(1.1); transform: translateY(-2px); }
 
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: var(--input-bg); border-radius: 4px; }
     ::-webkit-scrollbar-thumb { background: var(--input-border); border-radius: 4px; }
 
-    .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; transform: translateZ(15px); }
-    .menu-card { background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 12px; padding: 16px; cursor: pointer; transition: 0.2s; text-align: center; }
-    .menu-card:hover { border-color: var(--accent-color); transform: translateY(-2px); }
-    .menu-card h3 { margin: 8px 0 4px 0; font-size: 14px; color: var(--text-color); }
+    .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; transform: translateZ(15px); }
+    .menu-card { background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 16px; padding: 18px; cursor: pointer; transition: 0.25s ease; text-align: center; }
+    .menu-card:hover { border-color: var(--accent-color); transform: translateY(-3px); box-shadow: 0 10px 25px var(--accent-glow); }
+    .menu-card h3 { margin: 8px 0 4px 0; font-size: 14px; color: var(--text-color); font-weight: 700; }
     .menu-card p { margin: 0; font-size: 11px; color: var(--text-muted); }
-    .menu-icon { font-size: 22px; }
+    .menu-icon { font-size: 24px; }
 
-    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; transform: translateZ(15px); }
-    .stat-box { background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 10px; padding: 10px; text-align: center; }
-    .stat-box span { font-size: 10px; color: var(--text-muted); display: block; text-transform: uppercase; font-weight: 600; }
-    .stat-box h4 { margin: 4px 0 0 0; font-size: 15px; color: var(--accent-color); }
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; transform: translateZ(15px); }
+    .stat-box { background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 14px; padding: 12px; text-align: center; }
+    .stat-box span { font-size: 10px; color: var(--text-muted); display: block; text-transform: uppercase; font-weight: 700; }
+    .stat-box h4 { margin: 4px 0 0 0; font-size: 16px; color: var(--accent-color); font-weight: 800; }
 
-    .chart-container { background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 12px; padding: 14px; margin-bottom: 14px; transform: translateZ(10px); }
-    .chart-bars { display: flex; align-items: flex-end; justify-content: space-around; height: 90px; padding-top: 10px; border-bottom: 1px solid var(--input-border); }
+    .chart-container { background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 16px; padding: 16px; margin-bottom: 16px; transform: translateZ(10px); }
+    .chart-bars { display: flex; align-items: flex-end; justify-content: space-around; height: 95px; padding-top: 10px; border-bottom: 1px solid var(--input-border); }
     .chart-bar-group { display: flex; flex-direction: column; align-items: center; flex: 1; }
-    .chart-bar { width: 24px; background: #2563eb; border-radius: 6px 6px 0 0; transition: height 0.4s; }
+    .chart-bar { width: 24px; background: var(--accent-gradient); border-radius: 6px 6px 0 0; transition: height 0.4s; }
     .chart-label { font-size: 10px; color: var(--text-muted); margin-top: 6px; }
 
-    .package-row, .voucher-row { display: flex; gap: 6px; align-items: center; background: var(--input-bg); padding: 8px; border-radius: 8px; border: 1px solid var(--input-border); margin-bottom: 8px; }
-    .user-list-container { max-height: 285px; overflow-y: auto; margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; padding-right: 2px; }
-    .user-item { background: var(--input-bg); border: 1px solid var(--input-border); padding: 10px 12px; border-radius: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; text-align: left; }
-    .user-item:hover { border-color: var(--accent-color); }
-    .user-item-info div:first-child { font-weight: 600; font-size: 13px; color: #facc15; }
+    .package-row, .voucher-row { display: flex; gap: 8px; align-items: center; background: var(--input-bg); padding: 10px; border-radius: 12px; border: 1px solid var(--input-border); margin-bottom: 8px; }
+    .user-list-container { max-height: 300px; overflow-y: auto; margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px; padding-right: 2px; }
+    .user-item { background: var(--input-bg); border: 1px solid var(--input-border); padding: 12px 14px; border-radius: 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: 0.25s ease; text-align: left; }
+    .user-item:hover { border-color: var(--accent-color); transform: translateX(2px); }
+    .user-item-info div:first-child { font-weight: 700; font-size: 13px; color: #facc15; }
     .user-item-info div:nth-child(2) { font-size: 11px; color: var(--accent-color); font-weight: 600; margin-top: 2px; }
     .user-item-info div:last-child { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 
     .toast {
-      position: fixed; top: 75px; left: 50%; transform: translateX(-50%);
-      background: var(--input-bg); border: 1px solid var(--input-border); padding: 12px 20px;
-      border-radius: 10px; font-size: 13px; display: none; z-index: 9999; color: var(--text-color); box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      position: fixed; top: 85px; left: 50%; transform: translateX(-50%);
+      background: var(--input-bg); border: 1px solid var(--card-border); padding: 14px 24px;
+      border-radius: 14px; font-size: 13px; font-weight: 600; display: none; z-index: 9999; color: var(--text-color); box-shadow: 0 15px 35px rgba(0,0,0,0.6); backdrop-filter: blur(16px);
     }
     .view-section { display: none; }
   </style>
@@ -248,17 +238,14 @@
 
   <!-- NAVBAR ATAS GLASSMORPHISM -->
   <nav class="top-navbar">
-    <div class="brand-logo" onclick="gantiView('viewLandingPage'); playBeep(600, 0.05);">
+    <div class="brand-logo" onclick="gantiView('viewLandingPage')">
       🛡️ Mindspace <span>Nexus 3D</span>
     </div>
     <div class="nav-actions">
-      <button class="btn-icon-nav" onclick="toggleAudioFx()">
-        <span id="audioIcon">🔊</span>
-      </button>
       <button class="btn-icon-nav" onclick="toggleDarkMode()">
-        <span id="themeIcon">🌙</span> <span id="themeText" style="font-size: 11px; font-weight: 600;">Dark</span>
+        <span id="themeIcon">🌙</span> <span id="themeText">Dark</span>
       </button>
-      <button class="btn-login-header" id="btnLoginHeader" onclick="gantiView('viewLogin'); playBeep(700, 0.05);">🔐 Admin Login</button>
+      <button class="btn-login-header" id="btnLoginHeader" onclick="gantiView('viewLogin')">🔐 Admin Login</button>
     </div>
   </nav>
 
@@ -269,60 +256,42 @@
       
       <div class="header">
         <h1 id="appTitle">Mindspace Studio</h1>
-        <p id="appSubtitle">Advanced 3D License Engine & Cloud Hub</p>
+        <p id="appSubtitle">Ultra High-End License Engine & Cloud Hub</p>
       </div>
 
-      <!-- VIEW LANDING PAGE 3D INTERAKTIF & BENTO GRID -->
+      <!-- VIEW LANDING PAGE 3D BENTO GRID -->
       <div id="viewLandingPage" class="view-section" style="display: block;">
         <div class="landing-hero">
-          <div class="hero-badge">🌐 WebGL 3D Interactive Ecosystem</div>
+          <div class="hero-badge">⚡ ULTRA HIGH-END WEBGL ENGINE</div>
           
-          <h2 style="font-size: 20px; margin: 0 0 8px 0; color: var(--text-color);">Centralized Cloud Operating System</h2>
-          <p style="font-size: 12px; color: var(--text-muted); margin: 0 auto; max-width: 540px; line-height: 1.6;">
-            Platform manajemen lisensi modern berbasis Three.js WebGL. Dilengkapi enkripsi kunci unik, pemantauan keuangan real-time, sinkronisasi cloud backup KPM, dan pembaruan skrip otomatis.
+          <h2 style="font-size: 22px; margin: 0 0 8px 0; color: var(--text-color);">Centralized License & Cloud System</h2>
+          <p style="font-size: 13px; color: var(--text-muted); margin: 0 auto; max-width: 560px; line-height: 1.6;">
+            Platform otorisasi lisensi berkinerja tinggi. Dilengkapi enkripsi kunci perangkat keras, analitik pendapatan instan, backup cloud otomatis, dan pipeline rilis pembaruan skrip.
           </p>
 
-          <!-- PORTFOLIO / FEATURE GRID -->
+          <!-- PORTFOLIO / FEATURE BENTO GRID -->
           <div class="portfolio-grid">
-            <div class="portfolio-card" onclick="playBeep(440, 0.05);">
+            <div class="portfolio-card">
               <span class="card-3d-icon">🔒</span>
               <h4>Cyber Enkripsi Engine</h4>
-              <p>Otorisasi perangkat keras anti-tamper dengan verifikasi kunci berlapis.</p>
+              <p>Otorisasi perangkat anti-tamper dengan verifikasi nonce & salt berlapis.</p>
             </div>
-            <div class="portfolio-card" onclick="playBeep(480, 0.05);">
+            <div class="portfolio-card">
               <span class="card-3d-icon">☁️</span>
-              <h4>Cloud Backup Sync</h4>
+              <h4>Cloud Backup KPM</h4>
               <p>Penyimpanan otomatis file konfigurasi pengguna langsung ke server Vercel.</p>
             </div>
-            <div class="portfolio-card" onclick="playBeep(520, 0.05);">
+            <div class="portfolio-card">
               <span class="card-3d-icon">📈</span>
-              <h4>Live Revenue Graph</h4>
-              <p>Visualisasi analitik pendapatan harian, mingguan, dan bulanan secara real-time.</p>
+              <h4>Live Revenue Analytics</h4>
+              <p>Visualisasi grafik pendapatan harian, mingguan, dan bulanan real-time.</p>
             </div>
-            <div class="portfolio-card" onclick="playBeep(560, 0.05);">
+            <div class="portfolio-card">
               <span class="card-3d-icon">🚀</span>
               <h4>Auto Release Pipeline</h4>
               <p>In-App Userscript updater otomatis dengan kontrol changelog versi.</p>
             </div>
           </div>
-
-          <!-- INTERACTIVE TERMINAL CONSOLE -->
-          <div class="terminal-box">
-            <div class="terminal-header">
-              <span>NEXUS CLI TERMINAL (v3.0)</span>
-              <span>STATUS: ONLINE</span>
-            </div>
-            <div class="terminal-logs" id="terminalLogs">
-              <div>[SYSTEM]: Initializing Three.js 3D Engine... OK</div>
-              <div>[SYSTEM]: Web Audio Synthesizer Ready.</div>
-              <div>[HINT]: Ketik <b style="color:#f8fafc;">help</b> untuk melihat daftar perintah terminal.</div>
-            </div>
-            <div class="terminal-input-row">
-              <span style="color:#38bdf8;">nexus@admin:~$</span>
-              <input type="text" id="terminalInput" placeholder="Ketik perintah..." onkeyup="handleTerminalInput(event)">
-            </div>
-          </div>
-
         </div>
       </div>
 
@@ -353,22 +322,22 @@
         </div>
 
         <div class="chart-container">
-          <div style="font-size: 11px; font-weight: bold; color: var(--text-muted); margin-bottom: 4px;">📊 Grafik Pendapatan 7 Hari Terakhir</div>
+          <div style="font-size: 11px; font-weight: bold; color: var(--text-muted); margin-bottom: 6px;">📊 Grafik Pendapatan 7 Hari Terakhir</div>
           <div class="chart-bars" id="chartBarsContainer"></div>
         </div>
 
         <!-- SAKLAR QRIS -->
-        <div class="card-info" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding: 12px 14px;">
+        <div class="card-info" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding: 14px 16px;">
           <div>
-            <div style="font-weight: 600; color: var(--text-color); font-size: 13px;">Status Tombol QRIS Client</div>
+            <div style="font-weight: 700; color: var(--text-color); font-size: 13px;">Status Tombol QRIS Client</div>
             <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Aktifkan atau nonaktifkan fitur pembayaran QRIS di userscript client.</div>
           </div>
           <div>
-            <button id="btnToggleQris" class="btn btn-success" style="width: 90px; height: 36px; font-size: 12px;" onclick="toggleStatusQrisServer()">Aktif</button>
+            <button id="btnToggleQris" class="btn btn-success" style="width: 95px; height: 38px; font-size: 12px;" onclick="toggleStatusQrisServer()">Aktif</button>
           </div>
         </div>
 
-        <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; text-align: left;">Pilih Menu Manajemen:</div>
+        <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 10px; text-align: left; text-transform: uppercase;">Pilih Menu Manajemen:</div>
         
         <div class="menu-grid">
           <div class="menu-card" onclick="bukaFitur('device')">
@@ -418,7 +387,7 @@
           <input type="text" id="searchUserQuery" placeholder="🔍 Ketik Device ID atau Nama SPPG..." oninput="filterUserList()">
         </div>
 
-        <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin: 12px 0 6px 0; text-align: left;">Daftar Seluruh User Terdaftar:</div>
+        <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin: 14px 0 8px 0; text-align: left; text-transform: uppercase;">Daftar Seluruh User Terdaftar:</div>
         <div class="user-list-container" id="listAllUsersContainer">
           <div style="text-align: center; color: var(--text-muted); font-size: 12px; padding: 20px;">Memuat data user...</div>
         </div>
@@ -438,12 +407,12 @@
 
         <!-- BACKUP CLOUD KPM -->
         <div class="card-info" id="backupInfoCard" style="display: none;">
-          <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent-color); font-weight: 600; margin-bottom: 6px;">Backup Cloud KPM</div>
+          <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent-color); font-weight: 700; margin-bottom: 6px;">Backup Cloud KPM</div>
           <div><b>Nama File:</b> <span id="dispBackupFilename" style="color:#facc15; font-family: monospace;">-</span></div>
           <div><b>Waktu Backup:</b> <span id="dispBackupTime" style="color:var(--text-muted);">-</span></div>
-          <div style="display: flex; gap: 8px; margin-top: 10px;">
-            <button class="btn btn-primary" style="flex: 1; height: 36px; font-size: 12px;" onclick="downloadBackupCloud()">📥 Download</button>
-            <button class="btn btn-danger" style="flex: 1; height: 36px; font-size: 12px;" onclick="hapusBackupCloud()">🗑️ Hapus Backup</button>
+          <div style="display: flex; gap: 8px; margin-top: 12px;">
+            <button class="btn btn-primary" style="flex: 1; height: 38px; font-size: 12px;" onclick="downloadBackupCloud()">📥 Download</button>
+            <button class="btn btn-danger" style="flex: 1; height: 38px; font-size: 12px;" onclick="hapusBackupCloud()">🗑️ Hapus Backup</button>
           </div>
         </div>
 
@@ -480,7 +449,7 @@
           </select>
         </div>
 
-        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 14px;">
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
           <button class="btn btn-success" onclick="simpanPerubahanLisensi()">💾 Simpan Perubahan</button>
           <div style="display: flex; gap: 8px;">
             <button class="btn btn-danger" style="flex: 1;" id="btnHapusLisensi" onclick="hapusLisensi()">🗑️ Hapus</button>
@@ -516,12 +485,12 @@
 
       <!-- VIEW 4: HARGA PAKET -->
       <div id="viewPackages" class="view-section">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
           <label style="margin:0;">Kelola Daftar Paket Langganan:</label>
-          <button class="btn btn-primary" style="width: auto; height: 32px; font-size: 11px; padding: 0 10px;" onclick="tambahBarisPaketForm()">+ Tambah</button>
+          <button class="btn btn-primary" style="width: auto; height: 34px; font-size: 11px; padding: 0 12px;" onclick="tambahBarisPaketForm()">+ Tambah</button>
         </div>
 
-        <div id="containerListPaket" style="margin-bottom: 14px;"></div>
+        <div id="containerListPaket" style="margin-bottom: 16px;"></div>
 
         <div style="display: flex; gap: 8px;">
           <button class="btn btn-success" style="flex: 2;" onclick="simpanPengaturanPaketServer()">💾 Simpan Paket</button>
@@ -531,12 +500,12 @@
 
       <!-- VIEW 5: VOUCHER -->
       <div id="viewVouchers" class="view-section">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
           <label style="margin:0;">Kelola Kode Kupon / Voucher:</label>
-          <button class="btn btn-primary" style="width: auto; height: 32px; font-size: 11px; padding: 0 10px;" onclick="tambahBarisVoucherForm()">+ Tambah Kupon</button>
+          <button class="btn btn-primary" style="width: auto; height: 34px; font-size: 11px; padding: 0 12px;" onclick="tambahBarisVoucherForm()">+ Tambah Kupon</button>
         </div>
 
-        <div id="containerListVoucher" style="margin-bottom: 14px; max-height: 280px; overflow-y: auto;"></div>
+        <div id="containerListVoucher" style="margin-bottom: 16px; max-height: 290px; overflow-y: auto;"></div>
 
         <div style="display: flex; gap: 8px;">
           <button class="btn btn-success" style="flex: 2;" onclick="simpanPengaturanVoucherServer()">💾 Simpan Voucher</button>
@@ -589,38 +558,6 @@
     let currentBackupPayload = null;
     let globalUserList = [];
     let isQrisActiveState = true;
-    let isAudioMuted = false;
-
-    // --- WEB AUDIO API SYNTHESIZER FOR SOUND FX ---
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    let audioCtx = null;
-
-    function initAudioContext() {
-      if (!audioCtx) audioCtx = new AudioCtx();
-    }
-
-    function playBeep(freq = 520, duration = 0.06, type = 'sine') {
-      if (isAudioMuted) return;
-      try {
-        initAudioContext();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = type;
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + duration);
-      } catch (e) {}
-    }
-
-    function toggleAudioFx() {
-      isAudioMuted = !isAudioMuted;
-      document.getElementById('audioIcon').textContent = isAudioMuted ? '🔇' : '🔊';
-      showToast(`Suara FX ${isAudioMuted ? 'Dimatikan' : 'Diaktifkan'}`);
-    }
 
     // --- THREE.JS ADVANCED 3D BACKGROUND ENGINE ---
     let scene, camera, renderer, torusKnot, particleSystem;
@@ -631,38 +568,38 @@
       scene = new THREE.Scene();
 
       camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-      camera.position.z = 30;
+      camera.position.z = 32;
 
       renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
       // Objek 3D Metallic Wireframe Torus Knot
-      const geometry = new THREE.TorusKnotGeometry(8, 2.2, 120, 16);
+      const geometry = new THREE.TorusKnotGeometry(9, 2.5, 140, 18);
       const material = new THREE.MeshBasicMaterial({
         color: 0x38bdf8,
         wireframe: true,
         transparent: true,
-        opacity: 0.25
+        opacity: 0.22
       });
       torusKnot = new THREE.Mesh(geometry, material);
       scene.add(torusKnot);
 
-      // Partikel Bintang / Stars Particle Galaxy
+      // Partikel Bintang Galaxy Engine
       const particlesGeo = new THREE.BufferGeometry();
-      const count = 700;
+      const count = 800;
       const positions = new Float32Array(count * 3);
 
       for (let i = 0; i < count * 3; i++) {
-        positions[i] = (Math.random() - 0.5) * 120;
+        positions[i] = (Math.random() - 0.5) * 130;
       }
       particlesGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
       const particlesMat = new THREE.PointsMaterial({
-        size: 0.8,
+        size: 0.75,
         color: 0x60a5fa,
         transparent: true,
-        opacity: 0.6
+        opacity: 0.55
       });
       particleSystem = new THREE.Points(particlesGeo, particlesMat);
       scene.add(particleSystem);
@@ -677,16 +614,15 @@
       requestAnimationFrame(animateThreeJS);
 
       if (torusKnot) {
-        torusKnot.rotation.x += 0.003;
-        torusKnot.rotation.y += 0.005;
+        torusKnot.rotation.x += 0.0025;
+        torusKnot.rotation.y += 0.004;
 
-        // Smooth Mouse Parallax Rotation
-        torusKnot.rotation.x += (mouseY * 0.0005 - torusKnot.rotation.x * 0.05);
-        torusKnot.rotation.y += (mouseX * 0.0005 - torusKnot.rotation.y * 0.05);
+        torusKnot.rotation.x += (mouseY * 0.0004 - torusKnot.rotation.x * 0.04);
+        torusKnot.rotation.y += (mouseX * 0.0004 - torusKnot.rotation.y * 0.04);
       }
 
       if (particleSystem) {
-        particleSystem.rotation.y -= 0.0008;
+        particleSystem.rotation.y -= 0.0006;
       }
 
       renderer.render(scene, camera);
@@ -702,55 +638,11 @@
       mouseX = (event.clientX - window.innerWidth / 2);
       mouseY = (event.clientY - window.innerHeight / 2);
 
-      // Parallax Tilt untuk container utama
       const container = document.getElementById('mainContainer');
       if (window.innerWidth > 768) {
-        const xAxis = mouseX / 55;
-        const yAxis = mouseY / 55;
+        const xAxis = mouseX / 60;
+        const yAxis = mouseY / 60;
         container.style.transform = `rotateY(${xAxis}deg) rotateX(${-yAxis}deg)`;
-      }
-    }
-
-    // --- INTERACTIVE CLI TERMINAL ENGINE ---
-    function handleTerminalInput(e) {
-      if (e.key === 'Enter') {
-        const input = document.getElementById('terminalInput');
-        const cmd = input.value.trim().toLowerCase();
-        input.value = '';
-        if (!cmd) return;
-
-        playBeep(800, 0.04);
-        const logs = document.getElementById('terminalLogs');
-        const userLine = document.createElement('div');
-        userLine.innerHTML = `<span style="color:#cbd5e1;">nexus@admin:~$</span> ${cmd}`;
-        logs.appendChild(userLine);
-
-        let resText = '';
-        if (cmd === 'help') {
-          resText = 'Available commands: <b style="color:#f8fafc">login, status, clear, theme, version, ping</b>';
-        } else if (cmd === 'login') {
-          gantiView('viewLogin');
-          resText = 'Redirecting to Admin Login Gateway...';
-        } else if (cmd === 'status') {
-          resText = `Gateway: ACTIVE | System: ONLINE | QRIS: ${isQrisActiveState ? 'ENABLED' : 'DISABLED'}`;
-        } else if (cmd === 'clear') {
-          logs.innerHTML = '';
-          return;
-        } else if (cmd === 'theme') {
-          toggleDarkMode();
-          resText = 'Theme mode toggled.';
-        } else if (cmd === 'version') {
-          resText = 'Mindspace Nexus 3D v3.0 (WebGL & WebAudio Edition)';
-        } else if (cmd === 'ping') {
-          resText = 'PONG! Latency: 12ms (Vercel Edge Node)';
-        } else {
-          resText = `<span style="color:#ef4444;">Command not recognized: '${cmd}'. Type 'help' for info.</span>`;
-        }
-
-        const resLine = document.createElement('div');
-        resLine.innerHTML = `[NEXUS]: ${resText}`;
-        logs.appendChild(resLine);
-        logs.scrollTop = logs.scrollHeight;
       }
     }
 
@@ -785,7 +677,6 @@
     }
 
     function showToast(msg, isSuccess = true) {
-      playBeep(isSuccess ? 650 : 300, 0.08);
       const t = document.getElementById('toast');
       t.textContent = msg;
       t.style.borderColor = isSuccess ? '#059669' : '#dc2626';
@@ -801,7 +692,7 @@
       if (viewId === 'viewLandingPage') {
         btnLoginHeader.style.display = 'block';
         document.getElementById('appTitle').textContent = 'Mindspace Studio';
-        document.getElementById('appSubtitle').textContent = 'Advanced 3D License Engine & Cloud Hub';
+        document.getElementById('appSubtitle').textContent = 'Ultra High-End License Engine & Cloud Hub';
       } else if (viewId === 'viewLogin') {
         btnLoginHeader.style.display = 'none';
         document.getElementById('appTitle').textContent = 'Admin Login';
@@ -892,7 +783,6 @@
     }
 
     function bukaFitur(fitur) {
-      playBeep(500, 0.05);
       if (fitur === 'device') {
         document.getElementById('searchUserQuery').value = '';
         muatDaftarSemuaUser();

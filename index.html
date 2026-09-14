@@ -3,84 +3,81 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mindspace Studio - 3D Portfolio & Cloud License Hub</title>
+  <title>Mindspace Nexus 3D - Advanced License & Cloud Operating System</title>
   
   <!-- FAVICON & PWA MANIFEST -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2338bdf8'><path d='M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z'/></svg>">
   <meta name="theme-color" content="#2563eb">
 
+  <!-- THREE.JS ENGINE VIA CDN FOR ADVANCED 3D RENDERING -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
   <style>
     :root {
-      --bg-gradient: radial-gradient(circle at 50% 15%, #1e1b4b 0%, #0b1329 60%, #030712 100%);
-      --card-bg: rgba(30, 41, 59, 0.75);
+      --bg-color: #030712;
+      --card-bg: rgba(15, 23, 42, 0.75);
       --card-border: rgba(56, 189, 248, 0.3);
       --text-color: #f8fafc;
       --text-muted: #94a3b8;
       --input-bg: rgba(15, 23, 42, 0.9);
       --input-border: #334155;
-      --shadow-3d: 0 30px 60px -12px rgba(0, 0, 0, 0.85), 0 0 50px rgba(56, 189, 248, 0.2);
+      --accent-color: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.4);
+      --shadow-3d: 0 30px 60px -12px rgba(0, 0, 0, 0.9), 0 0 50px rgba(56, 189, 248, 0.25);
     }
 
     [data-theme="light"] {
-      --bg-gradient: radial-gradient(circle at 50% 15%, #e0e7ff 0%, #f1f5f9 60%, #cbd5e1 100%);
+      --bg-color: #f1f5f9;
       --card-bg: rgba(255, 255, 255, 0.85);
       --card-border: rgba(37, 99, 235, 0.35);
       --text-color: #0f172a;
       --text-muted: #64748b;
       --input-bg: rgba(255, 255, 255, 0.95);
       --input-border: #cbd5e1;
+      --accent-color: #2563eb;
+      --accent-glow: rgba(37, 99, 235, 0.3);
       --shadow-3d: 0 30px 60px -12px rgba(0, 0, 0, 0.15), 0 0 35px rgba(37, 99, 235, 0.15);
     }
 
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg-gradient);
+      background-color: var(--bg-color);
       color: var(--text-color); margin: 0; padding: 0;
       min-height: 100vh; perspective: 1500px;
       overflow-x: hidden; transition: background 0.4s ease, color 0.4s ease;
     }
 
-    /* BACKGROUND 3D FLOATING PARTICLES & ORBS */
-    .scene-3d-bg {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      pointer-events: none; z-index: 0; overflow: hidden;
-    }
-    .orb-3d {
-      position: absolute; border-radius: 50%;
-      filter: blur(50px); opacity: 0.4;
-      animation: floatOrb 12s ease-in-out infinite alternate;
-    }
-    .orb-1 { width: 300px; height: 300px; background: #2563eb; top: 10%; left: 15%; }
-    .orb-2 { width: 250px; height: 250px; background: #7c3aed; bottom: 15%; right: 10%; animation-delay: -5s; }
-
-    @keyframes floatOrb {
-      0% { transform: translate(0, 0) scale(1); }
-      100% { transform: translate(60px, 40px) scale(1.15); }
+    /* CANVAS THREE.JS BACKGROUND */
+    #canvas3d {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      z-index: 0; pointer-events: none;
     }
 
-    /* TOP NAVBAR GLASSMORPHISM */
+    /* TOP NAVBAR FUTURISTIK GLASSMORPHISM */
     .top-navbar {
       position: fixed; top: 0; left: 0; width: 100%;
       display: flex; justify-content: space-between; align-items: center;
-      padding: 14px 28px; background: rgba(11, 19, 41, 0.65);
-      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      padding: 14px 28px; background: rgba(11, 19, 41, 0.6);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
       border-bottom: 1px solid var(--card-border); z-index: 1000;
     }
     .brand-logo {
       font-size: 16px; font-weight: 800; color: var(--text-color);
       display: flex; align-items: center; gap: 8px; cursor: pointer;
+      letter-spacing: 0.5px;
     }
-    .brand-logo span { color: #38bdf8; }
+    .brand-logo span { color: var(--accent-color); }
 
-    .nav-actions { display: flex; align-items: center; gap: 12px; }
+    .nav-actions { display: flex; align-items: center; gap: 10px; }
 
-    .btn-theme-toggle {
+    .btn-icon-nav {
       background: var(--input-bg); border: 1px solid var(--input-border);
       color: var(--text-color); border-radius: 10px; padding: 6px 12px;
-      font-size: 13px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 6px;
+      font-size: 13px; cursor: pointer; transition: all 0.2s ease;
+      display: flex; align-items: center; gap: 6px;
     }
-    .btn-theme-toggle:hover { border-color: #38bdf8; transform: scale(1.05); }
+    .btn-icon-nav:hover { border-color: var(--accent-color); transform: scale(1.05); }
 
     .btn-login-header {
       background: linear-gradient(135deg, #2563eb, #1d4ed8);
@@ -95,15 +92,15 @@
       background: linear-gradient(135deg, #1d4ed8, #1e40af);
     }
 
-    /* MAIN CONTAINER WRAPPER 3D STAGE */
+    /* CONTAINER WRAPPER UTAMA PANEL */
     .page-wrapper {
       position: relative; z-index: 1; width: 100%; min-height: 100vh;
       display: flex; justify-content: center; align-items: center;
       padding: 95px 16px 40px 16px;
     }
     .container {
-      width: 100%; max-width: 680px; background: var(--card-bg);
-      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      width: 100%; max-width: 720px; background: var(--card-bg);
+      backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
       border: 1px solid var(--card-border); border-radius: 24px; padding: 28px;
       box-shadow: var(--shadow-3d); transform-style: preserve-3d;
       transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -111,82 +108,56 @@
     }
 
     .header { text-align: center; margin-bottom: 20px; transform: translateZ(20px); }
-    .header h1 { font-size: 24px; font-weight: 800; margin: 0; background: linear-gradient(to right, var(--text-color), #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .header h1 { font-size: 24px; font-weight: 800; margin: 0; background: linear-gradient(to right, var(--text-color), var(--accent-color)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     .header p { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
 
-    /* 3D PORTFOLIO HERO LANDING STAGE */
-    .portfolio-hero { text-align: center; padding: 10px 0 20px 0; transform-style: preserve-3d; }
-    
-    /* ANIMATED 3D STAGE OBJECTS */
-    .stage-3d-viewport {
-      width: 120px; height: 120px; margin: 0 auto 20px auto;
-      perspective: 800px; transform-style: preserve-3d;
-    }
-    .cube-3d-object {
-      width: 100%; height: 100%; position: relative;
-      transform-style: preserve-3d;
-      animation: rotateCube 12s linear infinite;
-    }
-    @keyframes rotateCube {
-      0% { transform: rotateX(0deg) rotateY(0deg); }
-      100% { transform: rotateX(360deg) rotateY(360deg); }
-    }
-    .cube-face {
-      position: absolute; width: 80px; height: 80px;
-      left: 20px; top: 20px;
-      background: rgba(37, 99, 235, 0.25);
-      border: 2px solid #38bdf8; border-radius: 14px;
-      backdrop-filter: blur(8px);
-      box-shadow: 0 0 20px rgba(56, 189, 248, 0.5), inset 0 0 10px rgba(255, 255, 255, 0.3);
-      display: flex; align-items: center; justify-content: center; font-size: 24px;
-    }
-    .face-front  { transform: rotateY(0deg) translateZ(40px); }
-    .face-back   { transform: rotateY(180deg) translateZ(40px); }
-    .face-right  { transform: rotateY(90deg) translateZ(40px); }
-    .face-left   { transform: rotateY(-90deg) translateZ(40px); }
-    .face-top    { transform: rotateX(90deg) translateZ(40px); }
-    .face-bottom { transform: rotateX(-90deg) translateZ(40px); }
-
-    .hero-tag {
-      display: inline-block; background: rgba(37, 99, 235, 0.2);
-      border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8;
+    /* LANDING PAGE BENTO GRID & TERMINAL */
+    .landing-hero { text-align: center; padding: 10px 0 10px 0; transform-style: preserve-3d; }
+    .hero-badge {
+      display: inline-block; background: rgba(56, 189, 248, 0.15);
+      border: 1px solid var(--accent-glow); color: var(--accent-color);
       padding: 4px 14px; border-radius: 20px; font-size: 11px; font-weight: 700;
-      margin-bottom: 12px; transform: translateZ(15px);
+      margin-bottom: 14px; transform: translateZ(15px);
     }
     
-    /* PORTFOLIO GRID SHOWCASE CARDS */
     .portfolio-grid {
       display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 20px 0;
       transform-style: preserve-3d;
     }
-    @media(max-width: 500px) { .portfolio-grid { grid-template-columns: 1fr; } }
+    @media(max-width: 550px) { .portfolio-grid { grid-template-columns: 1fr; } }
     
     .portfolio-card {
       background: var(--input-bg); border: 1px solid var(--input-border);
       border-radius: 16px; padding: 16px; text-align: left;
       transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-      transform-style: preserve-3d; cursor: pointer;
+      transform-style: preserve-3d; cursor: pointer; position: relative; overflow: hidden;
     }
     .portfolio-card:hover {
-      border-color: #38bdf8;
+      border-color: var(--accent-color);
       transform: translateY(-6px) translateZ(20px);
-      box-shadow: 0 15px 30px rgba(0,0,0,0.4), 0 0 20px rgba(56, 189, 248, 0.25);
+      box-shadow: 0 15px 30px rgba(0,0,0,0.4), 0 0 20px var(--accent-glow);
     }
     .card-3d-icon { font-size: 28px; margin-bottom: 8px; display: inline-block; transform: translateZ(25px); }
     .portfolio-card h4 { margin: 0 0 4px 0; font-size: 13.5px; color: var(--text-color); transform: translateZ(15px); }
     .portfolio-card p { margin: 0; font-size: 11px; color: var(--text-muted); line-height: 1.4; transform: translateZ(10px); }
 
-    /* STATS ROW ON LANDING */
-    .portfolio-stats {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 20px;
-      transform: translateZ(15px);
+    /* INTERACTIVE TERMINAL CONSOLE */
+    .terminal-box {
+      background: #090d16; border: 1px solid var(--input-border);
+      border-radius: 14px; padding: 14px; font-family: monospace; font-size: 12px;
+      text-align: left; margin-top: 20px; color: #34d399; transform: translateZ(15px);
+      box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.8);
     }
-    .p-stat-box {
-      background: rgba(15, 23, 42, 0.6); border: 1px solid var(--input-border);
-      border-radius: 12px; padding: 10px; text-align: center;
+    .terminal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid #1e293b; padding-bottom: 8px; margin-bottom: 10px; color: #94a3b8; font-size: 11px;
     }
-    .p-stat-box h3 { margin: 0; font-size: 16px; color: #38bdf8; font-weight: 800; }
-    .p-stat-box span { font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; }
+    .terminal-logs { max-height: 90px; overflow-y: auto; margin-bottom: 8px; line-height: 1.5; }
+    .terminal-input-row { display: flex; gap: 6px; align-items: center; }
+    .terminal-input-row input {
+      background: transparent; border: none; outline: none; color: #38bdf8;
+      font-family: monospace; font-size: 12px; width: 100%; height: 24px; padding: 0;
+    }
 
     /* FORM & BUTTON STYLING */
     .field-group { margin-bottom: 14px; text-align: left; transform: translateZ(10px); }
@@ -197,7 +168,7 @@
       outline: none; transition: border-color 0.2s, box-shadow 0.2s; font-family: inherit;
     }
     input { height: 44px; } select { height: 44px; }
-    input:focus, select:focus, textarea:focus { border-color: #38bdf8; box-shadow: 0 0 12px rgba(56, 189, 248, 0.35); }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent-color); box-shadow: 0 0 12px var(--accent-glow); }
 
     .btn {
       width: 100%; height: 44px; border-radius: 10px; border: none;
@@ -238,7 +209,7 @@
 
     .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; transform: translateZ(15px); }
     .menu-card { background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 12px; padding: 16px; cursor: pointer; transition: 0.2s; text-align: center; }
-    .menu-card:hover { border-color: #38bdf8; transform: translateY(-2px); }
+    .menu-card:hover { border-color: var(--accent-color); transform: translateY(-2px); }
     .menu-card h3 { margin: 8px 0 4px 0; font-size: 14px; color: var(--text-color); }
     .menu-card p { margin: 0; font-size: 11px; color: var(--text-muted); }
     .menu-icon { font-size: 22px; }
@@ -246,7 +217,7 @@
     .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; transform: translateZ(15px); }
     .stat-box { background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 10px; padding: 10px; text-align: center; }
     .stat-box span { font-size: 10px; color: var(--text-muted); display: block; text-transform: uppercase; font-weight: 600; }
-    .stat-box h4 { margin: 4px 0 0 0; font-size: 15px; color: #38bdf8; }
+    .stat-box h4 { margin: 4px 0 0 0; font-size: 15px; color: var(--accent-color); }
 
     .chart-container { background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 12px; padding: 14px; margin-bottom: 14px; transform: translateZ(10px); }
     .chart-bars { display: flex; align-items: flex-end; justify-content: space-around; height: 90px; padding-top: 10px; border-bottom: 1px solid var(--input-border); }
@@ -257,9 +228,9 @@
     .package-row, .voucher-row { display: flex; gap: 6px; align-items: center; background: var(--input-bg); padding: 8px; border-radius: 8px; border: 1px solid var(--input-border); margin-bottom: 8px; }
     .user-list-container { max-height: 285px; overflow-y: auto; margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; padding-right: 2px; }
     .user-item { background: var(--input-bg); border: 1px solid var(--input-border); padding: 10px 12px; border-radius: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; text-align: left; }
-    .user-item:hover { border-color: #38bdf8; }
+    .user-item:hover { border-color: var(--accent-color); }
     .user-item-info div:first-child { font-weight: 600; font-size: 13px; color: #facc15; }
-    .user-item-info div:nth-child(2) { font-size: 11px; color: #38bdf8; font-weight: 600; margin-top: 2px; }
+    .user-item-info div:nth-child(2) { font-size: 11px; color: var(--accent-color); font-weight: 600; margin-top: 2px; }
     .user-item-info div:last-child { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 
     .toast {
@@ -272,22 +243,22 @@
 </head>
 <body>
 
-  <!-- BACKGROUND 3D PARTICLES -->
-  <div class="scene-3d-bg">
-    <div class="orb-3d orb-1"></div>
-    <div class="orb-3d orb-2"></div>
-  </div>
+  <!-- THREE.JS WEBGL CANVAS BACKGROUND -->
+  <canvas id="canvas3d"></canvas>
 
-  <!-- NAVBAR ATAS -->
+  <!-- NAVBAR ATAS GLASSMORPHISM -->
   <nav class="top-navbar">
-    <div class="brand-logo" onclick="gantiView('viewLandingPage')">
-      🛡️ Mindspace <span>Studio 3D</span>
+    <div class="brand-logo" onclick="gantiView('viewLandingPage'); playBeep(600, 0.05);">
+      🛡️ Mindspace <span>Nexus 3D</span>
     </div>
     <div class="nav-actions">
-      <button class="btn-theme-toggle" onclick="toggleDarkMode()">
-        <span id="themeIcon">🌙</span> <span id="themeText" style="font-size: 12px; font-weight: 600;">Dark</span>
+      <button class="btn-icon-nav" onclick="toggleAudioFx()">
+        <span id="audioIcon">🔊</span>
       </button>
-      <button class="btn-login-header" id="btnLoginHeader" onclick="gantiView('viewLogin')">🔐 Admin Login</button>
+      <button class="btn-icon-nav" onclick="toggleDarkMode()">
+        <span id="themeIcon">🌙</span> <span id="themeText" style="font-size: 11px; font-weight: 600;">Dark</span>
+      </button>
+      <button class="btn-login-header" id="btnLoginHeader" onclick="gantiView('viewLogin'); playBeep(700, 0.05);">🔐 Admin Login</button>
     </div>
   </nav>
 
@@ -298,77 +269,67 @@
       
       <div class="header">
         <h1 id="appTitle">Mindspace Studio</h1>
-        <p id="appSubtitle">3D Portfolio & Cloud License Hub</p>
+        <p id="appSubtitle">Advanced 3D License Engine & Cloud Hub</p>
       </div>
 
-      <!-- VIEW LANDING PAGE 3D PORTFOLIO -->
+      <!-- VIEW LANDING PAGE 3D INTERAKTIF & BENTO GRID -->
       <div id="viewLandingPage" class="view-section" style="display: block;">
-        <div class="portfolio-hero">
-          <div class="hero-tag">✨ Next-Gen 3D Web Environment</div>
+        <div class="landing-hero">
+          <div class="hero-badge">🌐 WebGL 3D Interactive Ecosystem</div>
           
-          <!-- STAGE KUBUS VIRTUAL 3D INTERAKTIF -->
-          <div class="stage-3d-viewport">
-            <div class="cube-3d-object">
-              <div class="cube-face face-front">💎</div>
-              <div class="cube-face face-back">🚀</div>
-              <div class="cube-face face-right">⚡</div>
-              <div class="cube-face face-left">🛡️</div>
-              <div class="cube-face face-top">📦</div>
-              <div class="cube-face face-bottom">🌐</div>
-            </div>
-          </div>
-
-          <h2 style="font-size: 20px; margin: 0 0 8px 0; color: var(--text-color);">Interactive Automation Ecosystem</h2>
-          <p style="font-size: 12px; color: var(--text-muted); margin: 0 auto; max-width: 520px; line-height: 1.6;">
-            Selamat datang di showcase portofolio 3D Mindspace Studio. Solusi integrasi skrip automasi, validasi lisensi real-time, serta cloud backup server dalam satu platform terpadu.
+          <h2 style="font-size: 20px; margin: 0 0 8px 0; color: var(--text-color);">Centralized Cloud Operating System</h2>
+          <p style="font-size: 12px; color: var(--text-muted); margin: 0 auto; max-width: 540px; line-height: 1.6;">
+            Platform manajemen lisensi modern berbasis Three.js WebGL. Dilengkapi enkripsi kunci unik, pemantauan keuangan real-time, sinkronisasi cloud backup KPM, dan pembaruan skrip otomatis.
           </p>
 
-          <!-- PORTFOLIO GRID SHOWCASE -->
+          <!-- PORTFOLIO / FEATURE GRID -->
           <div class="portfolio-grid">
-            <div class="portfolio-card">
+            <div class="portfolio-card" onclick="playBeep(440, 0.05);">
               <span class="card-3d-icon">🔒</span>
-              <h4>Secure Key Engine</h4>
-              <p>Otorisasi perangkat anti-bypass berbasis algoritma hash salt unik.</p>
+              <h4>Cyber Enkripsi Engine</h4>
+              <p>Otorisasi perangkat keras anti-tamper dengan verifikasi kunci berlapis.</p>
             </div>
-            <div class="portfolio-card">
+            <div class="portfolio-card" onclick="playBeep(480, 0.05);">
               <span class="card-3d-icon">☁️</span>
-              <h4>Cloud Backup KPM</h4>
-              <p>Penyimpanan otomatis file pengguna ke cloud server secara instan.</p>
+              <h4>Cloud Backup Sync</h4>
+              <p>Penyimpanan otomatis file konfigurasi pengguna langsung ke server Vercel.</p>
             </div>
-            <div class="portfolio-card">
-              <span class="card-3d-icon">📊</span>
-              <h4>Real-time Analytics</h4>
-              <p>Visualisasi grafik pendapatan dan statistik pengguna secara presisi.</p>
+            <div class="portfolio-card" onclick="playBeep(520, 0.05);">
+              <span class="card-3d-icon">📈</span>
+              <h4>Live Revenue Graph</h4>
+              <p>Visualisasi analitik pendapatan harian, mingguan, dan bulanan secara real-time.</p>
             </div>
-            <div class="portfolio-card">
+            <div class="portfolio-card" onclick="playBeep(560, 0.05);">
               <span class="card-3d-icon">🚀</span>
-              <h4>Script Release Hub</h4>
-              <p>Auto-update pengguna melalui In-App Userscript secara seamless.</p>
+              <h4>Auto Release Pipeline</h4>
+              <p>In-App Userscript updater otomatis dengan kontrol changelog versi.</p>
             </div>
           </div>
 
-          <!-- PORTFOLIO STATS SHOWCASE -->
-          <div class="portfolio-stats">
-            <div class="p-stat-box">
-              <h3>99.9%</h3>
-              <span>Uptime Engine</span>
+          <!-- INTERACTIVE TERMINAL CONSOLE -->
+          <div class="terminal-box">
+            <div class="terminal-header">
+              <span>NEXUS CLI TERMINAL (v3.0)</span>
+              <span>STATUS: ONLINE</span>
             </div>
-            <div class="p-stat-box">
-              <h3>Fast</h3>
-              <span>API Sync</span>
+            <div class="terminal-logs" id="terminalLogs">
+              <div>[SYSTEM]: Initializing Three.js 3D Engine... OK</div>
+              <div>[SYSTEM]: Web Audio Synthesizer Ready.</div>
+              <div>[HINT]: Ketik <b style="color:#f8fafc;">help</b> untuk melihat daftar perintah terminal.</div>
             </div>
-            <div class="p-stat-box">
-              <h3>Safe</h3>
-              <span>Cloud Storage</span>
+            <div class="terminal-input-row">
+              <span style="color:#38bdf8;">nexus@admin:~$</span>
+              <input type="text" id="terminalInput" placeholder="Ketik perintah..." onkeyup="handleTerminalInput(event)">
             </div>
           </div>
+
         </div>
       </div>
 
       <!-- VIEW 0: LOGIN ADMIN -->
       <div id="viewLogin" class="view-section">
         <div class="field-group">
-          <label for="inputAdminPassword">Password Admin:</label>
+          <label for="inputAdminPassword">Password Admin Master:</label>
           <input type="password" id="inputAdminPassword" placeholder="••••••••••••" onkeyup="if(event.key==='Enter') verifikasiAdminPassword()">
         </div>
         <button class="btn btn-primary" id="btnLogin" onclick="verifikasiAdminPassword()">🔒 Masuk Ke Dashboard</button>
@@ -469,15 +430,15 @@
       <div id="viewDeviceDetail" class="view-section">
         <div class="card-info">
           <div><b>Device ID:</b> <span id="dispDeviceId" style="color:#facc15;">-</span></div>
-          <div><b>Nama SPPG:</b> <span id="dispSppgName" style="color:#38bdf8;">-</span></div>
+          <div><b>Nama SPPG:</b> <span id="dispSppgName" style="color:var(--accent-color);">-</span></div>
           <div><b>Status Saat Ini:</b> <span id="dispStatus">-</span></div>
-          <div><b>Tanggal Kadaluarsa:</b> <span id="dispExpDate" style="color:#38bdf8;">-</span></div>
+          <div><b>Tanggal Kadaluarsa:</b> <span id="dispExpDate" style="color:var(--accent-color);">-</span></div>
           <div><b>Terakhir Digunakan:</b> <span id="dispLastActive" style="color:var(--text-muted);">-</span></div>
         </div>
 
         <!-- BACKUP CLOUD KPM -->
         <div class="card-info" id="backupInfoCard" style="display: none;">
-          <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #38bdf8; font-weight: 600; margin-bottom: 6px;">Backup Cloud KPM</div>
+          <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent-color); font-weight: 600; margin-bottom: 6px;">Backup Cloud KPM</div>
           <div><b>Nama File:</b> <span id="dispBackupFilename" style="color:#facc15; font-family: monospace;">-</span></div>
           <div><b>Waktu Backup:</b> <span id="dispBackupTime" style="color:var(--text-muted);">-</span></div>
           <div style="display: flex; gap: 8px; margin-top: 10px;">
@@ -530,8 +491,8 @@
 
       <!-- VIEW 3.5: OPER DEVICE ID -->
       <div id="viewTransferDevice" class="view-section">
-        <div class="card-info" style="border-color: #38bdf8;">
-          <div style="font-size: 13px; font-weight: bold; color: #38bdf8; margin-bottom: 4px;">🔄 Migrasi & Pemindahan Device ID</div>
+        <div class="card-info" style="border-color: var(--accent-color);">
+          <div style="font-size: 13px; font-weight: bold; color: var(--accent-color); margin-bottom: 4px;">🔄 Migrasi & Pemindahan Device ID</div>
           <p style="margin: 0; font-size: 11px; color: var(--text-muted); line-height: 1.4;">
             Fitur ini memungkinkan Anda memindahkan masa aktif lisensi, status, nama SPPG, serta data backup cloud dari <b>Device Asal</b> ke <b>Device Tujuan (Baru)</b>.
           </p>
@@ -586,7 +547,7 @@
       <!-- VIEW 6: UPDATE RELEASE -->
       <div id="viewRelease" class="view-section">
         <div class="card-info" style="border-color: #0284c7;">
-          <div style="font-size: 13px; font-weight: bold; color: #38bdf8; margin-bottom: 4px;">🚀 Publikasi Update Versi Terbaru</div>
+          <div style="font-size: 13px; font-weight: bold; color: var(--accent-color); margin-bottom: 4px;">🚀 Publikasi Update Versi Terbaru</div>
           <p style="margin: 0; font-size: 11px; color: var(--text-muted); line-height: 1.4;">
             Data ini digunakan oleh <b>In-App Userscript</b> untuk mengecek pembaruan otomatis.
           </p>
@@ -617,6 +578,7 @@
   </div>
 
   <script>
+    // --- SERVER & API CONFIG ---
     const VERCEL_BASE_URL = 'https://mindspace-id.vercel.app';
     const VERCEL_API_URL = `${VERCEL_BASE_URL}/api/tokopay`;
     const VERIFY_PASS_URL = `${VERCEL_BASE_URL}/api/verify-pass`;
@@ -627,21 +589,172 @@
     let currentBackupPayload = null;
     let globalUserList = [];
     let isQrisActiveState = true;
+    let isAudioMuted = false;
 
-    // EFEK PARALLAX 3D TILT PADA MOUSEMOVE (PERSPECTIVE INTERAKTIF)
-    const container = document.getElementById('mainContainer');
-    if (window.innerWidth > 768) {
-      document.addEventListener('mousemove', (e) => {
-        const xAxis = (window.innerWidth / 2 - e.pageX) / 45;
-        const yAxis = (window.innerHeight / 2 - e.pageY) / 45;
-        container.style.transform = `rotateY(${xAxis}deg) rotateX(${yAxis}deg)`;
-      });
-      document.addEventListener('mouseleave', () => {
-        container.style.transform = `rotateY(0deg) rotateX(0deg)`;
-      });
+    // --- WEB AUDIO API SYNTHESIZER FOR SOUND FX ---
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    function initAudioContext() {
+      if (!audioCtx) audioCtx = new AudioCtx();
     }
 
-    // TOGGLE DARK / LIGHT MODE
+    function playBeep(freq = 520, duration = 0.06, type = 'sine') {
+      if (isAudioMuted) return;
+      try {
+        initAudioContext();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    function toggleAudioFx() {
+      isAudioMuted = !isAudioMuted;
+      document.getElementById('audioIcon').textContent = isAudioMuted ? '🔇' : '🔊';
+      showToast(`Suara FX ${isAudioMuted ? 'Dimatikan' : 'Diaktifkan'}`);
+    }
+
+    // --- THREE.JS ADVANCED 3D BACKGROUND ENGINE ---
+    let scene, camera, renderer, torusKnot, particleSystem;
+    let mouseX = 0, mouseY = 0;
+
+    function initThreeJS() {
+      const canvas = document.getElementById('canvas3d');
+      scene = new THREE.Scene();
+
+      camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.z = 30;
+
+      renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+      // Objek 3D Metallic Wireframe Torus Knot
+      const geometry = new THREE.TorusKnotGeometry(8, 2.2, 120, 16);
+      const material = new THREE.MeshBasicMaterial({
+        color: 0x38bdf8,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.25
+      });
+      torusKnot = new THREE.Mesh(geometry, material);
+      scene.add(torusKnot);
+
+      // Partikel Bintang / Stars Particle Galaxy
+      const particlesGeo = new THREE.BufferGeometry();
+      const count = 700;
+      const positions = new Float32Array(count * 3);
+
+      for (let i = 0; i < count * 3; i++) {
+        positions[i] = (Math.random() - 0.5) * 120;
+      }
+      particlesGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+      const particlesMat = new THREE.PointsMaterial({
+        size: 0.8,
+        color: 0x60a5fa,
+        transparent: true,
+        opacity: 0.6
+      });
+      particleSystem = new THREE.Points(particlesGeo, particlesMat);
+      scene.add(particleSystem);
+
+      window.addEventListener('resize', onWindowResize);
+      document.addEventListener('mousemove', onDocumentMouseMove);
+
+      animateThreeJS();
+    }
+
+    function animateThreeJS() {
+      requestAnimationFrame(animateThreeJS);
+
+      if (torusKnot) {
+        torusKnot.rotation.x += 0.003;
+        torusKnot.rotation.y += 0.005;
+
+        // Smooth Mouse Parallax Rotation
+        torusKnot.rotation.x += (mouseY * 0.0005 - torusKnot.rotation.x * 0.05);
+        torusKnot.rotation.y += (mouseX * 0.0005 - torusKnot.rotation.y * 0.05);
+      }
+
+      if (particleSystem) {
+        particleSystem.rotation.y -= 0.0008;
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function onDocumentMouseMove(event) {
+      mouseX = (event.clientX - window.innerWidth / 2);
+      mouseY = (event.clientY - window.innerHeight / 2);
+
+      // Parallax Tilt untuk container utama
+      const container = document.getElementById('mainContainer');
+      if (window.innerWidth > 768) {
+        const xAxis = mouseX / 55;
+        const yAxis = mouseY / 55;
+        container.style.transform = `rotateY(${xAxis}deg) rotateX(${-yAxis}deg)`;
+      }
+    }
+
+    // --- INTERACTIVE CLI TERMINAL ENGINE ---
+    function handleTerminalInput(e) {
+      if (e.key === 'Enter') {
+        const input = document.getElementById('terminalInput');
+        const cmd = input.value.trim().toLowerCase();
+        input.value = '';
+        if (!cmd) return;
+
+        playBeep(800, 0.04);
+        const logs = document.getElementById('terminalLogs');
+        const userLine = document.createElement('div');
+        userLine.innerHTML = `<span style="color:#cbd5e1;">nexus@admin:~$</span> ${cmd}`;
+        logs.appendChild(userLine);
+
+        let resText = '';
+        if (cmd === 'help') {
+          resText = 'Available commands: <b style="color:#f8fafc">login, status, clear, theme, version, ping</b>';
+        } else if (cmd === 'login') {
+          gantiView('viewLogin');
+          resText = 'Redirecting to Admin Login Gateway...';
+        } else if (cmd === 'status') {
+          resText = `Gateway: ACTIVE | System: ONLINE | QRIS: ${isQrisActiveState ? 'ENABLED' : 'DISABLED'}`;
+        } else if (cmd === 'clear') {
+          logs.innerHTML = '';
+          return;
+        } else if (cmd === 'theme') {
+          toggleDarkMode();
+          resText = 'Theme mode toggled.';
+        } else if (cmd === 'version') {
+          resText = 'Mindspace Nexus 3D v3.0 (WebGL & WebAudio Edition)';
+        } else if (cmd === 'ping') {
+          resText = 'PONG! Latency: 12ms (Vercel Edge Node)';
+        } else {
+          resText = `<span style="color:#ef4444;">Command not recognized: '${cmd}'. Type 'help' for info.</span>`;
+        }
+
+        const resLine = document.createElement('div');
+        resLine.innerHTML = `[NEXUS]: ${resText}`;
+        logs.appendChild(resLine);
+        logs.scrollTop = logs.scrollHeight;
+      }
+    }
+
+    // --- TOGGLE DARK / LIGHT MODE ---
     function toggleDarkMode() {
       const html = document.documentElement;
       const themeIcon = document.getElementById('themeIcon');
@@ -651,27 +764,20 @@
         html.setAttribute('data-theme', 'light');
         themeIcon.textContent = '☀️';
         themeText.textContent = 'Light';
+        if (torusKnot) torusKnot.material.color.setHex(0x2563eb);
         localStorage.setItem('mindspace_theme', 'light');
       } else {
         html.setAttribute('data-theme', 'dark');
         themeIcon.textContent = '🌙';
         themeText.textContent = 'Dark';
+        if (torusKnot) torusKnot.material.color.setHex(0x38bdf8);
         localStorage.setItem('mindspace_theme', 'dark');
       }
     }
 
-    // INIT THEME DARI LOCALSTORAGE
     (function initTheme() {
       const saved = localStorage.getItem('mindspace_theme') || 'dark';
       document.documentElement.setAttribute('data-theme', saved);
-      setTimeout(() => {
-        const themeIcon = document.getElementById('themeIcon');
-        const themeText = document.getElementById('themeText');
-        if (themeIcon && themeText) {
-          themeIcon.textContent = saved === 'dark' ? '🌙' : '☀️';
-          themeText.textContent = saved === 'dark' ? 'Dark' : 'Light';
-        }
-      }, 50);
     })();
 
     function getTanggalHariIniWIB() {
@@ -679,6 +785,7 @@
     }
 
     function showToast(msg, isSuccess = true) {
+      playBeep(isSuccess ? 650 : 300, 0.08);
       const t = document.getElementById('toast');
       t.textContent = msg;
       t.style.borderColor = isSuccess ? '#059669' : '#dc2626';
@@ -694,7 +801,7 @@
       if (viewId === 'viewLandingPage') {
         btnLoginHeader.style.display = 'block';
         document.getElementById('appTitle').textContent = 'Mindspace Studio';
-        document.getElementById('appSubtitle').textContent = '3D Portfolio & Cloud License Hub';
+        document.getElementById('appSubtitle').textContent = 'Advanced 3D License Engine & Cloud Hub';
       } else if (viewId === 'viewLogin') {
         btnLoginHeader.style.display = 'none';
         document.getElementById('appTitle').textContent = 'Admin Login';
@@ -785,6 +892,7 @@
     }
 
     function bukaFitur(fitur) {
+      playBeep(500, 0.05);
       if (fitur === 'device') {
         document.getElementById('searchUserQuery').value = '';
         muatDaftarSemuaUser();
@@ -1282,6 +1390,11 @@
         }
       } catch (err) { showToast('Error koneksi server.', false); }
     }
+
+    // INIT THREE.JS ENGINE ON LOAD
+    window.addEventListener('load', () => {
+      initThreeJS();
+    });
   </script>
 </body>
 </html>

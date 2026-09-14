@@ -3,16 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mindspace Nexus - Ultra High-End 3D License Hub</title>
+  <title>Mindspace Enterprise Nexus 3D - Ultra High-End Cloud OS</title>
   
-  <!-- FAVICON & PWA MANIFEST -->
+  <!-- FAVICON & PWA METADATA -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2338bdf8'><path d='M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z'/></svg>">
   <meta name="theme-color" content="#2563eb">
 
-  <!-- THREE.JS ENGINE VIA CDN FOR ULTRA HIGH-END 3D GRAPHICS -->
+  <!-- THREE.JS HIGH PERFORMANCE GRAPHICS ENGINE -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
   <style>
+    /* -------------------------------------------------------------------------- */
+    /* 1. GLOBAL ROOT VARIABLES & DESIGN SYSTEM                                  */
+    /* -------------------------------------------------------------------------- */
     :root {
       --bg-color: #030712;
       --card-bg: rgba(15, 23, 42, 0.65);
@@ -25,17 +28,20 @@
       --accent-color: #38bdf8;
       --accent-gradient: linear-gradient(135deg, #38bdf8 0%, #3b82f6 50%, #8b5cf6 100%);
       --accent-glow: rgba(56, 189, 248, 0.4);
-      --shadow-3d: 0 30px 60px -12px rgba(0, 0, 0, 0.9), 0 0 50px rgba(56, 189, 248, 0.2);
+      --success-gradient: linear-gradient(135deg, #059669 0%, #047857 100%);
+      --danger-gradient: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+      --warning-gradient: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+      --shadow-3d: 0 30px 60px -12px rgba(0, 0, 0, 0.95), 0 0 55px rgba(56, 189, 248, 0.2);
     }
 
     [data-theme="light"] {
       --bg-color: #f8fafc;
-      --card-bg: rgba(255, 255, 255, 0.8);
+      --card-bg: rgba(255, 255, 255, 0.85);
       --card-border: rgba(37, 99, 235, 0.3);
-      --card-glow: rgba(37, 99, 235, 0.1);
+      --card-glow: rgba(37, 99, 235, 0.12);
       --text-color: #0f172a;
       --text-muted: #64748b;
-      --input-bg: rgba(241, 245, 249, 0.9);
+      --input-bg: rgba(241, 245, 249, 0.95);
       --input-border: #cbd5e1;
       --accent-color: #2563eb;
       --accent-gradient: linear-gradient(135deg, #2563eb 0%, #1d4ed8 50%, #6d28d9 100%);
@@ -43,31 +49,35 @@
       --shadow-3d: 0 30px 60px -12px rgba(0, 0, 0, 0.1), 0 0 35px rgba(37, 99, 235, 0.12);
     }
 
+    /* -------------------------------------------------------------------------- */
+    /* 2. BASE RESET & LAYOUT STRUCTURE                                          */
+    /* -------------------------------------------------------------------------- */
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background-color: var(--bg-color);
       color: var(--text-color); margin: 0; padding: 0;
-      min-height: 100vh; perspective: 1500px;
+      min-height: 100vh; perspective: 1600px;
       overflow-x: hidden; transition: background 0.4s ease, color 0.4s ease;
     }
 
-    /* CANVAS THREE.JS BACKGROUND */
     #canvas3d {
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
       z-index: 0; pointer-events: none;
     }
 
-    /* TOP NAVBAR ULTRA HIGH-END */
+    /* -------------------------------------------------------------------------- */
+    /* 3. NAVIGATION BAR & STATUS STRIP                                          */
+    /* -------------------------------------------------------------------------- */
     .top-navbar {
       position: fixed; top: 0; left: 0; width: 100%;
       display: flex; justify-content: space-between; align-items: center;
-      padding: 16px 36px; background: rgba(3, 7, 18, 0.5);
+      padding: 14px 32px; background: rgba(3, 7, 18, 0.6);
       backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
       border-bottom: 1px solid var(--card-border); z-index: 1000;
     }
     .brand-logo {
-      font-size: 17px; font-weight: 800; color: var(--text-color);
+      font-size: 18px; font-weight: 800; color: var(--text-color);
       display: flex; align-items: center; gap: 10px; cursor: pointer;
       letter-spacing: 0.5px;
     }
@@ -100,14 +110,25 @@
       filter: brightness(1.1);
     }
 
-    /* CONTAINER WRAPPER UTAMA PANEL */
+    /* System Live Metrics Bar */
+    .metrics-bar {
+      display: flex; gap: 16px; font-size: 11px; color: var(--text-muted);
+      background: rgba(15, 23, 42, 0.4); border: 1px solid var(--card-border);
+      padding: 6px 14px; border-radius: 20px; backdrop-filter: blur(10px);
+    }
+    .metric-item { display: flex; align-items: center; gap: 6px; }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #34d399; box-shadow: 0 0 8px #34d399; }
+
+    /* -------------------------------------------------------------------------- */
+    /* 4. MAIN CONTAINER & GLASSMORPHISM CONTAINER                                */
+    /* -------------------------------------------------------------------------- */
     .page-wrapper {
       position: relative; z-index: 1; width: 100%; min-height: 100vh;
       display: flex; justify-content: center; align-items: center;
-      padding: 100px 16px 40px 16px;
+      padding: 105px 16px 40px 16px;
     }
     .container {
-      width: 100%; max-width: 760px; background: var(--card-bg);
+      width: 100%; max-width: 840px; background: var(--card-bg);
       backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
       border: 1px solid var(--card-border); border-radius: 28px; padding: 32px;
       box-shadow: var(--shadow-3d); transform-style: preserve-3d;
@@ -119,7 +140,9 @@
     .header h1 { font-size: 26px; font-weight: 800; margin: 0; background: linear-gradient(to right, var(--text-color), var(--accent-color)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     .header p { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
 
-    /* LANDING HERO & BENTO GRID */
+    /* -------------------------------------------------------------------------- */
+    /* 5. LANDING PAGE & BENTO GRID SYSTEM                                       */
+    /* -------------------------------------------------------------------------- */
     .landing-hero { text-align: center; padding: 10px 0 10px 0; transform-style: preserve-3d; }
     .hero-badge {
       display: inline-block; background: rgba(56, 189, 248, 0.12);
@@ -132,7 +155,7 @@
       display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin: 24px 0;
       transform-style: preserve-3d;
     }
-    @media(max-width: 580px) { .portfolio-grid { grid-template-columns: 1fr; } }
+    @media(max-width: 600px) { .portfolio-grid { grid-template-columns: 1fr; } }
     
     .portfolio-card {
       background: var(--input-bg); border: 1px solid var(--input-border);
@@ -149,7 +172,21 @@
     .portfolio-card h4 { margin: 0 0 6px 0; font-size: 14px; color: var(--text-color); transform: translateZ(15px); font-weight: 700; }
     .portfolio-card p { margin: 0; font-size: 12px; color: var(--text-muted); line-height: 1.5; transform: translateZ(10px); }
 
-    /* FORM & BUTTON STYLING */
+    /* System Status Monitor Box */
+    .system-monitor-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 16px;
+    }
+    @media(max-width: 500px) { .system-monitor-grid { grid-template-columns: repeat(2, 1fr); } }
+    .sys-box {
+      background: rgba(15, 23, 42, 0.5); border: 1px solid var(--input-border);
+      border-radius: 12px; padding: 12px; text-align: center;
+    }
+    .sys-box span { font-size: 10px; color: var(--text-muted); display: block; font-weight: 700; text-transform: uppercase; }
+    .sys-box h5 { margin: 4px 0 0 0; font-size: 14px; color: var(--accent-color); font-weight: 800; }
+
+    /* -------------------------------------------------------------------------- */
+    /* 6. FORM CONTROLS & DYNAMIC BUTTONS                                        */
+    /* -------------------------------------------------------------------------- */
     .field-group { margin-bottom: 16px; text-align: left; transform: translateZ(10px); }
     label { font-size: 12px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
     input, select, textarea {
@@ -167,15 +204,18 @@
     }
     .btn-primary { background: var(--accent-gradient); color: white; box-shadow: 0 4px 18px var(--accent-glow); }
     .btn-primary:hover { transform: translateY(-2px); filter: brightness(1.1); box-shadow: 0 6px 22px var(--accent-glow); }
-    .btn-success { background: linear-gradient(135deg, #059669, #047857); color: white; box-shadow: 0 4px 15px rgba(5, 150, 105, 0.3); }
-    .btn-success:hover { background: linear-gradient(135deg, #047857, #065f46); transform: translateY(-2px); }
-    .btn-danger { background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3); }
-    .btn-danger:hover { background: linear-gradient(135deg, #b91c1c, #991b1b); transform: translateY(-2px); }
+    .btn-success { background: var(--success-gradient); color: white; box-shadow: 0 4px 15px rgba(5, 150, 105, 0.3); }
+    .btn-success:hover { transform: translateY(-2px); filter: brightness(1.1); }
+    .btn-danger { background: var(--danger-gradient); color: white; box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3); }
+    .btn-danger:hover { transform: translateY(-2px); filter: brightness(1.1); }
     .btn-secondary { background: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-color); }
     .btn-secondary:hover { border-color: var(--accent-color); transform: translateY(-2px); }
-    .btn-warning { background: linear-gradient(135deg, #d97706, #b45309); color: white; box-shadow: 0 4px 15px rgba(217, 119, 6, 0.3); }
-    .btn-warning:hover { background: linear-gradient(135deg, #b45309, #92400e); transform: translateY(-2px); }
+    .btn-warning { background: var(--warning-gradient); color: white; box-shadow: 0 4px 15px rgba(217, 119, 6, 0.3); }
+    .btn-warning:hover { transform: translateY(-2px); filter: brightness(1.1); }
 
+    /* -------------------------------------------------------------------------- */
+    /* 7. DASHBOARD CARDS, BADGES, & TAB FILTERS                                */
+    /* -------------------------------------------------------------------------- */
     .card-info {
       background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 16px;
       padding: 16px; margin-bottom: 16px; font-size: 13px; line-height: 1.6; text-align: left; transform: translateZ(10px);
@@ -193,9 +233,13 @@
     .btn-quick-lifetime { background: linear-gradient(135deg, #7c3aed, #6d28d9); color: white; border: none; }
     .btn-quick-lifetime:hover { filter: brightness(1.1); transform: translateY(-2px); }
 
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: var(--input-bg); border-radius: 4px; }
-    ::-webkit-scrollbar-thumb { background: var(--input-border); border-radius: 4px; }
+    /* Custom Filter Tabs */
+    .tab-filter-container { display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 4px; }
+    .tab-btn {
+      padding: 6px 14px; border-radius: 10px; background: var(--input-bg); border: 1px solid var(--input-border);
+      color: var(--text-muted); font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: 0.2s;
+    }
+    .tab-btn.active { background: var(--accent-color); color: white; border-color: var(--accent-color); }
 
     .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; transform: translateZ(15px); }
     .menu-card { background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 16px; padding: 18px; cursor: pointer; transition: 0.25s ease; text-align: center; }
@@ -216,12 +260,20 @@
     .chart-label { font-size: 10px; color: var(--text-muted); margin-top: 6px; }
 
     .package-row, .voucher-row { display: flex; gap: 8px; align-items: center; background: var(--input-bg); padding: 10px; border-radius: 12px; border: 1px solid var(--input-border); margin-bottom: 8px; }
-    .user-list-container { max-height: 300px; overflow-y: auto; margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px; padding-right: 2px; }
+    .user-list-container { max-height: 320px; overflow-y: auto; margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px; padding-right: 2px; }
     .user-item { background: var(--input-bg); border: 1px solid var(--input-border); padding: 12px 14px; border-radius: 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: 0.25s ease; text-align: left; }
     .user-item:hover { border-color: var(--accent-color); transform: translateX(2px); }
     .user-item-info div:first-child { font-weight: 700; font-size: 13px; color: #facc15; }
     .user-item-info div:nth-child(2) { font-size: 11px; color: var(--accent-color); font-weight: 600; margin-top: 2px; }
     .user-item-info div:last-child { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    /* Event Audit Trail Logger */
+    .audit-log-container {
+      background: rgba(9, 13, 22, 0.7); border: 1px solid var(--input-border); border-radius: 14px;
+      padding: 12px; font-family: monospace; font-size: 11px; max-height: 120px; overflow-y: auto; color: var(--text-muted); text-align: left;
+    }
+    .audit-entry { margin-bottom: 4px; display: flex; gap: 8px; }
+    .audit-time { color: var(--accent-color); font-weight: bold; }
 
     .toast {
       position: fixed; top: 85px; left: 50%; transform: translateX(-50%);
@@ -236,11 +288,19 @@
   <!-- THREE.JS WEBGL CANVAS BACKGROUND -->
   <canvas id="canvas3d"></canvas>
 
-  <!-- NAVBAR ATAS GLASSMORPHISM -->
+  <!-- NAVBAR ATAS ULTRA HIGH-END -->
   <nav class="top-navbar">
     <div class="brand-logo" onclick="gantiView('viewLandingPage')">
       🛡️ Mindspace <span>Nexus 3D</span>
     </div>
+
+    <!-- Live System Metrics Banner -->
+    <div class="metrics-bar" id="sysMetricsBar">
+      <div class="metric-item"><div class="status-dot"></div> Edge Engine: Online</div>
+      <div class="metric-item">⚡ Latency: <span id="pingVal" style="color:var(--accent-color);">14ms</span></div>
+      <div class="metric-item">📊 CPU: <span id="cpuVal" style="color:#34d399;">1.2%</span></div>
+    </div>
+
     <div class="nav-actions">
       <button class="btn-icon-nav" onclick="toggleDarkMode()">
         <span id="themeIcon">🌙</span> <span id="themeText">Dark</span>
@@ -262,11 +322,11 @@
       <!-- VIEW LANDING PAGE 3D BENTO GRID -->
       <div id="viewLandingPage" class="view-section" style="display: block;">
         <div class="landing-hero">
-          <div class="hero-badge">⚡ ULTRA HIGH-END WEBGL ENGINE</div>
+          <div class="hero-badge">⚡ ULTRA HIGH-END WEBGL ENGINE v3.5</div>
           
           <h2 style="font-size: 22px; margin: 0 0 8px 0; color: var(--text-color);">Centralized License & Cloud System</h2>
-          <p style="font-size: 13px; color: var(--text-muted); margin: 0 auto; max-width: 560px; line-height: 1.6;">
-            Platform otorisasi lisensi berkinerja tinggi. Dilengkapi enkripsi kunci perangkat keras, analitik pendapatan instan, backup cloud otomatis, dan pipeline rilis pembaruan skrip.
+          <p style="font-size: 13px; color: var(--text-muted); margin: 0 auto; max-width: 580px; line-height: 1.6;">
+            Platform otorisasi lisensi berkinerja tinggi. Dilengkapi enkripsi kunci perangkat keras, analitik pendapatan instan, backup cloud otomatis, audit security logger, dan pipeline rilis pembaruan skrip.
           </p>
 
           <!-- PORTFOLIO / FEATURE BENTO GRID -->
@@ -292,6 +352,18 @@
               <p>In-App Userscript updater otomatis dengan kontrol changelog versi.</p>
             </div>
           </div>
+
+          <!-- SYSTEM MONITOR LIVE PANEL -->
+          <div style="text-align: left; margin-top: 20px;">
+            <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">System Infrastructure Live Status:</div>
+            <div class="system-monitor-grid">
+              <div class="sys-box"><span>Memory Alloc</span><h5>24.8 MB</h5></div>
+              <div class="sys-box"><span>Node Region</span><h5>sin1 (SG)</h5></div>
+              <div class="sys-box"><span>Uptime Rate</span><h5>99.99%</h5></div>
+              <div class="sys-box"><span>SSL Security</span><h5>TLS v1.3</h5></div>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -371,7 +443,15 @@
           </div>
         </div>
 
-        <div style="margin-top: 10px;">
+        <!-- AUDIT SECURITY LOG TRAIL -->
+        <div style="text-align: left; margin-top: 14px;">
+          <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">Audit Trail & Event Log:</div>
+          <div class="audit-log-container" id="auditLogBox">
+            <div class="audit-entry"><span class="audit-time">[SYSTEM]</span> Ready to receive administrator commands.</div>
+          </div>
+        </div>
+
+        <div style="margin-top: 14px;">
           <div class="menu-card" onclick="logoutAdmin()" style="border-color: #7f1d1d; padding: 12px;">
             <div class="menu-icon" style="font-size: 18px;">🚪</div>
             <h3 style="color: #fca5a5; margin: 4px 0 2px 0;">Keluar</h3>
@@ -387,7 +467,16 @@
           <input type="text" id="searchUserQuery" placeholder="🔍 Ketik Device ID atau Nama SPPG..." oninput="filterUserList()">
         </div>
 
-        <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin: 14px 0 8px 0; text-align: left; text-transform: uppercase;">Daftar Seluruh User Terdaftar:</div>
+        <!-- TAB FILTER STATUS -->
+        <div class="tab-filter-container">
+          <button class="tab-btn active" onclick="setFilterTab('all', this)">Semua Status</button>
+          <button class="tab-btn" onclick="setFilterTab('active', this)">Active</button>
+          <button class="tab-btn" onclick="setFilterTab('hold', this)">Hold</button>
+          <button class="tab-btn" onclick="setFilterTab('expired', this)">Expired</button>
+          <button class="tab-btn" onclick="setFilterTab('revoked', this)">Revoked</button>
+        </div>
+
+        <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin: 10px 0 8px 0; text-align: left; text-transform: uppercase;">Daftar Seluruh User Terdaftar:</div>
         <div class="user-list-container" id="listAllUsersContainer">
           <div style="text-align: center; color: var(--text-muted); font-size: 12px; padding: 20px;">Memuat data user...</div>
         </div>
@@ -547,7 +636,9 @@
   </div>
 
   <script>
-    // --- SERVER & API CONFIG ---
+    /* ========================================================================== */
+    /* 1. SERVER CONSTANTS & ENGINE INITIALIZATION                                */
+    /* ========================================================================== */
     const VERCEL_BASE_URL = 'https://mindspace-id.vercel.app';
     const VERCEL_API_URL = `${VERCEL_BASE_URL}/api/tokopay`;
     const VERIFY_PASS_URL = `${VERCEL_BASE_URL}/api/verify-pass`;
@@ -558,8 +649,11 @@
     let currentBackupPayload = null;
     let globalUserList = [];
     let isQrisActiveState = true;
+    let currentStatusFilter = 'all';
 
-    // --- THREE.JS ADVANCED 3D BACKGROUND ENGINE ---
+    /* ========================================================================== */
+    /* 2. THREE.JS 3D GRAPHICS PLATFORM                                         */
+    /* ========================================================================== */
     let scene, camera, renderer, torusKnot, particleSystem;
     let mouseX = 0, mouseY = 0;
 
@@ -575,7 +669,7 @@
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
       // Objek 3D Metallic Wireframe Torus Knot
-      const geometry = new THREE.TorusKnotGeometry(9, 2.5, 140, 18);
+      const geometry = new THREE.TorusKnotGeometry(9.5, 2.6, 140, 18);
       const material = new THREE.MeshBasicMaterial({
         color: 0x38bdf8,
         wireframe: true,
@@ -587,11 +681,11 @@
 
       // Partikel Bintang Galaxy Engine
       const particlesGeo = new THREE.BufferGeometry();
-      const count = 800;
+      const count = 900;
       const positions = new Float32Array(count * 3);
 
       for (let i = 0; i < count * 3; i++) {
-        positions[i] = (Math.random() - 0.5) * 130;
+        positions[i] = (Math.random() - 0.5) * 140;
       }
       particlesGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
@@ -646,7 +740,29 @@
       }
     }
 
-    // --- TOGGLE DARK / LIGHT MODE ---
+    /* ========================================================================== */
+    /* 3. AUDIT TRAIL LOGGING SYSTEM                                             */
+    /* ========================================================================== */
+    function addAuditLog(msg) {
+      const box = document.getElementById('auditLogBox');
+      if (!box) return;
+      const entry = document.createElement('div');
+      entry.className = 'audit-entry';
+      const timeStr = new Date().toLocaleTimeString('id-ID');
+      entry.innerHTML = `<span class="audit-time">[${timeStr}]</span> ${msg}`;
+      box.prepend(entry);
+    }
+
+    // Dynamic Latency Simulator
+    setInterval(() => {
+      const p = Math.floor(Math.random() * 8) + 11;
+      const el = document.getElementById('pingVal');
+      if (el) el.textContent = `${p}ms`;
+    }, 4000);
+
+    /* ========================================================================== */
+    /* 4. THEME & UTILITIES                                                      */
+    /* ========================================================================== */
     function toggleDarkMode() {
       const html = document.documentElement;
       const themeIcon = document.getElementById('themeIcon');
@@ -743,6 +859,9 @@
       return `MIND-${encoded}`;
     }
 
+    /* ========================================================================== */
+    /* 5. BACKEND API INTEGRATION LOGICS                                         */
+    /* ========================================================================== */
     async function verifikasiAdminPassword() {
       const passInput = document.getElementById('inputAdminPassword').value.trim();
       const btnLogin = document.getElementById('btnLogin');
@@ -765,8 +884,10 @@
           muatStatistikDashboard();
           muatStatusQrisServer();
           showToast('Akses Admin Diterima.', true);
+          addAuditLog('Administrator successfully authenticated.');
         } else {
           showToast(data.error || 'Password salah!', false);
+          addAuditLog('Failed authentication attempt.');
         }
       } catch (e) {
         showToast('Gagal terhubung ke API Verifikasi Password.', false);
@@ -780,6 +901,7 @@
       document.getElementById('inputAdminPassword').value = '';
       gantiView('viewLandingPage');
       showToast('Berhasil keluar.', true);
+      addAuditLog('Administrator logged out.');
     }
 
     function bukaFitur(fitur) {
@@ -838,6 +960,7 @@
         if (res.ok && (result.success || result.status)) {
           isQrisActiveState = newState; updateTombolQrisUI();
           showToast(`Status QRIS diubah menjadi ${newState ? 'Aktif' : 'Mati'}`);
+          addAuditLog(`QRIS Status updated to: ${newState ? 'ENABLED' : 'DISABLED'}`);
         } else {
           showToast(result.error || 'Gagal mengubah status QRIS.', false); updateTombolQrisUI();
         }
@@ -881,10 +1004,17 @@
         const res = await fetch(`${VERCEL_API_URL}?action=get_all_licenses`);
         const data = await res.json();
         globalUserList = data.licenses || data.users || [];
-        renderUserList(globalUserList);
+        filterUserList();
       } catch (e) {
         container.innerHTML = '<div style="text-align: center; color: #ef4444; font-size: 12px; padding: 15px;">Gagal memuat daftar user dari server.</div>';
       }
+    }
+
+    function setFilterTab(status, btnEl) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btnEl.classList.add('active');
+      currentStatusFilter = status;
+      filterUserList();
     }
 
     function renderUserList(users) {
@@ -931,8 +1061,17 @@
 
     function filterUserList() {
       const query = document.getElementById('searchUserQuery').value.trim().toLowerCase();
-      if (!query) { renderUserList(globalUserList); return; }
-      const filtered = globalUserList.filter(u => (u.device_id || '').toLowerCase().includes(query) || (u.sppg_name || '').toLowerCase().includes(query));
+      const hariIni = getTanggalHariIniWIB();
+
+      let filtered = globalUserList.filter(u => {
+        const matchesQuery = (u.device_id || '').toLowerCase().includes(query) || (u.sppg_name || '').toLowerCase().includes(query);
+        let statusAktual = u.status || 'active';
+        if (statusAktual === 'active' && u.exp_date && hariIni > u.exp_date) statusAktual = 'expired';
+
+        const matchesStatus = (currentStatusFilter === 'all') || (statusAktual === currentStatusFilter);
+        return matchesQuery && matchesStatus;
+      });
+
       renderUserList(filtered);
     }
 
@@ -964,6 +1103,7 @@
       document.body.appendChild(tautan);
       tautan.click(); tautan.remove();
       URL.revokeObjectURL(url);
+      addAuditLog(`Downloaded cloud backup JSON for Device: ${deviceId}`);
     }
 
     async function hapusBackupCloud() {
@@ -982,6 +1122,7 @@
           showToast('Data backup cloud berhasil dihapus!');
           document.getElementById('backupInfoCard').style.display = 'none';
           currentBackupPayload = null;
+          addAuditLog(`Deleted cloud backup for Device: ${deviceId}`);
         } else {
           showToast('Gagal menghapus backup cloud.', false);
         }
@@ -1005,6 +1146,7 @@
         const resData = await res.json();
         if (res.ok && (resData.success || resData.status)) {
           showToast('Berhasil mengoper device ID dan migrasi data!');
+          addAuditLog(`Migrated device license from ${sourceId} to ${targetId}`);
           document.getElementById('inputSourceDevice').value = '';
           document.getElementById('inputTargetDevice').value = '';
           bukaFitur('device');
@@ -1114,6 +1256,7 @@
         const resData = await res.json();
         if (res.ok && (resData.success || resData.status)) {
           showToast('Lisensi & Nama SPPG berhasil disimpan!');
+          addAuditLog(`Saved license modifications for Device: ${currentLicenseData.device_id}`);
           currentLicenseData.is_new = false;
           renderDetailDevice();
         } else {
@@ -1133,6 +1276,7 @@
         const resData = await res.json();
         if (res.ok && resData.success) {
           showToast('Lisensi berhasil dihapus!');
+          addAuditLog(`Permanently deleted license: ${currentLicenseData.device_id}`);
           bukaFitur('device');
         } else {
           showToast('Gagal menghapus lisensi.', false);
@@ -1181,8 +1325,11 @@
           body: JSON.stringify({ action: 'save_packages', packages })
         });
         const result = await res.json();
-        if (result.success) { showToast('Paket berhasil disimpan!'); muatDataPaketServer(); }
-        else { showToast('Gagal menyimpan paket.', false); }
+        if (result.success) { 
+          showToast('Paket berhasil disimpan!'); 
+          addAuditLog('Updated package pricing configuration.');
+          muatDataPaketServer(); 
+        } else { showToast('Gagal menyimpan paket.', false); }
       } catch (err) { showToast('Error koneksi server.', false); }
     }
 
@@ -1242,8 +1389,11 @@
           body: JSON.stringify({ action: 'save_vouchers', vouchers })
         });
         const result = await res.json();
-        if (result.success) { showToast('Voucher berhasil disimpan!'); muatDataVoucherServer(); }
-        else { showToast('Gagal menyimpan voucher.', false); }
+        if (result.success) { 
+          showToast('Voucher berhasil disimpan!'); 
+          addAuditLog('Updated promo vouchers setup.');
+          muatDataVoucherServer(); 
+        } else { showToast('Gagal menyimpan voucher.', false); }
       } catch (err) { showToast('Error koneksi server.', false); }
     }
 
@@ -1275,15 +1425,17 @@
         const result = await res.json();
         if (res.ok && (result.success || result.status)) {
           showToast(`Versi ${version} berhasil dirilis!`);
+          addAuditLog(`Published new script release version: v${version}`);
         } else {
           showToast(result.error || 'Gagal merilis versi baru.', false);
         }
       } catch (err) { showToast('Error koneksi server.', false); }
     }
 
-    // INIT THREE.JS ENGINE ON LOAD
+    // ON DOM CONTENT LOADED INITIALIZATION
     window.addEventListener('load', () => {
       initThreeJS();
+      addAuditLog('Three.js WebGL Engine initialized successfully.');
     });
   </script>
 </body>

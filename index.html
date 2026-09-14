@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mindspace Studio - 3D License & Cloud Admin Hub</title>
+  <title>Mindspace Studio - 3D Portfolio & Cloud License Hub</title>
   
   <!-- FAVICON & PWA MANIFEST -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2338bdf8'><path d='M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z'/></svg>">
@@ -12,24 +12,24 @@
   <style>
     :root {
       --bg-gradient: radial-gradient(circle at 50% 15%, #1e1b4b 0%, #0b1329 60%, #030712 100%);
-      --card-bg: rgba(30, 41, 59, 0.7);
-      --card-border: rgba(56, 189, 248, 0.25);
+      --card-bg: rgba(30, 41, 59, 0.75);
+      --card-border: rgba(56, 189, 248, 0.3);
       --text-color: #f8fafc;
       --text-muted: #94a3b8;
-      --input-bg: #0f172a;
+      --input-bg: rgba(15, 23, 42, 0.9);
       --input-border: #334155;
-      --shadow-3d: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 40px rgba(37, 99, 235, 0.2);
+      --shadow-3d: 0 30px 60px -12px rgba(0, 0, 0, 0.85), 0 0 50px rgba(56, 189, 248, 0.2);
     }
 
     [data-theme="light"] {
       --bg-gradient: radial-gradient(circle at 50% 15%, #e0e7ff 0%, #f1f5f9 60%, #cbd5e1 100%);
       --card-bg: rgba(255, 255, 255, 0.85);
-      --card-border: rgba(37, 99, 235, 0.3);
+      --card-border: rgba(37, 99, 235, 0.35);
       --text-color: #0f172a;
       --text-muted: #64748b;
-      --input-bg: #ffffff;
+      --input-bg: rgba(255, 255, 255, 0.95);
       --input-border: #cbd5e1;
-      --shadow-3d: 0 25px 60px -15px rgba(0, 0, 0, 0.15), 0 0 30px rgba(37, 99, 235, 0.15);
+      --shadow-3d: 0 30px 60px -12px rgba(0, 0, 0, 0.15), 0 0 35px rgba(37, 99, 235, 0.15);
     }
 
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -37,16 +37,34 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: var(--bg-gradient);
       color: var(--text-color); margin: 0; padding: 0;
-      min-height: 100vh; perspective: 1200px;
+      min-height: 100vh; perspective: 1500px;
       overflow-x: hidden; transition: background 0.4s ease, color 0.4s ease;
     }
 
-    /* TOP BAR UTAMA DENGAN TOGGLE THEME & TOMBOL LOGIN ADMIN DI POJOK KANAN ATAS */
+    /* BACKGROUND 3D FLOATING PARTICLES & ORBS */
+    .scene-3d-bg {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; z-index: 0; overflow: hidden;
+    }
+    .orb-3d {
+      position: absolute; border-radius: 50%;
+      filter: blur(50px); opacity: 0.4;
+      animation: floatOrb 12s ease-in-out infinite alternate;
+    }
+    .orb-1 { width: 300px; height: 300px; background: #2563eb; top: 10%; left: 15%; }
+    .orb-2 { width: 250px; height: 250px; background: #7c3aed; bottom: 15%; right: 10%; animation-delay: -5s; }
+
+    @keyframes floatOrb {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(60px, 40px) scale(1.15); }
+    }
+
+    /* TOP NAVBAR GLASSMORPHISM */
     .top-navbar {
       position: fixed; top: 0; left: 0; width: 100%;
       display: flex; justify-content: space-between; align-items: center;
       padding: 14px 28px; background: rgba(11, 19, 41, 0.65);
-      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
       border-bottom: 1px solid var(--card-border); z-index: 1000;
     }
     .brand-logo {
@@ -60,7 +78,7 @@
     .btn-theme-toggle {
       background: var(--input-bg); border: 1px solid var(--input-border);
       color: var(--text-color); border-radius: 10px; padding: 6px 12px;
-      font-size: 14px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 6px;
+      font-size: 13px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 6px;
     }
     .btn-theme-toggle:hover { border-color: #38bdf8; transform: scale(1.05); }
 
@@ -77,14 +95,14 @@
       background: linear-gradient(135deg, #1d4ed8, #1e40af);
     }
 
-    /* 3D CONTAINER MAIN WRAPPER */
+    /* MAIN CONTAINER WRAPPER 3D STAGE */
     .page-wrapper {
-      width: 100%; min-height: 100vh;
+      position: relative; z-index: 1; width: 100%; min-height: 100vh;
       display: flex; justify-content: center; align-items: center;
-      padding: 90px 16px 40px 16px;
+      padding: 95px 16px 40px 16px;
     }
     .container {
-      width: 100%; max-width: 650px; background: var(--card-bg);
+      width: 100%; max-width: 680px; background: var(--card-bg);
       backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
       border: 1px solid var(--card-border); border-radius: 24px; padding: 28px;
       box-shadow: var(--shadow-3d); transform-style: preserve-3d;
@@ -92,61 +110,102 @@
       position: relative;
     }
 
-    .header { text-align: center; margin-bottom: 20px; }
-    .header h1 { font-size: 22px; font-weight: 800; margin: 0; background: linear-gradient(to right, var(--text-color), #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .header { text-align: center; margin-bottom: 20px; transform: translateZ(20px); }
+    .header h1 { font-size: 24px; font-weight: 800; margin: 0; background: linear-gradient(to right, var(--text-color), #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     .header p { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
 
-    /* 3D LANDING HERO DESIGN */
-    .hero-3d-box { text-align: center; padding: 10px 0 20px 0; }
-    .hero-badge {
+    /* 3D PORTFOLIO HERO LANDING STAGE */
+    .portfolio-hero { text-align: center; padding: 10px 0 20px 0; transform-style: preserve-3d; }
+    
+    /* ANIMATED 3D STAGE OBJECTS */
+    .stage-3d-viewport {
+      width: 120px; height: 120px; margin: 0 auto 20px auto;
+      perspective: 800px; transform-style: preserve-3d;
+    }
+    .cube-3d-object {
+      width: 100%; height: 100%; position: relative;
+      transform-style: preserve-3d;
+      animation: rotateCube 12s linear infinite;
+    }
+    @keyframes rotateCube {
+      0% { transform: rotateX(0deg) rotateY(0deg); }
+      100% { transform: rotateX(360deg) rotateY(360deg); }
+    }
+    .cube-face {
+      position: absolute; width: 80px; height: 80px;
+      left: 20px; top: 20px;
+      background: rgba(37, 99, 235, 0.25);
+      border: 2px solid #38bdf8; border-radius: 14px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.5), inset 0 0 10px rgba(255, 255, 255, 0.3);
+      display: flex; align-items: center; justify-content: center; font-size: 24px;
+    }
+    .face-front  { transform: rotateY(0deg) translateZ(40px); }
+    .face-back   { transform: rotateY(180deg) translateZ(40px); }
+    .face-right  { transform: rotateY(90deg) translateZ(40px); }
+    .face-left   { transform: rotateY(-90deg) translateZ(40px); }
+    .face-top    { transform: rotateX(90deg) translateZ(40px); }
+    .face-bottom { transform: rotateX(-90deg) translateZ(40px); }
+
+    .hero-tag {
       display: inline-block; background: rgba(37, 99, 235, 0.2);
       border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8;
       padding: 4px 14px; border-radius: 20px; font-size: 11px; font-weight: 700;
-      margin-bottom: 14px; animation: floatBadge 3s ease-in-out infinite;
+      margin-bottom: 12px; transform: translateZ(15px);
     }
-    @keyframes floatBadge {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-6px); }
+    
+    /* PORTFOLIO GRID SHOWCASE CARDS */
+    .portfolio-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 20px 0;
+      transform-style: preserve-3d;
     }
-    .hero-cube-3d {
-      width: 80px; height: 80px; margin: 0 auto 16px auto;
-      background: linear-gradient(135deg, #2563eb, #38bdf8); border-radius: 20px;
-      box-shadow: 0 15px 35px rgba(37, 99, 235, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.4);
-      display: flex; align-items: center; justify-content: center; font-size: 38px;
-      transform: rotateX(15deg) rotateY(25deg); animation: pulseCube 4s ease-in-out infinite;
-    }
-    @keyframes pulseCube {
-      0%, 100% { transform: rotateX(15deg) rotateY(25deg) scale(1); }
-      50% { transform: rotateX(25deg) rotateY(45deg) scale(1.06); box-shadow: 0 20px 40px rgba(56, 189, 248, 0.7); }
-    }
-    .landing-features { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 20px 0; }
-    @media(max-width: 500px) { .landing-features { grid-template-columns: 1fr; } }
-    .landing-card {
+    @media(max-width: 500px) { .portfolio-grid { grid-template-columns: 1fr; } }
+    
+    .portfolio-card {
       background: var(--input-bg); border: 1px solid var(--input-border);
-      border-radius: 14px; padding: 14px; text-align: left; transition: 0.3s;
+      border-radius: 16px; padding: 16px; text-align: left;
+      transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      transform-style: preserve-3d; cursor: pointer;
     }
-    .landing-card:hover { border-color: #38bdf8; transform: translateY(-4px); }
-    .landing-card h4 { margin: 0 0 4px 0; font-size: 13px; color: var(--text-color); }
-    .landing-card p { margin: 0; font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+    .portfolio-card:hover {
+      border-color: #38bdf8;
+      transform: translateY(-6px) translateZ(20px);
+      box-shadow: 0 15px 30px rgba(0,0,0,0.4), 0 0 20px rgba(56, 189, 248, 0.25);
+    }
+    .card-3d-icon { font-size: 28px; margin-bottom: 8px; display: inline-block; transform: translateZ(25px); }
+    .portfolio-card h4 { margin: 0 0 4px 0; font-size: 13.5px; color: var(--text-color); transform: translateZ(15px); }
+    .portfolio-card p { margin: 0; font-size: 11px; color: var(--text-muted); line-height: 1.4; transform: translateZ(10px); }
+
+    /* STATS ROW ON LANDING */
+    .portfolio-stats {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 20px;
+      transform: translateZ(15px);
+    }
+    .p-stat-box {
+      background: rgba(15, 23, 42, 0.6); border: 1px solid var(--input-border);
+      border-radius: 12px; padding: 10px; text-align: center;
+    }
+    .p-stat-box h3 { margin: 0; font-size: 16px; color: #38bdf8; font-weight: 800; }
+    .p-stat-box span { font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; }
 
     /* FORM & BUTTON STYLING */
-    .field-group { margin-bottom: 14px; text-align: left; }
+    .field-group { margin-bottom: 14px; text-align: left; transform: translateZ(10px); }
     label { font-size: 12px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px; }
     input, select, textarea {
       width: 100%; padding: 10px 14px; border-radius: 10px;
       border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-color); font-size: 14px;
-      outline: none; transition: border-color 0.2s; font-family: inherit;
+      outline: none; transition: border-color 0.2s, box-shadow 0.2s; font-family: inherit;
     }
     input { height: 44px; } select { height: 44px; }
-    input:focus, select:focus, textarea:focus { border-color: #38bdf8; box-shadow: 0 0 10px rgba(56, 189, 248, 0.3); }
+    input:focus, select:focus, textarea:focus { border-color: #38bdf8; box-shadow: 0 0 12px rgba(56, 189, 248, 0.35); }
 
     .btn {
       width: 100%; height: 44px; border-radius: 10px; border: none;
       font-weight: 700; font-size: 13px; cursor: pointer; transition: 0.2s;
       display: flex; align-items: center; justify-content: center; gap: 8px;
     }
-    .btn-primary { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
-    .btn-primary:hover { background: linear-gradient(135deg, #1d4ed8, #1e40af); }
+    .btn-primary { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4); }
+    .btn-primary:hover { background: linear-gradient(135deg, #1d4ed8, #1e40af); transform: translateY(-1px); }
     .btn-success { background: linear-gradient(135deg, #059669, #047857); color: white; }
     .btn-success:hover { background: linear-gradient(135deg, #047857, #065f46); }
     .btn-danger { background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; }
@@ -158,7 +217,7 @@
 
     .card-info {
       background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 12px;
-      padding: 14px; margin-bottom: 14px; font-size: 13px; line-height: 1.6; text-align: left;
+      padding: 14px; margin-bottom: 14px; font-size: 13px; line-height: 1.6; text-align: left; transform: translateZ(10px);
     }
     .badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; text-transform: capitalize; }
     .badge-active { background: #065f46; color: #34d399; }
@@ -177,19 +236,19 @@
     ::-webkit-scrollbar-track { background: var(--input-bg); border-radius: 4px; }
     ::-webkit-scrollbar-thumb { background: var(--input-border); border-radius: 4px; }
 
-    .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+    .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; transform: translateZ(15px); }
     .menu-card { background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 12px; padding: 16px; cursor: pointer; transition: 0.2s; text-align: center; }
     .menu-card:hover { border-color: #38bdf8; transform: translateY(-2px); }
     .menu-card h3 { margin: 8px 0 4px 0; font-size: 14px; color: var(--text-color); }
     .menu-card p { margin: 0; font-size: 11px; color: var(--text-muted); }
     .menu-icon { font-size: 22px; }
 
-    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; transform: translateZ(15px); }
     .stat-box { background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 10px; padding: 10px; text-align: center; }
     .stat-box span { font-size: 10px; color: var(--text-muted); display: block; text-transform: uppercase; font-weight: 600; }
     .stat-box h4 { margin: 4px 0 0 0; font-size: 15px; color: #38bdf8; }
 
-    .chart-container { background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 12px; padding: 14px; margin-bottom: 14px; }
+    .chart-container { background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 12px; padding: 14px; margin-bottom: 14px; transform: translateZ(10px); }
     .chart-bars { display: flex; align-items: flex-end; justify-content: space-around; height: 90px; padding-top: 10px; border-bottom: 1px solid var(--input-border); }
     .chart-bar-group { display: flex; flex-direction: column; align-items: center; flex: 1; }
     .chart-bar { width: 24px; background: #2563eb; border-radius: 6px 6px 0 0; transition: height 0.4s; }
@@ -213,10 +272,16 @@
 </head>
 <body>
 
-  <!-- NAVBAR ATAS DENGAN SAKLAR MODE GELAP/TERANG DAN TOMBOL LOGIN ATAS -->
+  <!-- BACKGROUND 3D PARTICLES -->
+  <div class="scene-3d-bg">
+    <div class="orb-3d orb-1"></div>
+    <div class="orb-3d orb-2"></div>
+  </div>
+
+  <!-- NAVBAR ATAS -->
   <nav class="top-navbar">
     <div class="brand-logo" onclick="gantiView('viewLandingPage')">
-      🛡️ Mindspace <span>Studio</span>
+      🛡️ Mindspace <span>Studio 3D</span>
     </div>
     <div class="nav-actions">
       <button class="btn-theme-toggle" onclick="toggleDarkMode()">
@@ -233,27 +298,68 @@
       
       <div class="header">
         <h1 id="appTitle">Mindspace Studio</h1>
-        <p id="appSubtitle">Dashboard Admin Lisensi & Automasi Cloud</p>
+        <p id="appSubtitle">3D Portfolio & Cloud License Hub</p>
       </div>
 
-      <!-- VIEW LANDING PAGE 3D INTERAKTIF -->
+      <!-- VIEW LANDING PAGE 3D PORTFOLIO -->
       <div id="viewLandingPage" class="view-section" style="display: block;">
-        <div class="hero-3d-box">
-          <div class="hero-badge">⚡ Next-Gen License & Script Panel</div>
-          <div class="hero-cube-3d">🛡️</div>
-          <h2 style="font-size: 18px; margin: 0 0 8px 0; color: var(--text-color);">Welcome to Mindspace Studio</h2>
-          <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 20px 0; line-height: 1.5;">
-            Platform otorisasi lisensi aman, manajemen pengguna real-time, sinkronisasi cloud backup, serta kontrol penuh skrip automasi dalam satu tampilan 3D modern.
+        <div class="portfolio-hero">
+          <div class="hero-tag">✨ Next-Gen 3D Web Environment</div>
+          
+          <!-- STAGE KUBUS VIRTUAL 3D INTERAKTIF -->
+          <div class="stage-3d-viewport">
+            <div class="cube-3d-object">
+              <div class="cube-face face-front">💎</div>
+              <div class="cube-face face-back">🚀</div>
+              <div class="cube-face face-right">⚡</div>
+              <div class="cube-face face-left">🛡️</div>
+              <div class="cube-face face-top">📦</div>
+              <div class="cube-face face-bottom">🌐</div>
+            </div>
+          </div>
+
+          <h2 style="font-size: 20px; margin: 0 0 8px 0; color: var(--text-color);">Interactive Automation Ecosystem</h2>
+          <p style="font-size: 12px; color: var(--text-muted); margin: 0 auto; max-width: 520px; line-height: 1.6;">
+            Selamat datang di showcase portofolio 3D Mindspace Studio. Solusi integrasi skrip automasi, validasi lisensi real-time, serta cloud backup server dalam satu platform terpadu.
           </p>
 
-          <div class="landing-features">
-            <div class="landing-card">
-              <h4>🔒 Enkripsi Lisensi</h4>
-              <p>Validasi kunci perangkat keras dengan algoritma anti-bypass berlapis.</p>
+          <!-- PORTFOLIO GRID SHOWCASE -->
+          <div class="portfolio-grid">
+            <div class="portfolio-card">
+              <span class="card-3d-icon">🔒</span>
+              <h4>Secure Key Engine</h4>
+              <p>Otorisasi perangkat anti-bypass berbasis algoritma hash salt unik.</p>
             </div>
-            <div class="landing-card">
-              <h4>📊 Analisis Finansial</h4>
-              <p>Pantau grafik omset pendapatan harian, mingguan, hingga bulanan.</p>
+            <div class="portfolio-card">
+              <span class="card-3d-icon">☁️</span>
+              <h4>Cloud Backup KPM</h4>
+              <p>Penyimpanan otomatis file pengguna ke cloud server secara instan.</p>
+            </div>
+            <div class="portfolio-card">
+              <span class="card-3d-icon">📊</span>
+              <h4>Real-time Analytics</h4>
+              <p>Visualisasi grafik pendapatan dan statistik pengguna secara presisi.</p>
+            </div>
+            <div class="portfolio-card">
+              <span class="card-3d-icon">🚀</span>
+              <h4>Script Release Hub</h4>
+              <p>Auto-update pengguna melalui In-App Userscript secara seamless.</p>
+            </div>
+          </div>
+
+          <!-- PORTFOLIO STATS SHOWCASE -->
+          <div class="portfolio-stats">
+            <div class="p-stat-box">
+              <h3>99.9%</h3>
+              <span>Uptime Engine</span>
+            </div>
+            <div class="p-stat-box">
+              <h3>Fast</h3>
+              <span>API Sync</span>
+            </div>
+            <div class="p-stat-box">
+              <h3>Safe</h3>
+              <span>Cloud Storage</span>
             </div>
           </div>
         </div>
@@ -522,7 +628,7 @@
     let globalUserList = [];
     let isQrisActiveState = true;
 
-    // EFEK INTERAKTIF 3D CARD TILT ON MOUSEMOVE
+    // EFEK PARALLAX 3D TILT PADA MOUSEMOVE (PERSPECTIVE INTERAKTIF)
     const container = document.getElementById('mainContainer');
     if (window.innerWidth > 768) {
       document.addEventListener('mousemove', (e) => {
@@ -535,7 +641,7 @@
       });
     }
 
-    // FEATURE: DARK / LIGHT MODE TOGGLE INSTAN
+    // TOGGLE DARK / LIGHT MODE
     function toggleDarkMode() {
       const html = document.documentElement;
       const themeIcon = document.getElementById('themeIcon');
@@ -554,7 +660,7 @@
       }
     }
 
-    // INIT SAVED THEME
+    // INIT THEME DARI LOCALSTORAGE
     (function initTheme() {
       const saved = localStorage.getItem('mindspace_theme') || 'dark';
       document.documentElement.setAttribute('data-theme', saved);
@@ -588,7 +694,7 @@
       if (viewId === 'viewLandingPage') {
         btnLoginHeader.style.display = 'block';
         document.getElementById('appTitle').textContent = 'Mindspace Studio';
-        document.getElementById('appSubtitle').textContent = 'Dashboard Admin Lisensi & Automasi Cloud';
+        document.getElementById('appSubtitle').textContent = '3D Portfolio & Cloud License Hub';
       } else if (viewId === 'viewLogin') {
         btnLoginHeader.style.display = 'none';
         document.getElementById('appTitle').textContent = 'Admin Login';

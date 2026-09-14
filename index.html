@@ -3,118 +3,166 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard Admin Lisensi - Mindspace Studio</title>
+  <title>Mindspace Studio - License & Cloud Automation Platform</title>
   
   <!-- FAVICON & PWA MANIFEST -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2338bdf8'><path d='M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z'/></svg>">
   <meta name="theme-color" content="#2563eb">
 
   <style>
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; scroll-behavior: smooth; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: radial-gradient(circle at 50% 20%, #1e1b4b 0%, #0b1329 60%, #030712 100%);
-      color: #f8fafc; margin: 0; padding: 16px;
-      display: flex; justify-content: center; align-items: center; min-height: 100vh;
-      perspective: 1200px;
+      background: radial-gradient(circle at 50% 10%, #1e1b4b 0%, #0b1329 55%, #030712 100%);
+      color: #f8fafc; margin: 0; padding: 0;
+      min-height: 100vh;
       overflow-x: hidden;
     }
-    
-    /* 3D CONTAINER & CARD EFFECT */
-    .container {
-      width: 100%; max-width: 620px; 
-      background: rgba(30, 41, 59, 0.75); 
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(56, 189, 248, 0.25);
-      border-radius: 24px; padding: 28px; 
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7),
-                  0 0 40px rgba(37, 99, 235, 0.15),
-                  inset 0 1px 0 rgba(255, 255, 255, 0.1);
-      transform-style: preserve-3d;
-      transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.4s ease;
-      position: relative;
-    }
 
-    /* TOP BAR UTAMA UNTUK TOMBOL LOGIN DI POJOK KANAN ATAS */
-    .top-nav {
-      position: absolute;
-      top: 20px; right: 24px;
-      z-index: 10;
+    /* TOP NAVBAR / HEADER GLOBAL */
+    .global-navbar {
+      position: fixed;
+      top: 0; left: 0; width: 100%;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 16px 32px;
+      background: rgba(11, 19, 41, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(56, 189, 248, 0.15);
+      z-index: 1000;
     }
+    .nav-brand {
+      font-size: 16px; font-weight: 800; color: #f8fafc;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .nav-brand span { color: #38bdf8; }
     .btn-login-header {
       background: linear-gradient(135deg, #2563eb, #1d4ed8);
       color: white; border: 1px solid rgba(56, 189, 248, 0.4);
-      padding: 6px 14px; border-radius: 8px; font-size: 11px; font-weight: 700;
-      cursor: pointer; transition: all 0.2s ease;
-      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+      padding: 8px 18px; border-radius: 10px; font-size: 12px; font-weight: 700;
+      cursor: pointer; transition: all 0.25s ease;
+      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
     }
     .btn-login-header:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.6);
+      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.6);
       background: linear-gradient(135deg, #1d4ed8, #1e40af);
     }
 
-    .header { text-align: center; margin-bottom: 24px; position: relative; }
-    .header h1 { font-size: 22px; font-weight: 800; margin: 0; background: linear-gradient(to right, #f8fafc, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .header p { font-size: 12px; color: #94a3b8; margin-top: 6px; letter-spacing: 0.5px; }
-    
-    /* 3D LANDING PAGE STYLING */
-    .landing-hero {
+    /* FULL PAGE WRAPPER */
+    .page-wrapper {
+      width: 100%; min-height: 100vh;
+      display: flex; justify-content: center; align-items: center;
+      padding: 90px 16px 40px 16px;
+    }
+
+    /* CONTAINER UTAMA PANEL / LANDING */
+    .container {
+      width: 100%; max-width: 900px; 
+      background: rgba(30, 41, 59, 0.7); 
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 24px; padding: 32px; 
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8),
+                  0 0 50px rgba(37, 99, 235, 0.15),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      transform-style: preserve-3d;
+      transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+      position: relative;
+    }
+
+    .header-panel { text-align: center; margin-bottom: 24px; }
+    .header-panel h1 { font-size: 24px; font-weight: 800; margin: 0; background: linear-gradient(to right, #f8fafc, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .header-panel p { font-size: 13px; color: #94a3b8; margin-top: 6px; }
+
+    /* --- FULL LANDING PAGE DESIGN SECTIONS --- */
+    .landing-hero-section {
       text-align: center;
-      padding: 10px 0 20px 0;
+      padding: 20px 0 40px 0;
     }
     .hero-badge {
       display: inline-block;
       background: rgba(37, 99, 235, 0.2);
       border: 1px solid rgba(56, 189, 248, 0.4);
       color: #38bdf8;
-      padding: 4px 12px;
+      padding: 6px 16px;
       border-radius: 20px;
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 700;
-      margin-bottom: 14px;
+      margin-bottom: 16px;
       animation: floatBadge 3s ease-in-out infinite;
     }
     @keyframes floatBadge {
       0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-5px); }
+      50% { transform: translateY(-6px); }
     }
-    .hero-cube-3d {
-      width: 80px; height: 80px;
-      margin: 0 auto 16px auto;
+    .hero-3d-cube {
+      width: 90px; height: 90px;
+      margin: 0 auto 20px auto;
       background: linear-gradient(135deg, #2563eb, #38bdf8);
-      border-radius: 18px;
-      box-shadow: 0 10px 30px rgba(37, 99, 235, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.4);
+      border-radius: 20px;
+      box-shadow: 0 15px 35px rgba(37, 99, 235, 0.6), inset 0 2px 6px rgba(255, 255, 255, 0.5);
       display: flex; align-items: center; justify-content: center;
-      font-size: 36px;
+      font-size: 40px;
       transform: rotateX(15deg) rotateY(25deg);
       animation: pulseCube 4s ease-in-out infinite;
     }
     @keyframes pulseCube {
       0%, 100% { transform: rotateX(15deg) rotateY(25deg) scale(1); }
-      50% { transform: rotateX(25deg) rotateY(45deg) scale(1.05); box-shadow: 0 15px 35px rgba(56, 189, 248, 0.6); }
+      50% { transform: rotateX(25deg) rotateY(45deg) scale(1.06); box-shadow: 0 20px 45px rgba(56, 189, 248, 0.7); }
     }
-    .landing-features {
-      display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px;
-    }
-    .landing-card {
-      background: rgba(15, 23, 42, 0.7);
-      border: 1px solid rgba(51, 65, 85, 0.8);
-      border-radius: 14px; padding: 14px; text-align: left;
-      transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-      transform: translateZ(10px);
-    }
-    .landing-card:hover {
-      border-color: #38bdf8;
-      transform: translateY(-4px) translateZ(15px);
-      box-shadow: 0 10px 25px rgba(0,0,0,0.4), 0 0 15px rgba(56, 189, 248, 0.15);
-      background: rgba(19, 28, 49, 0.9);
-    }
-    .landing-card h4 { margin: 0 0 4px 0; font-size: 13px; color: #f8fafc; }
-    .landing-card p { margin: 0; font-size: 11px; color: #94a3b8; line-height: 1.4; }
 
-    .field-group { margin-bottom: 14px; }
+    /* GRID FITUR UTAMA LANDING */
+    .landing-grid-features {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 30px 0;
+    }
+    @media(max-width: 768px) {
+      .landing-grid-features { grid-template-columns: 1fr; }
+      .global-navbar { padding: 12px 16px; }
+    }
+    .landing-feature-card {
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(51, 65, 85, 0.8);
+      border-radius: 16px; padding: 20px 16px; text-align: left;
+      transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .landing-feature-card:hover {
+      border-color: #38bdf8;
+      transform: translateY(-5px);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.5), 0 0 20px rgba(56, 189, 248, 0.2);
+      background: rgba(19, 28, 49, 0.95);
+    }
+    .card-icon { font-size: 24px; margin-bottom: 10px; display: inline-block; }
+    .landing-feature-card h4 { margin: 0 0 6px 0; font-size: 14px; color: #f8fafc; font-weight: 700; }
+    .landing-feature-card p { margin: 0; font-size: 12px; color: #94a3b8; line-height: 1.5; }
+
+    /* STATISTIK / HIGHLIGHT SECTION */
+    .landing-stats-row {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 30px 0;
+    }
+    @media(max-width: 600px) {
+      .landing-stats-row { grid-template-columns: 1fr; }
+    }
+    .stat-pill {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid #334155; border-radius: 12px; padding: 14px; text-align: center;
+    }
+    .stat-pill h3 { margin: 0 0 2px 0; font-size: 18px; color: #38bdf8; font-weight: 800; }
+    .stat-pill span { font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; }
+
+    /* FAQ / BANTUAN SINGKAT */
+    .landing-faq {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid #334155; border-radius: 16px; padding: 20px; text-align: left; margin-bottom: 20px;
+    }
+    .landing-faq h3 { font-size: 14px; color: #f8fafc; margin-top: 0; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .faq-item { margin-bottom: 10px; font-size: 12px; }
+    .faq-item b { color: #38bdf8; display: block; margin-bottom: 2px; }
+    .faq-item p { color: #94a3b8; margin: 0; line-height: 1.4; }
+
+    /* FORM & INPUT STYLING */
+    .field-group { margin-bottom: 14px; text-align: left; }
     label { font-size: 12px; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 6px; }
     input, select, textarea {
       width: 100%; padding: 10px 14px; border-radius: 10px;
@@ -125,7 +173,7 @@
     select { height: 44px; }
     input:focus, select:focus, textarea:focus { 
       border-color: #38bdf8; 
-      box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
     }
     
     .btn {
@@ -145,8 +193,8 @@
     .btn-warning:hover { background: linear-gradient(135deg, #b45309, #92400e); }
     
     .card-info {
-      background: rgba(15, 23, 42, 0.8); border: 1px solid #334155; border-radius: 12px;
-      padding: 14px; margin-bottom: 14px; font-size: 13px; line-height: 1.6;
+      background: rgba(15, 23, 42, 0.85); border: 1px solid #334155; border-radius: 12px;
+      padding: 14px; margin-bottom: 14px; font-size: 13px; line-height: 1.6; text-align: left;
     }
     .badge {
       display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; text-transform: capitalize;
@@ -209,7 +257,7 @@
     }
     .user-item {
       background: #0f172a; border: 1px solid #334155; padding: 10px 12px; border-radius: 8px;
-      cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: 0.2s;
+      cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; text-align: left;
     }
     .user-item:hover { border-color: #38bdf8; background: #131c31; }
     .user-item-info div:first-child { font-weight: 600; font-size: 13px; color: #facc15; }
@@ -217,9 +265,9 @@
     .user-item-info div:last-child { font-size: 11px; color: #94a3b8; margin-top: 2px; }
 
     .toast {
-      position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+      position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
       background: #0f172a; border: 1px solid #334155; padding: 12px 20px;
-      border-radius: 10px; font-size: 13px; display: none; z-index: 999; color: white;
+      border-radius: 10px; font-size: 13px; display: none; z-index: 9999; color: white;
       box-shadow: 0 10px 25px rgba(0,0,0,0.5);
     }
 
@@ -228,294 +276,344 @@
 </head>
 <body>
 
+  <!-- GLOBAL NAVBAR DENGAN TOMBOL LOGIN ADMIN DI POJOK KANAN ATAS -->
+  <header class="global-navbar">
+    <div class="nav-brand">
+      🛡️ Mindspace <span>Studio</span>
+    </div>
+    <div>
+      <button class="btn-login-header" id="btnLoginHeader" onclick="bukaHalamanLogin()">🔐 Admin Login</button>
+    </div>
+  </header>
+
   <div id="toast" class="toast"></div>
 
-  <div class="container" id="mainContainer">
-    <!-- TOMBOL LOGIN DI POJOK KANAN ATAS -->
-    <div class="top-nav" id="topNavLogin">
-      <button class="btn-login-header" onclick="bukaHalamanLogin()">🔐 Admin Login</button>
-    </div>
-
-    <div class="header">
-      <h1 id="appTitle">Mindspace Studio</h1>
-      <p id="appSubtitle">Sistem Manajemen Lisensi & Automasi Cloud</p>
-    </div>
-
-    <!-- VIEW -1: LANDING PAGE 3D DESIGN -->
-    <div id="viewLandingPage" class="view-section" style="display: block;">
-      <div class="landing-hero">
-        <div class="hero-badge">⚡ Next-Gen License & Script Panel</div>
-        <div class="hero-cube-3d">🛡️</div>
-        <h2 style="font-size: 18px; margin: 0 0 8px 0; color: #f8fafc;">Welcome to Mindspace Studio</h2>
-        <p style="font-size: 12px; color: #94a3b8; margin: 0 0 20px 0; line-height: 1.5;">
-          Platform otorisasi lisensi aman, manajemen pengguna real-time, serta kontrol penuh skrip automasi dalam satu tampilan 3D modern.
-        </p>
-
-        <div class="landing-features">
-          <div class="landing-card">
-            <h4>🔒 Secure Auth</h4>
-            <p>Proteksi tingkat lanjut dengan enkripsi kunci unik per device.</p>
-          </div>
-          <div class="landing-card">
-            <h4>📊 Analytics</h4>
-            <p>Pantau statistik pendapatan & aktivitas harian secara akurat.</p>
-          </div>
-        </div>
-
-        <button class="btn btn-primary" onclick="bukaHalamanLogin()" style="margin-top: 10px;">🚀 Masuk ke Dashboard Admin</button>
-      </div>
-    </div>
-
-    <!-- VIEW 0: LOGIN ADMIN -->
-    <div id="viewLogin" class="view-section">
-      <div class="field-group">
-        <label for="inputAdminPassword">Password Admin:</label>
-        <input type="password" id="inputAdminPassword" placeholder="••••••••••••" onkeyup="if(event.key==='Enter') verifikasiAdminPassword()">
-      </div>
-      <button class="btn btn-primary" id="btnLogin" onclick="verifikasiAdminPassword()">🔒 Autentikasi Masuk</button>
-      <button class="btn btn-secondary" onclick="gantiView('viewLandingPage')" style="margin-top: 8px;">🔙 Kembali ke Beranda</button>
-    </div>
-
-    <!-- VIEW 1: MENU UTAMA & STATISTIK -->
-    <div id="viewMainMenu" class="view-section">
-      <div class="stats-grid">
-        <div class="stat-box">
-          <span>Hari Ini</span>
-          <h4 id="statRevHari">Rp 0</h4>
-        </div>
-        <div class="stat-box">
-          <span>Minggu Ini</span>
-          <h4 id="statRevMinggu">Rp 0</h4>
-        </div>
-        <div class="stat-box">
-          <span>Bulan Ini</span>
-          <h4 id="statRevBulan">Rp 0</h4>
-        </div>
-      </div>
-
-      <div class="chart-container">
-        <div style="font-size: 11px; font-weight: bold; color: #cbd5e1; margin-bottom: 4px;">📊 Grafik Pendapatan 7 Hari Terakhir</div>
-        <div class="chart-bars" id="chartBarsContainer"></div>
-      </div>
-
-      <!-- SAKLAR / KONTROL TOMBOL PEMBAYARAN QRIS -->
-      <div class="card-info" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding: 12px 14px;">
-        <div>
-          <div style="font-weight: 600; color: #f8fafc; font-size: 13px;">Status Tombol QRIS Client</div>
-          <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">Aktifkan atau nonaktifkan fitur pembayaran QRIS di userscript client.</div>
-        </div>
-        <div>
-          <button id="btnToggleQris" class="btn btn-success" style="width: 90px; height: 36px; font-size: 12px;" onclick="toggleStatusQrisServer()">Aktif</button>
-        </div>
-      </div>
-
-      <div style="font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 8px;">Pilih Menu Manajemen:</div>
+  <!-- FULL PAGE WRAPPER UTAMA -->
+  <div class="page-wrapper">
+    <div class="container" id="mainContainer">
       
-      <div class="menu-grid">
-        <div class="menu-card" onclick="bukaFitur('device')">
-          <div class="menu-icon">🔍</div>
-          <h3>Cek Device ID</h3>
-          <p>Daftar & kelola user</p>
-        </div>
-
-        <div class="menu-card" onclick="bukaFitur('transfer')">
-          <div class="menu-icon">🔄</div>
-          <h3>Migrasi Device</h3>
-          <p>Pemindahan masa aktif & paket</p>
-        </div>
-
-        <div class="menu-card" onclick="bukaFitur('packages')">
-          <div class="menu-icon">📦</div>
-          <h3>Harga Paket</h3>
-          <p>Atur durasi & harga</p>
-        </div>
-
-        <div class="menu-card" onclick="bukaFitur('vouchers')">
-          <div class="menu-icon">🎟️</div>
-          <h3>Set Voucher</h3>
-          <p>Buat kupon diskon</p>
-        </div>
-
-        <!-- FITUR MANAJEMEN UPDATE RELEASE -->
-        <div class="menu-card" onclick="bukaFitur('release')" style="grid-column: span 2; border-color: #0284c7;">
-          <div class="menu-icon">🚀</div>
-          <h3>Update Release</h3>
-          <p>Rilis versi skrip terbaru & changelog</p>
-        </div>
+      <div class="header-panel">
+        <h1 id="appTitle">Mindspace Studio</h1>
+        <p id="appSubtitle">Sistem Manajemen Lisensi & Automasi Cloud Terpadu</p>
       </div>
 
-      <div style="margin-top: 10px;">
-        <div class="menu-card" onclick="logoutAdmin()" style="border-color: #7f1d1d; padding: 12px;">
-          <div class="menu-icon" style="font-size: 18px;">🚪</div>
-          <h3 style="color: #fca5a5; margin: 4px 0 2px 0;">Keluar</h3>
-          <p>Akhiri sesi admin</p>
+      <!-- VIEW LANDING PAGE FULL KESELURUHAN -->
+      <div id="viewLandingPage" class="view-section" style="display: block;">
+        <div class="landing-hero-section">
+          <div class="hero-badge">⚡ Next-Gen License & Script Panel</div>
+          <div class="hero-3d-cube">🚀</div>
+          <h2 style="font-size: 22px; margin: 0 0 10px 0; color: #f8fafc;">Platform Otorisasi & Manajemen Cloud Pintar</h2>
+          <p style="font-size: 13px; color: #94a3b8; margin: 0 auto; max-width: 600px; line-height: 1.6;">
+            Solusi otomatisasi lengkap untuk pengelolaan lisensi pengguna, backup cloud instan, pembaruan skrip berkala, dan manajemen kupon diskon secara real-time.
+          </p>
         </div>
-      </div>
-    </div>
 
-    <!-- VIEW 2: FITUR LIST ALL USERS DENGAN TUNGGAL SEARCH FILTER -->
-    <div id="viewDeviceCheck" class="view-section">
-      <div class="field-group">
-        <label for="searchUserQuery">Filter List User (Device ID / Nama):</label>
-        <input type="text" id="searchUserQuery" placeholder="🔍 Ketik Device ID atau Nama..." oninput="filterUserList()">
-      </div>
+        <!-- FITUR UNGGULAN -->
+        <div class="landing-grid-features">
+          <div class="landing-feature-card">
+            <div class="card-icon">🔒</div>
+            <h4>Secure & Encrypted</h4>
+            <p>Validasi kunci lisensi menggunakan enkripsi salt berlapis untuk mencegah duplikasi perangkat.</p>
+          </div>
+          <div class="landing-feature-card">
+            <div class="card-icon">☁️</div>
+            <h4>Cloud Backup System</h4>
+            <p>Penyimpanan otomatis file konfigurasi pengguna langsung ke server pusat secara aman.</p>
+          </div>
+          <div class="landing-feature-card">
+            <div class="card-icon">📈</div>
+            <h4>Live Financial Analytics</h4>
+            <p>Pemantauan pendapatan harian, mingguan, hingga bulanan lengkap dengan grafik interaktif.</p>
+          </div>
+        </div>
 
-      <div style="font-size: 12px; font-weight: 600; color: #cbd5e1; margin: 12px 0 6px 0;">Daftar Seluruh User Terdaftar:</div>
-      <div class="user-list-container" id="listAllUsersContainer">
-        <div style="text-align: center; color: #94a3b8; font-size: 12px; padding: 20px;">Memuat data user...</div>
-      </div>
+        <!-- STATISTIK / HIGHLIGHT INFO -->
+        <div class="landing-stats-row">
+          <div class="stat-pill">
+            <h3>100%</h3>
+            <span>Uptime Server</span>
+          </div>
+          <div class="stat-pill">
+            <h3>Real-time</h3>
+            <span>Cloud Synchronization</span>
+          </div>
+          <div class="stat-pill">
+            <h3>Instant</h3>
+            <span>Script Auto-Update</span>
+          </div>
+        </div>
 
-      <button class="btn btn-secondary" onclick="kembaliKeMenu()">🔙 Kembali ke Menu Utama</button>
-    </div>
+        <!-- FAQ / BANTUAN -->
+        <div class="landing-faq">
+          <h3>❓ Panduan & Informasi Pengguna</h3>
+          <div class="faq-item">
+            <b>Bagaimana cara mendapatkan akses lisensi?</b>
+            <p>Lisensi aktif secara otomatis setelah pembayaran sukses diverifikasi melalui sistem gateway yang terintegrasi.</p>
+          </div>
+          <div class="faq-item" style="margin-top: 10px;">
+            <b>Bagaimana cara login sebagai administrator?</b>
+            <p>Gunakan tombol <b>"Admin Login"</b> di pojok kanan atas layar untuk masuk ke halaman verifikasi password panel.</p>
+          </div>
+        </div>
 
-    <!-- VIEW 3: FITUR DETAIL & KONTROL LISENSI -->
-    <div id="viewDeviceDetail" class="view-section">
-      <div class="card-info">
-        <div><b>Device ID:</b> <span id="dispDeviceId" style="color:#facc15;">-</span></div>
-        <div><b>Nama:</b> <span id="dispSppgName" style="color:#38bdf8;">-</span></div>
-        <div><b>Status Saat Ini:</b> <span id="dispStatus">-</span></div>
-        <div><b>Tanggal Kadaluarsa:</b> <span id="dispExpDate" style="color:#38bdf8;">-</span></div>
-        <div><b>Terakhir Digunakan:</b> <span id="dispLastActive" style="color:#cbd5e1;">-</span></div>
-      </div>
-
-      <!-- KONTROL BACKUP CLOUD -->
-      <div class="card-info" id="backupInfoCard" style="display: none;">
-        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #38bdf8; font-weight: 600; margin-bottom: 6px;">Backup Cloud Data</div>
-        <div><b>Nama File:</b> <span id="dispBackupFilename" style="color:#facc15; font-family: monospace;">-</span></div>
-        <div><b>Waktu Backup:</b> <span id="dispBackupTime" style="color:#cbd5e1;">-</span></div>
-        <div style="display: flex; gap: 8px; margin-top: 10px;">
-          <button class="btn btn-primary" style="flex: 1; height: 36px; font-size: 12px;" onclick="downloadBackupCloud()">📥 Download</button>
-          <button class="btn btn-danger" style="flex: 1; height: 36px; font-size: 12px;" onclick="hapusBackupCloud()">🗑️ Hapus Backup</button>
+        <div style="text-align: center; margin-top: 10px;">
+          <button class="btn btn-primary" style="max-width: 320px; margin: 0 auto;" onclick="bukaHalamanLogin()">🔐 Masuk ke Panel Admin</button>
         </div>
       </div>
 
-      <div class="field-group">
-        <label for="editSppgName">Ubah Nama:</label>
-        <input type="text" id="editSppgName" placeholder="Contoh: Admin Studio">
+      <!-- VIEW 0: LOGIN ADMIN -->
+      <div id="viewLogin" class="view-section">
+        <div class="card-info" style="border-color: #2563eb; text-align: center; margin-bottom: 20px;">
+          <div style="font-size: 14px; font-weight: bold; color: #38bdf8; margin-bottom: 4px;">Autentikasi Administrator</div>
+          <div style="font-size: 12px; color: #94a3b8;">Masukkan kata sandi admin untuk mengakses menu pengelolaan sistem.</div>
+        </div>
+        <div class="field-group">
+          <label for="inputAdminPassword">Password Admin:</label>
+          <input type="password" id="inputAdminPassword" placeholder="••••••••••••" onkeyup="if(event.key==='Enter') verifikasiAdminPassword()">
+        </div>
+        <button class="btn btn-primary" id="btnLogin" onclick="verifikasiAdminPassword()">🔒 Autentikasi & Masuk</button>
+        <button class="btn btn-secondary" onclick="kembaliKeLanding()" style="margin-top: 10px;">🔙 Kembali ke Beranda</button>
       </div>
 
-      <div class="field-group">
-        <label>Aksi Cepat Tambah Durasi:</label>
-        <div class="grid-durasi">
-          <button class="btn-quick" onclick="tambahHari(1)">+1 Hari</button>
-          <button class="btn-quick" onclick="tambahHari(7)">+7 Hari</button>
-          <button class="btn-quick" onclick="tambahHari(14)">+14 Hari</button>
-          <button class="btn-quick" onclick="tambahHari(30)">+30 Hari</button>
-          <button class="btn-quick" onclick="tambahHari(60)">+60 Hari</button>
-          <button class="btn-quick btn-quick-lifetime" onclick="setLifetime()">♾️ Lifetime</button>
+      <!-- VIEW 1: MENU UTAMA & STATISTIK -->
+      <div id="viewMainMenu" class="view-section">
+        <div class="stats-grid">
+          <div class="stat-box">
+            <span>Hari Ini</span>
+            <h4 id="statRevHari">Rp 0</h4>
+          </div>
+          <div class="stat-box">
+            <span>Minggu Ini</span>
+            <h4 id="statRevMinggu">Rp 0</h4>
+          </div>
+          <div class="stat-box">
+            <span>Bulan Ini</span>
+            <h4 id="statRevBulan">Rp 0</h4>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <div style="font-size: 11px; font-weight: bold; color: #cbd5e1; margin-bottom: 4px;">📊 Grafik Pendapatan 7 Hari Terakhir</div>
+          <div class="chart-bars" id="chartBarsContainer"></div>
+        </div>
+
+        <!-- SAKLAR QRIS -->
+        <div class="card-info" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding: 12px 14px;">
+          <div>
+            <div style="font-weight: 600; color: #f8fafc; font-size: 13px;">Status Tombol QRIS Client</div>
+            <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">Aktifkan atau nonaktifkan fitur pembayaran QRIS di userscript.</div>
+          </div>
+          <div>
+            <button id="btnToggleQris" class="btn btn-success" style="width: 90px; height: 36px; font-size: 12px;" onclick="toggleStatusQrisServer()">Aktif</button>
+          </div>
+        </div>
+
+        <div style="font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 8px; text-align: left;">Pilih Menu Manajemen:</div>
+        
+        <div class="menu-grid">
+          <div class="menu-card" onclick="bukaFitur('device')">
+            <div class="menu-icon">🔍</div>
+            <h3>Cek Device ID</h3>
+            <p>Daftar & kelola user</p>
+          </div>
+
+          <div class="menu-card" onclick="bukaFitur('transfer')">
+            <div class="menu-icon">🔄</div>
+            <h3>Migrasi Device</h3>
+            <p>Pemindahan masa aktif & paket</p>
+          </div>
+
+          <div class="menu-card" onclick="bukaFitur('packages')">
+            <div class="menu-icon">📦</div>
+            <h3>Harga Paket</h3>
+            <p>Atur durasi & harga</p>
+          </div>
+
+          <div class="menu-card" onclick="bukaFitur('vouchers')">
+            <div class="menu-icon">🎟️</div>
+            <h3>Set Voucher</h3>
+            <p>Buat kupon diskon</p>
+          </div>
+
+          <div class="menu-card" onclick="bukaFitur('release')" style="grid-column: span 2; border-color: #0284c7;">
+            <div class="menu-icon">🚀</div>
+            <h3>Update Release</h3>
+            <p>Rilis versi skrip terbaru & changelog</p>
+          </div>
+        </div>
+
+        <div style="margin-top: 10px;">
+          <div class="menu-card" onclick="logoutAdmin()" style="border-color: #7f1d1d; padding: 12px;">
+            <div class="menu-icon" style="font-size: 18px;">🚪</div>
+            <h3 style="color: #fca5a5; margin: 4px 0 2px 0;">Keluar</h3>
+            <p>Akhiri sesi admin</p>
+          </div>
         </div>
       </div>
 
-      <div class="field-group">
-        <label for="editExpDate">Atur Tanggal Kadaluarsa Manual:</label>
-        <input type="date" id="editExpDate" onchange="cekOtomatisStatusTanggal()">
+      <!-- VIEW 2: FITUR LIST ALL USERS -->
+      <div id="viewDeviceCheck" class="view-section">
+        <div class="field-group">
+          <label for="searchUserQuery">Filter List User (Device ID / Nama):</label>
+          <input type="text" id="searchUserQuery" placeholder="🔍 Ketik Device ID atau Nama..." oninput="filterUserList()">
+        </div>
+
+        <div style="font-size: 12px; font-weight: 600; color: #cbd5e1; margin: 12px 0 6px 0; text-align: left;">Daftar Seluruh User Terdaftar:</div>
+        <div class="user-list-container" id="listAllUsersContainer">
+          <div style="text-align: center; color: #94a3b8; font-size: 12px; padding: 20px;">Memuat data user...</div>
+        </div>
+
+        <button class="btn btn-secondary" onclick="kembaliKeMenu()">🔙 Kembali ke Menu Utama</button>
       </div>
 
-      <div class="field-group">
-        <label for="editStatus">Ubah Status Lisensi:</label>
-        <select id="editStatus" onchange="ubahStatusDropdown(this.value)">
-          <option value="active">Active (Lisensi Berjalan)</option>
-          <option value="hold">Hold (Ditangguhkan Sementara)</option>
-          <option value="revoked">Revoke (Dicabut Permanent)</option>
-          <option value="expired" disabled>Expired (Masa Aktif Habis)</option>
-          <option value="unregistered" disabled>Unregistered (Belum Terdaftar)</option>
-        </select>
+      <!-- VIEW 3: DETAIL & KONTROL LISENSI -->
+      <div id="viewDeviceDetail" class="view-section">
+        <div class="card-info">
+          <div><b>Device ID:</b> <span id="dispDeviceId" style="color:#facc15;">-</span></div>
+          <div><b>Nama:</b> <span id="dispSppgName" style="color:#38bdf8;">-</span></div>
+          <div><b>Status Saat Ini:</b> <span id="dispStatus">-</span></div>
+          <div><b>Tanggal Kadaluarsa:</b> <span id="dispExpDate" style="color:#38bdf8;">-</span></div>
+          <div><b>Terakhir Digunakan:</b> <span id="dispLastActive" style="color:#cbd5e1;">-</span></div>
+        </div>
+
+        <div class="card-info" id="backupInfoCard" style="display: none;">
+          <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #38bdf8; font-weight: 600; margin-bottom: 6px;">Backup Cloud Data</div>
+          <div><b>Nama File:</b> <span id="dispBackupFilename" style="color:#facc15; font-family: monospace;">-</span></div>
+          <div><b>Waktu Backup:</b> <span id="dispBackupTime" style="color:#cbd5e1;">-</span></div>
+          <div style="display: flex; gap: 8px; margin-top: 10px;">
+            <button class="btn btn-primary" style="flex: 1; height: 36px; font-size: 12px;" onclick="downloadBackupCloud()">📥 Download</button>
+            <button class="btn btn-danger" style="flex: 1; height: 36px; font-size: 12px;" onclick="hapusBackupCloud()">🗑️ Hapus Backup</button>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label for="editSppgName">Ubah Nama:</label>
+          <input type="text" id="editSppgName" placeholder="Contoh: Admin Studio">
+        </div>
+
+        <div class="field-group">
+          <label>Aksi Cepat Tambah Durasi:</label>
+          <div class="grid-durasi">
+            <button class="btn-quick" onclick="tambahHari(1)">+1 Hari</button>
+            <button class="btn-quick" onclick="tambahHari(7)">+7 Hari</button>
+            <button class="btn-quick" onclick="tambahHari(14)">+14 Hari</button>
+            <button class="btn-quick" onclick="tambahHari(30)">+30 Hari</button>
+            <button class="btn-quick" onclick="tambahHari(60)">+60 Hari</button>
+            <button class="btn-quick btn-quick-lifetime" onclick="setLifetime()">♾️ Lifetime</button>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label for="editExpDate">Atur Tanggal Kadaluarsa Manual:</label>
+          <input type="date" id="editExpDate" onchange="cekOtomatisStatusTanggal()">
+        </div>
+
+        <div class="field-group">
+          <label for="editStatus">Ubah Status Lisensi:</label>
+          <select id="editStatus" onchange="ubahStatusDropdown(this.value)">
+            <option value="active">Active (Lisensi Berjalan)</option>
+            <option value="hold">Hold (Ditangguhkan Sementara)</option>
+            <option value="revoked">Revoke (Dicabut Permanent)</option>
+            <option value="expired" disabled>Expired (Masa Aktif Habis)</option>
+            <option value="unregistered" disabled>Unregistered (Belum Terdaftar)</option>
+          </select>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 14px;">
+          <button class="btn btn-success" onclick="simpanPerubahanLisensi()">💾 Simpan Perubahan</button>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-danger" style="flex: 1;" id="btnHapusLisensi" onclick="hapusLisensi()">🗑️ Hapus</button>
+            <button class="btn btn-secondary" style="flex: 1;" onclick="bukaFitur('device')">↩️ Kembali ke Daftar</button>
+          </div>
+        </div>
       </div>
 
-      <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 14px;">
-        <button class="btn btn-success" onclick="simpanPerubahanLisensi()">💾 Simpan Perubahan</button>
+      <!-- VIEW 3.5: MIGRASI DEVICE ID -->
+      <div id="viewTransferDevice" class="view-section">
+        <div class="card-info" style="border-color: #38bdf8;">
+          <div style="font-size: 13px; font-weight: bold; color: #38bdf8; margin-bottom: 4px;">🔄 Migrasi & Pemindahan Device ID</div>
+          <p style="margin: 0; font-size: 11px; color: #94a3b8; line-height: 1.4;">
+            Pindahkan masa aktif lisensi, status, nama, serta data backup cloud dari <b>Device Asal</b> ke <b>Device Tujuan (Baru)</b>.
+          </p>
+        </div>
+
+        <div class="field-group">
+          <label for="inputSourceDevice">Device ID Asal (Saat ini):</label>
+          <input type="text" id="inputSourceDevice" placeholder="Contoh: DEV-1234-ABCD" style="text-transform: uppercase;">
+        </div>
+
+        <div class="field-group">
+          <label for="inputTargetDevice">Device ID Tujuan (Baru):</label>
+          <input type="text" id="inputTargetDevice" placeholder="Contoh: DEV-9876-WXYZ" style="text-transform: uppercase;">
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-top: 16px;">
+          <button class="btn btn-warning" style="flex: 2;" onclick="eksekusiOperDevice()">🚀 Lanjutkan Migrasi</button>
+          <button class="btn btn-secondary" style="flex: 1;" onclick="kembaliKeMenu()">🔙 Menu</button>
+        </div>
+      </div>
+
+      <!-- VIEW 4: KELOLA HARGA PAKET -->
+      <div id="viewPackages" class="view-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <label style="margin:0;">Kelola Daftar Paket Langganan:</label>
+          <button class="btn btn-primary" style="width: auto; height: 32px; font-size: 11px; padding: 0 10px;" onclick="tambahBarisPaketForm()">+ Tambah</button>
+        </div>
+
+        <div id="containerListPaket" style="margin-bottom: 14px;"></div>
+
         <div style="display: flex; gap: 8px;">
-          <button class="btn btn-danger" style="flex: 1;" id="btnHapusLisensi" onclick="hapusLisensi()">🗑️ Hapus</button>
-          <button class="btn btn-secondary" style="flex: 1;" onclick="bukaFitur('device')">↩️ Kembali ke Daftar</button>
+          <button class="btn btn-success" style="flex: 2;" onclick="simpanPengaturanPaketServer()">💾 Simpan Paket</button>
+          <button class="btn btn-secondary" style="flex: 1;" onclick="kembaliKeMenu()">🔙 Menu</button>
         </div>
       </div>
+
+      <!-- VIEW 5: KELOLA VOUCHER -->
+      <div id="viewVouchers" class="view-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <label style="margin:0;">Kelola Kode Kupon / Voucher:</label>
+          <button class="btn btn-primary" style="width: auto; height: 32px; font-size: 11px; padding: 0 10px;" onclick="tambahBarisVoucherForm()">+ Tambah Kupon</button>
+        </div>
+
+        <div id="containerListVoucher" style="margin-bottom: 14px; max-height: 280px; overflow-y: auto;"></div>
+
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-success" style="flex: 2;" onclick="simpanPengaturanVoucherServer()">💾 Simpan Voucher</button>
+          <button class="btn btn-secondary" style="flex: 1;" onclick="kembaliKeMenu()">🔙 Menu</button>
+        </div>
+      </div>
+
+      <!-- VIEW 6: UPDATE RELEASE -->
+      <div id="viewRelease" class="view-section">
+        <div class="card-info" style="border-color: #0284c7;">
+          <div style="font-size: 13px; font-weight: bold; color: #38bdf8; margin-bottom: 4px;">🚀 Publikasi Update Versi Terbaru</div>
+          <p style="margin: 0; font-size: 11px; color: #94a3b8; line-height: 1.4;">
+            Data ini digunakan oleh <b>In-App Userscript</b> untuk mengecek pembaruan otomatis.
+          </p>
+        </div>
+
+        <div class="field-group">
+          <label for="inputReleaseVersion">Nomor Versi Terbaru:</label>
+          <input type="text" id="inputReleaseVersion" placeholder="Contoh: 1.5.43">
+        </div>
+
+        <div class="field-group">
+          <label for="inputDownloadUrl">URL Download File (.user.js):</label>
+          <input type="url" id="inputDownloadUrl" placeholder="https://mindspace-id.vercel.app/files/script.user.js">
+        </div>
+
+        <div class="field-group">
+          <label for="inputChangelog">Catatan Perubahan (Changelog):</label>
+          <textarea id="inputChangelog" rows="4" placeholder="- Perbaikan bug&#10;- Optimasi kecepatan muat data"></textarea>
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-top: 16px;">
+          <button class="btn btn-success" style="flex: 2;" onclick="simpanUpdateReleaseServer()">🚀 Rilis Update Terbaru</button>
+          <button class="btn btn-secondary" style="flex: 1;" onclick="kembaliKeMenu()">🔙 Menu</button>
+        </div>
+      </div>
+
     </div>
-
-    <!-- VIEW 3.5: FITUR OPER DEVICE ID -->
-    <div id="viewTransferDevice" class="view-section">
-      <div class="card-info" style="border-color: #38bdf8;">
-        <div style="font-size: 13px; font-weight: bold; color: #38bdf8; margin-bottom: 4px;">🔄 Migrasi & Pemindahan Device ID</div>
-        <p style="margin: 0; font-size: 11px; color: #94a3b8; line-height: 1.4;">
-          Pindahkan masa aktif lisensi, status, nama, serta data backup cloud dari <b>Device Asal</b> ke <b>Device Tujuan (Baru)</b>.
-        </p>
-      </div>
-
-      <div class="field-group">
-        <label for="inputSourceDevice">Device ID Asal (Saat ini):</label>
-        <input type="text" id="inputSourceDevice" placeholder="Contoh: DEV-1234-ABCD" style="text-transform: uppercase;">
-      </div>
-
-      <div class="field-group">
-        <label for="inputTargetDevice">Device ID Tujuan (Baru):</label>
-        <input type="text" id="inputTargetDevice" placeholder="Contoh: DEV-9876-WXYZ" style="text-transform: uppercase;">
-      </div>
-
-      <div style="display: flex; gap: 8px; margin-top: 16px;">
-        <button class="btn btn-warning" style="flex: 2;" onclick="eksekusiOperDevice()">🚀 Lanjutkan Migrasi</button>
-        <button class="btn btn-secondary" style="flex: 1;" onclick="kembaliKeMenu()">🔙 Menu</button>
-      </div>
-    </div>
-
-    <!-- VIEW 4: FITUR KELOLA HARGA PAKET -->
-    <div id="viewPackages" class="view-section">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-        <label style="margin:0;">Kelola Daftar Paket Langganan:</label>
-        <button class="btn btn-primary" style="width: auto; height: 32px; font-size: 11px; padding: 0 10px;" onclick="tambahBarisPaketForm()">+ Tambah</button>
-      </div>
-
-      <div id="containerListPaket" style="margin-bottom: 14px;"></div>
-
-      <div style="display: flex; gap: 8px;">
-        <button class="btn btn-success" style="flex: 2;" onclick="simpanPengaturanPaketServer()">💾 Simpan Paket</button>
-        <button class="btn btn-secondary" style="flex: 1;" onclick="kembaliKeMenu()">🔙 Menu</button>
-      </div>
-    </div>
-
-    <!-- VIEW 5: FITUR KELOLA VOUCHER -->
-    <div id="viewVouchers" class="view-section">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-        <label style="margin:0;">Kelola Kode Kupon / Voucher:</label>
-        <button class="btn btn-primary" style="width: auto; height: 32px; font-size: 11px; padding: 0 10px;" onclick="tambahBarisVoucherForm()">+ Tambah Kupon</button>
-      </div>
-
-      <div id="containerListVoucher" style="margin-bottom: 14px; max-height: 280px; overflow-y: auto;"></div>
-
-      <div style="display: flex; gap: 8px;">
-        <button class="btn btn-success" style="flex: 2;" onclick="simpanPengaturanVoucherServer()">💾 Simpan Voucher</button>
-        <button class="btn btn-secondary" style="flex: 1;" onclick="kembaliKeMenu()">🔙 Menu</button>
-      </div>
-    </div>
-
-    <!-- VIEW 6: FITUR MANAJEMEN UPDATE RELEASE -->
-    <div id="viewRelease" class="view-section">
-      <div class="card-info" style="border-color: #0284c7;">
-        <div style="font-size: 13px; font-weight: bold; color: #38bdf8; margin-bottom: 4px;">🚀 Publikasi Update Versi Terbaru</div>
-        <p style="margin: 0; font-size: 11px; color: #94a3b8; line-height: 1.4;">
-          Data ini digunakan oleh <b>In-App Userscript</b> untuk mengecek pembaruan otomatis.
-        </p>
-      </div>
-
-      <div class="field-group">
-        <label for="inputReleaseVersion">Nomor Versi Terbaru:</label>
-        <input type="text" id="inputReleaseVersion" placeholder="Contoh: 1.5.43">
-      </div>
-
-      <div class="field-group">
-        <label for="inputDownloadUrl">URL Download File (.user.js):</label>
-        <input type="url" id="inputDownloadUrl" placeholder="https://mindspace-id.vercel.app/files/script.user.js">
-      </div>
-
-      <div class="field-group">
-        <label for="inputChangelog">Catatan Perubahan (Changelog):</label>
-        <textarea id="inputChangelog" rows="4" placeholder="- Perbaikan bug&#10;- Optimasi kecepatan muat data"></textarea>
-      </div>
-
-      <div style="display: flex; gap: 8px; margin-top: 16px;">
-        <button class="btn btn-success" style="flex: 2;" onclick="simpanUpdateReleaseServer()">🚀 Rilis Update Terbaru</button>
-        <button class="btn btn-secondary" style="flex: 1;" onclick="kembaliKeMenu()">🔙 Menu</button>
-      </div>
-    </div>
-
   </div>
 
   <script>
@@ -530,17 +628,18 @@
     let globalUserList = [];
     let isQrisActiveState = true;
 
-    // Efek Interaktif 3D Tilt pada Container Utama berdasarkan Gerakan Mouse
+    // Efek 3D Tilt halus pada Container Utama (hanya aktif di desktop untuk performa mobile optimal)
     const container = document.getElementById('mainContainer');
-    document.addEventListener('mousemove', (e) => {
-      const xAxis = (window.innerWidth / 2 - e.pageX) / 45;
-      const yAxis = (window.innerHeight / 2 - e.pageY) / 45;
-      container.style.transform = `rotateY(${xAxis}deg) rotateX(${yAxis}deg)`;
-    });
-
-    document.addEventListener('mouseleave', () => {
-      container.style.transform = `rotateY(0deg) rotateX(0deg)`;
-    });
+    if (window.innerWidth > 768) {
+      document.addEventListener('mousemove', (e) => {
+        const xAxis = (window.innerWidth / 2 - e.pageX) / 50;
+        const yAxis = (window.innerHeight / 2 - e.pageY) / 50;
+        container.style.transform = `rotateY(${xAxis}deg) rotateX(${yAxis}deg)`;
+      });
+      document.addEventListener('mouseleave', () => {
+        container.style.transform = `rotateY(0deg) rotateX(0deg)`;
+      });
+    }
 
     function getTanggalHariIniWIB() {
       return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
@@ -558,18 +657,17 @@
       document.querySelectorAll('.view-section').forEach(el => el.style.display = 'none');
       document.getElementById(viewId).style.display = 'block';
 
-      // Sembunyikan tombol login di pojok kanan atas jika sedang di halaman login atau dashboard admin
-      const topNav = document.getElementById('topNavLogin');
+      const btnLoginHeader = document.getElementById('btnLoginHeader');
       if (viewId === 'viewLandingPage') {
-        topNav.style.display = 'block';
+        btnLoginHeader.style.display = 'block';
         document.getElementById('appTitle').textContent = 'Mindspace Studio';
-        document.getElementById('appSubtitle').textContent = 'Sistem Manajemen Lisensi & Automasi Cloud';
+        document.getElementById('appSubtitle').textContent = 'Sistem Manajemen Lisensi & Automasi Cloud Terpadu';
       } else if (viewId === 'viewLogin') {
-        topNav.style.display = 'none';
+        btnLoginHeader.style.display = 'none';
         document.getElementById('appTitle').textContent = 'Admin Login';
         document.getElementById('appSubtitle').textContent = 'Masukkan kata sandi akses administrator';
       } else {
-        topNav.style.display = 'none';
+        btnLoginHeader.style.display = 'none';
         document.getElementById('appTitle').textContent = 'Dashboard Admin Lisensi';
         document.getElementById('appSubtitle').textContent = 'Mindspace Studio Admin Panel';
       }
@@ -577,6 +675,10 @@
 
     function bukaHalamanLogin() {
       gantiView('viewLogin');
+    }
+
+    function kembaliKeLanding() {
+      gantiView('viewLandingPage');
     }
 
     function kembaliKeMenu() {
@@ -648,7 +750,7 @@
         showToast('Gagal terhubung ke API Verifikasi Password.', false);
       } finally {
         btnLogin.disabled = false;
-        btnLogin.textContent = '🔒 Autentikasi Masuk';
+        btnLogin.textContent = '🔒 Autentikasi & Masuk';
       }
     }
 

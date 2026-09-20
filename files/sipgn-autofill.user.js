@@ -19,7 +19,7 @@
 
   const CURRENT_VERSION = (typeof GM_info !== 'undefined' && GM_info.script)
     ? GM_info.script.version
-    : '1.5.47';
+    : '1.5.48';
 
   const VERCEL_API_URL = 'https://mindspace-id.vercel.app/api/tokopay';
 
@@ -138,11 +138,11 @@
     return false;
   }
 
-  function getRandomDelay(min = 300, max = 700) {
+  function getRandomDelay(min = 350, max = 800) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
 
-  async function smartWait(minMs = 300, maxMs = 700) {
+  async function smartWait(minMs = 350, maxMs = 800) {
     const delay = getRandomDelay(minMs, maxMs);
     await wait(delay);
   }
@@ -1611,6 +1611,49 @@ ${changelog}
     element.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
+  function tampilkanBadgeStatus(pesan) {}
+
+  function sembunyikanBadgeStatus() {}
+
+  async function setNativeValueHuman(element, value, charDelayMin = 35, charDelayMax = 80) {
+    if (!element) return;
+    try {
+      element.focus();
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } catch (e) {}
+
+    const valStr = String(value);
+    const proto = element.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
+    const setter = Object.getOwnPropertyDescriptor(proto, 'value').set;
+
+    setter.call(element, '');
+    element.dispatchEvent(new Event('input', { bubbles: true }));
+
+    let currentVal = '';
+    for (let i = 0; i < valStr.length; i++) {
+      const char = valStr[i];
+      currentVal += char;
+
+      // Cetak event keyboard fisik nyata untuk memicu animasi mengetik pada framework web (React/Vue)
+      const keyOptions = { key: char, char: char, keyCode: char.charCodeAt(0), bubbles: true, cancelable: true };
+      element.dispatchEvent(new KeyboardEvent('keydown', keyOptions));
+      element.dispatchEvent(new KeyboardEvent('keypress', keyOptions));
+
+      setter.call(element, currentVal);
+      element.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: char }));
+      element.dispatchEvent(new KeyboardEvent('keyup', keyOptions));
+
+      // Jeda pengetikan acak (agak melambat saat menemukan spasi atau tanda hubung)
+      let delay = getRandomDelay(charDelayMin, charDelayMax);
+      if (char === ' ' || char === '-' || char === '/') delay += getRandomDelay(40, 90);
+      await wait(delay);
+    }
+    element.dispatchEvent(new Event('change', { bubbles: true }));
+
+    await wait(120);
+    try { element.dispatchEvent(new Event('blur', { bubbles: true })); } catch (e) {}
+  }
+
   function wait(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
@@ -1632,7 +1675,7 @@ ${changelog}
         await wait(400);
         continue;
       }
-      setNativeValue(input, nilai);
+      await setNativeValueHuman(input, nilai, 30, 70);
       await smartWait(300, 600);
 
       const inputSetelah = cariInputFn();
@@ -1647,7 +1690,7 @@ ${changelog}
     const input = document.querySelector('input[placeholder*="Cari nama KPM"]');
     if (!input) return false;
 
-    setNativeValue(input, namaSekolah);
+    await setNativeValueHuman(input, namaSekolah, 25, 60);
 
     const tombolOpsi = await tungguElemen(() =>
       [...document.querySelectorAll('button')].find((btn) =>
@@ -1656,7 +1699,7 @@ ${changelog}
     );
 
     if (!tombolOpsi) return false;
-    await smartWait(300, 500);
+    await smartWait(350, 600);
     tombolOpsi.click();
     return true;
   }
@@ -1688,16 +1731,16 @@ ${changelog}
     return null;
   }
 
-  function isiPorsiSekolahLama(porsiBesar, porsiKecil) {
+  async function isiPorsiSekolahLama(porsiBesar, porsiKecil) {
     const inputs = document.querySelectorAll('input[type="number"]');
     const validInputs = [...inputs].filter(inp => !inp.closest('#sipgn-autofill-panel'));
     if (validInputs.length < 2) return false;
-    setNativeValue(validInputs[0], porsiBesar);
-    setNativeValue(validInputs[1], porsiKecil);
+    await setNativeValueHuman(validInputs[0], porsiBesar || '0', 25, 60);
+    await setNativeValueHuman(validInputs[1], porsiKecil || '0', 25, 60);
     return true;
   }
 
-  function isiPorsi(data) {
+  async function isiPorsi(data) {
     const kategori = [
       { nama: 'Porsi Besar', nilai: data.porsiBesar },
       { nama: 'Porsi Kecil', nilai: data.porsiKecil },
@@ -1709,11 +1752,11 @@ ${changelog}
     for (const k of kategori) {
       const input = cariInputPorsiKategori(k.nama);
       if (!input) continue;
-      setNativeValue(input, k.nilai || '0');
+      await setNativeValueHuman(input, k.nilai || '0', 25, 60);
       jumlahTerisi++;
     }
     if (jumlahTerisi === 0) {
-      return isiPorsiSekolahLama(data.porsiBesar, data.porsiKecil);
+      return await isiPorsiSekolahLama(data.porsiBesar, data.porsiKecil);
     }
     return true;
   }
@@ -1728,38 +1771,53 @@ ${changelog}
     );
   }
 
-  function isiKurirDanPlat(namaKurir, platNomor) {
-    const inputKurir = document.querySelector('input[placeholder="Nama lengkap kurir/driver"]');
-    const inputPlat = document.querySelector('input[placeholder="Contoh: B 1234 ABC"]');
-    if (inputKurir) setNativeValue(inputKurir, namaKurir);
-    if (inputPlat) setNativeValue(inputPlat, platNomor);
+  async function isiKurirDanPlat(namaKurir, platNomor) {
+    const inputKurir = document.querySelector('input[placeholder="Nama lengkap kurir/driver"]') ||
+                       document.querySelector('input[placeholder*="kurir"]') ||
+                       document.querySelector('input[placeholder*="driver"]');
+    const inputPlat = document.querySelector('input[placeholder="Contoh: B 1234 ABC"]') ||
+                      document.querySelector('input[placeholder*="1234"]') ||
+                      document.querySelector('input[placeholder*="plat"]');
+    if (inputKurir) {
+      await setNativeValueHuman(inputKurir, namaKurir || '', 20, 55);
+      await smartWait(200, 400);
+    }
+    if (inputPlat) {
+      await setNativeValueHuman(inputPlat, platNomor || '', 25, 60);
+      await smartWait(200, 400);
+    }
   }
 
   async function isiPenugasan(index) {
     const data = dataPenugasan[index];
     if (!data) return;
 
-    await isiLokasiKPM(data.sekolah);
-    await smartWait(600, 1000);
+    tampilkanBadgeStatus(`Sedang Mengetik: <b>${data.sekolah}</b>...`);
 
+    await isiLokasiKPM(data.sekolah);
+    await smartWait(500, 850);
+
+    tampilkanBadgeStatus(`Mengisi Ritase & Waktu...`);
     await isiRitase(data.ritase);
-    await smartWait(300, 500);
+    await smartWait(350, 600);
 
     isiBatasWaktu(data.batasWaktu);
-    await smartWait(200, 400);
+    await smartWait(250, 450);
 
-    isiPorsi(data);
-    await smartWait(300, 600);
+    tampilkanBadgeStatus(`Mengisi Jumlah Porsi...`);
+    await isiPorsi(data);
+    await smartWait(350, 650);
 
-    // Pengisian data Kurir jika Toggle Off, atau centang MBG jika Toggle On
-    const isAutoKurir = dapatkanAutoKurirMBG();
-    if (isAutoKurir) {
-      aturCheckboxKurirMBG();
-    } else {
-      aturCheckboxKurirMBG(); // Memastikan checkbox uncheck
-      isiKurirDanPlat(data.namaKurir, data.platNomor);
-    }
-    await smartWait(200, 400);
+    // Atur checkbox Kurir MBG (centang jika toggle ON, uncheck jika OFF)
+    aturCheckboxKurirMBG();
+    await smartWait(250, 450);
+
+    tampilkanBadgeStatus(`Mengisi Nama Kurir & Plat Nomor...`);
+    // Selalu isi data Nama Kurir dan Plat Nomor Kendaraan secara halus
+    await isiKurirDanPlat(data.namaKurir, data.platNomor);
+    await smartWait(300, 500);
+
+    sembunyikanBadgeStatus();
 
     dataPenugasan[index].terpakai = true;
     dataPenugasan[index].statusProses = 'pengantaran';
@@ -2026,9 +2084,9 @@ ${changelog}
 
     for (let i = 0; i < jumlahKlik; i++) {
       tombol.click();
-      await wait(18);
+      await wait(getRandomDelay(35, 75));
     }
-    await wait(45);
+    await wait(60);
     nilaiSekarang = bacaNilaiAktif(kolom);
     return nilaiSekarang === target;
   }
@@ -2142,32 +2200,25 @@ ${changelog}
     const data = dataPenugasan[index];
     if (!data) return false;
 
-    const isAutoKurir = dapatkanAutoKurirMBG();
-    if (isAutoKurir) {
-      const tercentang = aturCheckboxKurirMBG();
-      if (tercentang) {
-        dataPenugasan[index].statusProses = 'pengembalian';
-        simpanData(dataPenugasan);
-        renderPanel();
-        return true;
-      }
-    } else {
-      aturCheckboxKurirMBG(); // Memastikan uncheck jika toggle OFF
-    }
+    tampilkanBadgeStatus(`Proses Pengambilan: <b>${data.sekolah}</b>...`);
+
+    // Atur checkbox Kurir MBG
+    aturCheckboxKurirMBG();
+    await smartWait(250, 450);
 
     const jumlahOmpreng = hitungTotalPorsi(data);
     const inputJumlah = document.querySelector('input[placeholder="Contoh: 25"]');
-    const inputKurir = document.querySelector('input[placeholder="Nama kurir"]');
-    const inputPlat = document.querySelector('input[placeholder="Contoh: B 9999 XYZ"]');
+    if (inputJumlah) {
+      await setNativeValueHuman(inputJumlah, String(jumlahOmpreng), 35, 75);
+      await smartWait(250, 450);
+    }
 
-    if (inputJumlah) setNativeValue(inputJumlah, String(jumlahOmpreng));
-    await smartWait(200, 400);
-    if (inputKurir) setNativeValue(inputKurir, data.namaKurir || '');
-    await smartWait(200, 400);
-    if (inputPlat) setNativeValue(inputPlat, data.platNomor || '');
-    await smartWait(300, 500);
+    await isiKurirDanPlat(data.namaKurir, data.platNomor);
+    await smartWait(300, 550);
 
     const hasil = await aturWaktuKeberangkatan(data.jamJadwalPengambilan, 'Waktu Dijadwalkan Pengambilan');
+    sembunyikanBadgeStatus();
+
     if (hasil) {
       dataPenugasan[index].statusProses = 'pengembalian';
       simpanData(dataPenugasan);
@@ -2180,12 +2231,18 @@ ${changelog}
     const data = dataPenugasan[index];
     if (!data) return false;
 
+    tampilkanBadgeStatus(`Proses Pencucian: <b>${data.sekolah}</b>...`);
+
     const jumlahOmpreng = hitungTotalPorsi(data);
     const inputJumlah = document.querySelector('input[placeholder="Contoh: 25"]');
-    if (inputJumlah) setNativeValue(inputJumlah, String(jumlahOmpreng));
-    await smartWait(300, 500);
+    if (inputJumlah) {
+      await setNativeValueHuman(inputJumlah, String(jumlahOmpreng), 35, 75);
+      await smartWait(300, 550);
+    }
 
     const hasil = await aturWaktuKeberangkatan(data.jamMulaiCuci, 'Waktu Mulai Cuci');
+    sembunyikanBadgeStatus();
+
     if (hasil) {
       dataPenugasan[index].statusProses = 'pencucian';
       simpanData(dataPenugasan);
@@ -2664,7 +2721,7 @@ ${changelog}
 
       const teksToggle = document.createElement('span');
       teksToggle.style.cssText = 'font-size: 11px; font-weight: 600; color: #cbd5e1; display: flex; align-items: center; gap: 6px;';
-      teksToggle.innerHTML = `🛵 Tugaskan ke Aplikasi Kurir MBG`;
+      teksToggle.innerHTML = `🛵 Tugaskan melalui Aplikasi Kurir MBG`;
 
       const switchToggle = document.createElement('div');
       switchToggle.style.cssText = `

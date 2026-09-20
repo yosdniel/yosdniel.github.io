@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        SIPGN Autofill - POP
 // @namespace   sipgn-autofill
-// @version     1.5.45
+// @version     1.5.47
 // @description Isi otomatis form Tugas Pengiriman & Klaim Voucher Durasi Custom Baru
 // @match       https://pop-sipgn.bgn.go.id/distribution/*
 // @grant       GM_setValue
@@ -17,12 +17,9 @@
 (function () {
   'use strict';
 
-  // ------------------------------------------------------------------
-  // KONFIGURASI API VERCEL & STORAGE
-  // ------------------------------------------------------------------
   const CURRENT_VERSION = (typeof GM_info !== 'undefined' && GM_info.script)
     ? GM_info.script.version
-    : '1.5.48';
+    : '1.5.47';
 
   const VERCEL_API_URL = 'https://mindspace-id.vercel.app/api/tokopay';
 
@@ -31,19 +28,51 @@
   const DEVICE_STORAGE_KEY = 'sipgn_device_id';
   const SPPG_NAME_KEY = 'sipgn_sppg_name';
   const STORAGE_KEY = 'sipgnAutofillData';
+  const AUTO_KURIR_KEY = 'sipgn_auto_kurir_mbg';
+  const MINIMIZE_KEY = 'sipgn_panel_minimized';
 
   let currentDatabaseExpDate = null;
   let statusLisensiTerakhir = null;
-  let cachedServerStatus = null; // Cache untuk mempercepat pembukaan modal status perangkat
+  let cachedServerStatus = null;
   let intervalMonitorLisensi = null;
   let isPaymentModalOpen = false;
   let isPaymentSuccess = false;
   let daftarVouchersGlobal = [];
   let kodeVoucherTerpakai = null;
 
-  // ------------------------------------------------------------------
-  // HELPER STORAGE & SINKRONISASI NAMA SPPG KE SERVER
-  // ------------------------------------------------------------------
+  function dapatkanAutoKurirMBG() {
+    try {
+      const val = GM_getValue(AUTO_KURIR_KEY, true);
+      return val === true || val === 'true';
+    } catch (e) {
+      const val = localStorage.getItem(AUTO_KURIR_KEY);
+      return val === null ? true : val === 'true';
+    }
+  }
+
+  function simpanAutoKurirMBG(val) {
+    try {
+      GM_setValue(AUTO_KURIR_KEY, val);
+    } catch (e) {}
+    localStorage.setItem(AUTO_KURIR_KEY, String(val));
+  }
+
+  function dapatkanPanelMinimized() {
+    try {
+      const val = GM_getValue(MINIMIZE_KEY, false);
+      return val === true || val === 'true';
+    } catch (e) {
+      return localStorage.getItem(MINIMIZE_KEY) === 'true';
+    }
+  }
+
+  function simpanPanelMinimized(val) {
+    try {
+      GM_setValue(MINIMIZE_KEY, val);
+    } catch (e) {}
+    localStorage.setItem(MINIMIZE_KEY, String(val));
+  }
+
   function dapatkanNamaSPPG() {
     try {
       return GM_getValue(SPPG_NAME_KEY, '') || localStorage.getItem(SPPG_NAME_KEY) || '';
@@ -82,9 +111,33 @@
     });
   }
 
-  // ------------------------------------------------------------------
-  // FITUR SMART DELAY (HUMAN-LIKE SIMULATION AUTOMATIC)
-  // ------------------------------------------------------------------
+  function aturCheckboxKurirMBG() {
+    const isAuto = dapatkanAutoKurirMBG();
+
+    const semuaCheckbox = [...document.querySelectorAll('input[type="checkbox"]')].filter(
+      (cb) => !cb.closest('#sipgn-autofill-panel')
+    );
+
+    const checkboxKurir = semuaCheckbox.find((cb) => {
+      const parentText = (cb.closest('label') || cb.parentElement || document.body).innerText || '';
+      return parentText.includes('Kirim tugas pengiriman ke Aplikasi Kurir MBG') || parentText.includes('Kurir MBG');
+    }) || semuaCheckbox[0];
+
+    if (checkboxKurir) {
+      if (isAuto && !checkboxKurir.checked) {
+        checkboxKurir.checked = true;
+        checkboxKurir.dispatchEvent(new Event('change', { bubbles: true }));
+        checkboxKurir.dispatchEvent(new Event('input', { bubbles: true }));
+      } else if (!isAuto && checkboxKurir.checked) {
+        checkboxKurir.checked = false;
+        checkboxKurir.dispatchEvent(new Event('change', { bubbles: true }));
+        checkboxKurir.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      return isAuto;
+    }
+    return false;
+  }
+
   function getRandomDelay(min = 300, max = 700) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
@@ -94,9 +147,6 @@
     await wait(delay);
   }
 
-  // ------------------------------------------------------------------
-  // FITUR IN-APP UPDATE CHECKER & POP-UP NOTIFICATION (2 KOLOM)
-  // ------------------------------------------------------------------
   function cekUpdateSkrip() {
     GM_xmlhttpRequest({
       method: 'GET',
@@ -162,7 +212,6 @@
 
         <div style="display: grid; grid-template-columns: 240px 1fr; gap: 24px; align-items: start;">
 
-          <!-- KOLOM KIRI: INFORMASI UPDATE & TOMBOL -->
           <div style="display: flex; flex-direction: column; align-items: center; text-align: center; border-right: 1px solid rgba(51, 65, 85, 0.6); padding-right: 20px;">
             <div style="width: 56px; height: 56px; background: rgba(234, 179, 8, 0.1); color: #eab308; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 28px; margin-bottom: 14px;">🚀</div>
             <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #fef08a; line-height: 1.3;">Update Versi Baru Tersedia!</h3>
@@ -180,7 +229,6 @@
             </button>
           </div>
 
-          <!-- KOLOM KANAN: CHANGELOGS LENGKAP -->
           <div style="display: flex; flex-direction: column; height: 100%;">
             <div style="font-size: 11px; font-weight: 700; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
               <span>📋</span> Catatan Perubahan (Changelogs)
@@ -243,9 +291,9 @@ ${changelog}
 
   function dapatkanWarnaMasaAktif(sisaHari) {
     if (sisaHari === null) return '#facc15';
-    if (sisaHari > 7) return '#34d399'; // Hijau
-    if (sisaHari <= 7 && sisaHari >= 3) return '#facc15'; // Kuning
-    return '#ef4444'; // Merah (< 3 hari)
+    if (sisaHari > 7) return '#34d399';
+    if (sisaHari <= 7 && sisaHari >= 3) return '#facc15';
+    return '#ef4444';
   }
 
   function dapatkanDeviceID() {
@@ -272,9 +320,6 @@ ${changelog}
     return `MIND-${reversed}`;
   }
 
-  // ------------------------------------------------------------------
-  // FUNGSI MODAL DIALOG WELCOME / INPUT NAMA SPPG WAJIB (USER BARU)
-  // ------------------------------------------------------------------
   function tampilkanModalWelcomeSPPG(onSelesai) {
     const modalLama = document.getElementById('sipgn-welcome-sppg-modal');
     if (modalLama) modalLama.remove();
@@ -338,9 +383,6 @@ ${changelog}
     };
   }
 
-  // ------------------------------------------------------------------
-  // FUNGSI MODAL DIALOG MODERN UNTUK KONFIRMASI & NOTIFIKASI SUKSES
-  // ------------------------------------------------------------------
   function tampilkanModalKonfirmasiModern(judulText, pesanText, onKonfirmasi) {
     const modalLama = document.getElementById('sipgn-confirm-modal');
     if (modalLama) modalLama.remove();
@@ -420,9 +462,6 @@ ${changelog}
     };
   }
 
-  // ------------------------------------------------------------------
-  // FUNGSI KOMUNIKASI API VERCEL <-> TOKOPAY & VOUCHER KLAIM
-  // ------------------------------------------------------------------
   function ambilDaftarPaketDanVercel() {
     return new Promise((resolve, reject) => {
       GM_xmlhttpRequest({
@@ -630,9 +669,6 @@ ${changelog}
     cekUpdateSkrip();
   }
 
-  // ------------------------------------------------------------------
-  // MODAL INDEPENDEN UNTUK TRANSAKSI SUKSES
-  // ------------------------------------------------------------------
   function tampilkanModalSukses(expDateTarget, pesanSuksesCustom = 'PEMBAYARAN BERHASIL!') {
     const modalAktivasiLama = document.getElementById('sipgn-license-modal');
     if (modalAktivasiLama) modalAktivasiLama.remove();
@@ -751,9 +787,6 @@ ${changelog}
     return false;
   }
 
-  // ------------------------------------------------------------------
-  // PROSES PEMBAYARAN OTOMATIS & VOUCHER KLAIM
-  // ------------------------------------------------------------------
   async function prosesPembayaranOtomatis(jumlahHari) {
     const devId = dapatkanDeviceID();
     const cleanDevId = devId.replace(/[^a-zA-Z0-9]/g, '');
@@ -920,9 +953,6 @@ ${changelog}
     }
   }
 
-  // ------------------------------------------------------------------
-  // FUNGSI MUAT DAFTAR PAKET KE SELECT
-  // ------------------------------------------------------------------
   function muatDaftarPaketKeSelect(selectEl, btnBeliEl) {
     if (!selectEl) return;
     selectEl.innerHTML = '<option value="">⏳ Memuat paket...</option>';
@@ -1002,9 +1032,7 @@ ${changelog}
         } catch(e) {}
       }
 
-      // PERIKSA SAKLAR PEMBAYARAN QRIS DARI AKUN/SETTINGS ADMIN DARD-BOARD
       const isQrisEnabled = serverStatusData.qris_enabled !== false;
-
       const isUserBaru = serverStatusData.status && serverStatusData.status === 'unregistered';
       const rawStatus = serverStatusData.status || (serverStatusData.valid ? 'active' : 'expired');
       let statusLabelFormatted = 'Tidak Aktif';
@@ -1052,7 +1080,6 @@ ${changelog}
           <h3 style="margin: 0 0 4px 0; font-size: 18px; font-weight: 700; color: #f8fafc;">Informasi & Status Perangkat</h3>
           <p style="font-size: 11px; color: #94a3b8; margin: 0 0 16px 0; line-height: 1.4;">${isUserBaru ? 'Selamat datang! Dapatkan trial gratis 1 hari (24 jam) untuk pengguna baru.' : 'Kelola langganan dan identitas perangkat Anda.'}</p>
 
-          <!-- AKUN / DEVICE ID SECTION -->
           <div id="sipgn-info-perangkat-sec" style="background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 12px; margin-bottom: 14px; border: 1px solid rgba(51, 65, 85, 0.5); text-align: left; ${isKadaluarsa ? 'display: none;' : ''}">
             <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; font-weight: 600; margin-bottom: 4px;">Informasi Perangkat</div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
@@ -1069,7 +1096,6 @@ ${changelog}
             </div>
           </div>
 
-          <!-- PENGATURAN BACKUP & IMPORT DI DALAM MODAL PENGATURAN -->
           <div id="sipgn-backup-import-sec" style="background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 12px; margin-bottom: 14px; border: 1px solid rgba(51, 65, 85, 0.5); text-align: left; ${(isKadaluarsa || isUserBaru) ? 'display: none;' : ''}">
             <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; font-weight: 600; margin-bottom: 8px;">Backup & Import Data KPM</div>
             <div style="display: flex; gap: 8px;">
@@ -1091,12 +1117,10 @@ ${changelog}
 
             ${
               isUserBaru
-                ? `<!-- TOMBOL CLAIM FREE TRIAL KHUSUS USER BARU -->
-                   <button id="sipgn-btn-claim-trial" style="width: 100%; padding: 12px; border: none; border-radius: 10px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; font-weight: 700; cursor: pointer; font-size: 13px; transition: 0.2s; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);">
+                ? `<button id="sipgn-btn-claim-trial" style="width: 100%; padding: 12px; border: none; border-radius: 10px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; font-weight: 700; cursor: pointer; font-size: 13px; transition: 0.2s; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);">
                      🎁 Claim Free Trial (24 Jam)
                    </button>`
-                : `<!-- TAMPILAN PEMBAYARAN QRIS & VOUCHER UNTUK USER LAMA -->
-                   ${isQrisEnabled ? `
+                : `${isQrisEnabled ? `
                      <div id="sipgn-wrapper-paket" style="text-align: left;">
                        <label style="display: block; font-size: 11px; font-weight: 600; color: #cbd5e1; margin-bottom: 6px;">Pilih Paket Durasi :</label>
                        <select id="sipgn-select-paket" style="width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 12px; margin-bottom: 12px; outline: none;">
@@ -1108,13 +1132,11 @@ ${changelog}
                        💳 Bayar via QRIS
                      </button>
                    ` : `
-                     <!-- INFOBAR JIKA QRIS DIMATIKAN ADMIN -->
                      <div style="background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3); color: #fef08a; padding: 10px 12px; border-radius: 10px; font-size: 11px; text-align: center; margin-bottom: 12px; line-height: 1.4;">
                        ⚠️ <b>Pembayaran QRIS Ditutup Sementara.</b><br>Silakan gunakan kode voucher untuk melakukan perpanjangan lisensi.
                      </div>
                    `}
 
-                   <!-- VOUCHER SECTION -->
                    <div id="sipgn-voucher-section" style="text-align: left; border-top: 1px dashed rgba(51, 65, 85, 0.8); padding-top: 12px;">
                      <label style="display: block; font-size: 11px; font-weight: 600; color: #38bdf8; margin-bottom: 6px;">Klaim Kode Voucher:</label>
                      <div style="display: flex; gap: 6px; margin-bottom: 4px;">
@@ -1386,9 +1408,6 @@ ${changelog}
     };
   }
 
-  // ------------------------------------------------------------------
-  // CORE LOGIC FORM FILLER & SPINNER
-  // ------------------------------------------------------------------
   const DATA_AWAL = [
     {
       sekolah: 'SMAN 1 MEDAN',
@@ -1407,6 +1426,7 @@ ${changelog}
       jamOmprengKembaliSPPG: '12:00',
       jamMulaiCuci: '12:30',
       terpakai: false,
+      statusProses: 'belum',
     },
   ];
 
@@ -1420,6 +1440,7 @@ ${changelog}
       const data = raw ? JSON.parse(raw) : [...DATA_AWAL];
       return data.map((d) => ({
         terpakai: false,
+        statusProses: d.statusProses || (d.terpakai ? 'pengantaran' : 'belum'),
         jamKeberangkatan: '',
         jamTibaTujuan: '',
         jamJadwalPengambilan: '',
@@ -1730,9 +1751,18 @@ ${changelog}
     isiPorsi(data);
     await smartWait(300, 600);
 
-    isiKurirDanPlat(data.namaKurir, data.platNomor);
+    // Pengisian data Kurir jika Toggle Off, atau centang MBG jika Toggle On
+    const isAutoKurir = dapatkanAutoKurirMBG();
+    if (isAutoKurir) {
+      aturCheckboxKurirMBG();
+    } else {
+      aturCheckboxKurirMBG(); // Memastikan checkbox uncheck
+      isiKurirDanPlat(data.namaKurir, data.platNomor);
+    }
+    await smartWait(200, 400);
 
     dataPenugasan[index].terpakai = true;
+    dataPenugasan[index].statusProses = 'pengantaran';
     simpanData(dataPenugasan);
     renderPanel();
   }
@@ -2112,6 +2142,19 @@ ${changelog}
     const data = dataPenugasan[index];
     if (!data) return false;
 
+    const isAutoKurir = dapatkanAutoKurirMBG();
+    if (isAutoKurir) {
+      const tercentang = aturCheckboxKurirMBG();
+      if (tercentang) {
+        dataPenugasan[index].statusProses = 'pengembalian';
+        simpanData(dataPenugasan);
+        renderPanel();
+        return true;
+      }
+    } else {
+      aturCheckboxKurirMBG(); // Memastikan uncheck jika toggle OFF
+    }
+
     const jumlahOmpreng = hitungTotalPorsi(data);
     const inputJumlah = document.querySelector('input[placeholder="Contoh: 25"]');
     const inputKurir = document.querySelector('input[placeholder="Nama kurir"]');
@@ -2124,7 +2167,13 @@ ${changelog}
     if (inputPlat) setNativeValue(inputPlat, data.platNomor || '');
     await smartWait(300, 500);
 
-    return aturWaktuKeberangkatan(data.jamJadwalPengambilan, 'Waktu Dijadwalkan Pengambilan');
+    const hasil = await aturWaktuKeberangkatan(data.jamJadwalPengambilan, 'Waktu Dijadwalkan Pengambilan');
+    if (hasil) {
+      dataPenugasan[index].statusProses = 'pengembalian';
+      simpanData(dataPenugasan);
+      renderPanel();
+    }
+    return hasil;
   }
 
   async function isiMulaiPencucian(index) {
@@ -2136,7 +2185,13 @@ ${changelog}
     if (inputJumlah) setNativeValue(inputJumlah, String(jumlahOmpreng));
     await smartWait(300, 500);
 
-    return aturWaktuKeberangkatan(data.jamMulaiCuci, 'Waktu Mulai Cuci');
+    const hasil = await aturWaktuKeberangkatan(data.jamMulaiCuci, 'Waktu Mulai Cuci');
+    if (hasil) {
+      dataPenugasan[index].statusProses = 'pencucian';
+      simpanData(dataPenugasan);
+      renderPanel();
+    }
+    return hasil;
   }
 
   function pasangDetektorNavigasiSPA() {
@@ -2253,11 +2308,10 @@ ${changelog}
       background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px);
       z-index: 1000002; display: flex; align-items: center; justify-content: center;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      animation: sipgnFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     `;
 
     overlay.innerHTML = `
-      <div style="position: relative; background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid rgba(56, 189, 248, 0.2); color: #f8fafc; padding: 28px; border-radius: 20px; width: 850px; max-width: 92vw; max-height: 88vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 30px rgba(56, 189, 248, 0.05); text-align: left; display: flex; flex-direction: column;">
+      <div style="position: relative; background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid rgba(56, 189, 248, 0.2); color: #f8fafc; padding: 28px; border-radius: 20px; width: 850px; max-width: 92vw; max-height: 88vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); text-align: left; display: flex; flex-direction: column;">
 
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid rgba(51, 65, 85, 0.6); padding-bottom: 14px;">
           <div style="display: flex; align-items: center; gap: 10px;">
@@ -2304,6 +2358,19 @@ ${changelog}
     containerInputs.appendChild(buatFormInput('Waktu Ompreng Kembali di SPPG (HH:MM)', 'sipgn-in-jamOmprengKembaliSPPG', '12:00', '🏢'));
     containerInputs.appendChild(buatFormInput('Waktu Mulai Cuci (HH:MM)', 'sipgn-in-jamMulaiCuci', '12:30', '🧼'));
 
+    const wrapperStatus = document.createElement('div');
+    wrapperStatus.style.cssText = 'grid-column: span 3; background: rgba(15, 23, 42, 0.5); padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(51, 65, 85, 0.6); display: flex; align-items: center; justify-content: space-between; margin-top: 6px;';
+    wrapperStatus.innerHTML = `
+      <label style="font-size: 11px; font-weight: 600; color: #cbd5e1; text-transform: uppercase;">Status Proses KPM:</label>
+      <select id="sipgn-in-statusProses" style="padding: 6px 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 12px; outline: none; cursor: pointer;">
+        <option value="belum">⚪ Belum Diproses</option>
+        <option value="pengantaran">🚚 Ditugaskan Pengantaran</option>
+        <option value="pengembalian">📦 Ditugaskan Pengembalian</option>
+        <option value="pencucian">🧼 Proses Pencucian</option>
+      </select>
+    `;
+    containerInputs.appendChild(wrapperStatus);
+
     if (isEdit && dataEdit) {
       document.getElementById('sipgn-in-sekolah').value = dataEdit.sekolah || '';
       document.getElementById('sipgn-in-ritase').value = dataEdit.ritase || '';
@@ -2320,17 +2387,13 @@ ${changelog}
       document.getElementById('sipgn-in-jamJadwalPengambilan').value = dataEdit.jamJadwalPengambilan || '';
       document.getElementById('sipgn-in-jamOmprengKembaliSPPG').value = dataEdit.jamOmprengKembaliSPPG || '';
       document.getElementById('sipgn-in-jamMulaiCuci').value = dataEdit.jamMulaiCuci || '';
+      document.getElementById('sipgn-in-statusProses').value = dataEdit.statusProses || 'belum';
     }
 
     const btnClose = document.getElementById('sipgn-btn-close-kpm-modal');
-    btnClose.onmouseover = () => { btnClose.style.background = 'rgba(255, 255, 255, 0.1)'; btnClose.style.color = '#fff'; };
-    btnClose.onmouseout = () => { btnClose.style.background = 'rgba(255, 255, 255, 0.05)'; btnClose.style.color = '#94a3b8'; };
     btnClose.onclick = () => overlay.remove();
 
     const btnSave = document.getElementById('sipgn-btn-save-kpm-modal');
-    btnSave.onmouseover = () => btnSave.style.filter = 'brightness(1.1)';
-    btnSave.onmouseout = () => btnSave.style.filter = 'none';
-
     btnSave.onclick = () => {
       const ambil = (id) => document.getElementById(id)?.value.trim() || '';
       const dataForm = {
@@ -2349,6 +2412,7 @@ ${changelog}
         jamJadwalPengambilan: ambil('sipgn-in-jamJadwalPengambilan'),
         jamOmprengKembaliSPPG: ambil('sipgn-in-jamOmprengKembaliSPPG'),
         jamMulaiCuci: ambil('sipgn-in-jamMulaiCuci'),
+        statusProses: ambil('sipgn-in-statusProses') || 'belum',
       };
 
       if (!dataForm.sekolah) {
@@ -2389,61 +2453,113 @@ ${changelog}
   function tandaiUlangStatus(status) {
     if (indexTerpilih < 0 || !dataPenugasan[indexTerpilih]) return;
     dataPenugasan[indexTerpilih].terpakai = status;
+    if (!status) dataPenugasan[indexTerpilih].statusProses = 'belum';
     simpanData(dataPenugasan);
     renderPanel();
   }
 
   function hapusSemuaTanda() {
-    const jumlahTerpakai = dataPenugasan.filter((d) => d.terpakai).length;
+    const jumlahTerpakai = dataPenugasan.filter((d) => d.terpakai || d.statusProses !== 'belum').length;
     if (jumlahTerpakai === 0) {
-      tampilkanModalAlertModern('Informasi', 'Tidak ada KPM yang tertandai digunakan.', false);
+      tampilkanModalAlertModern('Informasi', 'Tidak ada KPM yang tertandai sedang berjalan.', false);
       return;
     }
     tampilkanModalKonfirmasiModern(
       'Reset Status Tanda',
-      `Hapus tanda "digunakan" pada ${jumlahTerpakai} KPM? Semua KPM akan kembali berstatus belum dipakai.`,
+      `Reset status proses pada ${jumlahTerpakai} KPM? Semua KPM akan kembali ke status "Belum Diproses".`,
       () => {
-        dataPenugasan.forEach((d) => { d.terpakai = false; });
+        dataPenugasan.forEach((d) => {
+          d.terpakai = false;
+          d.statusProses = 'belum';
+        });
         simpanData(dataPenugasan);
         renderPanel();
       }
     );
   }
 
+  function pasangGayaScrollbar() {
+    if (document.getElementById('sipgn-scrollbar-style')) return;
+    const style = document.createElement('style');
+    style.id = 'sipgn-scrollbar-style';
+    style.textContent = `
+      #sipgn-autofill-panel::-webkit-scrollbar,
+      #sipgn-kpm-form-modal div::-webkit-scrollbar,
+      #sipgn-license-modal div::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      #sipgn-autofill-panel::-webkit-scrollbar-track,
+      #sipgn-kpm-form-modal div::-webkit-scrollbar-track,
+      #sipgn-license-modal div::-webkit-scrollbar-track {
+        background: transparent;
+        border-radius: 6px;
+      }
+      #sipgn-autofill-panel::-webkit-scrollbar-thumb,
+      #sipgn-kpm-form-modal div::-webkit-scrollbar-thumb,
+      #sipgn-license-modal div::-webkit-scrollbar-thumb {
+        background: #334155;
+        border-radius: 6px;
+      }
+      #sipgn-autofill-panel::-webkit-scrollbar-thumb:hover,
+      #sipgn-kpm-form-modal div::-webkit-scrollbar-thumb:hover,
+      #sipgn-license-modal div::-webkit-scrollbar-thumb:hover {
+        background: #475569;
+      }
+      #sipgn-autofill-panel {
+        scrollbar-width: thin;
+        scrollbar-color: #334155 transparent;
+      }
+      #sipgn-autofill-panel select,
+      #sipgn-kpm-form-modal select,
+      #sipgn-license-modal select {
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2338bdf8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        background-size: 14px;
+        padding-right: 30px !important;
+      }
+      #sipgn-autofill-panel select option,
+      #sipgn-kpm-form-modal select option,
+      #sipgn-license-modal select option {
+        background-color: #0f172a;
+        color: #f8fafc;
+        padding: 8px;
+      }
+      #sipgn-autofill-panel select:focus,
+      #sipgn-kpm-form-modal select:focus,
+      #sipgn-license-modal select:focus {
+        border-color: #38bdf8 !important;
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2) !important;
+      }
+    `;
+    (document.head || document.documentElement).appendChild(style);
+  }
+
   function renderPanel() {
     try {
+      pasangGayaScrollbar();
       let panel = document.getElementById('sipgn-autofill-panel');
       if (panel) panel.remove();
+
+      const isMinimized = dapatkanPanelMinimized();
 
       panel = document.createElement('div');
       panel.id = 'sipgn-autofill-panel';
       panel.style.cssText = `
         position: fixed; top: 20px; right: 20px; z-index: 99999;
-        background: #1e293b; color: #f8fafc; padding: 16px;
+        background: #1e293b; color: #f8fafc; padding: ${isMinimized ? '10px 14px' : '16px'};
         border-radius: 16px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px;
-        width: 300px; max-height: 90vh; overflow-y: auto;
+        width: ${isMinimized ? 'auto' : '330px'}; max-height: 90vh; overflow-y: auto;
         box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
-        border: 1px solid rgba(51, 65, 85, 0.8);
+        border: 1px solid rgba(51, 65, 85, 0.8); transition: all 0.2s ease;
       `;
 
       const halamanTugasBaru = cekHalamanTugasBaru();
 
-      const headerContainer = document.createElement('div');
-      headerContainer.style.cssText = 'display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;';
-
-      const judul = document.createElement('div');
-      judul.textContent = 'SIPGN Autofill';
-      judul.style.cssText = 'font-weight: 700; font-size: 15px; color: #f8fafc; letter-spacing: -0.2px;';
-      headerContainer.appendChild(judul);
-
-      const badgeVer = document.createElement('span');
-      badgeVer.textContent = `v${CURRENT_VERSION}`;
-      badgeVer.style.cssText = 'font-size: 10px; background: rgba(56, 189, 248, 0.1); color: #38bdf8; padding: 2px 6px; border-radius: 6px; font-weight: 600;';
-      headerContainer.appendChild(badgeVer);
-
-      panel.appendChild(headerContainer);
-
-      // --- SMART KPM COUNTER & SUMMARY BAR WITH SPPG NAME HEADER ---
       function jenisKPM(data) {
         return (data.porsiBalita || data.porsiIbuMenyusui || data.porsiIbuHamil) ? 'posyandu' : 'sekolah';
       }
@@ -2452,40 +2568,142 @@ ${changelog}
       const totalPosyandu = dataPenugasan.filter((d) => jenisKPM(d) === 'posyandu').length;
       const totalKPM = dataPenugasan.length;
       const totalPorsiSemua = dataPenugasan.reduce((acc, curr) => acc + hitungTotalPorsi(curr), 0);
+
+      const totalPengantaran = dataPenugasan.filter((d) => d.statusProses === 'pengantaran').length;
+      const totalPengembalian = dataPenugasan.filter((d) => d.statusProses === 'pengembalian').length;
+      const totalPencucian = dataPenugasan.filter((d) => d.statusProses === 'pencucian').length;
+
+      const headerContainer = document.createElement('div');
+      headerContainer.style.cssText = `display: flex; align-items: center; justify-content: space-between; gap: 8px; ${isMinimized ? '' : 'margin-bottom: 10px;'}`;
+
+      const headerLeft = document.createElement('div');
+      headerLeft.style.cssText = 'display: flex; align-items: center; gap: 6px;';
+
+      const judul = document.createElement('div');
+      judul.textContent = 'SIPGN Autofill';
+      judul.style.cssText = 'font-weight: 700; font-size: 14px; color: #f8fafc; letter-spacing: -0.2px;';
+      headerLeft.appendChild(judul);
+
+      const badgeVer = document.createElement('span');
+      badgeVer.textContent = `v${CURRENT_VERSION}`;
+      badgeVer.style.cssText = 'font-size: 10px; background: rgba(56, 189, 248, 0.1); color: #38bdf8; padding: 2px 6px; border-radius: 6px; font-weight: 600;';
+      headerLeft.appendChild(badgeVer);
+
+      headerContainer.appendChild(headerLeft);
+
+      const headerRight = document.createElement('div');
+      headerRight.style.cssText = 'display: flex; align-items: center; gap: 6px;';
+
+      if (isMinimized) {
+        const miniBadge = document.createElement('span');
+        miniBadge.style.cssText = 'font-size: 11px; background: rgba(15, 23, 42, 0.8); border: 1px solid #334155; padding: 2px 8px; border-radius: 8px; color: #cbd5e1; font-weight: 600; font-family: monospace;';
+        miniBadge.innerHTML = `<span style="color:#60a5fa;">🚚${totalPengantaran}</span> <span style="color:#c084fc;">📦${totalPengembalian}</span> <span style="color:#2dd4bf;">🧼${totalPencucian}</span>`;
+        headerRight.appendChild(miniBadge);
+      }
+
+      const btnMinimize = document.createElement('button');
+      btnMinimize.innerHTML = isMinimized ? '➕' : '➖';
+      btnMinimize.title = isMinimized ? 'Perbesar Panel' : 'Minimalkan Panel';
+      btnMinimize.style.cssText = `
+        background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15);
+        color: #cbd5e1; width: 24px; height: 24px; border-radius: 6px;
+        font-size: 11px; display: flex; align-items: center; justify-content: center;
+        cursor: pointer; transition: all 0.2s; outline: none;
+      `;
+      btnMinimize.onclick = () => {
+        simpanPanelMinimized(!isMinimized);
+        renderPanel();
+      };
+      headerRight.appendChild(btnMinimize);
+      headerContainer.appendChild(headerRight);
+
+      panel.appendChild(headerContainer);
+
+      if (isMinimized) {
+        document.body.appendChild(panel);
+        return;
+      }
+
+      const bodyContainer = document.createElement('div');
+      bodyContainer.id = 'sipgn-panel-body';
+
       const namaSPPG = dapatkanNamaSPPG() || 'SPPG - UNKNOWN';
 
       const summaryBar = document.createElement('div');
       summaryBar.style.cssText = `
         background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(51, 65, 85, 0.6);
-        border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; font-size: 10px;
+        border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; font-size: 11px;
       `;
       summaryBar.innerHTML = `
-        <div style="color: #facc15; font-weight: 700; font-size: 11px; margin-bottom: 6px; border-bottom: 1px dashed rgba(51, 65, 85, 0.8); padding-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">
-          🏢 ${namaSPPG}
+        <div style="color: #facc15; font-weight: 700; font-size: 12px; margin-bottom: 8px; border-bottom: 1px dashed rgba(51, 65, 85, 0.8); padding-bottom: 6px; text-transform: uppercase; letter-spacing: 0.3px; display: flex; align-items: center; gap: 6px;">
+          <span>🏢</span> <span>${namaSPPG}</span>
         </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-          <div style="color: #94a3b8;">🏫 Sekolah: <b style="color: #38bdf8;">${totalSekolah}</b></div>
-          <div style="color: #94a3b8;">👶 Posyandu: <b style="color: #f472b6;">${totalPosyandu}</b></div>
-          <div style="color: #94a3b8;">📊 Total KPM: <b style="color: #facc15;">${totalKPM}</b></div>
-          <div style="color: #94a3b8;">📦 Total Porsi: <b style="color: #4ade80;">${totalPorsiSemua.toLocaleString('id-ID')}</b></div>
+        <div style="display: flex; align-items: center; justify-content: space-around; color: #cbd5e1; font-size: 11px; font-weight: 600;">
+          <span>🏫 <b style="color: #38bdf8; font-size: 12px;">${totalSekolah}</b></span>
+          <span>👶 <b style="color: #f472b6; font-size: 12px;">${totalPosyandu}</b></span>
+          <span>📊 <b style="color: #facc15; font-size: 12px;">${totalKPM}</b></span>
+          <span>📦 <b style="color: #4ade80; font-size: 12px;">${totalPorsiSemua.toLocaleString('id-ID')}</b></span>
         </div>
       `;
-      panel.appendChild(summaryBar);
+      bodyContainer.appendChild(summaryBar);
 
-      // --- INDIKATOR HALAMAN BERADA TEPAT DI BEWASAN KPM COUNTER ---
       const indikatorHalaman = document.createElement('div');
       indikatorHalaman.textContent = halamanTugasBaru
         ? '📍 Halaman: Buat Penugasan'
         : '📍 Halaman: Detail Distribusi';
       indikatorHalaman.style.cssText = 'font-size: 11px; color: #94a3b8; margin-bottom: 10px; font-weight: 500;';
-      panel.appendChild(indikatorHalaman);
+      bodyContainer.appendChild(indikatorHalaman);
+
+      const autoKurirState = dapatkanAutoKurirMBG();
+      const wrapperToggle = document.createElement('div');
+      wrapperToggle.style.cssText = `
+        display: flex; align-items: center; justify-content: space-between;
+        background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.2);
+        padding: 8px 10px; border-radius: 10px; margin-bottom: 10px; cursor: pointer;
+      `;
+
+      const teksToggle = document.createElement('span');
+      teksToggle.style.cssText = 'font-size: 11px; font-weight: 600; color: #cbd5e1; display: flex; align-items: center; gap: 6px;';
+      teksToggle.innerHTML = `🛵 Tugaskan ke Aplikasi Kurir MBG`;
+
+      const switchToggle = document.createElement('div');
+      switchToggle.style.cssText = `
+        width: 34px; height: 18px; background: ${autoKurirState ? '#38bdf8' : '#334155'};
+        border-radius: 10px; position: relative; transition: background 0.2s;
+      `;
+      const knobToggle = document.createElement('div');
+      knobToggle.style.cssText = `
+        width: 14px; height: 14px; background: white; border-radius: 50%;
+        position: absolute; top: 2px; left: ${autoKurirState ? '18px' : '2px'}; transition: left 0.2s;
+      `;
+      switchToggle.appendChild(knobToggle);
+
+      wrapperToggle.appendChild(teksToggle);
+      wrapperToggle.appendChild(switchToggle);
+
+      wrapperToggle.onclick = () => {
+        const valBaru = !dapatkanAutoKurirMBG();
+        simpanAutoKurirMBG(valBaru);
+        aturCheckboxKurirMBG();
+        renderPanel();
+      };
+
+      bodyContainer.appendChild(wrapperToggle);
 
       const garis2 = document.createElement('hr');
       garis2.style.cssText = 'border: none; border-top: 1px solid #334155; margin: 0 0 12px 0;';
-      panel.appendChild(garis2);
+      bodyContainer.appendChild(garis2);
+
+      function formatStatusBadge(status) {
+        if (status === 'pengantaran') return '🚚 Pengantaran';
+        if (status === 'pengembalian') return '📦 Pengembalian';
+        if (status === 'pencucian') return '🧼 Pencucian';
+        return '';
+      }
 
       function teksOpsi(data) {
-        return `${data.terpakai ? '✅ ' : ''}${data.sekolah}${data.terpakai ? ' (digunakan)' : ''}`;
+        const statusStr = formatStatusBadge(data.statusProses);
+        return statusStr ? `[${statusStr}] ${data.sekolah}` : data.sekolah;
       }
 
       let selectSekolah = null;
@@ -2495,7 +2713,7 @@ ${changelog}
         const labelSelect = document.createElement('div');
         labelSelect.textContent = labelTeks;
         labelSelect.style.cssText = 'font-size: 11px; color: #94a3b8; margin-bottom: 4px; font-weight: 500;';
-        panel.appendChild(labelSelect);
+        bodyContainer.appendChild(labelSelect);
 
         const sel = document.createElement('select');
         sel.style.cssText = `
@@ -2534,17 +2752,68 @@ ${changelog}
           indexTerpilih = Number(nilai);
           const selLain = sel === selectSekolah ? selectPosyandu : selectSekolah;
           if (selLain) selLain.value = '';
+          renderPanel();
         };
-        panel.appendChild(sel);
+        bodyContainer.appendChild(sel);
         return sel;
       }
 
       selectSekolah = buatSelectKPM('KPM Sekolah', 'sekolah');
       selectPosyandu = buatSelectKPM('KPM Posyandu (3B)', 'posyandu');
 
-      const jumlahKPMTerpakai = dataPenugasan.filter((d) => d.terpakai).length;
+      // Tampilkan status bar KPM Terpilih
+      if (indexTerpilih >= 0 && dataPenugasan[indexTerpilih]) {
+        const kpmAktif = dataPenugasan[indexTerpilih];
+        let colorBg = 'rgba(51, 65, 85, 0.4)';
+        let colorText = '#94a3b8';
+        let statusTeks = '⚪ Belum Diproses';
+
+        if (kpmAktif.statusProses === 'pengantaran') {
+          colorBg = 'rgba(37, 99, 235, 0.2)';
+          colorText = '#60a5fa';
+          statusTeks = '🚚 Ditugaskan Pengantaran';
+        } else if (kpmAktif.statusProses === 'pengembalian') {
+          colorBg = 'rgba(124, 58, 237, 0.2)';
+          colorText = '#c084fc';
+          statusTeks = '📦 Ditugaskan Pengembalian';
+        } else if (kpmAktif.statusProses === 'pencucian') {
+          colorBg = 'rgba(13, 148, 136, 0.2)';
+          colorText = '#2dd4bf';
+          statusTeks = '🧼 Proses Pencucian';
+        }
+
+        const statusBox = document.createElement('div');
+        statusBox.style.cssText = `
+          background: ${colorBg}; border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 8px; padding: 6px 10px; margin-bottom: 8px; font-size: 11px;
+          display: flex; align-items: center; justify-content: space-between;
+        `;
+        statusBox.innerHTML = `
+          <span style="color: #cbd5e1; font-weight: 500;">Status Proses:</span>
+          <b style="color: ${colorText}; font-weight: 700;">${statusTeks}</b>
+        `;
+        bodyContainer.appendChild(statusBox);
+      }
+
+      // Ringkasan Jumlah Status Proses ringkas 1 baris
+      const processCountBar = document.createElement('div');
+      processCountBar.style.cssText = `
+        background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(51, 65, 85, 0.6);
+        border-radius: 8px; padding: 6px 10px; margin-bottom: 10px; font-size: 11px;
+        display: flex; align-items: center; justify-content: space-around; font-weight: 600;
+      `;
+      processCountBar.innerHTML = `
+        <span>🚚 <b style="color: #60a5fa;">${totalPengantaran}</b></span>
+        <span style="color: rgba(51, 65, 85, 0.8);">|</span>
+        <span>📦 <b style="color: #c084fc;">${totalPengembalian}</b></span>
+        <span style="color: rgba(51, 65, 85, 0.8);">|</span>
+        <span>🧼 <b style="color: #2dd4bf;">${totalPencucian}</b></span>
+      `;
+      bodyContainer.appendChild(processCountBar);
+
+      const jumlahKPMTerpakai = dataPenugasan.filter((d) => d.terpakai || d.statusProses !== 'belum').length;
       const tombolHapusSemuaTanda = document.createElement('button');
-      tombolHapusSemuaTanda.textContent = `Hapus Semua Tanda${jumlahKPMTerpakai > 0 ? ` (${jumlahKPMTerpakai})` : ''}`;
+      tombolHapusSemuaTanda.textContent = `Reset Semua Status${jumlahKPMTerpakai > 0 ? ` (${jumlahKPMTerpakai})` : ''}`;
       tombolHapusSemuaTanda.disabled = jumlahKPMTerpakai === 0;
       tombolHapusSemuaTanda.style.cssText = `
         width: 100%; padding: 7px; border: none; border-radius: 8px;
@@ -2554,7 +2823,7 @@ ${changelog}
         font-size: 11px; font-weight: 500; margin-bottom: 10px; border: 1px dashed #334155;
       `;
       tombolHapusSemuaTanda.onclick = hapusSemuaTanda;
-      panel.appendChild(tombolHapusSemuaTanda);
+      bodyContainer.appendChild(tombolHapusSemuaTanda);
 
       const bisaIsiPenugasan = indexTerpilih >= 0 && halamanTugasBaru;
 
@@ -2602,7 +2871,7 @@ ${changelog}
           isiPenugasan(indexTerpilih);
         };
         barisPenugasan.appendChild(tombolPenugasan);
-        panel.appendChild(barisPenugasan);
+        bodyContainer.appendChild(barisPenugasan);
       }
 
       if (adaWaktuKeberangkatan || adaWaktuDiterima) {
@@ -2623,10 +2892,13 @@ ${changelog}
             tombolJam.disabled = true;
             tombolJam.textContent = 'Mengatur...';
             const berhasil = await aturWaktuKeberangkatan(dataPenugasan[indexTerpilih]?.jamKeberangkatan, 'Waktu Keberangkatan');
+            if (berhasil && dataPenugasan[indexTerpilih]) {
+              dataPenugasan[indexTerpilih].statusProses = 'pengantaran';
+              simpanData(dataPenugasan);
+            }
             tombolJam.textContent = berhasil ? 'Tersimpan' : 'Gagal';
             await wait(1200);
-            tombolJam.textContent = 'Set Berangkat';
-            tombolJam.disabled = !bisaSetJam;
+            renderPanel();
           };
           barisJam.appendChild(tombolJam);
         }
@@ -2650,13 +2922,12 @@ ${changelog}
             );
             tombolJamTiba.textContent = berhasil ? 'Tersimpan' : 'Gagal';
             await wait(1200);
-            tombolJamTiba.textContent = 'Set Tiba';
-            tombolJamTiba.disabled = !bisaSetJamTiba;
+            renderPanel();
           };
           barisJam.appendChild(tombolJamTiba);
         }
 
-        panel.appendChild(barisJam);
+        bodyContainer.appendChild(barisJam);
       }
 
       if (adaFormPengambilan) {
@@ -2677,11 +2948,10 @@ ${changelog}
           const berhasil = await isiPengambilanOmpreng(indexTerpilih);
           tombolPengambilan.textContent = berhasil ? 'Terisi' : 'Gagal';
           await wait(1200);
-          tombolPengambilan.textContent = '📦 Isi Pengambilan Ompreng';
-          tombolPengambilan.disabled = !bisaIsiPengambilan;
+          renderPanel();
         };
         barisPengambilan.appendChild(tombolPengambilan);
-        panel.appendChild(barisPengambilan);
+        bodyContainer.appendChild(barisPengambilan);
       }
 
       if (adaWaktuKembaliSPPG) {
@@ -2703,13 +2973,16 @@ ${changelog}
             dataPenugasan[indexTerpilih]?.jamOmprengKembaliSPPG,
             'Waktu Ompreng Kembali di SPPG'
           );
+          if (berhasil && dataPenugasan[indexTerpilih]) {
+            dataPenugasan[indexTerpilih].statusProses = 'pengembalian';
+            simpanData(dataPenugasan);
+          }
           tombolWaktuKembali.textContent = berhasil ? 'Tersimpan' : 'Gagal';
           await wait(1200);
-          tombolWaktuKembali.textContent = '🔄 Set Ompreng Kembali';
-          tombolWaktuKembali.disabled = !bisaSetWaktuKembali;
+          renderPanel();
         };
         barisWaktuKembali.appendChild(tombolWaktuKembali);
-        panel.appendChild(barisWaktuKembali);
+        bodyContainer.appendChild(barisWaktuKembali);
       }
 
       if (adaFormPencucian) {
@@ -2730,11 +3003,10 @@ ${changelog}
           const berhasil = await isiMulaiPencucian(indexTerpilih);
           tombolPencucian.textContent = berhasil ? 'Terisi' : 'Gagal';
           await wait(1200);
-          tombolPencucian.textContent = '🧼 Isi Mulai Pencucian';
-          tombolPencucian.disabled = !bisaIsiPencucian;
+          renderPanel();
         };
         barisPencucian.appendChild(tombolPencucian);
-        panel.appendChild(barisPencucian);
+        bodyContainer.appendChild(barisPencucian);
       }
 
       const barisAksi = document.createElement('div');
@@ -2763,24 +3035,24 @@ ${changelog}
 
       barisAksi.appendChild(tombolEdit);
       barisAksi.appendChild(tombolHapus);
-      panel.appendChild(barisAksi);
+      bodyContainer.appendChild(barisAksi);
 
-      if (indexTerpilih >= 0 && dataPenugasan[indexTerpilih]?.terpakai) {
+      if (indexTerpilih >= 0 && (dataPenugasan[indexTerpilih]?.terpakai || dataPenugasan[indexTerpilih]?.statusProses !== 'belum')) {
         const tombolReset = document.createElement('button');
-        tombolReset.textContent = '↺ Tandai Belum Dipakai';
+        tombolReset.textContent = '↺ Reset Status KPM Ini';
         tombolReset.style.cssText = `
           width: 100%; padding: 6px; border: none; border-radius: 8px;
           background: #334155; color: #cbd5e1; cursor: pointer; font-size: 11px; font-weight: 500; margin-bottom: 10px;
         `;
         tombolReset.onclick = () => tandaiUlangStatus(false);
-        panel.appendChild(tombolReset);
+        bodyContainer.appendChild(tombolReset);
       }
 
       const garis = document.createElement('hr');
       garis.style.cssText = 'border: none; border-top: 1px solid #334155; margin: 10px 0;';
-      panel.appendChild(garis);
+      bodyContainer.appendChild(garis);
 
-      var tombolToggleForm = document.createElement('button');
+      const tombolToggleForm = document.createElement('button');
       tombolToggleForm.textContent = '+ Tambah Data KPM Baru';
       tombolToggleForm.style.cssText = `
         width: 100%; padding: 8px; border: none; border-radius: 8px;
@@ -2791,7 +3063,7 @@ ${changelog}
         tampilkanModalFormKPM(null, null);
       };
 
-      panel.appendChild(tombolToggleForm);
+      bodyContainer.appendChild(tombolToggleForm);
 
       const tombolLisensi = document.createElement('button');
       tombolLisensi.textContent = '💳 Informasi & Status Perangkat';
@@ -2800,27 +3072,23 @@ ${changelog}
         background: #334155; color: white; cursor: pointer; font-size: 11px; font-weight: 600; margin-bottom: 4px;
         transition: background 0.2s;
       `;
-      tombolLisensi.onmouseover = () => tombolLisensi.style.background = '#475569';
-      tombolLisensi.onmouseout = () => tombolLisensi.style.background = '#334155';
       tombolLisensi.onclick = () => {
         tampilkanModalAktivasi('', true);
       };
-      panel.appendChild(tombolLisensi);
+      bodyContainer.appendChild(tombolLisensi);
 
       const footer = document.createElement('div');
       footer.style.cssText = `margin-top: 6px; font-size: 10px; text-align: center; color: #64748b;`;
       footer.innerHTML = '© 2026 - <b>Mindspace Studio</b>';
-      panel.appendChild(footer);
+      bodyContainer.appendChild(footer);
 
+      panel.appendChild(bodyContainer);
       document.body.appendChild(panel);
     } catch (e) {
       console.error('[Autofill] Gagal merender panel UI:', e);
     }
   }
 
-  // ------------------------------------------------------------------
-  // PENGAWASAN STATUS LISENSI SECARA REAL-TIME
-  // ------------------------------------------------------------------
   function bersihkanSemuaUI() {
     if (isPaymentModalOpen || isPaymentSuccess) return;
 
@@ -2845,7 +3113,7 @@ ${changelog}
       onload: function (res) {
         try {
           const data = JSON.parse(res.responseText);
-          cachedServerStatus = data; // Simpan cache respon status lisensi
+          cachedServerStatus = data;
 
           if (data && data.sppg_name) {
             simpanNamaSPPG(data.sppg_name);
@@ -2871,7 +3139,7 @@ ${changelog}
               bersihkanSemuaUI();
               tampilkanModalStatusSitus('Akses Dibatalkan', 'Lisensi Anda telah dicabut oleh Administrator.', 'revoked');
             } else if (statusSekarang === 'hold') {
-              bersihkanSemuaUI();
+              bersihkanServerUI();
               tampilkanModalStatusSitus('Lisensi Ditangguhkan', 'Lisensi Anda sedang ditangguhkan sementara. Silakan hubungi Administrator.', 'hold');
             } else if (statusSekarang === 'active') {
               currentDatabaseExpDate = data.exp_date;

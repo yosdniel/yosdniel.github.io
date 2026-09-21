@@ -1772,18 +1772,74 @@ ${changelog}
   }
 
   async function isiKurirDanPlat(namaKurir, platNomor) {
-    const inputKurir = document.querySelector('input[placeholder="Nama lengkap kurir/driver"]') ||
-                       document.querySelector('input[placeholder*="kurir"]') ||
-                       document.querySelector('input[placeholder*="driver"]');
-    const inputPlat = document.querySelector('input[placeholder="Contoh: B 1234 ABC"]') ||
-                      document.querySelector('input[placeholder*="1234"]') ||
-                      document.querySelector('input[placeholder*="plat"]');
-    if (inputKurir) {
-      await setNativeValueHuman(inputKurir, namaKurir || '', 20, 55);
+    const semuaInput = [...document.querySelectorAll('input')].filter(
+      (inp) => !inp.closest('#sipgn-autofill-panel') && inp.type !== 'hidden' && inp.type !== 'checkbox'
+    );
+
+    // 1. Deteksi Input Nama Kurir / Driver
+    let inputKurir = semuaInput.find((inp) => {
+      const ph = (inp.placeholder || '').toLowerCase();
+      const name = (inp.name || '').toLowerCase();
+      const id = (inp.id || '').toLowerCase();
+      return ph.includes('kurir') || ph.includes('driver') || name.includes('kurir') || name.includes('driver') || id.includes('kurir');
+    });
+
+    if (!inputKurir) {
+      const labels = [...document.querySelectorAll('label')].filter((l) => !l.closest('#sipgn-autofill-panel'));
+      const labelKurir = labels.find((l) => {
+        const txt = l.textContent.toLowerCase();
+        return txt.includes('kurir') || txt.includes('driver') || txt.includes('pengemudi');
+      });
+      if (labelKurir) {
+        inputKurir = labelKurir.querySelector('input') ||
+                     labelKurir.parentElement?.querySelector('input') ||
+                     (labelKurir.parentElement?.parentElement ? labelKurir.parentElement.parentElement.querySelector('input') : null);
+      }
+    }
+
+    // 2. Deteksi Input Plat Nomor Kendaraan
+    let inputPlat = semuaInput.find((inp) => {
+      const ph = (inp.placeholder || '').toLowerCase();
+      const name = (inp.name || '').toLowerCase();
+      const id = (inp.id || '').toLowerCase();
+      return ph.includes('1234') || ph.includes('plat') || ph.includes('nopol') || ph.includes('kendaraan') ||
+             name.includes('plat') || name.includes('nopol') || name.includes('kendaraan') ||
+             id.includes('plat') || id.includes('nopol') || id.includes('kendaraan');
+    });
+
+    if (!inputPlat) {
+      const labels = [...document.querySelectorAll('label')].filter((l) => !l.closest('#sipgn-autofill-panel'));
+      const labelPlat = labels.find((l) => {
+        const txt = l.textContent.toLowerCase();
+        return txt.includes('plat') || txt.includes('nopol') || txt.includes('nomor kendaraan') || txt.includes('kendaraan') || txt.includes('polisi');
+      });
+      if (labelPlat) {
+        inputPlat = labelPlat.querySelector('input') ||
+                    labelPlat.parentElement?.querySelector('input') ||
+                    (labelPlat.parentElement?.parentElement ? labelPlat.parentElement.parentElement.querySelector('input') : null);
+      }
+    }
+
+    // Fallback: Jika input plat tidak ditemukan langsung, gunakan input teks setelah input kurir
+    if (!inputPlat && inputKurir) {
+      const kontainerInduk = inputKurir.closest('form') || inputKurir.parentElement?.parentElement;
+      if (kontainerInduk) {
+        const inputsKontainer = [...kontainerInduk.querySelectorAll('input')].filter(
+          (inp) => inp !== inputKurir && !inp.closest('#sipgn-autofill-panel') && inp.type !== 'hidden' && inp.type !== 'checkbox' && inp.type !== 'number'
+        );
+        if (inputsKontainer.length > 0) {
+          inputPlat = inputsKontainer[0];
+        }
+      }
+    }
+
+    if (inputKurir && namaKurir) {
+      await setNativeValueHuman(inputKurir, namaKurir, 20, 55);
       await smartWait(200, 400);
     }
-    if (inputPlat) {
-      await setNativeValueHuman(inputPlat, platNomor || '', 25, 60);
+
+    if (inputPlat && platNomor) {
+      await setNativeValueHuman(inputPlat, platNomor, 25, 60);
       await smartWait(200, 400);
     }
   }
@@ -1816,8 +1872,6 @@ ${changelog}
     // Selalu isi data Nama Kurir dan Plat Nomor Kendaraan secara halus
     await isiKurirDanPlat(data.namaKurir, data.platNomor);
     await smartWait(300, 500);
-
-    sembunyikanBadgeStatus();
 
     dataPenugasan[index].terpakai = true;
     dataPenugasan[index].statusProses = 'pengantaran';
@@ -2200,24 +2254,28 @@ ${changelog}
     const data = dataPenugasan[index];
     if (!data) return false;
 
-    tampilkanBadgeStatus(`Proses Pengambilan: <b>${data.sekolah}</b>...`);
-
     // Atur checkbox Kurir MBG
     aturCheckboxKurirMBG();
     await smartWait(250, 450);
 
     const jumlahOmpreng = hitungTotalPorsi(data);
-    const inputJumlah = document.querySelector('input[placeholder="Contoh: 25"]');
+    const semuaInput = [...document.querySelectorAll('input')].filter((inp) => !inp.closest('#sipgn-autofill-panel'));
+    const inputJumlah = semuaInput.find((inp) => {
+      const ph = (inp.placeholder || '').toLowerCase();
+      const name = (inp.name || '').toLowerCase();
+      return ph.includes('contoh: 25') || ph.includes('jumlah') || ph.includes('ompreng') || name.includes('jumlah') || name.includes('ompreng') || inp.type === 'number';
+    });
+
     if (inputJumlah) {
       await setNativeValueHuman(inputJumlah, String(jumlahOmpreng), 35, 75);
       await smartWait(250, 450);
     }
 
+    // Mengisi Nama Kurir dan Plat Nomor Kendaraan pada formulir pengambilan ompreng
     await isiKurirDanPlat(data.namaKurir, data.platNomor);
     await smartWait(300, 550);
 
     const hasil = await aturWaktuKeberangkatan(data.jamJadwalPengambilan, 'Waktu Dijadwalkan Pengambilan');
-    sembunyikanBadgeStatus();
 
     if (hasil) {
       dataPenugasan[index].statusProses = 'pengembalian';
@@ -2279,8 +2337,10 @@ ${changelog}
       'Waktu Keberangkatan',
       'Waktu Diterima di Tujuan',
       'Jumlah Ompreng',
+      'Waktu Dijadwalkan Pengambilan',
       'Waktu Ompreng Kembali di SPPG',
       'Jumlah Ompreng Dicuci',
+      'Waktu Mulai Cuci',
     ];
     const tandaFormSaatIni = () => [...document.querySelectorAll('label')]
       .filter((el) => !el.closest('#sipgn-autofill-panel'))
@@ -2415,19 +2475,6 @@ ${changelog}
     containerInputs.appendChild(buatFormInput('Waktu Ompreng Kembali di SPPG (HH:MM)', 'sipgn-in-jamOmprengKembaliSPPG', '12:00', '🏢'));
     containerInputs.appendChild(buatFormInput('Waktu Mulai Cuci (HH:MM)', 'sipgn-in-jamMulaiCuci', '12:30', '🧼'));
 
-    const wrapperStatus = document.createElement('div');
-    wrapperStatus.style.cssText = 'grid-column: span 3; background: rgba(15, 23, 42, 0.5); padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(51, 65, 85, 0.6); display: flex; align-items: center; justify-content: space-between; margin-top: 6px;';
-    wrapperStatus.innerHTML = `
-      <label style="font-size: 11px; font-weight: 600; color: #cbd5e1; text-transform: uppercase;">Status Proses KPM:</label>
-      <select id="sipgn-in-statusProses" style="padding: 6px 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 12px; outline: none; cursor: pointer;">
-        <option value="belum">⚪ Belum Diproses</option>
-        <option value="pengantaran">🚚 Ditugaskan Pengantaran</option>
-        <option value="pengembalian">📦 Ditugaskan Pengembalian</option>
-        <option value="pencucian">🧼 Proses Pencucian</option>
-      </select>
-    `;
-    containerInputs.appendChild(wrapperStatus);
-
     if (isEdit && dataEdit) {
       document.getElementById('sipgn-in-sekolah').value = dataEdit.sekolah || '';
       document.getElementById('sipgn-in-ritase').value = dataEdit.ritase || '';
@@ -2444,7 +2491,6 @@ ${changelog}
       document.getElementById('sipgn-in-jamJadwalPengambilan').value = dataEdit.jamJadwalPengambilan || '';
       document.getElementById('sipgn-in-jamOmprengKembaliSPPG').value = dataEdit.jamOmprengKembaliSPPG || '';
       document.getElementById('sipgn-in-jamMulaiCuci').value = dataEdit.jamMulaiCuci || '';
-      document.getElementById('sipgn-in-statusProses').value = dataEdit.statusProses || 'belum';
     }
 
     const btnClose = document.getElementById('sipgn-btn-close-kpm-modal');
@@ -2469,7 +2515,7 @@ ${changelog}
         jamJadwalPengambilan: ambil('sipgn-in-jamJadwalPengambilan'),
         jamOmprengKembaliSPPG: ambil('sipgn-in-jamOmprengKembaliSPPG'),
         jamMulaiCuci: ambil('sipgn-in-jamMulaiCuci'),
-        statusProses: ambil('sipgn-in-statusProses') || 'belum',
+        statusProses: (isEdit && indexTarget !== null) ? (dataPenugasan[indexTarget]?.statusProses || 'belum') : 'belum',
       };
 
       if (!dataForm.sekolah) {
@@ -2721,7 +2767,7 @@ ${changelog}
 
       const teksToggle = document.createElement('span');
       teksToggle.style.cssText = 'font-size: 11px; font-weight: 600; color: #cbd5e1; display: flex; align-items: center; gap: 6px;';
-      teksToggle.innerHTML = `🛵 Tugaskan melalui Aplikasi Kurir MBG`;
+      teksToggle.innerHTML = `🛵 Tugaskan ke Aplikasi Kurir MBG`;
 
       const switchToggle = document.createElement('div');
       switchToggle.style.cssText = `
@@ -2894,7 +2940,8 @@ ${changelog}
       });
       const adaFormPengambilan = [...document.querySelectorAll('label')].some((el) => {
         const txt = el.textContent.replace(/\s+/g, ' ').replace('*', '').trim();
-        return txt === 'Jumlah Ompreng' || txt.includes('Jumlah Ompreng');
+        return (txt === 'Jumlah Ompreng' || txt.includes('Jumlah Ompreng') || txt.includes('Waktu Dijadwalkan Pengambilan')) &&
+               !txt.includes('Dicuci') && !txt.includes('Kembali');
       });
       const adaWaktuKembaliSPPG = [...document.querySelectorAll('label')].some((el) => {
         const txt = el.textContent.replace(/\s+/g, ' ').replace('*', '').trim();
@@ -2902,7 +2949,7 @@ ${changelog}
       });
       const adaFormPencucian = [...document.querySelectorAll('label')].some((el) => {
         const txt = el.textContent.replace(/\s+/g, ' ').replace('*', '').trim();
-        return txt === 'Jumlah Ompreng Dicuci' || txt.includes('Jumlah Ompreng Dicuci');
+        return txt === 'Jumlah Ompreng Dicuci' || txt.includes('Jumlah Ompreng Dicuci') || txt.includes('Waktu Mulai Cuci');
       });
 
       const bisaSetJam = indexTerpilih >= 0 && !halamanTugasBaru && adaWaktuKeberangkatan;

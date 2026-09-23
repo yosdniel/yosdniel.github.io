@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SIPGN Autofill - POP
 // @namespace    sipgn-autofill
-// @version      1.5.47
+// @version      1.5.48
 // @description  Isi otomatis form Tugas Pengiriman & Klaim Voucher Durasi Custom Baru
 // @match        https://pop-sipgn.bgn.go.id/distribution*
 // @match        https://pop-sipgn.bgn.go.id/*
@@ -187,6 +187,20 @@
       .replace(/'/g, '&#039;');
   }
 
+  function isNewerVersion(latest, current) {
+    if (!latest || !current) return false;
+    const p1 = String(latest).split('.').map((n) => parseInt(n, 10) || 0);
+    const p2 = String(current).split('.').map((n) => parseInt(n, 10) || 0);
+    const maxLen = Math.max(p1.length, p2.length);
+    for (let i = 0; i < maxLen; i++) {
+      const v1 = p1[i] || 0;
+      const v2 = p2[i] || 0;
+      if (v1 > v2) return true;
+      if (v1 < v2) return false;
+    }
+    return false;
+  }
+
   function cekUpdateSkrip() {
     GM_xmlhttpRequest({
       method: 'GET',
@@ -199,7 +213,7 @@
           const downloadUrl = data.download_url || 'https://mindspace-id.vercel.app/files/sipgn-autofill.user.js';
           const changelog = data.changelog || 'Tidak ada catatan perubahan.';
 
-          if (latestVersion && latestVersion !== CURRENT_VERSION) {
+          if (latestVersion && isNewerVersion(latestVersion, CURRENT_VERSION)) {
             tampilkanNotifikasiUpdate(latestVersion, downloadUrl, changelog);
           }
         } catch (e) {
@@ -3115,14 +3129,14 @@ ${escapeHtml(changelog)}
         const txt = el.textContent.replace(/\s+/g, ' ').replace('*', '').trim();
         return txt === 'Waktu Diterima di Tujuan' || txt.includes('Waktu Diterima di Tujuan');
       });
-      const adaFormPengambilan = !adaWaktuKeberangkatan && !adaWaktuDiterima && [...document.querySelectorAll('label')].some((el) => {
-        const txt = el.textContent.replace(/\s+/g, ' ').replace('*', '').trim();
-        return (txt === 'Jumlah Ompreng' || txt.includes('Jumlah Ompreng') || txt.includes('Waktu Dijadwalkan Pengambilan')) &&
-               !txt.includes('Dicuci') && !txt.includes('Kembali');
-      });
       const adaWaktuKembaliSPPG = [...document.querySelectorAll('label')].some((el) => {
         const txt = el.textContent.replace(/\s+/g, ' ').replace('*', '').trim();
         return txt === 'Waktu Ompreng Kembali di SPPG' || txt.includes('Waktu Ompreng Kembali di SPPG');
+      });
+      const adaFormPengambilan = !adaWaktuKeberangkatan && !adaWaktuDiterima && !adaWaktuKembaliSPPG && [...document.querySelectorAll('label')].some((el) => {
+        const txt = el.textContent.replace(/\s+/g, ' ').replace('*', '').trim();
+        return (txt === 'Jumlah Ompreng' || txt.includes('Jumlah Ompreng') || txt.includes('Waktu Dijadwalkan Pengambilan')) &&
+               !txt.includes('Dicuci') && !txt.includes('Kembali');
       });
       const adaFormPencucian = [...document.querySelectorAll('label')].some((el) => {
         const txt = el.textContent.replace(/\s+/g, ' ').replace('*', '').trim();

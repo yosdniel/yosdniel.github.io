@@ -3,364 +3,313 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mindspace Enterprise Nexus 3D - Ultra High-End Cloud OS</title>
+  <title>Mindspace Studio - SIPGN Admin Dashboard</title>
   
-  <!-- FAVICON & PWA METADATA -->
+  <!-- FAVICON & METADATA -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2338bdf8'><path d='M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z'/></svg>">
-  <meta name="theme-color" content="#2563eb">
-
-  <!-- THREE.JS HIGH PERFORMANCE GRAPHICS ENGINE -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <meta name="theme-color" content="#0f172a">
 
   <style>
     /* -------------------------------------------------------------------------- */
-    /* 1. GLOBAL ROOT VARIABLES & DESIGN SYSTEM                                  */
+    /* 1. DESIGN SYSTEM & COLOR PALETTE (SIPGN MATCHED)                           */
     /* -------------------------------------------------------------------------- */
     :root {
-      --bg-color: #030712;
-      --card-bg: rgba(15, 23, 42, 0.65);
-      --card-border: rgba(56, 189, 248, 0.25);
-      --card-glow: rgba(56, 189, 248, 0.15);
+      --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      --card-bg: rgba(30, 41, 59, 0.75);
+      --card-border: rgba(56, 189, 248, 0.22);
       --text-color: #f8fafc;
       --text-muted: #94a3b8;
-      --input-bg: rgba(15, 23, 42, 0.85);
+      --input-bg: rgba(15, 23, 42, 0.7);
       --input-border: rgba(51, 65, 85, 0.8);
       --accent-color: #38bdf8;
-      --accent-gradient: linear-gradient(135deg, #38bdf8 0%, #3b82f6 50%, #8b5cf6 100%);
-      --accent-glow: rgba(56, 189, 248, 0.4);
-      --success-gradient: linear-gradient(135deg, #059669 0%, #047857 100%);
-      --danger-gradient: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-      --warning-gradient: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-      --shadow-3d: 0 30px 60px -12px rgba(0, 0, 0, 0.95), 0 0 55px rgba(56, 189, 248, 0.2);
+      --accent-gradient: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
+      --success-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      --danger-gradient: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      --warning-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      --shadow-main: 0 20px 40px -15px rgba(0, 0, 0, 0.6);
     }
 
     [data-theme="light"] {
-      --bg-color: #f8fafc;
-      --card-bg: rgba(255, 255, 255, 0.85);
-      --card-border: rgba(37, 99, 235, 0.3);
-      --card-glow: rgba(37, 99, 235, 0.12);
+      --bg-gradient: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+      --card-bg: rgba(255, 255, 255, 0.9);
+      --card-border: rgba(37, 99, 235, 0.25);
       --text-color: #0f172a;
       --text-muted: #64748b;
-      --input-bg: rgba(241, 245, 249, 0.95);
+      --input-bg: rgba(248, 250, 252, 0.9);
       --input-border: #cbd5e1;
       --accent-color: #2563eb;
-      --accent-gradient: linear-gradient(135deg, #2563eb 0%, #1d4ed8 50%, #6d28d9 100%);
-      --accent-glow: rgba(37, 99, 235, 0.25);
-      --shadow-3d: 0 30px 60px -12px rgba(0, 0, 0, 0.1), 0 0 35px rgba(37, 99, 235, 0.12);
+      --accent-gradient: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      --shadow-main: 0 15px 30px -10px rgba(0, 0, 0, 0.08);
     }
 
-    /* -------------------------------------------------------------------------- */
-    /* 2. BASE RESET & LAYOUT STRUCTURE                                          */
-    /* -------------------------------------------------------------------------- */
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-color); margin: 0; padding: 0;
-      min-height: 100vh; perspective: 1600px;
-      overflow-x: hidden; transition: background 0.4s ease, color 0.4s ease;
+      background: var(--bg-gradient);
+      color: var(--text-color);
+      margin: 0; padding: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+      transition: background 0.3s ease, color 0.3s ease;
     }
 
-    #canvas3d {
-      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      z-index: 0; pointer-events: none;
+    /* Ambient Subtle Glow Background */
+    .bg-glow {
+      position: fixed; top: -100px; left: 50%; transform: translateX(-50%);
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.12) 0%, rgba(0,0,0,0) 70%);
+      pointer-events: none; z-index: 0;
     }
 
-    /* -------------------------------------------------------------------------- */
-    /* 3. NAVIGATION BAR & STATUS STRIP                                          */
-    /* -------------------------------------------------------------------------- */
+    /* Navbar */
     .top-navbar {
-      position: fixed; top: 0; left: 0; width: 100%;
+      position: sticky; top: 0; width: 100%;
       display: flex; justify-content: space-between; align-items: center;
-      padding: 14px 32px; background: rgba(3, 7, 18, 0.6);
-      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-      border-bottom: 1px solid var(--card-border); z-index: 1000;
+      padding: 14px 24px;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--card-border);
+      z-index: 100;
     }
     .brand-logo {
-      font-size: 18px; font-weight: 800; color: var(--text-color);
-      display: flex; align-items: center; gap: 10px; cursor: pointer;
-      letter-spacing: 0.5px;
+      font-size: 16px; font-weight: 800; color: var(--text-color);
+      display: flex; align-items: center; gap: 8px; cursor: pointer; letter-spacing: -0.2px;
     }
-    .brand-logo span { 
-      background: var(--accent-gradient); 
-      -webkit-background-clip: text; 
-      -webkit-text-fill-color: transparent; 
+    .brand-logo span {
+      background: var(--accent-gradient);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
 
-    .nav-actions { display: flex; align-items: center; gap: 12px; }
-
+    .nav-actions { display: flex; align-items: center; gap: 10px; }
     .btn-icon-nav {
       background: var(--input-bg); border: 1px solid var(--input-border);
-      color: var(--text-color); border-radius: 12px; padding: 8px 14px;
-      font-size: 13px; cursor: pointer; transition: all 0.25s ease;
+      color: var(--text-color); border-radius: 10px; padding: 7px 12px;
+      font-size: 12px; cursor: pointer; transition: all 0.2s ease;
       display: flex; align-items: center; gap: 6px; font-weight: 600;
     }
-    .btn-icon-nav:hover { border-color: var(--accent-color); transform: translateY(-2px); box-shadow: 0 0 15px var(--accent-glow); }
+    .btn-icon-nav:hover { border-color: var(--accent-color); }
 
     .btn-login-header {
-      background: var(--accent-gradient);
-      color: white; border: 1px solid rgba(255, 255, 255, 0.2);
-      padding: 8px 18px; border-radius: 12px; font-size: 12px; font-weight: 700;
-      cursor: pointer; transition: all 0.25s ease;
-      box-shadow: 0 4px 20px var(--accent-glow);
+      background: var(--accent-gradient); color: white; border: none;
+      padding: 8px 16px; border-radius: 10px; font-size: 12px; font-weight: 700;
+      cursor: pointer; transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
     }
-    .btn-login-header:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 25px var(--accent-glow);
-      filter: brightness(1.1);
-    }
+    .btn-login-header:hover { opacity: 0.9; transform: translateY(-1px); }
 
-    /* System Live Metrics Bar */
-    .metrics-bar {
-      display: flex; gap: 16px; font-size: 11px; color: var(--text-muted);
-      background: rgba(15, 23, 42, 0.4); border: 1px solid var(--card-border);
-      padding: 6px 14px; border-radius: 20px; backdrop-filter: blur(10px);
-    }
-    .metric-item { display: flex; align-items: center; gap: 6px; }
-    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #34d399; box-shadow: 0 0 8px #34d399; }
-
-    /* -------------------------------------------------------------------------- */
-    /* 4. MAIN CONTAINER & GLASSMORPHISM CONTAINER                                */
-    /* -------------------------------------------------------------------------- */
+    /* Layout Wrapper */
     .page-wrapper {
-      position: relative; z-index: 1; width: 100%; min-height: 100vh;
-      display: flex; justify-content: center; align-items: center;
-      padding: 105px 16px 40px 16px;
+      position: relative; z-index: 1; width: 100%; min-height: calc(100vh - 65px);
+      display: flex; justify-content: center; align-items: flex-start;
+      padding: 24px 16px 40px 16px;
     }
     .container {
-      width: 100%; max-width: 840px; background: var(--card-bg);
-      backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
-      border: 1px solid var(--card-border); border-radius: 28px; padding: 32px;
-      box-shadow: var(--shadow-3d); transform-style: preserve-3d;
-      transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
-      position: relative;
+      width: 100%; max-width: 760px;
+      background: var(--card-bg);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border); border-radius: 20px; padding: 24px;
+      box-shadow: var(--shadow-main);
+      transition: all 0.3s ease;
     }
 
-    .header { text-align: center; margin-bottom: 24px; transform: translateZ(20px); }
-    .header h1 { font-size: 26px; font-weight: 800; margin: 0; background: linear-gradient(to right, var(--text-color), var(--accent-color)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .header p { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
+    /* Header Section */
+    .header { text-align: center; margin-bottom: 20px; }
+    .header h1 { font-size: 22px; font-weight: 800; margin: 0; color: var(--text-color); letter-spacing: -0.3px; }
+    .header p { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
 
-    /* -------------------------------------------------------------------------- */
-    /* 5. LANDING PAGE & BENTO GRID SYSTEM                                       */
-    /* -------------------------------------------------------------------------- */
-    .landing-hero { text-align: center; padding: 10px 0 10px 0; transform-style: preserve-3d; }
-    .hero-badge {
-      display: inline-block; background: rgba(56, 189, 248, 0.12);
-      border: 1px solid var(--accent-glow); color: var(--accent-color);
-      padding: 6px 16px; border-radius: 20px; font-size: 11px; font-weight: 700;
-      margin-bottom: 16px; transform: translateZ(15px); letter-spacing: 0.5px;
-    }
-    
+    /* Bento Feature Cards */
     .portfolio-grid {
-      display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin: 24px 0;
-      transform-style: preserve-3d;
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 20px 0;
     }
     @media(max-width: 600px) { .portfolio-grid { grid-template-columns: 1fr; } }
     
     .portfolio-card {
       background: var(--input-bg); border: 1px solid var(--input-border);
-      border-radius: 20px; padding: 20px; text-align: left;
-      transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-      transform-style: preserve-3d; position: relative; overflow: hidden;
+      border-radius: 14px; padding: 16px; text-align: left;
+      transition: all 0.2s ease;
     }
-    .portfolio-card:hover {
-      border-color: var(--accent-color);
-      transform: translateY(-6px) translateZ(20px);
-      box-shadow: 0 20px 40px rgba(0,0,0,0.5), 0 0 25px var(--accent-glow);
-    }
-    .card-3d-icon { font-size: 30px; margin-bottom: 10px; display: inline-block; transform: translateZ(25px); }
-    .portfolio-card h4 { margin: 0 0 6px 0; font-size: 14px; color: var(--text-color); transform: translateZ(15px); font-weight: 700; }
-    .portfolio-card p { margin: 0; font-size: 12px; color: var(--text-muted); line-height: 1.5; transform: translateZ(10px); }
+    .portfolio-card:hover { border-color: var(--accent-color); }
+    .card-icon { font-size: 24px; margin-bottom: 8px; display: inline-block; }
+    .portfolio-card h4 { margin: 0 0 4px 0; font-size: 13px; color: var(--text-color); font-weight: 700; }
+    .portfolio-card p { margin: 0; font-size: 11px; color: var(--text-muted); line-height: 1.5; }
 
-    /* System Status Monitor Box */
-    .system-monitor-grid {
-      display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 16px;
-    }
-    @media(max-width: 500px) { .system-monitor-grid { grid-template-columns: repeat(2, 1fr); } }
-    .sys-box {
-      background: rgba(15, 23, 42, 0.5); border: 1px solid var(--input-border);
-      border-radius: 12px; padding: 12px; text-align: center;
-    }
-    .sys-box span { font-size: 10px; color: var(--text-muted); display: block; font-weight: 700; text-transform: uppercase; }
-    .sys-box h5 { margin: 4px 0 0 0; font-size: 14px; color: var(--accent-color); font-weight: 800; }
+    /* Dashboard Stats & Charts */
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+    @media(max-width: 480px) { .stats-grid { grid-template-columns: 1fr; } }
+    
+    .stat-box { background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 12px; padding: 12px; text-align: center; }
+    .stat-box span { font-size: 10px; color: var(--text-muted); display: block; text-transform: uppercase; font-weight: 700; }
+    .stat-box h4 { margin: 4px 0 0 0; font-size: 15px; color: var(--accent-color); font-weight: 800; }
 
-    /* -------------------------------------------------------------------------- */
-    /* 6. FORM CONTROLS & DYNAMIC BUTTONS                                        */
-    /* -------------------------------------------------------------------------- */
-    .field-group { margin-bottom: 16px; text-align: left; transform: translateZ(10px); }
-    label { font-size: 12px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .chart-container { background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 14px; padding: 14px; margin-bottom: 16px; }
+    .chart-bars { display: flex; align-items: flex-end; justify-content: space-around; height: 90px; padding-top: 10px; border-bottom: 1px solid var(--input-border); }
+    .chart-bar-group { display: flex; flex-direction: column; align-items: center; flex: 1; }
+    .chart-bar { width: 22px; background: var(--accent-gradient); border-radius: 4px 4px 0 0; transition: height 0.3s; }
+    .chart-label { font-size: 9px; color: var(--text-muted); margin-top: 6px; }
+
+    /* Form Controls & Buttons */
+    .field-group { margin-bottom: 14px; text-align: left; }
+    label { font-size: 11px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
     input, select, textarea {
-      width: 100%; padding: 12px 16px; border-radius: 12px;
-      border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-color); font-size: 14px;
-      outline: none; transition: all 0.25s ease; font-family: inherit;
+      width: 100%; padding: 10px 14px; border-radius: 10px;
+      border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-color); font-size: 13px;
+      outline: none; transition: all 0.2s ease; font-family: inherit;
     }
-    input { height: 46px; } select { height: 46px; }
-    input:focus, select:focus, textarea:focus { border-color: var(--accent-color); box-shadow: 0 0 15px var(--accent-glow); }
+    input { height: 42px; } select { height: 42px; }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent-color); }
 
     .btn {
-      width: 100%; height: 46px; border-radius: 12px; border: none;
-      font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.25s ease;
-      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; height: 42px; border-radius: 10px; border: none;
+      font-weight: 700; font-size: 12px; cursor: pointer; transition: all 0.2s ease;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
     }
-    .btn-primary { background: var(--accent-gradient); color: white; box-shadow: 0 4px 18px var(--accent-glow); }
-    .btn-primary:hover { transform: translateY(-2px); filter: brightness(1.1); box-shadow: 0 6px 22px var(--accent-glow); }
-    .btn-success { background: var(--success-gradient); color: white; box-shadow: 0 4px 15px rgba(5, 150, 105, 0.3); }
-    .btn-success:hover { transform: translateY(-2px); filter: brightness(1.1); }
-    .btn-danger { background: var(--danger-gradient); color: white; box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3); }
-    .btn-danger:hover { transform: translateY(-2px); filter: brightness(1.1); }
+    .btn-primary { background: var(--accent-gradient); color: white; }
+    .btn-primary:hover { opacity: 0.95; transform: translateY(-1px); }
+    .btn-success { background: var(--success-gradient); color: white; }
+    .btn-danger { background: var(--danger-gradient); color: white; }
     .btn-secondary { background: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-color); }
-    .btn-secondary:hover { border-color: var(--accent-color); transform: translateY(-2px); }
-    .btn-warning { background: var(--warning-gradient); color: white; box-shadow: 0 4px 15px rgba(217, 119, 6, 0.3); }
-    .btn-warning:hover { transform: translateY(-2px); filter: brightness(1.1); }
+    .btn-secondary:hover { border-color: var(--accent-color); }
+    .btn-warning { background: var(--warning-gradient); color: white; }
 
-    /* -------------------------------------------------------------------------- */
-    /* 7. DASHBOARD CARDS, BADGES, & TAB FILTERS                                */
-    /* -------------------------------------------------------------------------- */
+    /* Dashboard Action Cards */
     .card-info {
-      background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 16px;
-      padding: 16px; margin-bottom: 16px; font-size: 13px; line-height: 1.6; text-align: left; transform: translateZ(10px);
+      background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 12px;
+      padding: 14px; margin-bottom: 14px; font-size: 12px; line-height: 1.6; text-align: left;
     }
-    .badge { display: inline-block; padding: 3px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; text-transform: capitalize; }
-    .badge-active { background: rgba(6, 95, 70, 0.4); border: 1px solid #059669; color: #34d399; }
-    .badge-hold { background: rgba(120, 53, 15, 0.4); border: 1px solid #d97706; color: #fbbf24; }
-    .badge-revoked { background: rgba(127, 29, 29, 0.4); border: 1px solid #dc2626; color: #fca5a5; }
-    .badge-expired { background: rgba(154, 52, 18, 0.4); border: 1px solid #ea580c; color: #ffedd5; }
-    .badge-unregistered { background: rgba(51, 65, 85, 0.4); border: 1px solid #475569; color: #94a3b8; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+    .badge-active { background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #34d399; }
+    .badge-hold { background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; color: #fbbf24; }
+    .badge-revoked { background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #fca5a5; }
+    .badge-expired { background: rgba(239, 68, 68, 0.15); border: 1px solid #dc2626; color: #fecaca; }
+    .badge-unregistered { background: rgba(148, 163, 184, 0.15); border: 1px solid #64748b; color: #cbd5e1; }
 
-    .grid-durasi { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
-    .btn-quick { height: 40px; background: var(--input-bg); color: var(--text-color); border: 1px solid var(--input-border); border-radius: 10px; font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s; }
-    .btn-quick:hover { border-color: var(--accent-color); transform: translateY(-2px); }
+    .grid-durasi { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; }
+    .btn-quick { height: 36px; background: var(--input-bg); color: var(--text-color); border: 1px solid var(--input-border); border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer; }
+    .btn-quick:hover { border-color: var(--accent-color); }
     .btn-quick-lifetime { background: linear-gradient(135deg, #7c3aed, #6d28d9); color: white; border: none; }
-    .btn-quick-lifetime:hover { filter: brightness(1.1); transform: translateY(-2px); }
 
-    /* Custom Filter Tabs */
-    .tab-filter-container { display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 4px; }
+    /* Filter Tabs & Menu Grids */
+    .tab-filter-container { display: flex; gap: 6px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
     .tab-btn {
-      padding: 6px 14px; border-radius: 10px; background: var(--input-bg); border: 1px solid var(--input-border);
-      color: var(--text-muted); font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: 0.2s;
+      padding: 6px 12px; border-radius: 8px; background: var(--input-bg); border: 1px solid var(--input-border);
+      color: var(--text-muted); font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: 0.2s;
     }
     .tab-btn.active { background: var(--accent-color); color: white; border-color: var(--accent-color); }
 
-    .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; transform: translateZ(15px); }
-    .menu-card { background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 16px; padding: 18px; cursor: pointer; transition: 0.25s ease; text-align: center; }
-    .menu-card:hover { border-color: var(--accent-color); transform: translateY(-3px); box-shadow: 0 10px 25px var(--accent-glow); }
-    .menu-card h3 { margin: 8px 0 4px 0; font-size: 14px; color: var(--text-color); font-weight: 700; }
-    .menu-card p { margin: 0; font-size: 11px; color: var(--text-muted); }
-    .menu-icon { font-size: 24px; }
+    .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+    @media(max-width: 480px) { .menu-grid { grid-template-columns: 1fr; } }
 
-    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; transform: translateZ(15px); }
-    .stat-box { background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 14px; padding: 12px; text-align: center; }
-    .stat-box span { font-size: 10px; color: var(--text-muted); display: block; text-transform: uppercase; font-weight: 700; }
-    .stat-box h4 { margin: 4px 0 0 0; font-size: 16px; color: var(--accent-color); font-weight: 800; }
+    .menu-card { background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 12px; padding: 14px; cursor: pointer; transition: 0.2s ease; text-align: center; }
+    .menu-card:hover { border-color: var(--accent-color); transform: translateY(-1px); }
+    .menu-card h3 { margin: 6px 0 2px 0; font-size: 13px; color: var(--text-color); font-weight: 700; }
+    .menu-card p { margin: 0; font-size: 10px; color: var(--text-muted); }
+    .menu-icon { font-size: 20px; }
 
-    .chart-container { background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 16px; padding: 16px; margin-bottom: 16px; transform: translateZ(10px); }
-    .chart-bars { display: flex; align-items: flex-end; justify-content: space-around; height: 95px; padding-top: 10px; border-bottom: 1px solid var(--input-border); }
-    .chart-bar-group { display: flex; flex-direction: column; align-items: center; flex: 1; }
-    .chart-bar { width: 24px; background: var(--accent-gradient); border-radius: 6px 6px 0 0; transition: height 0.4s; }
-    .chart-label { font-size: 10px; color: var(--text-muted); margin-top: 6px; }
+    /* User List & Tables */
+    .package-row, .voucher-row { display: flex; gap: 6px; align-items: center; background: var(--input-bg); padding: 8px; border-radius: 10px; border: 1px solid var(--input-border); margin-bottom: 6px; }
+    .user-list-container { max-height: 320px; overflow-y: auto; margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; }
+    .user-item { background: var(--input-bg); border: 1px solid var(--input-border); padding: 10px 12px; border-radius: 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: 0.2s ease; text-align: left; }
+    .user-item:hover { border-color: var(--accent-color); }
+    .user-item-info div:first-child { font-weight: 700; font-size: 12px; color: #facc15; }
+    .user-item-info div:nth-child(2) { font-size: 11px; color: var(--accent-color); font-weight: 600; margin-top: 1px; }
+    .user-item-info div:last-child { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
 
-    .package-row, .voucher-row { display: flex; gap: 8px; align-items: center; background: var(--input-bg); padding: 10px; border-radius: 12px; border: 1px solid var(--input-border); margin-bottom: 8px; }
-    .user-list-container { max-height: 320px; overflow-y: auto; margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px; padding-right: 2px; }
-    .user-item { background: var(--input-bg); border: 1px solid var(--input-border); padding: 12px 14px; border-radius: 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: 0.25s ease; text-align: left; }
-    .user-item:hover { border-color: var(--accent-color); transform: translateX(2px); }
-    .user-item-info div:first-child { font-weight: 700; font-size: 13px; color: #facc15; }
-    .user-item-info div:nth-child(2) { font-size: 11px; color: var(--accent-color); font-weight: 600; margin-top: 2px; }
-    .user-item-info div:last-child { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
-
-    /* Event Audit Trail Logger */
+    /* Audit Logs */
     .audit-log-container {
-      background: rgba(9, 13, 22, 0.7); border: 1px solid var(--input-border); border-radius: 14px;
-      padding: 12px; font-family: monospace; font-size: 11px; max-height: 120px; overflow-y: auto; color: var(--text-muted); text-align: left;
+      background: rgba(15, 23, 42, 0.6); border: 1px solid var(--input-border); border-radius: 10px;
+      padding: 10px; font-family: monospace; font-size: 10px; max-height: 100px; overflow-y: auto; color: var(--text-muted); text-align: left;
     }
-    .audit-entry { margin-bottom: 4px; display: flex; gap: 8px; }
+    .audit-entry { margin-bottom: 3px; display: flex; gap: 6px; }
     .audit-time { color: var(--accent-color); font-weight: bold; }
 
+    /* Toast & Custom Confirm Modal */
     .toast {
-      position: fixed; top: 85px; left: 50%; transform: translateX(-50%);
-      background: var(--input-bg); border: 1px solid var(--card-border); padding: 14px 24px;
-      border-radius: 14px; font-size: 13px; font-weight: 600; display: none; z-index: 9999; color: var(--text-color); box-shadow: 0 15px 35px rgba(0,0,0,0.6); backdrop-filter: blur(16px);
+      position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+      background: var(--input-bg); border: 1px solid var(--card-border); padding: 10px 20px;
+      border-radius: 10px; font-size: 12px; font-weight: 600; display: none; z-index: 9999; color: var(--text-color); box-shadow: 0 10px 25px rgba(0,0,0,0.5); backdrop-filter: blur(12px);
     }
     .view-section { display: none; }
+
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);
+      z-index: 10000; display: none; align-items: center; justify-content: center;
+    }
+    .modal-box {
+      background: #1e293b; border: 1px solid var(--card-border); color: #f8fafc;
+      padding: 20px; border-radius: 16px; width: 320px; max-width: 90vw; text-align: center;
+    }
   </style>
 </head>
 <body>
 
-  <!-- THREE.JS WEBGL CANVAS BACKGROUND -->
-  <canvas id="canvas3d"></canvas>
+  <div class="bg-glow"></div>
 
-  <!-- NAVBAR ATAS ULTRA HIGH-END -->
+  <!-- NAVBAR ATAS -->
   <nav class="top-navbar">
     <div class="brand-logo" onclick="gantiView('viewLandingPage')">
-      🛡️ Mindspace <span>Nexus 3D</span>
-    </div>
-
-    <!-- Live System Metrics Banner -->
-    <div class="metrics-bar" id="sysMetricsBar">
-      <div class="metric-item"><div class="status-dot"></div> Edge Engine: Online</div>
-      <div class="metric-item">⚡ Latency: <span id="pingVal" style="color:var(--accent-color);">14ms</span></div>
-      <div class="metric-item">📊 CPU: <span id="cpuVal" style="color:#34d399;">1.2%</span></div>
+      🛡️ Mindspace <span>SIPGN Admin</span>
     </div>
 
     <div class="nav-actions">
       <button class="btn-icon-nav" onclick="toggleDarkMode()">
         <span id="themeIcon">🌙</span> <span id="themeText">Dark</span>
       </button>
-      <button class="btn-login-header" id="btnLoginHeader" onclick="gantiView('viewLogin')">🔐 Admin Login</button>
+      <button class="btn-login-header" id="btnLoginHeader" onclick="gantiView('viewLogin')">🔐 Login</button>
     </div>
   </nav>
 
   <div id="toast" class="toast"></div>
 
+  <!-- CUSTOM MODAL DIALOG (REPLACES CONFIRM) -->
+  <div id="customConfirmModal" class="modal-overlay">
+    <div class="modal-box">
+      <div style="font-size: 28px; margin-bottom: 8px;">⚠️</div>
+      <h3 id="modalConfirmTitle" style="margin: 0; font-size: 15px; color: #fef08a;">Konfirmasi</h3>
+      <p id="modalConfirmMsg" style="font-size: 11px; color: #94a3b8; margin: 8px 0 16px 0; line-height: 1.4;"></p>
+      <div style="display: flex; gap: 8px;">
+        <button id="btnModalConfirmYes" class="btn btn-primary" style="flex: 1; height: 36px;">Ya, Lanjutkan</button>
+        <button id="btnModalConfirmNo" class="btn btn-secondary" style="flex: 1; height: 36px;">Batal</button>
+      </div>
+    </div>
+  </div>
+
   <div class="page-wrapper">
     <div class="container" id="mainContainer">
       
       <div class="header">
-        <h1 id="appTitle">Mindspace Studio</h1>
-        <p id="appSubtitle">Ultra High-End License Engine & Cloud Hub</p>
+        <h1 id="appTitle">SIPGN Management Hub</h1>
+        <p id="appSubtitle">Panel Otorisasi Lisensi & Cloud Database</p>
       </div>
 
-      <!-- VIEW LANDING PAGE 3D BENTO GRID -->
+      <!-- VIEW LANDING PAGE -->
       <div id="viewLandingPage" class="view-section" style="display: block;">
-        <div class="landing-hero">
-          <div class="hero-badge">⚡ ULTRA HIGH-END WEBGL ENGINE v3.5</div>
+        <div style="text-align: center;">
           
-          <h2 style="font-size: 22px; margin: 0 0 8px 0; color: var(--text-color);">Centralized License & Cloud System</h2>
-          <p style="font-size: 13px; color: var(--text-muted); margin: 0 auto; max-width: 580px; line-height: 1.6;">
-            Platform otorisasi lisensi berkinerja tinggi. Dilengkapi enkripsi kunci perangkat keras, analitik pendapatan instan, backup cloud otomatis, audit security logger, dan pipeline rilis pembaruan skrip.
+          <p style="font-size: 12px; color: var(--text-muted); margin: 0 auto 16px auto; max-width: 520px; line-height: 1.5;">
+            Platform manajemen lisensi pengguna, pengelolaan voucher promo, backup cloud data KPM, serta publikasi rilis update skrip otomatis SIPGN Autofill.
           </p>
 
-          <!-- PORTFOLIO / FEATURE BENTO GRID -->
           <div class="portfolio-grid">
             <div class="portfolio-card">
-              <span class="card-3d-icon">🔒</span>
-              <h4>Cyber Enkripsi Engine</h4>
-              <p>Otorisasi perangkat anti-tamper dengan verifikasi nonce & salt berlapis.</p>
+              <span class="card-icon">🔒</span>
+              <h4>Lisensi Device ID</h4>
+              <p>Otorisasi perangkat & perpanjangan masa aktif lisensi otomatis.</p>
             </div>
             <div class="portfolio-card">
-              <span class="card-3d-icon">☁️</span>
+              <span class="card-icon">☁️</span>
               <h4>Cloud Backup KPM</h4>
-              <p>Penyimpanan otomatis file konfigurasi pengguna langsung ke server Vercel.</p>
+              <p>Sinkronisasi data KPM antar-perangkat secara instan.</p>
             </div>
             <div class="portfolio-card">
-              <span class="card-3d-icon">📈</span>
-              <h4>Live Revenue Analytics</h4>
-              <p>Visualisasi grafik pendapatan harian, mingguan, dan bulanan real-time.</p>
+              <span class="card-icon">📈</span>
+              <h4>Statistik Transaksi</h4>
+              <p>Monitoring omset harian, mingguan, dan bulanan real-time.</p>
             </div>
             <div class="portfolio-card">
-              <span class="card-3d-icon">🚀</span>
-              <h4>Auto Release Pipeline</h4>
-              <p>In-App Userscript updater otomatis dengan kontrol changelog versi.</p>
-            </div>
-          </div>
-
-          <!-- SYSTEM MONITOR LIVE PANEL -->
-          <div style="text-align: left; margin-top: 20px;">
-            <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">System Infrastructure Live Status:</div>
-            <div class="system-monitor-grid">
-              <div class="sys-box"><span>Memory Alloc</span><h5>24.8 MB</h5></div>
-              <div class="sys-box"><span>Node Region</span><h5>sin1 (SG)</h5></div>
-              <div class="sys-box"><span>Uptime Rate</span><h5>99.99%</h5></div>
-              <div class="sys-box"><span>SSL Security</span><h5>TLS v1.3</h5></div>
+              <span class="card-icon">🚀</span>
+              <h4>Release Pipeline</h4>
+              <p>In-app auto updater pengguna skrip dengan catatan changelog.</p>
             </div>
           </div>
 
@@ -399,63 +348,61 @@
         </div>
 
         <!-- SAKLAR QRIS -->
-        <div class="card-info" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding: 14px 16px;">
+        <div class="card-info" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding: 12px 14px;">
           <div>
-            <div style="font-weight: 700; color: var(--text-color); font-size: 13px;">Status Tombol QRIS Client</div>
-            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Aktifkan atau nonaktifkan fitur pembayaran QRIS di userscript client.</div>
+            <div style="font-weight: 700; color: var(--text-color); font-size: 12px;">Status Pembayaran QRIS Client</div>
+            <div style="font-size: 10px; color: var(--text-muted); margin-top: 1px;">Aktifkan atau nonaktifkan fitur QRIS di userscript.</div>
           </div>
           <div>
-            <button id="btnToggleQris" class="btn btn-success" style="width: 95px; height: 38px; font-size: 12px;" onclick="toggleStatusQrisServer()">Aktif</button>
+            <button id="btnToggleQris" class="btn btn-success" style="width: 85px; height: 34px; font-size: 11px;" onclick="toggleStatusQrisServer()">Aktif</button>
           </div>
         </div>
 
-        <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 10px; text-align: left; text-transform: uppercase;">Pilih Menu Manajemen:</div>
+        <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; text-align: left; text-transform: uppercase;">Pilih Menu Manajemen:</div>
         
         <div class="menu-grid">
           <div class="menu-card" onclick="bukaFitur('device')">
             <div class="menu-icon">🔍</div>
             <h3>Cek Device ID</h3>
-            <p>Daftar & kelola user</p>
+            <p>Daftar & kelola lisensi user</p>
           </div>
 
           <div class="menu-card" onclick="bukaFitur('transfer')">
             <div class="menu-icon">🔄</div>
             <h3>Migrasi Device</h3>
-            <p>Pemindahan masa aktif & paket</p>
+            <p>Pemindahan masa aktif & data</p>
           </div>
 
           <div class="menu-card" onclick="bukaFitur('packages')">
             <div class="menu-icon">📦</div>
             <h3>Harga Paket</h3>
-            <p>Atur durasi & harga</p>
+            <p>Atur durasi & nominal paket</p>
           </div>
 
           <div class="menu-card" onclick="bukaFitur('vouchers')">
             <div class="menu-icon">🎟️</div>
             <h3>Set Voucher</h3>
-            <p>Buat kupon diskon</p>
+            <p>Kelola kode kupon promo</p>
           </div>
 
-          <div class="menu-card" onclick="bukaFitur('release')" style="grid-column: span 2; border-color: #0284c7;">
+          <div class="menu-card" onclick="bukaFitur('release')" style="grid-column: span 1; border-color: rgba(56, 189, 248, 0.4);">
             <div class="menu-icon">🚀</div>
             <h3>Update Release</h3>
-            <p>Rilis versi skrip terbaru & changelog</p>
+            <p>Rilis versi skrip terbaru</p>
+          </div>
+
+          <div class="menu-card" onclick="logoutAdmin()" style="grid-column: span 1; border-color: rgba(239, 68, 68, 0.4);">
+            <div class="menu-icon">🚪</div>
+            <h3 style="color: #fca5a5;">Keluar</h3>
+            <p>Akhiri sesi administrator</p>
           </div>
         </div>
 
         <!-- AUDIT SECURITY LOG TRAIL -->
-        <div style="text-align: left; margin-top: 14px;">
-          <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">Audit Trail & Event Log:</div>
+        <div style="text-align: left; margin-top: 12px;">
+          <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px;">Audit Log Activity:</div>
           <div class="audit-log-container" id="auditLogBox">
             <div class="audit-entry"><span class="audit-time">[SYSTEM]</span> Ready to receive administrator commands.</div>
-          </div>
-        </div>
-
-        <div style="margin-top: 14px;">
-          <div class="menu-card" onclick="logoutAdmin()" style="border-color: #7f1d1d; padding: 12px;">
-            <div class="menu-icon" style="font-size: 18px;">🚪</div>
-            <h3 style="color: #fca5a5; margin: 4px 0 2px 0;">Keluar</h3>
-            <p>Akhiri sesi admin</p>
           </div>
         </div>
       </div>
@@ -463,11 +410,10 @@
       <!-- VIEW 2: FITUR LIST USER & SEARCH -->
       <div id="viewDeviceCheck" class="view-section">
         <div class="field-group">
-          <label for="searchUserQuery">Filter List User (Device ID / Nama SPPG):</label>
+          <label for="searchUserQuery">Cari User (Device ID / Nama SPPG):</label>
           <input type="text" id="searchUserQuery" placeholder="🔍 Ketik Device ID atau Nama SPPG..." oninput="filterUserList()">
         </div>
 
-        <!-- TAB FILTER STATUS -->
         <div class="tab-filter-container">
           <button class="tab-btn active" onclick="setFilterTab('all', this)">Semua Status</button>
           <button class="tab-btn" onclick="setFilterTab('active', this)">Active</button>
@@ -476,9 +422,8 @@
           <button class="tab-btn" onclick="setFilterTab('revoked', this)">Revoked</button>
         </div>
 
-        <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin: 10px 0 8px 0; text-align: left; text-transform: uppercase;">Daftar Seluruh User Terdaftar:</div>
         <div class="user-list-container" id="listAllUsersContainer">
-          <div style="text-align: center; color: var(--text-muted); font-size: 12px; padding: 20px;">Memuat data user...</div>
+          <div style="text-align: center; color: var(--text-muted); font-size: 12px; padding: 15px;">Memuat data user...</div>
         </div>
 
         <button class="btn btn-secondary" onclick="kembaliKeMenu()">🔙 Kembali ke Menu Utama</button>
@@ -487,21 +432,21 @@
       <!-- VIEW 3: DETAIL LISENSI -->
       <div id="viewDeviceDetail" class="view-section">
         <div class="card-info">
-          <div><b>Device ID:</b> <span id="dispDeviceId" style="color:#facc15;">-</span></div>
+          <div><b>Device ID:</b> <span id="dispDeviceId" style="color:#facc15; font-family: monospace;">-</span></div>
           <div><b>Nama SPPG:</b> <span id="dispSppgName" style="color:var(--accent-color);">-</span></div>
-          <div><b>Status Saat Ini:</b> <span id="dispStatus">-</span></div>
-          <div><b>Tanggal Kadaluarsa:</b> <span id="dispExpDate" style="color:var(--accent-color);">-</span></div>
-          <div><b>Terakhir Digunakan:</b> <span id="dispLastActive" style="color:var(--text-muted);">-</span></div>
+          <div><b>Status Lisensi:</b> <span id="dispStatus">-</span></div>
+          <div><b>Kadaluarsa:</b> <span id="dispExpDate" style="color:var(--accent-color);">-</span></div>
+          <div><b>Terakhir Aktif:</b> <span id="dispLastActive" style="color:var(--text-muted);">-</span></div>
         </div>
 
         <!-- BACKUP CLOUD KPM -->
-        <div class="card-info" id="backupInfoCard" style="display: none;">
-          <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent-color); font-weight: 700; margin-bottom: 6px;">Backup Cloud KPM</div>
+        <div class="card-info" id="backupInfoCard" style="display: none; border-color: rgba(56, 189, 248, 0.4);">
+          <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent-color); font-weight: 700; margin-bottom: 4px;">Cloud Backup Data KPM</div>
           <div><b>Nama File:</b> <span id="dispBackupFilename" style="color:#facc15; font-family: monospace;">-</span></div>
           <div><b>Waktu Backup:</b> <span id="dispBackupTime" style="color:var(--text-muted);">-</span></div>
-          <div style="display: flex; gap: 8px; margin-top: 12px;">
-            <button class="btn btn-primary" style="flex: 1; height: 38px; font-size: 12px;" onclick="downloadBackupCloud()">📥 Download</button>
-            <button class="btn btn-danger" style="flex: 1; height: 38px; font-size: 12px;" onclick="hapusBackupCloud()">🗑️ Hapus Backup</button>
+          <div style="display: flex; gap: 6px; margin-top: 10px;">
+            <button class="btn btn-primary" style="flex: 1; height: 34px; font-size: 11px;" onclick="downloadBackupCloud()">📥 Download</button>
+            <button class="btn btn-danger" style="flex: 1; height: 34px; font-size: 11px;" onclick="hapusBackupCloudWithModal()">🗑️ Hapus Backup</button>
           </div>
         </div>
 
@@ -538,11 +483,11 @@
           </select>
         </div>
 
-        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
+        <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 14px;">
           <button class="btn btn-success" onclick="simpanPerubahanLisensi()">💾 Simpan Perubahan</button>
-          <div style="display: flex; gap: 8px;">
-            <button class="btn btn-danger" style="flex: 1;" id="btnHapusLisensi" onclick="hapusLisensi()">🗑️ Hapus</button>
-            <button class="btn btn-secondary" style="flex: 1;" onclick="bukaFitur('device')">↩️ Kembali ke Daftar</button>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn btn-danger" style="flex: 1;" id="btnHapusLisensi" onclick="hapusLisensiWithModal()">🗑️ Hapus Lisensi</button>
+            <button class="btn btn-secondary" style="flex: 1;" onclick="bukaFitur('device')">↩️ Kembali</button>
           </div>
         </div>
       </div>
@@ -550,9 +495,9 @@
       <!-- VIEW 3.5: OPER DEVICE ID -->
       <div id="viewTransferDevice" class="view-section">
         <div class="card-info" style="border-color: var(--accent-color);">
-          <div style="font-size: 13px; font-weight: bold; color: var(--accent-color); margin-bottom: 4px;">🔄 Migrasi & Pemindahan Device ID</div>
+          <div style="font-size: 12px; font-weight: bold; color: var(--accent-color); margin-bottom: 2px;">🔄 Migrasi Device ID</div>
           <p style="margin: 0; font-size: 11px; color: var(--text-muted); line-height: 1.4;">
-            Fitur ini memungkinkan Anda memindahkan masa aktif lisensi, status, nama SPPG, serta data backup cloud dari <b>Device Asal</b> ke <b>Device Tujuan (Baru)</b>.
+            Memindahkan masa aktif, status lisensi, nama SPPG, dan backup cloud dari <b>Device Asal</b> ke <b>Device Tujuan (Baru)</b>.
           </p>
         </div>
 
@@ -566,22 +511,22 @@
           <input type="text" id="inputTargetDevice" placeholder="Contoh: DEV-9876-WXYZ" style="text-transform: uppercase;">
         </div>
 
-        <div style="display: flex; gap: 8px; margin-top: 16px;">
-          <button class="btn btn-warning" style="flex: 2;" onclick="eksekusiOperDevice()">🚀 Lanjutkan Migrasi</button>
+        <div style="display: flex; gap: 6px; margin-top: 14px;">
+          <button class="btn btn-warning" style="flex: 2;" onclick="eksekusiOperDeviceWithModal()">🚀 Lanjutkan Migrasi</button>
           <button class="btn btn-secondary" style="flex: 1;" onclick="kembaliKeMenu()">🔙 Menu</button>
         </div>
       </div>
 
       <!-- VIEW 4: HARGA PAKET -->
       <div id="viewPackages" class="view-section">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
           <label style="margin:0;">Kelola Daftar Paket Langganan:</label>
-          <button class="btn btn-primary" style="width: auto; height: 34px; font-size: 11px; padding: 0 12px;" onclick="tambahBarisPaketForm()">+ Tambah</button>
+          <button class="btn btn-primary" style="width: auto; height: 32px; font-size: 11px; padding: 0 10px;" onclick="tambahBarisPaketForm()">+ Tambah</button>
         </div>
 
-        <div id="containerListPaket" style="margin-bottom: 16px;"></div>
+        <div id="containerListPaket" style="margin-bottom: 14px;"></div>
 
-        <div style="display: flex; gap: 8px;">
+        <div style="display: flex; gap: 6px;">
           <button class="btn btn-success" style="flex: 2;" onclick="simpanPengaturanPaketServer()">💾 Simpan Paket</button>
           <button class="btn btn-secondary" style="flex: 1;" onclick="kembaliKeMenu()">🔙 Menu</button>
         </div>
@@ -589,14 +534,14 @@
 
       <!-- VIEW 5: VOUCHER -->
       <div id="viewVouchers" class="view-section">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
           <label style="margin:0;">Kelola Kode Kupon / Voucher:</label>
-          <button class="btn btn-primary" style="width: auto; height: 34px; font-size: 11px; padding: 0 12px;" onclick="tambahBarisVoucherForm()">+ Tambah Kupon</button>
+          <button class="btn btn-primary" style="width: auto; height: 32px; font-size: 11px; padding: 0 10px;" onclick="tambahBarisVoucherForm()">+ Tambah Kupon</button>
         </div>
 
-        <div id="containerListVoucher" style="margin-bottom: 16px; max-height: 290px; overflow-y: auto;"></div>
+        <div id="containerListVoucher" style="margin-bottom: 14px; max-height: 280px; overflow-y: auto;"></div>
 
-        <div style="display: flex; gap: 8px;">
+        <div style="display: flex; gap: 6px;">
           <button class="btn btn-success" style="flex: 2;" onclick="simpanPengaturanVoucherServer()">💾 Simpan Voucher</button>
           <button class="btn btn-secondary" style="flex: 1;" onclick="kembaliKeMenu()">🔙 Menu</button>
         </div>
@@ -605,15 +550,15 @@
       <!-- VIEW 6: UPDATE RELEASE -->
       <div id="viewRelease" class="view-section">
         <div class="card-info" style="border-color: #0284c7;">
-          <div style="font-size: 13px; font-weight: bold; color: var(--accent-color); margin-bottom: 4px;">🚀 Publikasi Update Versi Terbaru</div>
+          <div style="font-size: 12px; font-weight: bold; color: var(--accent-color); margin-bottom: 2px;">🚀 Rilis Pembaruan Skrip</div>
           <p style="margin: 0; font-size: 11px; color: var(--text-muted); line-height: 1.4;">
-            Data ini digunakan oleh <b>In-App Userscript</b> untuk mengecek pembaruan otomatis.
+            Digunakan oleh <b>In-App Userscript</b> untuk pemberitahuan pembaruan versi otomatis.
           </p>
         </div>
 
         <div class="field-group">
           <label for="inputReleaseVersion">Nomor Versi Terbaru:</label>
-          <input type="text" id="inputReleaseVersion" placeholder="Contoh: 1.5.43">
+          <input type="text" id="inputReleaseVersion" placeholder="Contoh: 1.5.48">
         </div>
 
         <div class="field-group">
@@ -626,7 +571,7 @@
           <textarea id="inputChangelog" rows="4" placeholder="- Perbaikan bug&#10;- Optimasi kecepatan muat data"></textarea>
         </div>
 
-        <div style="display: flex; gap: 8px; margin-top: 16px;">
+        <div style="display: flex; gap: 6px; margin-top: 14px;">
           <button class="btn btn-success" style="flex: 2;" onclick="simpanUpdateReleaseServer()">🚀 Rilis Update Terbaru</button>
           <button class="btn btn-secondary" style="flex: 1;" onclick="kembaliKeMenu()">🔙 Menu</button>
         </div>
@@ -651,98 +596,26 @@
     let isQrisActiveState = true;
     let currentStatusFilter = 'all';
 
-    /* ========================================================================== */
-    /* 2. THREE.JS 3D GRAPHICS PLATFORM                                         */
-    /* ========================================================================== */
-    let scene, camera, renderer, torusKnot, particleSystem;
-    let mouseX = 0, mouseY = 0;
+    /* Custom Confirm Dialog Callback */
+    let confirmCallbackFn = null;
 
-    function initThreeJS() {
-      const canvas = document.getElementById('canvas3d');
-      scene = new THREE.Scene();
-
-      camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-      camera.position.z = 32;
-
-      renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-      // Objek 3D Metallic Wireframe Torus Knot
-      const geometry = new THREE.TorusKnotGeometry(9.5, 2.6, 140, 18);
-      const material = new THREE.MeshBasicMaterial({
-        color: 0x38bdf8,
-        wireframe: true,
-        transparent: true,
-        opacity: 0.22
-      });
-      torusKnot = new THREE.Mesh(geometry, material);
-      scene.add(torusKnot);
-
-      // Partikel Bintang Galaxy Engine
-      const particlesGeo = new THREE.BufferGeometry();
-      const count = 900;
-      const positions = new Float32Array(count * 3);
-
-      for (let i = 0; i < count * 3; i++) {
-        positions[i] = (Math.random() - 0.5) * 140;
-      }
-      particlesGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-
-      const particlesMat = new THREE.PointsMaterial({
-        size: 0.75,
-        color: 0x60a5fa,
-        transparent: true,
-        opacity: 0.55
-      });
-      particleSystem = new THREE.Points(particlesGeo, particlesMat);
-      scene.add(particleSystem);
-
-      window.addEventListener('resize', onWindowResize);
-      document.addEventListener('mousemove', onDocumentMouseMove);
-
-      animateThreeJS();
+    function showConfirmModal(title, message, onConfirm) {
+      document.getElementById('modalConfirmTitle').textContent = title;
+      document.getElementById('modalConfirmMsg').textContent = message;
+      confirmCallbackFn = onConfirm;
+      document.getElementById('customConfirmModal').style.display = 'flex';
     }
 
-    function animateThreeJS() {
-      requestAnimationFrame(animateThreeJS);
+    document.getElementById('btnModalConfirmYes').onclick = () => {
+      document.getElementById('customConfirmModal').style.display = 'none';
+      if (confirmCallbackFn) confirmCallbackFn();
+    };
 
-      if (torusKnot) {
-        torusKnot.rotation.x += 0.0025;
-        torusKnot.rotation.y += 0.004;
+    document.getElementById('btnModalConfirmNo').onclick = () => {
+      document.getElementById('customConfirmModal').style.display = 'none';
+    };
 
-        torusKnot.rotation.x += (mouseY * 0.0004 - torusKnot.rotation.x * 0.04);
-        torusKnot.rotation.y += (mouseX * 0.0004 - torusKnot.rotation.y * 0.04);
-      }
-
-      if (particleSystem) {
-        particleSystem.rotation.y -= 0.0006;
-      }
-
-      renderer.render(scene, camera);
-    }
-
-    function onWindowResize() {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    }
-
-    function onDocumentMouseMove(event) {
-      mouseX = (event.clientX - window.innerWidth / 2);
-      mouseY = (event.clientY - window.innerHeight / 2);
-
-      const container = document.getElementById('mainContainer');
-      if (window.innerWidth > 768) {
-        const xAxis = mouseX / 60;
-        const yAxis = mouseY / 60;
-        container.style.transform = `rotateY(${xAxis}deg) rotateX(${-yAxis}deg)`;
-      }
-    }
-
-    /* ========================================================================== */
-    /* 3. AUDIT TRAIL LOGGING SYSTEM                                             */
-    /* ========================================================================== */
+    /* AUDIT TRAIL LOGGING SYSTEM */
     function addAuditLog(msg) {
       const box = document.getElementById('auditLogBox');
       if (!box) return;
@@ -753,16 +626,7 @@
       box.prepend(entry);
     }
 
-    // Dynamic Latency Simulator
-    setInterval(() => {
-      const p = Math.floor(Math.random() * 8) + 11;
-      const el = document.getElementById('pingVal');
-      if (el) el.textContent = `${p}ms`;
-    }, 4000);
-
-    /* ========================================================================== */
-    /* 4. THEME & UTILITIES                                                      */
-    /* ========================================================================== */
+    /* THEME & UTILITIES */
     function toggleDarkMode() {
       const html = document.documentElement;
       const themeIcon = document.getElementById('themeIcon');
@@ -772,13 +636,11 @@
         html.setAttribute('data-theme', 'light');
         themeIcon.textContent = '☀️';
         themeText.textContent = 'Light';
-        if (torusKnot) torusKnot.material.color.setHex(0x2563eb);
         localStorage.setItem('mindspace_theme', 'light');
       } else {
         html.setAttribute('data-theme', 'dark');
         themeIcon.textContent = '🌙';
         themeText.textContent = 'Dark';
-        if (torusKnot) torusKnot.material.color.setHex(0x38bdf8);
         localStorage.setItem('mindspace_theme', 'dark');
       }
     }
@@ -795,7 +657,7 @@
     function showToast(msg, isSuccess = true) {
       const t = document.getElementById('toast');
       t.textContent = msg;
-      t.style.borderColor = isSuccess ? '#059669' : '#dc2626';
+      t.style.borderColor = isSuccess ? '#10b981' : '#ef4444';
       t.style.display = 'block';
       setTimeout(() => { t.style.display = 'none'; }, 2800);
     }
@@ -807,8 +669,8 @@
       const btnLoginHeader = document.getElementById('btnLoginHeader');
       if (viewId === 'viewLandingPage') {
         btnLoginHeader.style.display = 'block';
-        document.getElementById('appTitle').textContent = 'Mindspace Studio';
-        document.getElementById('appSubtitle').textContent = 'Ultra High-End License Engine & Cloud Hub';
+        document.getElementById('appTitle').textContent = 'SIPGN Management Hub';
+        document.getElementById('appSubtitle').textContent = 'Panel Otorisasi Lisensi & Cloud Database';
       } else if (viewId === 'viewLogin') {
         btnLoginHeader.style.display = 'none';
         document.getElementById('appTitle').textContent = 'Admin Login';
@@ -844,7 +706,7 @@
         const selisihDetik = Math.floor((sekarang - targetDate) / 1000);
 
         if (selisihDetik < 60) return 'Baru saja';
-        else if (selisihDetik < 3600) return `${Math.floor(selisihDetik / 60)} menit lalu`;
+        else if (selisihDetik < 3600) return `${Math.floor(selisihDetik / 60)} mnt lalu`;
         else if (selisihDetik < 86400) return `${Math.floor(selisihDetik / 3600)} jam lalu`;
         else {
           return targetDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
@@ -859,9 +721,7 @@
       return `MIND-${encoded}`;
     }
 
-    /* ========================================================================== */
-    /* 5. BACKEND API INTEGRATION LOGICS                                         */
-    /* ========================================================================== */
+    /* BACKEND API INTEGRATIONS */
     async function verifikasiAdminPassword() {
       const passInput = document.getElementById('inputAdminPassword').value.trim();
       const btnLogin = document.getElementById('btnLogin');
@@ -884,13 +744,13 @@
           muatStatistikDashboard();
           muatStatusQrisServer();
           showToast('Akses Admin Diterima.', true);
-          addAuditLog('Administrator successfully authenticated.');
+          addAuditLog('Administrator authenticated.');
         } else {
           showToast(data.error || 'Password salah!', false);
           addAuditLog('Failed authentication attempt.');
         }
       } catch (e) {
-        showToast('Gagal terhubung ke API Verifikasi Password.', false);
+        showToast('Gagal terhubung ke API Verifikasi.', false);
       } finally {
         btnLogin.disabled = false; btnLogin.textContent = '🔒 Masuk Ke Dashboard';
       }
@@ -959,8 +819,8 @@
         const result = await res.json();
         if (res.ok && (result.success || result.status)) {
           isQrisActiveState = newState; updateTombolQrisUI();
-          showToast(`Status QRIS diubah menjadi ${newState ? 'Aktif' : 'Mati'}`);
-          addAuditLog(`QRIS Status updated to: ${newState ? 'ENABLED' : 'DISABLED'}`);
+          showToast(`Status QRIS: ${newState ? 'Aktif' : 'Mati'}`);
+          addAuditLog(`QRIS Status: ${newState ? 'ENABLED' : 'DISABLED'}`);
         } else {
           showToast(result.error || 'Gagal mengubah status QRIS.', false); updateTombolQrisUI();
         }
@@ -984,7 +844,7 @@
         const maxVal = Math.max(...chartData, 1000);
 
         chartData.forEach((val, idx) => {
-          const tinggiPersen = Math.round((val / maxVal) * 70);
+          const tinggiPersen = Math.round((val / maxVal) * 65);
           const group = document.createElement('div');
           group.className = 'chart-bar-group';
           group.innerHTML = `
@@ -1006,7 +866,7 @@
         globalUserList = data.licenses || data.users || [];
         filterUserList();
       } catch (e) {
-        container.innerHTML = '<div style="text-align: center; color: #ef4444; font-size: 12px; padding: 15px;">Gagal memuat daftar user dari server.</div>';
+        container.innerHTML = '<div style="text-align: center; color: #ef4444; font-size: 12px; padding: 15px;">Gagal memuat daftar user.</div>';
       }
     }
 
@@ -1022,7 +882,7 @@
       container.innerHTML = '';
 
       if (users.length === 0) {
-        container.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 12px; padding: 15px;">Tidak ada user yang cocok dengan pencarian.</div>';
+        container.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 12px; padding: 15px;">Tidak ada user yang cocok.</div>';
         return;
       }
 
@@ -1033,7 +893,7 @@
         div.className = 'user-item';
         
         const rawLastActive = u.last_active || u.last_seen || u.updated_at || u.created_at;
-        let infoAktivitas = !rawLastActive ? '<span style="color: #f59e0b;">Belum pernah aktif</span>' : `Terakhir aktif: <b>${formatWaktuRelatif(rawLastActive)}</b>`;
+        let infoAktivitas = !rawLastActive ? '<span style="color: #f59e0b;">Belum aktif</span>' : `Aktif: <b>${formatWaktuRelatif(rawLastActive)}</b>`;
         const expFormatted = formatTanggalIndo(u.exp_date) || '-';
         const namaSppgText = u.sppg_name ? `🏢 ${u.sppg_name}` : '<i style="color:#64748b;">(Belum Set SPPG)</i>';
 
@@ -1050,7 +910,7 @@
           <div class="user-item-info">
             <div>${u.device_id}</div>
             <div>${namaSppgText}</div>
-            <div>Durasi s/d: <b>${expFormatted}</b><br>${infoAktivitas}</div>
+            <div>s/d: <b>${expFormatted}</b> | ${infoAktivitas}</div>
           </div>
           <div><span class="badge ${badgeClass}">${statusAktual}</span></div>
         `;
@@ -1075,6 +935,7 @@
       renderUserList(filtered);
     }
 
+    /* BACKUP & MIGRATION HANDLERS */
     async function muatBackupDevice(deviceId) {
       const backupInfoCard = document.getElementById('backupInfoCard');
       backupInfoCard.style.display = 'none'; currentBackupPayload = null;
@@ -1085,7 +946,7 @@
         const backupData = data.backup_data || data;
         if (backupData && (backupData.dataKPM || Array.isArray(backupData))) {
           currentBackupPayload = backupData;
-          document.getElementById('dispBackupFilename').textContent = `sipgn-autofill-backup-${deviceId}.json`;
+          document.getElementById('dispBackupFilename').textContent = `sipgn-backup-${deviceId}.json`;
           document.getElementById('dispBackupTime').textContent = formatWaktuRelatif(data.created_at || new Date().toISOString());
           backupInfoCard.style.display = 'block';
         }
@@ -1106,11 +967,17 @@
       addAuditLog(`Downloaded cloud backup JSON for Device: ${deviceId}`);
     }
 
-    async function hapusBackupCloud() {
+    function hapusBackupCloudWithModal() {
       if (!currentLicenseData || !currentLicenseData.device_id) return;
       const deviceId = currentLicenseData.device_id;
-      if (!confirm(`Hapus data backup cloud untuk Device ID "${deviceId}"?`)) return;
+      showConfirmModal(
+        'Hapus Backup Cloud',
+        `Apakah Anda yakin ingin menghapus backup cloud untuk Device ID "${deviceId}"?`,
+        () => eksekusiHapusBackupCloud(deviceId)
+      );
+    }
 
+    async function eksekusiHapusBackupCloud(deviceId) {
       try {
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
@@ -1129,14 +996,21 @@
       } catch (e) { showToast('Error koneksi server.', false); }
     }
 
-    async function eksekusiOperDevice() {
+    function eksekusiOperDeviceWithModal() {
       const sourceId = document.getElementById('inputSourceDevice').value.trim().toUpperCase();
       const targetId = document.getElementById('inputTargetDevice').value.trim().toUpperCase();
 
-      if (!sourceId || !targetId) return showToast('Masukkan Device ID Asal dan Device ID Tujuan!', false);
+      if (!sourceId || !targetId) return showToast('Masukkan Device ID Asal dan Tujuan!', false);
       if (sourceId === targetId) return showToast('Device ID Asal dan Tujuan tidak boleh sama!', false);
-      if (!confirm(`Oper lisensi dari "${sourceId}" ke "${targetId}"? Device asal akan dihapus dan masa aktif dipindahkan.`)) return;
 
+      showConfirmModal(
+        'Migrasi Lisensi',
+        `Oper lisensi dari "${sourceId}" ke "${targetId}"? Device asal akan dihapus dan masa aktif dipindahkan.`,
+        () => eksekusiOperDevice(sourceId, targetId)
+      );
+    }
+
+    async function eksekusiOperDevice(sourceId, targetId) {
       try {
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
@@ -1145,7 +1019,7 @@
         });
         const resData = await res.json();
         if (res.ok && (resData.success || resData.status)) {
-          showToast('Berhasil mengoper device ID dan migrasi data!');
+          showToast('Migrasi device ID berhasil!');
           addAuditLog(`Migrated device license from ${sourceId} to ${targetId}`);
           document.getElementById('inputSourceDevice').value = '';
           document.getElementById('inputTargetDevice').value = '';
@@ -1156,6 +1030,7 @@
       } catch (e) { showToast('Error koneksi server.', false); }
     }
 
+    /* LICENSE EDIT & UPDATE FUNCTIONS */
     function pilihUserDariList(userData) {
       gantiView('viewDeviceDetail');
       document.getElementById('dispDeviceId').textContent = userData.device_id;
@@ -1182,7 +1057,7 @@
       document.getElementById('dispExpDate').textContent = currentLicenseData.exp_date !== '-' ? formatTanggalIndo(currentLicenseData.exp_date) : 'Belum Diatur';
       
       const rawUp = currentLicenseData.last_active;
-      document.getElementById('dispLastActive').textContent = (!rawUp || rawUp === '-') ? '<span style="color: #f59e0b;">Belum pernah aktif</span>' : formatWaktuRelatif(rawUp);
+      document.getElementById('dispLastActive').textContent = (!rawUp || rawUp === '-') ? '<span style="color: #f59e0b;">Belum aktif</span>' : formatWaktuRelatif(rawUp);
 
       document.getElementById('editExpDate').value = currentLicenseData.exp_date !== '-' ? currentLicenseData.exp_date : getTanggalHariIniWIB();
       document.getElementById('editStatus').value = currentLicenseData.status;
@@ -1255,7 +1130,7 @@
         });
         const resData = await res.json();
         if (res.ok && (resData.success || resData.status)) {
-          showToast('Lisensi & Nama SPPG berhasil disimpan!');
+          showToast('Lisensi berhasil disimpan!');
           addAuditLog(`Saved license modifications for Device: ${currentLicenseData.device_id}`);
           currentLicenseData.is_new = false;
           renderDetailDevice();
@@ -1265,8 +1140,15 @@
       } catch (e) { showToast('Error koneksi server.', false); }
     }
 
-    async function hapusLisensi() {
-      if (!confirm(`Hapus permanen Device ID "${currentLicenseData.device_id}"?`)) return;
+    function hapusLisensiWithModal() {
+      showConfirmModal(
+        'Hapus Lisensi',
+        `Apakah Anda yakin ingin menghapus permanen Device ID "${currentLicenseData.device_id}"?`,
+        () => eksekusiHapusLisensi()
+      );
+    }
+
+    async function eksekusiHapusLisensi() {
       try {
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
@@ -1284,6 +1166,7 @@
       } catch (e) { showToast('Error koneksi server.', false); }
     }
 
+    /* PACKAGE & VOUCHER SETTINGS */
     async function muatDataPaketServer() {
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=get_packages`);
@@ -1301,10 +1184,10 @@
       const div = document.createElement('div');
       div.className = 'package-row';
       div.innerHTML = `
-        <input type="text" class="inp-nama" value="${nama}" placeholder="Nama Paket" style="flex: 2; height: 38px; font-size: 12px;">
-        <input type="number" class="inp-hari" value="${hari}" placeholder="Hari" style="flex: 1; height: 38px; font-size: 12px;">
-        <input type="number" class="inp-harga" value="${harga}" placeholder="Harga (Rp)" style="flex: 1.5; height: 38px; font-size: 12px;">
-        <button class="btn btn-danger" style="width: 38px; height: 38px;" onclick="this.parentElement.remove()">✕</button>
+        <input type="text" class="inp-nama" value="${nama}" placeholder="Nama Paket" style="flex: 2; height: 36px; font-size: 11px;">
+        <input type="number" class="inp-hari" value="${hari}" placeholder="Hari" style="flex: 1; height: 36px; font-size: 11px;">
+        <input type="number" class="inp-harga" value="${harga}" placeholder="Harga (Rp)" style="flex: 1.5; height: 36px; font-size: 11px;">
+        <button class="btn btn-danger" style="width: 36px; height: 36px;" onclick="this.parentElement.remove()">✕</button>
       `;
       container.appendChild(div);
     }
@@ -1357,15 +1240,15 @@
       const div = document.createElement('div');
       div.className = 'voucher-row';
       div.innerHTML = `
-        <input type="text" class="inp-code" value="${code}" placeholder="KODE" style="flex: 2; height: 38px; font-size: 12px; text-transform: uppercase;">
-        <select class="inp-type" style="flex: 1.5; height: 38px; font-size: 12px;">
+        <input type="text" class="inp-code" value="${code}" placeholder="KODE" style="flex: 1.8; height: 36px; font-size: 11px; text-transform: uppercase;">
+        <select class="inp-type" style="flex: 1.5; height: 36px; font-size: 11px; padding: 0 4px;">
           <option value="percent" ${type==='percent'?'selected':''}>Diskon (%)</option>
           <option value="fixed" ${type==='fixed'?'selected':''}>Diskon (Rp)</option>
           <option value="days" ${type==='days'||type==='duration'?'selected':''}>Durasi (Hari)</option>
         </select>
-        <input type="number" class="inp-value" value="${value}" placeholder="Nilai" style="flex: 1; height: 38px; font-size: 12px;">
-        <input type="number" class="inp-quota" value="${quota}" placeholder="Kuota" style="flex: 0.8; height: 38px; font-size: 12px;">
-        <button class="btn btn-danger" style="width: 38px; height: 38px;" onclick="this.parentElement.remove()">✕</button>
+        <input type="number" class="inp-value" value="${value}" placeholder="Nilai" style="flex: 1; height: 36px; font-size: 11px;">
+        <input type="number" class="inp-quota" value="${quota}" placeholder="Kuota" style="flex: 0.8; height: 36px; font-size: 11px;">
+        <button class="btn btn-danger" style="width: 36px; height: 36px;" onclick="this.parentElement.remove()">✕</button>
       `;
       container.appendChild(div);
     }
@@ -1397,6 +1280,7 @@
       } catch (err) { showToast('Error koneksi server.', false); }
     }
 
+    /* IN-APP RELEASE UPDATER */
     async function muatDataReleaseServer() {
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=check_version`);
@@ -1406,7 +1290,7 @@
           document.getElementById('inputDownloadUrl').value = data.download_url || '';
           document.getElementById('inputChangelog').value = data.changelog || '';
         }
-      } catch (err) { showToast('Gagal memuat info versi saat ini.', false); }
+      } catch (err) { showToast('Gagal memuat info versi.', false); }
     }
 
     async function simpanUpdateReleaseServer() {
@@ -1425,18 +1309,12 @@
         const result = await res.json();
         if (res.ok && (result.success || result.status)) {
           showToast(`Versi ${version} berhasil dirilis!`);
-          addAuditLog(`Published new script release version: v${version}`);
+          addAuditLog(`Published script release version: v${version}`);
         } else {
           showToast(result.error || 'Gagal merilis versi baru.', false);
         }
       } catch (err) { showToast('Error koneksi server.', false); }
     }
-
-    // ON DOM CONTENT LOADED INITIALIZATION
-    window.addEventListener('load', () => {
-      initThreeJS();
-      addAuditLog('Three.js WebGL Engine initialized successfully.');
-    });
   </script>
 </body>
 </html>

@@ -1,10 +1,11 @@
 // ==UserScript==
-// @name         SIPGN Autofill - POP
+// @name         SIPGN Autofill POP - Mindspace Studio
 // @namespace    sipgn-autofill
-// @version      1.5.48
-// @description  Isi otomatis form Tugas Pengiriman & Klaim Voucher Durasi Custom Baru
+// @version      1.5.53
+// @description  Isi otomatis form Tugas Pengiriman & Klaim Voucher Durasi Custom Baru (dengan Fake Camera)
 // @match        https://pop-sipgn.bgn.go.id/distribution*
 // @match        https://pop-sipgn.bgn.go.id/*
+// @run-at       document-start
 // @grant        GM_setValue
 // @grant        GM_getValue
 // @grant        GM_xmlhttpRequest
@@ -18,9 +19,65 @@
 (function () {
   'use strict';
 
+  // ==========================================
+  // MODUL FAKE CAMERA (INJECT EARLY)
+  // ==========================================
+  (function inisialisasiFakeCamera() {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1280;
+      canvas.height = 720;
+      const ctx = canvas.getContext('2d');
+      let img = null;
+
+      setInterval(() => {
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        if (!img) return;
+        const r = Math.min(canvas.width / img.width, canvas.height / img.height);
+        const w = img.width * r, h = img.height * r;
+        ctx.drawImage(img, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
+      }, 100);
+
+      function pilihFile() {
+        return new Promise((resolve, reject) => {
+          const input = document.createElement('input');
+          input.type = 'file';
+          input.accept = 'image/*';
+          input.onchange = () => {
+            const f = input.files[0];
+            if (!f) return reject(new DOMException('Batal', 'NotAllowedError'));
+            const i = new Image();
+            i.onload = () => { img = i; resolve(); };
+            i.src = URL.createObjectURL(f);
+          };
+          input.oncancel = () =>
+            reject(new DOMException('Batal', 'NotAllowedError'));
+          input.click();
+        });
+      }
+
+      if (navigator.mediaDevices) {
+        navigator.mediaDevices.getUserMedia = async () => {
+          await pilihFile();
+          return canvas.captureStream(15); // stream BARU tiap panggilan
+        };
+
+        navigator.mediaDevices.enumerateDevices = async () => [
+          { kind: 'videoinput', deviceId: 'fake', label: 'Kamera File', groupId: 'fake' }
+        ];
+      }
+    } catch (e) {
+      console.warn('[Autofill] Gagal menginisialisasi Fake Camera:', e);
+    }
+  })();
+
+  // ==========================================
+  // SCRIPT UTAMA AUTOFILL
+  // ==========================================
   const CURRENT_VERSION = (typeof GM_info !== 'undefined' && GM_info.script)
     ? GM_info.script.version
-    : '1.5.48';
+    : '1.5.53';
 
   const VERCEL_API_URL = 'https://mindspace-id.vercel.app/api/tokopay';
   const SECRET_SALT = 'MINDSTUDIO2026';
@@ -30,6 +87,7 @@
   const STORAGE_KEY = 'sipgnAutofillData';
   const AUTO_KURIR_KEY = 'sipgn_auto_kurir_mbg';
   const MINIMIZE_KEY = 'sipgn_panel_minimized';
+  const TYPING_SPEED_KEY = 'sipgn_typing_speed_level';
 
   let currentDatabaseExpDate = null;
   let statusLisensiTerakhir = null;
@@ -68,6 +126,22 @@
         if (document.body) document.body.appendChild(element);
       });
     }
+  }
+
+  function dapatkanTypingSpeedLevel() {
+    try {
+      const val = GM_getValue(TYPING_SPEED_KEY, '50');
+      return String(val || '50');
+    } catch (e) {
+      return localStorage.getItem(TYPING_SPEED_KEY) || '50';
+    }
+  }
+
+  function simpanTypingSpeedLevel(val) {
+    try {
+      GM_setValue(TYPING_SPEED_KEY, String(val));
+    } catch (e) {}
+    localStorage.setItem(TYPING_SPEED_KEY, String(val));
   }
 
   function dapatkanAutoKurirMBG() {
@@ -173,7 +247,13 @@
   }
 
   async function smartWait(minMs = 350, maxMs = 800) {
-    const delay = getRandomDelay(minMs, maxMs);
+    const level = dapatkanTypingSpeedLevel();
+    if (level === '0') {
+      await wait(50);
+      return;
+    }
+    const factor = level === '25' ? 0.5 : level === '75' ? 1.5 : 1.0;
+    const delay = getRandomDelay(Math.floor(minMs * factor), Math.floor(maxMs * factor));
     await wait(delay);
   }
 
@@ -694,12 +774,14 @@ ${escapeHtml(changelog)}
     const wrapperPaket = document.getElementById('sipgn-wrapper-paket');
     const voucherSection = document.getElementById('sipgn-voucher-section');
     const infoPerangkatSec = document.getElementById('sipgn-info-perangkat-sec');
+    const speedSettingSec = document.getElementById('sipgn-speed-setting-sec');
     const backupImportSec = document.getElementById('sipgn-backup-import-sec');
 
     if (qrContainer) { qrContainer.style.display = 'none'; qrContainer.innerHTML = ''; }
     if (wrapperPaket) wrapperPaket.style.display = 'block';
     if (voucherSection) voucherSection.style.display = 'block';
     if (infoPerangkatSec) infoPerangkatSec.style.display = 'block';
+    if (speedSettingSec) speedSettingSec.style.display = 'block';
     if (backupImportSec) backupImportSec.style.display = 'block';
     if (btnBeli) { btnBeli.style.display = 'block'; btnBeli.disabled = false; btnBeli.textContent = '💳 Bayar via QRIS'; }
   }
@@ -726,7 +808,58 @@ ${escapeHtml(changelog)}
     }, 1000);
   }
 
+  // --- FITUR TAMBAHAN: UBAH KAMERA KE GALERI ---
+  function ubahTombolKameraKeGaleri() {
+    const inputsFile = document.querySelectorAll('input[type="file"]');
+
+    inputsFile.forEach((input) => {
+      if (input.hasAttribute('capture')) {
+        input.removeAttribute('capture');
+      }
+
+      const acceptAttr = input.getAttribute('accept');
+      if (!acceptAttr || acceptAttr.includes('camera')) {
+        input.setAttribute('accept', 'image/*');
+      }
+    });
+  }
+
+  function aktifkanPengubahKameraKeGaleri() {
+    ubahTombolKameraKeGaleri();
+
+    const observerKamera = new MutationObserver((mutations) => {
+      let perluUbah = false;
+
+      for (const mutation of mutations) {
+        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+          perluUbah = true;
+          break;
+        }
+        if (mutation.type === 'attributes' && (mutation.attributeName === 'capture' || mutation.attributeName === 'accept')) {
+          perluUbah = true;
+          break;
+        }
+      }
+
+      if (perluUbah) {
+        ubahTombolKameraKeGaleri();
+      }
+    });
+
+    const targetNode = document.body || document.documentElement;
+    if (targetNode) {
+      observerKamera.observe(targetNode, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['capture', 'accept']
+      });
+    }
+  }
+
   function mulaiJalankanSkrip() {
+    aktifkanPengubahKameraKeGaleri();
+
     pasangDetektorNavigasiSPA();
     renderPanel();
     pasangDetektorPerubahanForm();
@@ -861,6 +994,7 @@ ${escapeHtml(changelog)}
     const wrapperPaket = document.getElementById('sipgn-wrapper-paket');
     const voucherSection = document.getElementById('sipgn-voucher-section');
     const infoPerangkatSec = document.getElementById('sipgn-info-perangkat-sec');
+    const speedSettingSec = document.getElementById('sipgn-speed-setting-sec');
     const backupImportSec = document.getElementById('sipgn-backup-import-sec');
 
     hentikanTimerDanPolling();
@@ -913,6 +1047,7 @@ ${escapeHtml(changelog)}
       if (wrapperPaket) wrapperPaket.style.display = 'none';
       if (voucherSection) voucherSection.style.display = 'none';
       if (infoPerangkatSec) infoPerangkatSec.style.display = 'none';
+      if (speedSettingSec) speedSettingSec.style.display = 'none';
       if (backupImportSec) backupImportSec.style.display = 'none';
       if (btnBeli) btnBeli.style.display = 'none';
 
@@ -965,6 +1100,7 @@ ${escapeHtml(changelog)}
           if (wrapperPaket) wrapperPaket.style.display = 'block';
           if (voucherSection) voucherSection.style.display = 'block';
           if (infoPerangkatSec) infoPerangkatSec.style.display = 'block';
+          if (speedSettingSec) speedSettingSec.style.display = 'block';
           if (backupImportSec) backupImportSec.style.display = 'block';
           if (qrContainer) {
             qrContainer.innerHTML = `
@@ -1008,6 +1144,7 @@ ${escapeHtml(changelog)}
       if (wrapperPaket) wrapperPaket.style.display = 'block';
       if (voucherSection) voucherSection.style.display = 'block';
       if (infoPerangkatSec) infoPerangkatSec.style.display = 'block';
+      if (speedSettingSec) speedSettingSec.style.display = 'block';
       if (backupImportSec) backupImportSec.style.display = 'block';
       if (btnBeli) {
         btnBeli.disabled = false;
@@ -1068,12 +1205,21 @@ ${escapeHtml(changelog)}
       });
   }
 
+  function formatSpeedText(value) {
+    const val = String(value);
+    if (val === '0') return '⚡ Instant (Langsung Terisi)';
+    if (val === '25') return '🚀 Cepat (Delay Minimal)';
+    if (val === '75') return '👤 Human Realistis (Mengetik Manual)';
+    return '⚖️ Sedang (Pengetikan Alami)';
+  }
+
   async function tampilkanModalAktivasi(pesanPeringatan = '', bisaDitutup = true, isBerhasil = false) {
     try {
       const modalLama = document.getElementById('sipgn-license-modal');
       if (modalLama) modalLama.remove();
 
       const currentDevId = dapatkanDeviceID();
+      const currentSpeedLevel = dapatkanTypingSpeedLevel();
 
       let serverStatusData = cachedServerStatus || { status: 'unregistered', valid: false, exp_date: null, msg: '', qris_enabled: true };
 
@@ -1138,6 +1284,42 @@ ${escapeHtml(changelog)}
             0% { opacity: 0; transform: scale(0.92) translateY(14px); }
             100% { opacity: 1; transform: scale(1) translateY(0); }
           }
+          #sipgn-slider-speed {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 5px;
+            background: #334155;
+            outline: none;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            display: block;
+          }
+          #sipgn-slider-speed::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #38bdf8;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+            transition: transform 0.1s, background 0.2s;
+          }
+          #sipgn-slider-speed::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+            background: #60a5fa;
+          }
+          #sipgn-slider-speed::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #38bdf8;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+            border: none;
+          }
         </style>
         <div style="position: relative; background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid rgba(56, 189, 248, 0.3); color: #f8fafc; padding: 20px 22px; border-radius: 18px; width: 380px; max-width: 90vw; text-align: center; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75); animation: sipgnModalScaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
           ${
@@ -1167,6 +1349,32 @@ ${escapeHtml(changelog)}
             </div>
           </div>
 
+          <div id="sipgn-speed-setting-sec" style="background: rgba(15, 23, 42, 0.65); padding: 12px 14px; border-radius: 12px; margin-bottom: 12px; border: 1px solid rgba(51, 65, 85, 0.6); text-align: left;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <div style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; color: #38bdf8; font-weight: 700; display: flex; align-items: center; gap: 4px;">
+                <span>⌨️</span> Kecepatan Ketik Human-like
+              </div>
+              <span id="sipgn-speed-val-badge" style="font-size: 11px; font-weight: 700; color: #38bdf8; font-family: monospace; background: rgba(56, 189, 248, 0.12); padding: 2px 8px; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.25);">
+                ${currentSpeedLevel}%
+              </span>
+            </div>
+
+            <div style="padding: 0 9px;">
+              <input type="range" id="sipgn-slider-speed" min="0" max="75" step="25" value="${currentSpeedLevel}" />
+            </div>
+
+            <div style="display: flex; justify-content: space-between; text-align: center; font-size: 9px; color: #64748b; font-weight: 600; margin-top: 6px; padding: 0;">
+              <span style="width: 18px; text-align: center;">0%</span>
+              <span style="width: 18px; text-align: center;">25%</span>
+              <span style="width: 18px; text-align: center;">50%</span>
+              <span style="width: 18px; text-align: center;">75%</span>
+            </div>
+
+            <div id="sipgn-speed-desc-text" style="font-size: 10px; color: #cbd5e1; font-weight: 600; margin-top: 8px; background: rgba(15, 23, 42, 0.6); padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); text-align: center;">
+              ${formatSpeedText(currentSpeedLevel)}
+            </div>
+          </div>
+
           <div id="sipgn-backup-import-sec" style="background: rgba(15, 23, 42, 0.65); padding: 10px 12px; border-radius: 12px; margin-bottom: 12px; border: 1px solid rgba(51, 65, 85, 0.6); text-align: left; ${(isKadaluarsa || isUserBaru) ? 'display: none;' : ''}">
             <div style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; font-weight: 700; margin-bottom: 8px;">Backup & Import Data KPM</div>
             <div style="display: flex; gap: 8px;">
@@ -1189,36 +1397,36 @@ ${escapeHtml(changelog)}
             ${
               isUserBaru
                 ? `<div style="background: rgba(37, 99, 235, 0.12); border: 1px solid rgba(37, 99, 235, 0.3); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; text-align: left; font-size: 11px; color: #cbd5e1; line-height: 1.4;">
-                     🎁 <b>Bonus Pengguna Baru:</b> Nikmati akses fitur penuh selama <b>24 jam</b> tanpa biaya untuk mencoba seluruh otomatisasi.
+                      🎁 <b>Bonus Pengguna Baru:</b> Nikmati akses fitur penuh selama <b>24 jam</b> tanpa biaya untuk mencoba seluruh otomatisasi.
                    </div>
                    <button id="sipgn-btn-claim-trial" style="width: 100%; padding: 11px; border: none; border-radius: 10px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; font-weight: 700; cursor: pointer; font-size: 12px; transition: 0.2s; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.45);">
-                     🎁 Klaim Free Trial (24 Jam)
+                      🎁 Klaim Free Trial (24 Jam)
                    </button>`
                 : `${isQrisEnabled ? `
-                     <div id="sipgn-wrapper-paket" style="text-align: left;">
-                       <label style="display: block; font-size: 10px; font-weight: 600; color: #cbd5e1; margin-bottom: 5px;">Pilih Paket Durasi :</label>
-                       <select id="sipgn-select-paket" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 11px; margin-bottom: 10px; outline: none;">
-                         <option value="">⏳ Memuat paket...</option>
-                       </select>
-                     </div>
+                      <div id="sipgn-wrapper-paket" style="text-align: left;">
+                        <label style="display: block; font-size: 10px; font-weight: 600; color: #cbd5e1; margin-bottom: 5px;">Pilih Paket Durasi :</label>
+                        <select id="sipgn-select-paket" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 11px; margin-bottom: 10px; outline: none;">
+                          <option value="">⏳ Memuat paket...</option>
+                        </select>
+                      </div>
 
-                     <button id="sipgn-btn-buy-qris" style="width: 100%; padding: 10px; border: none; border-radius: 8px; background: linear-gradient(135deg, #10b981, #059669); color: white; font-weight: 700; cursor: pointer; font-size: 12px; transition: 0.2s; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);">
-                       💳 Bayar via QRIS
-                     </button>
-                   ` : `
-                     <div style="background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3); color: #fef08a; padding: 10px 12px; border-radius: 10px; font-size: 11px; text-align: center; margin-bottom: 10px; line-height: 1.4;">
-                       ⚠️ <b>Pembayaran QRIS Ditutup Sementara.</b><br>Silakan gunakan kode voucher untuk perpanjangan lisensi.
-                     </div>
-                   `}
+                      <button id="sipgn-btn-buy-qris" style="width: 100%; padding: 10px; border: none; border-radius: 8px; background: linear-gradient(135deg, #10b981, #059669); color: white; font-weight: 700; cursor: pointer; font-size: 12px; transition: 0.2s; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);">
+                        💳 Bayar via QRIS
+                      </button>
+                    ` : `
+                      <div style="background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3); color: #fef08a; padding: 10px 12px; border-radius: 10px; font-size: 11px; text-align: center; margin-bottom: 10px; line-height: 1.4;">
+                        ⚠ <b>Pembayaran QRIS Ditutup Sementara.</b><br>Silakan gunakan kode voucher untuk perpanjangan lisensi.
+                      </div>
+                    `}
 
-                   <div id="sipgn-voucher-section" style="text-align: left; border-top: 1px dashed rgba(51, 65, 85, 0.8); padding-top: 10px;">
-                     <label style="display: block; font-size: 10px; font-weight: 700; color: #38bdf8; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;">Klaim Kode Voucher:</label>
-                     <div style="display: flex; gap: 6px; margin-bottom: 4px;">
-                       <input type="text" id="sipgn-input-voucher" placeholder="KODE VOUCHER" style="flex: 2; box-sizing: border-box; padding: 8px 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 11px; font-weight: 700; text-transform: uppercase; outline: none;" />
-                       <button id="sipgn-btn-apply-voucher" style="flex: 1; padding: 8px 10px; border: none; border-radius: 8px; background: #2563eb; color: white; font-weight: 700; cursor: pointer; font-size: 11px; transition: 0.2s;">Klaim</button>
-                     </div>
-                     <div id="sipgn-voucher-feedback" style="font-size: 10px; min-height: 14px; margin-top: 4px;"></div>
-                   </div>`
+                    <div id="sipgn-voucher-section" style="text-align: left; border-top: 1px dashed rgba(51, 65, 85, 0.8); padding-top: 10px;">
+                      <label style="display: block; font-size: 10px; font-weight: 700; color: #38bdf8; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;">Klaim Kode Voucher:</label>
+                      <div style="display: flex; gap: 6px; margin-bottom: 4px;">
+                        <input type="text" id="sipgn-input-voucher" placeholder="KODE VOUCHER" style="flex: 2; box-sizing: border-box; padding: 8px 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 11px; font-weight: 700; text-transform: uppercase; outline: none;" />
+                        <button id="sipgn-btn-apply-voucher" style="flex: 1; padding: 8px 10px; border: none; border-radius: 8px; background: #2563eb; color: white; font-weight: 700; cursor: pointer; font-size: 11px; transition: 0.2s;">Klaim</button>
+                      </div>
+                      <div id="sipgn-voucher-feedback" style="font-size: 10px; min-height: 14px; margin-top: 4px;"></div>
+                    </div>`
             }
 
             <div id="sipgn-qris-container" style="display: none; text-align: center;"></div>
@@ -1229,6 +1437,19 @@ ${escapeHtml(changelog)}
       `;
 
       bantuAppendKeBody(overlay);
+
+      const sliderSpeed = document.getElementById('sipgn-slider-speed');
+      const badgeSpeed = document.getElementById('sipgn-speed-val-badge');
+      const textSpeed = document.getElementById('sipgn-speed-desc-text');
+
+      if (sliderSpeed) {
+        sliderSpeed.oninput = (e) => {
+          const val = e.target.value;
+          if (badgeSpeed) badgeSpeed.textContent = `${val}%`;
+          if (textSpeed) textSpeed.textContent = formatSpeedText(val);
+          simpanTypingSpeedLevel(val);
+        };
+      }
 
       if (isUserBaru) {
         const btnClaimTrial = document.getElementById('sipgn-btn-claim-trial');
@@ -1737,7 +1958,20 @@ ${escapeHtml(changelog)}
       element.scrollIntoView({ behavior: 'smooth', block: 'center' });
     } catch (e) {}
 
+    const speedLevel = dapatkanTypingSpeedLevel();
     const valStr = String(value);
+
+    if (speedLevel === '0') {
+      setNativeValue(element, valStr);
+      await wait(50);
+      try { element.dispatchEvent(new Event('blur', { bubbles: true })); } catch (e) {}
+      return;
+    }
+
+    const multiplier = speedLevel === '25' ? 0.4 : speedLevel === '75' ? 1.6 : 1.0;
+    const minDelay = Math.max(10, Math.floor(charDelayMin * multiplier));
+    const maxDelay = Math.max(20, Math.floor(charDelayMax * multiplier));
+
     const proto = element.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
     const setter = Object.getOwnPropertyDescriptor(proto, 'value').set;
 
@@ -1757,13 +1991,13 @@ ${escapeHtml(changelog)}
       element.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: char }));
       element.dispatchEvent(new KeyboardEvent('keyup', keyOptions));
 
-      let delay = getRandomDelay(charDelayMin, charDelayMax);
-      if (char === ' ' || char === '-' || char === '/') delay += getRandomDelay(40, 90);
+      let delay = getRandomDelay(minDelay, maxDelay);
+      if (char === ' ' || char === '-' || char === '/') delay += getRandomDelay(Math.floor(20 * multiplier), Math.floor(60 * multiplier));
       await wait(delay);
     }
     element.dispatchEvent(new Event('change', { bubbles: true }));
 
-    await wait(120);
+    await wait(Math.floor(100 * multiplier));
     try { element.dispatchEvent(new Event('blur', { bubbles: true })); } catch (e) {}
   }
 
@@ -2822,7 +3056,7 @@ ${escapeHtml(changelog)}
         backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
         color: #f8fafc; padding: ${isMinimized ? '10px 14px' : '20px 18px'};
         border-radius: 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px;
-        width: ${isMinimized ? 'auto' : '340px'}; max-height: 92vh; min-height: ${isMinimized ? 'auto' : '520px'}; overflow-y: auto;
+        width: ${isMinimized ? 'auto' : '350px'}; max-height: 92vh; min-height: ${isMinimized ? 'auto' : '520px'}; overflow-y: auto;
         box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), inset 0 1px 1px 0 rgba(255, 255, 255, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.08);
         border: 1px solid rgba(255, 255, 255, 0.12); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       `;
@@ -2836,6 +3070,12 @@ ${escapeHtml(changelog)}
       const totalSekolah = dataPenugasan.filter((d) => jenisKPM(d) === 'sekolah').length;
       const totalPosyandu = dataPenugasan.filter((d) => jenisKPM(d) === 'posyandu').length;
       const totalKPM = dataPenugasan.length;
+
+      const totalPorsiBesar = dataPenugasan.reduce((acc, curr) => acc + Number(curr.porsiBesar || 0), 0);
+      const totalPorsiKecil = dataPenugasan.reduce((acc, curr) => acc + Number(curr.porsiKecil || 0), 0);
+      const totalPorsiBalita = dataPenugasan.reduce((acc, curr) => acc + Number(curr.porsiBalita || 0), 0);
+      const totalPorsiBumil = dataPenugasan.reduce((acc, curr) => acc + Number(curr.porsiIbuHamil || 0), 0);
+      const totalPorsiBusui = dataPenugasan.reduce((acc, curr) => acc + Number(curr.porsiIbuMenyusui || 0), 0);
       const totalPorsiSemua = dataPenugasan.reduce((acc, curr) => acc + hitungTotalPorsi(curr), 0);
 
       const totalPengantaran = dataPenugasan.filter((d) => d.statusProses === 'pengantaran').length;
@@ -2903,16 +3143,17 @@ ${escapeHtml(changelog)}
         background: rgba(255, 255, 255, 0.04);
         backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
         border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 14px; padding: 12px 14px; margin-bottom: 12px; font-size: 11px;
+        border-radius: 14px; padding: 12px 12px; margin-bottom: 12px; font-size: 11px;
         box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.08);
       `;
       summaryBar.innerHTML = `
-        <div style="color: #facc15; font-weight: 700; font-size: 12px; margin-bottom: 10px; border-bottom: 1px dashed rgba(255, 255, 255, 0.1); padding-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: space-between;">
+        <div style="color: #facc15; font-weight: 700; font-size: 12px; margin-bottom: 8px; border-bottom: 1px dashed rgba(255, 255, 255, 0.1); padding-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: space-between;">
           <div style="display: flex; align-items: center; gap: 6px;">
             <span style="font-size: 14px;">🏢</span> <span>${namaSPPG}</span>
           </div>
         </div>
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; text-align: center; color: #cbd5e1; font-size: 11px; font-weight: 600;">
+
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; text-align: center; color: #cbd5e1; font-size: 11px; font-weight: 600; margin-bottom: 6px;">
           <div style="background: rgba(255, 255, 255, 0.03); padding: 5px 2px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.15);">
             <div style="font-size: 9px; color: #94a3b8; text-transform: uppercase;">Sekolah</div>
             <b style="color: #38bdf8; font-size: 13px;">${totalSekolah}</b>
@@ -2928,6 +3169,31 @@ ${escapeHtml(changelog)}
           <div style="background: rgba(255, 255, 255, 0.03); padding: 5px 2px; border-radius: 8px; border: 1px solid rgba(74, 222, 128, 0.15);">
             <div style="font-size: 9px; color: #94a3b8; text-transform: uppercase;">Porsi</div>
             <b style="color: #4ade80; font-size: 13px;">${totalPorsiSemua.toLocaleString('id-ID')}</b>
+          </div>
+        </div>
+
+        <div style="border-top: 1px dashed rgba(255, 255, 255, 0.08); padding-top: 6px; margin-top: 6px;">
+          <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; text-align: center; color: #cbd5e1; font-size: 10px; font-weight: 600;">
+            <div style="background: rgba(15, 23, 42, 0.4); padding: 4px 1px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.06);">
+              <div style="font-size: 8px; color: #94a3b8;">BESAR</div>
+              <b style="color: #cbd5e1; font-size: 11px;">${totalPorsiBesar}</b>
+            </div>
+            <div style="background: rgba(15, 23, 42, 0.4); padding: 4px 1px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.06);">
+              <div style="font-size: 8px; color: #94a3b8;">KECIL</div>
+              <b style="color: #cbd5e1; font-size: 11px;">${totalPorsiKecil}</b>
+            </div>
+            <div style="background: rgba(15, 23, 42, 0.4); padding: 4px 1px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.06);">
+              <div style="font-size: 8px; color: #94a3b8;">BALITA</div>
+              <b style="color: #38bdf8; font-size: 11px;">${totalPorsiBalita}</b>
+            </div>
+            <div style="background: rgba(15, 23, 42, 0.4); padding: 4px 1px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.06);">
+              <div style="font-size: 8px; color: #94a3b8;">BUSUI</div>
+              <b style="color: #c084fc; font-size: 11px;">${totalPorsiBusui}</b>
+            </div>
+            <div style="background: rgba(15, 23, 42, 0.4); padding: 4px 1px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.06);">
+              <div style="font-size: 8px; color: #94a3b8;">BUMIL</div>
+              <b style="color: #f472b6; font-size: 11px;">${totalPorsiBumil}</b>
+            </div>
           </div>
         </div>
       `;
@@ -3504,14 +3770,14 @@ ${escapeHtml(changelog)}
         backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
         color: #f8fafc; padding: 20px 18px;
         border-radius: 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px;
-        width: 340px; max-height: 92vh; min-height: 520px; box-sizing: border-box;
+        width: 350px; max-height: 92vh; min-height: 520px; box-sizing: border-box;
         box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), inset 0 1px 1px 0 rgba(255, 255, 255, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.08);
         border: 1px solid rgba(255, 255, 255, 0.12); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         display: flex; flex-direction: column; justify-content: space-between; align-items: center; text-align: center;
         overflow: hidden;
       `;
 
-      const totalDurasi = durasiMs || getRandomDelay(2200, 3800);
+      const totalDurasi = durasiMs || getRandomDelay(2200, 4500);
 
       panel.innerHTML = `
         <style>
@@ -3679,6 +3945,7 @@ ${escapeHtml(changelog)}
 
   async function inialisasiSistem() {
     try {
+      aktifkanPengubahKameraKeGaleri();
       const isLicenseValidAndActive = await tampilkanWelcomeLoadingScreen();
 
       if (isLicenseValidAndActive) {

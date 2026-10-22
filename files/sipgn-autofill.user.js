@@ -145,8 +145,8 @@
         </div>
 
         <h3 style="margin: 0 0 2px 0; font-size: 20px; font-weight: 800; background: linear-gradient(135deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">SIPGN Autofill POP</h3>
-        <div style="font-size: 11px; color: #94a3b8; font-weight: 600; margin-bottom: 20px;">v${CURRENT_VERSION}</div>
-        <div style="font-size: 13px; font-weight: 700; color: #38bdf8; margin-bottom: 15px; letter-spacing: 0.3px;">${escapeHtml(sapaanTeks)}</div>
+        <div style="font-size: 11px; color: #94a3b8; font-weight: 600; margin-bottom: 15px;">Versi v${CURRENT_VERSION}</div>
+        <div style="font-size: 13px; font-weight: 700; color: #38bdf8; margin-bottom: 10px; letter-spacing: 0.3px;">${escapeHtml(sapaanTeks)}</div>
 
         <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(51, 65, 85, 0.6); border-radius: 12px; padding: 12px; margin-bottom: 20px;">
           <div id="sipgn-splash-status" style="font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 8px;">Memeriksa Sistem & Lisensi...</div>
@@ -218,6 +218,17 @@
 
   function isMobileDevice() {
     return window.innerWidth <= 640 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  }
+
+  function dapatkanTopZIndex() {
+    let highest = 2147483640;
+    document.querySelectorAll('body *').forEach((el) => {
+      const z = parseInt(window.getComputedStyle(el).zIndex, 10);
+      if (!isNaN(z) && z > highest) {
+        highest = z;
+      }
+    });
+    return highest + 10;
   }
 
   function cegahCopyTeks(element) {
@@ -433,12 +444,13 @@
     if (modalLama) modalLama.remove();
 
     const isMob = isMobileDevice();
+    const topZ = dapatkanTopZIndex();
     const overlay = document.createElement('div');
     overlay.id = 'sipgn-update-modal';
     overlay.style.cssText = `
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
       background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-      z-index: 1000000; display: flex; align-items: center; justify-content: center;
+      z-index: ${topZ}; display: flex; align-items: center; justify-content: center;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     `;
 
@@ -565,12 +577,13 @@ ${escapeHtml(changelog)}
     const modalLama = document.getElementById('sipgn-welcome-sppg-modal');
     if (modalLama) modalLama.remove();
 
+    const topZ = dapatkanTopZIndex();
     const overlay = document.createElement('div');
     overlay.id = 'sipgn-welcome-sppg-modal';
     overlay.style.cssText = `
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
       background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-      z-index: 1000010; display: flex; align-items: center; justify-content: center;
+      z-index: ${topZ}; display: flex; align-items: center; justify-content: center;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     `;
 
@@ -657,12 +670,13 @@ ${escapeHtml(changelog)}
     const modalLama = document.getElementById('sipgn-confirm-modal');
     if (modalLama) modalLama.remove();
 
+    const topZ = dapatkanTopZIndex();
     const overlay = document.createElement('div');
     overlay.id = 'sipgn-confirm-modal';
     overlay.style.cssText = `
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
       background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-      z-index: 1000004; display: flex; align-items: center; justify-content: center;
+      z-index: ${topZ}; display: flex; align-items: center; justify-content: center;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     `;
 
@@ -703,12 +717,13 @@ ${escapeHtml(changelog)}
     const iconSym = isBerhasil ? '✅' : '❌';
     const borderColor = isBerhasil ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)';
 
+    const topZ = dapatkanTopZIndex();
     const overlay = document.createElement('div');
     overlay.id = 'sipgn-alert-modal';
     overlay.style.cssText = `
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
       background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-      z-index: 1000005; display: flex; align-items: center; justify-content: center;
+      z-index: ${topZ}; display: flex; align-items: center; justify-content: center;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     `;
 
@@ -998,12 +1013,13 @@ ${escapeHtml(changelog)}
     const modalSuksesLama = document.getElementById('sipgn-success-modal');
     if (modalSuksesLama) modalSuksesLama.remove();
 
+    const topZ = dapatkanTopZIndex();
     const overlay = document.createElement('div');
     overlay.id = 'sipgn-success-modal';
     overlay.style.cssText = `
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
       background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-      z-index: 1000001; display: flex; align-items: center; justify-content: center;
+      z-index: ${topZ}; display: flex; align-items: center; justify-content: center;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     `;
 
@@ -1394,12 +1410,13 @@ ${escapeHtml(changelog)}
       const warnaMasaAktif = dapatkanWarnaMasaAktif(sisaHari);
       const infoExpFormatted = expDateVal ? `${formatTanggalIndo(expDateVal)}${teksSisaHari}` : '-';
 
+      const topZ = dapatkanTopZIndex();
       const overlay = document.createElement('div');
       overlay.id = 'sipgn-license-modal';
       overlay.style.cssText = `
         position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
         background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-        z-index: 1000000; display: flex; align-items: center; justify-content: center;
+        z-index: ${topZ}; display: flex; align-items: center; justify-content: center;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       `;
 
@@ -1702,12 +1719,13 @@ ${escapeHtml(changelog)}
     const modalLama = document.getElementById('sipgn-backup-info-modal');
     if (modalLama) modalLama.remove();
 
+    const topZ = dapatkanTopZIndex();
     const overlay = document.createElement('div');
     overlay.id = 'sipgn-backup-info-modal';
     overlay.style.cssText = `
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
       background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-      z-index: 1000003; display: flex; align-items: center; justify-content: center;
+      z-index: ${topZ}; display: flex; align-items: center; justify-content: center;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     `;
 
@@ -1744,12 +1762,13 @@ ${escapeHtml(changelog)}
     const modalLama = document.getElementById('sipgn-import-choice-modal');
     if (modalLama) modalLama.remove();
 
+    const topZ = dapatkanTopZIndex();
     const overlay = document.createElement('div');
     overlay.id = 'sipgn-import-choice-modal';
     overlay.style.cssText = `
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
       background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-      z-index: 1000003; display: flex; align-items: center; justify-content: center;
+      z-index: ${topZ}; display: flex; align-items: center; justify-content: center;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     `;
 
@@ -1800,12 +1819,13 @@ ${escapeHtml(changelog)}
     const accentIcon = isHold ? '⏸️' : '🚫';
     const devId = dapatkanDeviceID();
 
+    const topZ = dapatkanTopZIndex();
     const overlay = document.createElement('div');
     overlay.id = 'sipgn-status-modal';
     overlay.style.cssText = `
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
       background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-      z-index: 999999; display: flex; align-items: center; justify-content: center;
+      z-index: ${topZ}; display: flex; align-items: center; justify-content: center;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     `;
 
@@ -2897,12 +2917,13 @@ ${escapeHtml(changelog)}
 
     const isEdit = dataEdit !== null;
 
+    const topZ = dapatkanTopZIndex();
     const overlay = document.createElement('div');
     overlay.id = 'sipgn-kpm-form-modal';
     overlay.style.cssText = `
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
       background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-      z-index: 1000002; display: flex; align-items: center; justify-content: center;
+      z-index: ${topZ}; display: flex; align-items: center; justify-content: center;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     `;
 
@@ -3246,7 +3267,7 @@ ${escapeHtml(changelog)}
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px;
           border-radius: 24px 24px 0 0; border-top: 1px solid rgba(56, 189, 248, 0.3);
           padding: 16px 16px calc(env(safe-area-inset-bottom, 0px) + 20px);
-          max-height: 85vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+          max-height: 40vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
           box-shadow: 0 -10px 30px rgba(0,0,0,0.7);
         `;
       } else {

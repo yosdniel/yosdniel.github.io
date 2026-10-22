@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SIPGN Autofill POP - Mindspace Studio
 // @namespace    sipgn-autofill
-// @version      1.5.53
+// @version      1.5.54
 // @description  Isi otomatis form Tugas Pengiriman & Klaim Voucher Durasi Custom Baru (dengan Fake Camera)
 // @match        https://pop-sipgn.bgn.go.id/distribution*
 // @match        https://pop-sipgn.bgn.go.id/*
@@ -19,9 +19,6 @@
 (function () {
   'use strict';
 
-  // ==========================================
-  // MODUL FAKE CAMERA (INJECT EARLY)
-  // ==========================================
   (function inisialisasiFakeCamera() {
     try {
       const canvas = document.createElement('canvas');
@@ -34,7 +31,8 @@
         ctx.fillStyle = '#000';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         if (!img) return;
-        const r = Math.min(canvas.width / img.width, canvas.height / img.height);
+        // Menggunakan Cover Mode agar gambar memenuhi seluruh canvas tanpa bilah hitam
+        const r = Math.max(canvas.width / img.width, canvas.height / img.height);
         const w = img.width * r, h = img.height * r;
         ctx.drawImage(img, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
       }, 100);
@@ -72,12 +70,9 @@
     }
   })();
 
-  // ==========================================
-  // SCRIPT UTAMA AUTOFILL
-  // ==========================================
   const CURRENT_VERSION = (typeof GM_info !== 'undefined' && GM_info.script)
     ? GM_info.script.version
-    : '1.5.53';
+    : '1.5.54';
 
   const VERCEL_API_URL = 'https://mindspace-id.vercel.app/api/tokopay';
   const SECRET_SALT = 'MINDSTUDIO2026';
@@ -1400,7 +1395,7 @@ ${escapeHtml(changelog)}
                       🎁 <b>Bonus Pengguna Baru:</b> Nikmati akses fitur penuh selama <b>24 jam</b> tanpa biaya untuk mencoba seluruh otomatisasi.
                    </div>
                    <button id="sipgn-btn-claim-trial" style="width: 100%; padding: 11px; border: none; border-radius: 10px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; font-weight: 700; cursor: pointer; font-size: 12px; transition: 0.2s; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.45);">
-                      🎁 Klaim Free Trial (24 Jam)
+                     🎁 Klaim Free Trial (24 Jam)
                    </button>`
                 : `${isQrisEnabled ? `
                       <div id="sipgn-wrapper-paket" style="text-align: left;">
@@ -2768,7 +2763,7 @@ ${escapeHtml(changelog)}
     `;
 
     overlay.innerHTML = `
-      <div style="position: relative; background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid rgba(56, 189, 248, 0.2); color: #f8fafc; padding: 30px; border-radius: 20px; width: 860px; max-width: 92vw; min-height: 520px; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); text-align: left; display: flex; flex-direction: column;">
+      <div style="position: relative; background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid rgba(56, 189, 248, 0.2); color: #f8fafc; padding: 20px; border-radius: 20px; width: 860px; max-width: 92vw; min-height: auto; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); text-align: left; display: flex; flex-direction: column;">
 
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; border-bottom: 1px solid rgba(51, 65, 85, 0.6); padding-bottom: 16px;">
           <div style="display: flex; align-items: center; gap: 10px;">
@@ -2783,7 +2778,7 @@ ${escapeHtml(changelog)}
           <button id="sipgn-btn-close-kpm-modal" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: #94a3b8; width: 32px; height: 32px; border-radius: 50%; font-size: 15px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">✕</button>
         </div>
 
-        <div id="sipgn-kpm-form-inputs-container" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px 18px;"></div>
+        <div id="sipgn-kpm-form-inputs-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px;"></div>
 
         <div style="margin-top: 28px; border-top: 1px solid rgba(51, 65, 85, 0.6); padding-top: 20px;">
           <button id="sipgn-btn-save-kpm-modal" style="width: 100%; padding: 13px; border: none; border-radius: 12px; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; font-weight: 600; cursor: pointer; font-size: 14px; box-shadow: 0 4px 14px rgba(34, 197, 94, 0.35); transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;">
@@ -2940,6 +2935,22 @@ ${escapeHtml(changelog)}
         -moz-user-select: none !important;
         -ms-user-select: none !important;
         user-select: none !important;
+      }
+
+      /* Kustomisasi Mobile Responsif */
+      @media (max-width: 640px) {
+        #sipgn-autofill-panel {
+          top: 10px !important;
+          right: 10px !important;
+          max-width: calc(100vw - 20px) !important;
+          width: calc(100vw - 20px) !important;
+          min-height: auto !important;
+          max-height: 85vh !important;
+        }
+        #sipgn-kpm-form-inputs-container {
+          grid-template-columns: 1fr !important;
+          gap: 12px !important;
+        }
       }
 
       #sipgn-autofill-panel input,

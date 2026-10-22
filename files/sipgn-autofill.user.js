@@ -136,7 +136,7 @@
         }
       </style>
       <div style="position: relative; background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(56, 189, 248, 0.3); backdrop-filter: blur(16px); color: #f8fafc; padding: 36px 30px; border-radius: 24px; width: 380px; max-width: 90vw; text-align: center; box-shadow: 0 30px 60px -15px rgba(0,0,0,0.8);">
-
+        
         <div style="position: relative; width: 80px; height: 80px; margin: 0 auto 20px auto;">
           <div style="position: absolute; inset: 0; border: 3px solid rgba(56, 189, 248, 0.15); border-top-color: #38bdf8; border-radius: 50%; animation: sipgnRotateRing 1.2s linear infinite;"></div>
           <div style="width: 100%; height: 100%; background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(37, 99, 235, 0.3)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 34px; animation: sipgnPulseGlow 2.5s infinite;">
@@ -144,9 +144,9 @@
           </div>
         </div>
 
-        <h3 style="margin: 0 0 2px 0; font-size: 20px; font-weight: 800; background: linear-gradient(135deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">SIPGN Autofill POP</h3>
-        <div style="font-size: 11px; color: #94a3b8; font-weight: 600; margin-bottom: 15px;">Versi v${CURRENT_VERSION}</div>
-        <div style="font-size: 13px; font-weight: 700; color: #38bdf8; margin-bottom: 10px; letter-spacing: 0.3px;">${escapeHtml(sapaanTeks)}</div>
+        <h3 style="margin: 0 0 4px 0; font-size: 20px; font-weight: 800; background: linear-gradient(135deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">SIPGN Autofill POP</h3>
+        <div style="font-size: 11px; color: #94a3b8; font-weight: 600; margin-bottom: 6px;">Versi v${CURRENT_VERSION}</div>
+        <div style="font-size: 13px; font-weight: 700; color: #38bdf8; margin-bottom: 20px; letter-spacing: 0.3px;">${escapeHtml(sapaanTeks)}</div>
 
         <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(51, 65, 85, 0.6); border-radius: 12px; padding: 12px; margin-bottom: 20px;">
           <div id="sipgn-splash-status" style="font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 8px;">Memeriksa Sistem & Lisensi...</div>
@@ -3108,6 +3108,40 @@ ${escapeHtml(changelog)}
           grid-template-columns: 1fr !important;
           gap: 12px !important;
         }
+
+        /* Standardize all pop-up modals on mobile to bottom sheet with max-height 40% */
+        #sipgn-license-modal,
+        #sipgn-kpm-form-modal,
+        #sipgn-update-modal,
+        #sipgn-confirm-modal,
+        #sipgn-alert-modal,
+        #sipgn-status-modal,
+        #sipgn-welcome-sppg-modal,
+        #sipgn-backup-info-modal,
+        #sipgn-import-choice-modal,
+        #sipgn-success-modal {
+          align-items: flex-end !important;
+        }
+
+        #sipgn-license-modal > div,
+        #sipgn-kpm-form-modal > div,
+        #sipgn-update-modal > div,
+        #sipgn-confirm-modal > div,
+        #sipgn-alert-modal > div,
+        #sipgn-status-modal > div,
+        #sipgn-welcome-sppg-modal > div,
+        #sipgn-backup-info-modal > div,
+        #sipgn-import-choice-modal > div,
+        #sipgn-success-modal > div {
+          width: 100vw !important;
+          max-width: 100vw !important;
+          max-height: 40vh !important;
+          border-radius: 24px 24px 0 0 !important;
+          padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 18px) !important;
+          margin: 0 !important;
+          overflow-y: auto !important;
+          -webkit-overflow-scrolling: touch !important;
+        }
       }
 
       #sipgn-autofill-panel input,
@@ -3937,14 +3971,14 @@ ${escapeHtml(changelog)}
       });
 
       loader.updateProgress(20, 'Memulai Pemeriksaan Sistem...');
-
+      
       // Mengatur waktu jeda acak antara 3000ms (3s) hingga 6000ms (6s)
       const randomDelayMs = Math.floor(Math.random() * (6000 - 3000 + 1)) + 3000;
       const stepTime = randomDelayMs / 3;
 
       await wait(stepTime);
       loader.updateProgress(50, 'Menghubungkan ke Server...');
-
+      
       const resStatus = await ambilStatusLisensiServer();
 
       if (!resStatus || resStatus.status === 'error') {
@@ -3956,7 +3990,7 @@ ${escapeHtml(changelog)}
 
       await wait(stepTime);
       loader.updateProgress(80, 'Memuat Data Penugasan...');
-
+      
       await wait(stepTime);
 
       loader.siapLanjut();

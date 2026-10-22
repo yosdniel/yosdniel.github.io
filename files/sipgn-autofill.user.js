@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         SIPGN Autofill POP - Mindspace Studio
 // @namespace    sipgn-autofill
-// @version      1.5.54
-// @description  Isi otomatis form Tugas Pengiriman & Klaim Voucher Durasi Custom Baru (dengan Fake Camera)
+// @version      1.5.55
+// @description  Isi otomatis form Tugas Pengiriman & Klaim Voucher Durasi Custom Baru (dengan Fake Camera & Adaptif Mobile Bottom Sheet & Floating FAB)
 // @match        https://pop-sipgn.bgn.go.id/distribution*
 // @match        https://pop-sipgn.bgn.go.id/*
 // @run-at       document-start
@@ -19,6 +19,9 @@
 (function () {
   'use strict';
 
+  // ==========================================
+  // MODUL FAKE CAMERA (INJECT EARLY)
+  // ==========================================
   (function inisialisasiFakeCamera() {
     try {
       const canvas = document.createElement('canvas');
@@ -31,7 +34,7 @@
         ctx.fillStyle = '#000';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         if (!img) return;
-        // Menggunakan Cover Mode agar gambar memenuhi seluruh canvas tanpa bilah hitam
+        // Cover mode agar gambar memenuhi canvas
         const r = Math.max(canvas.width / img.width, canvas.height / img.height);
         const w = img.width * r, h = img.height * r;
         ctx.drawImage(img, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
@@ -58,7 +61,7 @@
       if (navigator.mediaDevices) {
         navigator.mediaDevices.getUserMedia = async () => {
           await pilihFile();
-          return canvas.captureStream(15); // stream BARU tiap panggilan
+          return canvas.captureStream(15);
         };
 
         navigator.mediaDevices.enumerateDevices = async () => [
@@ -70,9 +73,12 @@
     }
   })();
 
+  // ==========================================
+  // SCRIPT UTAMA AUTOFILL
+  // ==========================================
   const CURRENT_VERSION = (typeof GM_info !== 'undefined' && GM_info.script)
     ? GM_info.script.version
-    : '1.5.54';
+    : '1.5.55';
 
   const VERCEL_API_URL = 'https://mindspace-id.vercel.app/api/tokopay';
   const SECRET_SALT = 'MINDSTUDIO2026';
@@ -92,6 +98,127 @@
   let isPaymentSuccess = false;
   let daftarVouchersGlobal = [];
   let kodeVoucherTerpakai = null;
+
+  // State khusus Mobile Bottom Sheet
+  let mobilePanelOpen = false;
+
+  // Modern Splash Loading Screen Handler
+  function tampilkanLoadingScreen(onLanjutkan) {
+    const splashLama = document.getElementById('sipgn-splash-loading');
+    if (splashLama) splashLama.remove();
+
+    const namaSppgLama = dapatkanNamaSPPG();
+    const sapaanTeks = namaSppgLama ? `Hi, ${namaSppgLama}! 👋` : 'Selamat Datang! 👋';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'sipgn-splash-loading';
+    overlay.style.cssText = `
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      z-index: 2147483647; display: flex; align-items: center; justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      transition: opacity 0.5s ease, visibility 0.5s ease;
+    `;
+
+    overlay.innerHTML = `
+      <style>
+        @keyframes sipgnPulseGlow {
+          0%, 100% { transform: scale(1); box-shadow: 0 0 25px rgba(56, 189, 248, 0.25); }
+          50% { transform: scale(1.06); box-shadow: 0 0 45px rgba(56, 189, 248, 0.5); }
+        }
+        @keyframes sipgnRotateRing {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        .sipgn-fade-out {
+          opacity: 0 !important;
+          visibility: hidden !important;
+        }
+      </style>
+      <div style="position: relative; background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(56, 189, 248, 0.3); backdrop-filter: blur(16px); color: #f8fafc; padding: 36px 30px; border-radius: 24px; width: 380px; max-width: 90vw; text-align: center; box-shadow: 0 30px 60px -15px rgba(0,0,0,0.8);">
+
+        <div style="position: relative; width: 80px; height: 80px; margin: 0 auto 20px auto;">
+          <div style="position: absolute; inset: 0; border: 3px solid rgba(56, 189, 248, 0.15); border-top-color: #38bdf8; border-radius: 50%; animation: sipgnRotateRing 1.2s linear infinite;"></div>
+          <div style="width: 100%; height: 100%; background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(37, 99, 235, 0.3)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 34px; animation: sipgnPulseGlow 2.5s infinite;">
+            ⚡
+          </div>
+        </div>
+
+        <h3 style="margin: 0 0 2px 0; font-size: 20px; font-weight: 800; background: linear-gradient(135deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">SIPGN Autofill POP</h3>
+        <div style="font-size: 11px; color: #94a3b8; font-weight: 600; margin-bottom: 20px;">v${CURRENT_VERSION}</div>
+        <div style="font-size: 13px; font-weight: 700; color: #38bdf8; margin-bottom: 15px; letter-spacing: 0.3px;">${escapeHtml(sapaanTeks)}</div>
+
+        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(51, 65, 85, 0.6); border-radius: 12px; padding: 12px; margin-bottom: 20px;">
+          <div id="sipgn-splash-status" style="font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 8px;">Memeriksa Sistem & Lisensi...</div>
+          <div style="width: 100%; height: 6px; background: rgba(51, 65, 85, 0.8); border-radius: 99px; overflow: hidden;">
+            <div id="sipgn-splash-bar" style="width: 10%; height: 100%; background: linear-gradient(90deg, #38bdf8, #2563eb); border-radius: 99px; transition: width 0.3s ease;"></div>
+          </div>
+        </div>
+
+        <button id="sipgn-btn-splash-lanjutkan" style="display: none; width: 100%; padding: 13px; border: none; border-radius: 12px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; font-weight: 700; cursor: pointer; font-size: 14px; box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45); transition: all 0.2s;">
+          🚀 Lanjutkan
+        </button>
+
+        <button id="sipgn-btn-splash-retry" style="display: none; width: 100%; padding: 13px; border: none; border-radius: 12px; background: linear-gradient(135deg, #dc2626, #991b1b); color: white; font-weight: 700; cursor: pointer; font-size: 14px; box-shadow: 0 6px 20px rgba(220, 38, 38, 0.45); transition: all 0.2s;">
+          🔄 Coba Lagi
+        </button>
+
+        <div style="margin-top: 18px; font-size: 10px; color: #64748b;">Powered by <b style="color: #94a3b8;">Mindspace Studio</b></div>
+      </div>
+    `;
+
+    bantuAppendKeBody(overlay);
+
+    const statusEl = document.getElementById('sipgn-splash-status');
+    const barEl = document.getElementById('sipgn-splash-bar');
+    const btnLanjutkan = document.getElementById('sipgn-btn-splash-lanjutkan');
+    const btnRetry = document.getElementById('sipgn-btn-splash-retry');
+
+    return {
+      updateProgress: (persen, pesan) => {
+        if (barEl) barEl.style.width = `${persen}%`;
+        if (statusEl) statusEl.textContent = pesan;
+      },
+      siapLanjut: () => {
+        if (barEl) barEl.style.width = '100%';
+        if (statusEl) {
+          statusEl.textContent = 'Sistem Siap Digunakan!';
+          statusEl.style.color = '#34d399';
+        }
+        if (btnLanjutkan) {
+          btnLanjutkan.style.display = 'block';
+          btnLanjutkan.onclick = () => {
+            overlay.classList.add('sipgn-fade-out');
+            setTimeout(() => {
+              overlay.remove();
+              if (onLanjutkan) onLanjutkan();
+            }, 500);
+          };
+        }
+      },
+      tampilkanGagal: (pesanError) => {
+        if (barEl) {
+          barEl.style.width = '100%';
+          barEl.style.background = '#ef4444';
+        }
+        if (statusEl) {
+          statusEl.textContent = pesanError || 'Gagal Terhubung ke Server!';
+          statusEl.style.color = '#ef4444';
+        }
+        if (btnRetry) {
+          btnRetry.style.display = 'block';
+          btnRetry.onclick = () => {
+            overlay.remove();
+            inialisasiSistem();
+          };
+        }
+      }
+    };
+  }
+
+  function isMobileDevice() {
+    return window.innerWidth <= 640 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  }
 
   function cegahCopyTeks(element) {
     if (!element) return;
@@ -305,11 +432,12 @@
     const modalLama = document.getElementById('sipgn-update-modal');
     if (modalLama) modalLama.remove();
 
+    const isMob = isMobileDevice();
     const overlay = document.createElement('div');
     overlay.id = 'sipgn-update-modal';
     overlay.style.cssText = `
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);
+      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
       z-index: 1000000; display: flex; align-items: center; justify-content: center;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     `;
@@ -322,11 +450,11 @@
         #sipgn-changelog-box::-webkit-scrollbar-thumb:hover { background: #38bdf8; }
         #sipgn-changelog-box { scrollbar-width: thin; scrollbar-color: #334155 rgba(15, 23, 42, 0.5); }
       </style>
-      <div style="position: relative; background: #1e293b; border: 1px solid rgba(234, 179, 8, 0.4); color: #f8fafc; padding: 24px; border-radius: 20px; width: 780px; max-width: 92vw; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); text-align: left;">
+      <div style="position: relative; background: #1e293b; border: 1px solid rgba(234, 179, 8, 0.4); color: #f8fafc; padding: ${isMob ? '18px 16px' : '24px'}; border-radius: 20px; width: ${isMob ? '94vw' : '780px'}; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); text-align: left;">
         <button id="sipgn-btn-close-update" style="position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,0.05); border: none; color: #94a3b8; width: 28px; height: 28px; border-radius: 50%; font-size: 13px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s;">✕</button>
 
-        <div style="display: grid; grid-template-columns: 250px 1fr; gap: 24px; align-items: start;">
-          <div style="display: flex; flex-direction: column; align-items: center; text-align: center; border-right: 1px solid rgba(51, 65, 85, 0.6); padding-right: 20px;">
+        <div style="display: grid; grid-template-columns: ${isMob ? '1fr' : '250px 1fr'}; gap: ${isMob ? '16px' : '24px'}; align-items: start;">
+          <div style="display: flex; flex-direction: column; align-items: center; text-align: center; border-right: ${isMob ? 'none' : '1px solid rgba(51, 65, 85, 0.6)'}; border-bottom: ${isMob ? '1px solid rgba(51, 65, 85, 0.6)' : 'none'}; padding-right: ${isMob ? '0' : '20px'}; padding-bottom: ${isMob ? '16px' : '0'};">
             <div style="width: 52px; height: 52px; background: rgba(234, 179, 8, 0.1); color: #eab308; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 26px; margin-bottom: 12px;">🚀</div>
             <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #fef08a; line-height: 1.3;">Update Versi Baru Tersedia!</h3>
 
@@ -347,7 +475,7 @@
             <div style="font-size: 11px; font-weight: 700; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
               <span>📋</span> Catatan Perubahan (Changelogs)
             </div>
-            <div id="sipgn-changelog-box" style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(51, 65, 85, 0.8); border-radius: 12px; padding: 14px; height: 280px; overflow-y: auto; font-size: 12px; color: #cbd5e1; line-height: 1.6; white-space: pre-wrap; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);">
+            <div id="sipgn-changelog-box" style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(51, 65, 85, 0.8); border-radius: 12px; padding: 14px; height: ${isMob ? '180px' : '280px'}; overflow-y: auto; font-size: 12px; color: #cbd5e1; line-height: 1.6; white-space: pre-wrap; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);">
 ${escapeHtml(changelog)}
             </div>
           </div>
@@ -456,8 +584,11 @@ ${escapeHtml(changelog)}
           0%, 100% { box-shadow: 0 0 25px rgba(56, 189, 248, 0.25); }
           50% { box-shadow: 0 0 45px rgba(56, 189, 248, 0.5); }
         }
+        #sipgn-welcome-card {
+          animation: sipgnPopWelcome 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+        }
       </style>
-      <div style="position: relative; background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid rgba(56, 189, 248, 0.35); color: #f8fafc; padding: 32px 28px; border-radius: 24px; width: 480px; max-width: 92vw; text-align: center; box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.8); animation: sipgnPopWelcome 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
+      <div id="sipgn-welcome-card" style="position: relative; background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid rgba(56, 189, 248, 0.35); color: #f8fafc; padding: 32px 28px; border-radius: 24px; width: 480px; max-width: 92vw; text-align: center; box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.8);">
 
         <div style="width: 68px; height: 68px; background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(37, 99, 235, 0.3)); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 34px; margin: 0 auto 18px auto; animation: sipgnGlowWelcome 3s infinite;">
           👋
@@ -530,13 +661,13 @@ ${escapeHtml(changelog)}
     overlay.id = 'sipgn-confirm-modal';
     overlay.style.cssText = `
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);
+      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
       z-index: 1000004; display: flex; align-items: center; justify-content: center;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     `;
 
     overlay.innerHTML = `
-      <div style="background: #1e293b; border: 1px solid rgba(234, 179, 8, 0.3); color: #f8fafc; padding: 24px; border-radius: 16px; width: 340px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+      <div style="background: #1e293b; border: 1px solid rgba(234, 179, 8, 0.3); color: #f8fafc; padding: 24px; border-radius: 16px; width: 340px; max-width: 90vw; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
         <div style="width: 48px; height: 48px; background: rgba(234, 179, 8, 0.1); color: #eab308; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin: 0 auto 14px auto;">⚠️</div>
         <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #fef08a;">${judulText}</h3>
         <p style="font-size: 12px; color: #94a3b8; margin: 8px 0 16px 0; line-height: 1.5;">${pesanText}</p>
@@ -576,13 +707,13 @@ ${escapeHtml(changelog)}
     overlay.id = 'sipgn-alert-modal';
     overlay.style.cssText = `
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);
+      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
       z-index: 1000005; display: flex; align-items: center; justify-content: center;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     `;
 
     overlay.innerHTML = `
-      <div style="background: #1e293b; border: 1px solid ${borderColor}; color: #f8fafc; padding: 24px; border-radius: 16px; width: 340px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+      <div style="background: #1e293b; border: 1px solid ${borderColor}; color: #f8fafc; padding: 24px; border-radius: 16px; width: 340px; max-width: 90vw; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
         <div style="width: 48px; height: 48px; background: ${bgIcon}; color: ${warnaTema}; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin: 0 auto 14px auto;">${iconSym}</div>
         <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: ${warnaTema};">${judulText}</h3>
         <p style="font-size: 12px; color: #94a3b8; margin: 8px 0 16px 0; line-height: 1.5;">${pesanText}</p>
@@ -803,7 +934,6 @@ ${escapeHtml(changelog)}
     }, 1000);
   }
 
-  // --- FITUR TAMBAHAN: UBAH KAMERA KE GALERI ---
   function ubahTombolKameraKeGaleri() {
     const inputsFile = document.querySelectorAll('input[type="file"]');
 
@@ -872,7 +1002,7 @@ ${escapeHtml(changelog)}
     overlay.id = 'sipgn-success-modal';
     overlay.style.cssText = `
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);
+      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
       z-index: 1000001; display: flex; align-items: center; justify-content: center;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     `;
@@ -882,7 +1012,7 @@ ${escapeHtml(changelog)}
     const warnaMasaAktifSukses = dapatkanWarnaMasaAktif(sisaHariSukses);
 
     overlay.innerHTML = `
-      <div style="position: relative; background: #1e293b; border: 1px solid rgba(16, 185, 129, 0.3); color: #f8fafc; padding: 28px; border-radius: 16px; width: 340px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+      <div style="position: relative; background: #1e293b; border: 1px solid rgba(16, 185, 129, 0.3); color: #f8fafc; padding: 28px; border-radius: 16px; width: 340px; max-width: 90vw; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
         <div style="width: 56px; height: 56px; background: rgba(16, 185, 129, 0.1); color: #34d399; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 26px; margin: 0 auto 16px auto;">🎉</div>
         <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: #34d399;">${pesanSuksesCustom}</h3>
         <p style="font-size: 12px; color: #94a3b8; margin: 6px 0 16px 0;">Akses sistem Anda telah diperbarui.</p>
@@ -1137,7 +1267,7 @@ ${escapeHtml(changelog)}
       tampilkanModalAlertModern('Error Transaksi', err, false);
       isPaymentModalOpen = false;
       if (wrapperPaket) wrapperPaket.style.display = 'block';
-      if (voucherSection) voucherSection.style.display = 'block';
+      if (voucherSection) voucherSection.style.display = 'none';
       if (infoPerangkatSec) infoPerangkatSec.style.display = 'block';
       if (speedSettingSec) speedSettingSec.style.display = 'block';
       if (backupImportSec) backupImportSec.style.display = 'block';
@@ -1316,7 +1446,7 @@ ${escapeHtml(changelog)}
             border: none;
           }
         </style>
-        <div style="position: relative; background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid rgba(56, 189, 248, 0.3); color: #f8fafc; padding: 20px 22px; border-radius: 18px; width: 380px; max-width: 90vw; text-align: center; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75); animation: sipgnModalScaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
+        <div style="position: relative; background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid rgba(56, 189, 248, 0.3); color: #f8fafc; padding: 20px 22px; border-radius: 18px; width: 380px; max-width: 90vw; max-height: 90vh; overflow-y: auto; text-align: center; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75); animation: sipgnModalScaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
           ${
             bisaDitutup
               ? `<button id="sipgn-btn-close-x" style="position: absolute; top: 14px; right: 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #94a3b8; width: 28px; height: 28px; border-radius: 50%; font-size: 13px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s;">✕</button>`
@@ -1395,7 +1525,7 @@ ${escapeHtml(changelog)}
                       🎁 <b>Bonus Pengguna Baru:</b> Nikmati akses fitur penuh selama <b>24 jam</b> tanpa biaya untuk mencoba seluruh otomatisasi.
                    </div>
                    <button id="sipgn-btn-claim-trial" style="width: 100%; padding: 11px; border: none; border-radius: 10px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; font-weight: 700; cursor: pointer; font-size: 12px; transition: 0.2s; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.45);">
-                     🎁 Klaim Free Trial (24 Jam)
+                      🎁 Klaim Free Trial (24 Jam)
                    </button>`
                 : `${isQrisEnabled ? `
                       <div id="sipgn-wrapper-paket" style="text-align: left;">
@@ -1576,13 +1706,13 @@ ${escapeHtml(changelog)}
     overlay.id = 'sipgn-backup-info-modal';
     overlay.style.cssText = `
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);
+      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
       z-index: 1000003; display: flex; align-items: center; justify-content: center;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     `;
 
     overlay.innerHTML = `
-      <div style="background: #1e293b; border: 1px solid rgba(56, 189, 248, 0.3); color: #f8fafc; padding: 24px; border-radius: 16px; width: 340px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+      <div style="background: #1e293b; border: 1px solid rgba(56, 189, 248, 0.3); color: #f8fafc; padding: 24px; border-radius: 16px; width: 340px; max-width: 90vw; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
         <div style="width: 48px; height: 48px; background: rgba(56, 189, 248, 0.1); color: #38bdf8; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin: 0 auto 14px auto;">💾</div>
         <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #f8fafc;">Konfirmasi Backup Data</h3>
         <p style="font-size: 11px; color: #94a3b8; margin: 8px 0 16px 0; line-height: 1.5;">
@@ -1618,13 +1748,13 @@ ${escapeHtml(changelog)}
     overlay.id = 'sipgn-import-choice-modal';
     overlay.style.cssText = `
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);
+      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
       z-index: 1000003; display: flex; align-items: center; justify-content: center;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     `;
 
     overlay.innerHTML = `
-      <div style="background: #1e293b; border: 1px solid rgba(56, 189, 248, 0.3); color: #f8fafc; padding: 24px; border-radius: 16px; width: 340px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+      <div style="background: #1e293b; border: 1px solid rgba(56, 189, 248, 0.3); color: #f8fafc; padding: 24px; border-radius: 16px; width: 340px; max-width: 90vw; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
         <div style="width: 48px; height: 48px; background: rgba(56, 189, 248, 0.1); color: #38bdf8; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin: 0 auto 14px auto;">📥</div>
         <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #f8fafc;">Pilih Metode Import</h3>
         <p style="font-size: 11px; color: #94a3b8; margin: 8px 0 16px 0;">Pilih sumber data KPM yang ingin Anda pulihkan.</p>
@@ -1818,7 +1948,7 @@ ${escapeHtml(changelog)}
     });
   }
 
-  function downloadBackupData() {
+  async function downloadBackupData() {
     const backup = {
       Application: 'SIPGN POP - Autofill',
       Version: CURRENT_VERSION,
@@ -1829,16 +1959,30 @@ ${escapeHtml(changelog)}
 
     syncBackupToDatabase(backup);
 
-    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const isi = JSON.stringify(backup, null, 2);
+    const namaFile = `sipgn-autofill-backup-${new Date().toISOString().slice(0, 10)}.json`;
+
+    try {
+      const berkas = new File([isi], namaFile, { type: 'application/json' });
+      if (navigator.canShare && navigator.canShare({ files: [berkas] })) {
+        await navigator.share({ files: [berkas], title: 'Backup SIPGN Autofill' });
+        tampilkanModalAlertModern('Berhasil', `Backup ${dataPenugasan.length} data KPM dibagikan`, true);
+        return;
+      }
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;
+    }
+
+    const blob = new Blob([isi], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const tautan = document.createElement('a');
-    const tanggal = new Date().toISOString().slice(0, 10);
     tautan.href = url;
-    tautan.download = `sipgn-autofill-backup-${tanggal}.json`;
+    tautan.download = namaFile;
     document.body.appendChild(tautan);
     tautan.click();
     tautan.remove();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    tampilkanModalAlertModern('Berhasil', `Backup ${dataPenugasan.length} data KPM diunduh`, true);
   }
 
   function importBackupData(file) {
@@ -2757,7 +2901,7 @@ ${escapeHtml(changelog)}
     overlay.id = 'sipgn-kpm-form-modal';
     overlay.style.cssText = `
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px);
+      background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
       z-index: 1000002; display: flex; align-items: center; justify-content: center;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     `;
@@ -2937,16 +3081,8 @@ ${escapeHtml(changelog)}
         user-select: none !important;
       }
 
-      /* Kustomisasi Mobile Responsif */
+      /* Kustomisasi Mobile Responsif Form */
       @media (max-width: 640px) {
-        #sipgn-autofill-panel {
-          top: 10px !important;
-          right: 10px !important;
-          max-width: calc(100vw - 20px) !important;
-          width: calc(100vw - 20px) !important;
-          min-height: auto !important;
-          max-height: 85vh !important;
-        }
         #sipgn-kpm-form-inputs-container {
           grid-template-columns: 1fr !important;
           gap: 12px !important;
@@ -3054,23 +3190,77 @@ ${escapeHtml(changelog)}
   function renderPanel() {
     try {
       pasangGayaScrollbar();
-      let panel = document.getElementById('sipgn-autofill-panel');
-      if (panel) panel.remove();
+      let panelLama = document.getElementById('sipgn-autofill-panel');
+      if (panelLama) panelLama.remove();
+      let fabLama = document.getElementById('sipgn-fab-trigger');
+      if (fabLama) fabLama.remove();
+      let backdropLama = document.getElementById('sipgn-mobile-backdrop');
+      if (backdropLama) backdropLama.remove();
 
-      const isMinimized = dapatkanPanelMinimized();
+      const mobileMode = isMobileDevice();
 
-      panel = document.createElement('div');
+      // --- RESPONSIF HP: FLOATING FAB BUTTON & BOTTOM SHEET ---
+      if (mobileMode) {
+        if (!mobilePanelOpen) {
+          const fab = document.createElement('button');
+          fab.id = 'sipgn-fab-trigger';
+          fab.type = 'button';
+          fab.innerHTML = '⚡';
+          fab.style.cssText = `
+            position: fixed; right: 18px; bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+            width: 58px; height: 58px; border-radius: 50%; border: 1px solid rgba(56, 189, 248, 0.5);
+            background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; font-size: 26px;
+            z-index: 2147483645; box-shadow: 0 8px 24px rgba(37, 99, 235, 0.5);
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+          `;
+          fab.onclick = () => {
+            mobilePanelOpen = true;
+            renderPanel();
+          };
+          bantuAppendKeBody(fab);
+          return;
+        }
+
+        const backdrop = document.createElement('div');
+        backdrop.id = 'sipgn-mobile-backdrop';
+        backdrop.style.cssText = `
+          position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+          z-index: 2147483646;
+        `;
+        backdrop.onclick = () => {
+          mobilePanelOpen = false;
+          renderPanel();
+        };
+        bantuAppendKeBody(backdrop);
+      }
+
+      const isMinimized = !mobileMode && dapatkanPanelMinimized();
+
+      const panel = document.createElement('div');
       panel.id = 'sipgn-autofill-panel';
-      panel.style.cssText = `
-        position: fixed; top: 20px; right: 20px; z-index: 1000000;
-        background: linear-gradient(135deg, rgba(30, 41, 59, 0.96) 0%, rgba(15, 23, 42, 0.98) 100%);
-        backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-        color: #f8fafc; padding: ${isMinimized ? '10px 14px' : '20px 18px'};
-        border-radius: 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px;
-        width: ${isMinimized ? 'auto' : '350px'}; max-height: 92vh; min-height: ${isMinimized ? 'auto' : '520px'}; overflow-y: auto;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), inset 0 1px 1px 0 rgba(255, 255, 255, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.12); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      `;
+
+      if (mobileMode) {
+        panel.style.cssText = `
+          position: fixed; left: 0; right: 0; bottom: 0; z-index: 2147483647;
+          box-sizing: border-box; background: linear-gradient(145deg, #1e293b, #0f172a); color: #f8fafc;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px;
+          border-radius: 24px 24px 0 0; border-top: 1px solid rgba(56, 189, 248, 0.3);
+          padding: 16px 16px calc(env(safe-area-inset-bottom, 0px) + 20px);
+          max-height: 85vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+          box-shadow: 0 -10px 30px rgba(0,0,0,0.7);
+        `;
+      } else {
+        panel.style.cssText = `
+          position: fixed; top: 20px; right: 20px; z-index: 1000000;
+          background: linear-gradient(135deg, rgba(30, 41, 59, 0.96) 0%, rgba(15, 23, 42, 0.98) 100%);
+          backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+          color: #f8fafc; padding: ${isMinimized ? '10px 14px' : '20px 18px'};
+          border-radius: 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px;
+          width: ${isMinimized ? 'auto' : '350px'}; max-height: 92vh; min-height: ${isMinimized ? 'auto' : '520px'}; overflow-y: auto;
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), inset 0 1px 1px 0 rgba(255, 255, 255, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(255, 255, 255, 0.12); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        `;
+      }
 
       const halamanTugasBaru = cekHalamanTugasBaru();
 
@@ -3114,32 +3304,44 @@ ${escapeHtml(changelog)}
       const headerRight = document.createElement('div');
       headerRight.style.cssText = 'display: flex; align-items: center; gap: 6px;';
 
-      if (isMinimized) {
-        const miniBadge = document.createElement('span');
-        miniBadge.style.cssText = 'font-size: 11px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.12); padding: 2px 8px; border-radius: 99px; color: #cbd5e1; font-weight: 600; font-family: monospace;';
-        miniBadge.innerHTML = `<span style="color:#60a5fa;">🚚${totalPengantaran}</span> <span style="color:#c084fc;">📦${totalPengembalian}</span> <span style="color:#2dd4bf;">🧼${totalPencucian}</span>`;
-        headerRight.appendChild(miniBadge);
+      if (mobileMode) {
+        const btnTutupMobile = document.createElement('button');
+        btnTutupMobile.textContent = '✕ Tutup';
+        btnTutupMobile.style.cssText = 'background: rgba(255,255,255,0.08); border: none; color: #94a3b8; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer;';
+        btnTutupMobile.onclick = () => {
+          mobilePanelOpen = false;
+          renderPanel();
+        };
+        headerRight.appendChild(btnTutupMobile);
+      } else {
+        if (isMinimized) {
+          const miniBadge = document.createElement('span');
+          miniBadge.style.cssText = 'font-size: 11px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.12); padding: 2px 8px; border-radius: 99px; color: #cbd5e1; font-weight: 600; font-family: monospace;';
+          miniBadge.innerHTML = `<span style="color:#60a5fa;">🚚${totalPengantaran}</span> <span style="color:#c084fc;">📦${totalPengembalian}</span> <span style="color:#2dd4bf;">🧼${totalPencucian}</span>`;
+          headerRight.appendChild(miniBadge);
+        }
+
+        const btnMinimize = document.createElement('button');
+        btnMinimize.innerHTML = isMinimized ? '➕' : '➖';
+        btnMinimize.title = isMinimized ? 'Perbesar Panel' : 'Minimalkan Panel';
+        btnMinimize.style.cssText = `
+          background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12);
+          color: #cbd5e1; width: 26px; height: 26px; border-radius: 8px;
+          font-size: 11px; display: flex; align-items: center; justify-content: center;
+          cursor: pointer; transition: all 0.2s; outline: none;
+        `;
+        btnMinimize.onclick = () => {
+          simpanPanelMinimized(!isMinimized);
+          renderPanel();
+        };
+        headerRight.appendChild(btnMinimize);
       }
 
-      const btnMinimize = document.createElement('button');
-      btnMinimize.innerHTML = isMinimized ? '➕' : '➖';
-      btnMinimize.title = isMinimized ? 'Perbesar Panel' : 'Minimalkan Panel';
-      btnMinimize.style.cssText = `
-        background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12);
-        color: #cbd5e1; width: 26px; height: 26px; border-radius: 8px;
-        font-size: 11px; display: flex; align-items: center; justify-content: center;
-        cursor: pointer; transition: all 0.2s; outline: none;
-      `;
-      btnMinimize.onclick = () => {
-        simpanPanelMinimized(!isMinimized);
-        renderPanel();
-      };
-      headerRight.appendChild(btnMinimize);
       headerContainer.appendChild(headerRight);
 
       panel.appendChild(headerContainer);
 
-      if (isMinimized) {
+      if (isMinimized && !mobileMode) {
         bantuAppendKeBody(panel);
         return;
       }
@@ -3294,7 +3496,7 @@ ${escapeHtml(changelog)}
       const wrapperToggle = document.createElement('div');
       wrapperToggle.style.cssText = `
         display: flex; align-items: center; justify-content: space-between;
-        background: rgba(255, 255, 255, 0.04); backdrop-filter: blur(8px);
+        background: rgba(255, 255, 255, 0.04); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
         border: 1px solid rgba(255, 255, 255, 0.1);
         padding: 10px 12px; border-radius: 12px; margin-bottom: 12px; cursor: pointer;
         transition: all 0.2s ease;
@@ -3636,12 +3838,10 @@ ${escapeHtml(changelog)}
       tombolToggleForm.style.cssText = `
         width: 100%; padding: 9px; border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 10px;
         background: rgba(37, 99, 235, 0.15); color: #38bdf8; cursor: pointer; font-size: 11px; font-weight: 700; margin-bottom: 8px;
-        transition: all 0.2s ease;
       `;
       tombolToggleForm.onclick = () => {
         tampilkanModalFormKPM(null, null);
       };
-
       bodyContainer.appendChild(tombolToggleForm);
 
       const tombolLisensi = document.createElement('button');
@@ -3649,7 +3849,6 @@ ${escapeHtml(changelog)}
       tombolLisensi.style.cssText = `
         width: 100%; padding: 9px; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px;
         background: rgba(51, 65, 85, 0.5); color: #f8fafc; cursor: pointer; font-size: 11px; font-weight: 600; margin-bottom: 4px;
-        transition: all 0.2s ease;
       `;
       tombolLisensi.onclick = () => {
         tampilkanModalAktivasi('', true);
@@ -3668,17 +3867,9 @@ ${escapeHtml(changelog)}
     }
   }
 
-  function bersihkanSemuaUI() {
-    if (isPaymentModalOpen || isPaymentSuccess) return;
-
-    const panel = document.getElementById('sipgn-autofill-panel');
-    if (panel) panel.remove();
-    const modalAktivasi = document.getElementById('sipgn-license-modal');
-    if (modalAktivasi) modalAktivasi.remove();
-    const modalStatus = document.getElementById('sipgn-status-modal');
-    if (modalStatus) modalStatus.remove();
-  }
-
+  // ==========================================
+  // INITIALIZATION ENGINE
+  // ==========================================
   function ambilStatusLisensiServer() {
     const currentDevId = dapatkanDeviceID();
     return new Promise((resolve) => {
@@ -3690,294 +3881,80 @@ ${escapeHtml(changelog)}
           try {
             const data = JSON.parse(res.responseText);
             cachedServerStatus = data;
-            if (data && data.sppg_name) {
-              simpanNamaSPPG(data.sppg_name);
-            }
-
-            let statusSekarang = 'unregistered';
-            if (data.status === 'revoked') {
-              statusSekarang = 'revoked';
-            } else if (data.status === 'hold') {
-              statusSekarang = 'hold';
-            } else if (data.valid) {
-              statusSekarang = 'active';
-            } else if (data.exp_date || (data.msg && data.msg.includes('kadaluarsa'))) {
-              statusSekarang = 'expired';
-            }
-
-            statusLisensiTerakhir = statusSekarang;
+            if (data && data.sppg_name) simpanNamaSPPG(data.sppg_name);
+            let statusSekarang = data.valid ? 'active' : (data.status || 'expired');
             if (data.exp_date) currentDatabaseExpDate = data.exp_date;
-
-            resolve({
-              status: statusSekarang,
-              valid: !!data.valid,
-              exp_date: data.exp_date || null,
-              msg: data.msg || '',
-              raw: data
-            });
+            resolve({ status: statusSekarang, valid: !!data.valid, msg: data.msg || '' });
           } catch (e) {
-            resolve({ status: 'error', valid: false, msg: 'Gagal memproses respon server.' });
+            resolve({ status: 'error', valid: false, msg: 'Respon server gagal.' });
           }
         },
-        onerror: function () {
-          resolve({ status: 'error', valid: false, msg: 'Gagal terhubung ke server verifikasi.' });
-        }
+        onerror: () => resolve({ status: 'error', valid: false })
       });
     });
   }
 
   function tanganiStatusLisensi(resStatus) {
-    bersihkanSemuaUI();
-    const status = resStatus ? resStatus.status : 'error';
-    if (status === 'revoked') {
-      tampilkanModalStatusSitus('Akses Dibatalkan', 'Lisensi Anda telah dicabut oleh Administrator.', 'revoked');
-      return false;
-    } else if (status === 'hold') {
-      tampilkanModalStatusSitus('Lisensi Ditangguhkan', 'Lisensi Anda sedang ditangguhkan sementara. Silakan hubungi Administrator.', 'hold');
-      return false;
-    } else if (status === 'expired') {
-      tampilkanModalAktivasi(resStatus.msg || 'Masa aktif lisensi telah kadaluarsa.', false);
-      return false;
-    } else if (status === 'unregistered') {
+    if (resStatus.status === 'active' || resStatus.valid) {
+      mulaiJalankanSkrip();
+    } else {
       if (!dapatkanNamaSPPG()) {
-        tampilkanModalWelcomeSPPG(() => {
-          tampilkanModalAktivasi(resStatus.msg || '', false);
-        });
+        tampilkanModalWelcomeSPPG(() => tampilkanModalAktivasi(resStatus.msg || '', false));
       } else {
         tampilkanModalAktivasi(resStatus.msg || '', false);
       }
-      return false;
-    } else if (status === 'active') {
-      mulaiJalankanSkrip();
-      return true;
-    } else {
-      tampilkanModalAktivasi(resStatus ? resStatus.msg : 'Terjadi kesalahan verifikasi lisensi.', false);
-      return false;
     }
-  }
-
-  function periksaStatusLisensiOnline(isPemeriksaanAwal = false) {
-    if ((isPaymentModalOpen || isPaymentSuccess) && !isPemeriksaanAwal) return;
-    ambilStatusLisensiServer().then((resStatus) => {
-      if (isPaymentModalOpen || isPaymentSuccess) return;
-      if (resStatus.status !== 'active') {
-        tanganiStatusLisensi(resStatus);
-      }
-    });
-  }
-
-  function tampilkanWelcomeLoadingScreen(durasiMs = null) {
-    return new Promise((resolve) => {
-      let panel = document.getElementById('sipgn-autofill-panel');
-      if (panel) panel.remove();
-
-      panel = document.createElement('div');
-      panel.id = 'sipgn-autofill-panel';
-      bantuAppendKeBody(panel);
-
-      panel.style.cssText = `
-        position: fixed; top: 20px; right: 20px; z-index: 1000000;
-        background: linear-gradient(135deg, rgba(30, 41, 59, 0.96) 0%, rgba(15, 23, 42, 0.98) 100%);
-        backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-        color: #f8fafc; padding: 20px 18px;
-        border-radius: 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px;
-        width: 350px; max-height: 92vh; min-height: 520px; box-sizing: border-box;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), inset 0 1px 1px 0 rgba(255, 255, 255, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.12); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        display: flex; flex-direction: column; justify-content: space-between; align-items: center; text-align: center;
-        overflow: hidden;
-      `;
-
-      const totalDurasi = durasiMs || getRandomDelay(2200, 4500);
-
-      panel.innerHTML = `
-        <style>
-          @keyframes sipgnPulseGlow {
-            0% { transform: scale(0.96); box-shadow: 0 0 12px rgba(56, 189, 248, 0.2); }
-            50% { transform: scale(1.04); box-shadow: 0 0 26px rgba(56, 189, 248, 0.5); }
-            100% { transform: scale(0.96); box-shadow: 0 0 12px rgba(56, 189, 248, 0.2); }
-          }
-          @keyframes sipgnSpinRing {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-          @keyframes sipgnSpinReverse {
-            0% { transform: rotate(360deg); }
-            100% { transform: rotate(0deg); }
-          }
-          @keyframes sipgnHourglass {
-            0% { transform: rotate(0deg) scale(1); }
-            40% { transform: rotate(180deg) scale(1.12); }
-            50% { transform: rotate(180deg) scale(1); }
-            90% { transform: rotate(360deg) scale(1.12); }
-            100% { transform: rotate(360deg) scale(1); }
-          }
-          @keyframes sipgnCheckPop {
-            0% { transform: scale(0.4); opacity: 0; }
-            70% { transform: scale(1.25); opacity: 1; }
-            100% { transform: scale(1); opacity: 1; }
-          }
-          @keyframes sipgnShimmer {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-          }
-          @keyframes sipgnFadeUp {
-            0% { opacity: 0; transform: translateY(8px); }
-            100% { opacity: 1; transform: translateY(0); }
-          }
-        </style>
-
-        <div style="width: 100%; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px dashed rgba(51, 65, 85, 0.7); padding-bottom: 12px;">
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <span style="font-weight: 700; font-size: 14px; color: #f8fafc; letter-spacing: -0.2px;">SIPGN Autofill</span>
-            <span style="font-size: 10px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); padding: 2px 6px; border-radius: 6px; font-weight: 600;">v${CURRENT_VERSION}</span>
-          </div>
-          <span id="sipgn-loading-tag" style="font-size: 10px; background: rgba(234, 179, 8, 0.15); color: #fef08a; border: 1px solid rgba(234, 179, 8, 0.3); padding: 2px 8px; border-radius: 8px; font-weight: 700;">LOADING</span>
-        </div>
-
-        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; width: 100%; margin: 8px 0;">
-          <div style="position: relative; width: 88px; height: 88px; display: flex; align-items: center; justify-content: center; margin-bottom: 18px;">
-            <div style="position: absolute; inset: 0; border: 2px dashed rgba(56, 189, 248, 0.35); border-radius: 50%; animation: sipgnSpinRing 6s linear infinite;"></div>
-            <div style="position: absolute; inset: -6px; border: 2px solid transparent; border-top-color: #38bdf8; border-bottom-color: #818cf8; border-radius: 50%; animation: sipgnSpinReverse 1.4s linear infinite;"></div>
-            <div id="sipgn-loading-icon-box" style="width: 62px; height: 62px; background: linear-gradient(135deg, #0f172a, #1e293b); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 28px; animation: sipgnHourglass 2.5s ease-in-out infinite; transition: all 0.3s ease;">
-              ⏳
-            </div>
-          </div>
-
-          <h3 style="margin: 0 0 4px 0; font-size: 15px; font-weight: 700; color: #f8fafc;">Selamat Datang!</h3>
-          <p style="font-size: 11px; color: #94a3b8; margin: 0 0 18px 0; line-height: 1.4;">
-            Sistem Otomatisasi POP SIPGN
-          </p>
-
-          <div style="width: 100%; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(51, 65, 85, 0.8); padding: 12px 14px; border-radius: 12px; box-sizing: border-box; text-align: left;">
-            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; margin-bottom: 8px;">
-              <span id="sipgn-loading-status" style="color: #cbd5e1; font-weight: 600; font-size: 11px;">Menyiapkan modul autofill...</span>
-              <span id="sipgn-loading-percent" style="color: #38bdf8; font-weight: 700; font-family: monospace;">0%</span>
-            </div>
-            <div style="width: 100%; height: 8px; background: rgba(30, 41, 59, 0.9); border-radius: 6px; overflow: hidden; position: relative; border: 1px solid rgba(51, 65, 85, 0.5);">
-              <div id="sipgn-splash-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #38bdf8, #818cf8, #34d399); background-size: 200% 100%; animation: sipgnShimmer 2s linear infinite; border-radius: 6px; transition: width 80ms ease-out; box-shadow: 0 0 10px rgba(56, 189, 248, 0.6);"></div>
-            </div>
-          </div>
-        </div>
-
-        <div style="width: 100%; min-height: 46px; display: flex; flex-direction: column; justify-content: center; align-items: center; margin-bottom: 10px;">
-          <button id="sipgn-btn-continue-welcome" style="display: none; width: 100%; padding: 12px; border: none; border-radius: 10px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; font-weight: 700; cursor: pointer; font-size: 13px; transition: all 0.25s ease; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4); animation: sipgnFadeUp 0.3s ease-out forwards;">
-            Lanjutkan 🚀
-          </button>
-          <div id="sipgn-loading-wait-msg" style="font-size: 11px; color: #64748b; font-weight: 500;">
-            Mohon tunggu sebentar...
-          </div>
-        </div>
-
-        <div style="font-size: 10px; color: #64748b; border-top: 1px solid rgba(51, 65, 85, 0.4); padding-top: 10px; width: 100%;">
-          Powered by <b style="color: #94a3b8;">Mindspace Studio</b>
-        </div>
-      `;
-
-      const serverCheckPromise = ambilStatusLisensiServer();
-
-      const splashBar = document.getElementById('sipgn-splash-bar');
-      const percentText = document.getElementById('sipgn-loading-percent');
-      const statusText = document.getElementById('sipgn-loading-status');
-      const loadingTag = document.getElementById('sipgn-loading-tag');
-      const btnContinue = document.getElementById('sipgn-btn-continue-welcome');
-      const waitMsg = document.getElementById('sipgn-loading-wait-msg');
-      const iconBox = document.getElementById('sipgn-loading-icon-box');
-
-      const startTime = Date.now();
-      const intervalMs = 30;
-
-      const timer = setInterval(async () => {
-        const elapsed = Date.now() - startTime;
-        let progress = Math.min(Math.floor((elapsed / totalDurasi) * 100), 100);
-
-        if (splashBar) splashBar.style.width = `${progress}%`;
-        if (percentText) percentText.textContent = `${progress}%`;
-
-        if (statusText) {
-          if (progress < 30) {
-            statusText.textContent = 'Menyiapkan modul autofill...';
-          } else if (progress < 65) {
-            statusText.textContent = 'Memverifikasi lisensi & perangkat...';
-          } else if (progress < 90) {
-            statusText.textContent = 'Sinkronisasi database SPPG...';
-          } else {
-            statusText.textContent = 'Sistem Siap! 🎉';
-            statusText.style.color = '#34d399';
-          }
-        }
-
-        if (elapsed >= totalDurasi) {
-          clearInterval(timer);
-
-          const resStatus = await serverCheckPromise;
-
-          if (resStatus.status !== 'active') {
-            if (panel) panel.remove();
-            tanganiStatusLisensi(resStatus);
-            resolve(false);
-            return;
-          }
-
-          if (loadingTag) {
-            loadingTag.textContent = 'READY';
-            loadingTag.style.background = 'rgba(52, 211, 153, 0.15)';
-            loadingTag.style.color = '#34d399';
-            loadingTag.style.borderColor = 'rgba(52, 211, 153, 0.3)';
-          }
-          if (iconBox) {
-            iconBox.innerHTML = '✅';
-            iconBox.style.animation = 'sipgnCheckPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards';
-            iconBox.style.background = 'linear-gradient(135deg, #065f46, #047857)';
-            iconBox.style.borderColor = '#34d399';
-          }
-          if (waitMsg) waitMsg.style.display = 'none';
-
-          if (btnContinue) {
-            btnContinue.style.display = 'block';
-            btnContinue.onclick = () => {
-              btnContinue.disabled = true;
-              btnContinue.style.pointerEvents = 'none';
-              btnContinue.style.opacity = '0.7';
-
-              panel.style.opacity = '0';
-              panel.style.transform = 'translateY(-6px)';
-              setTimeout(() => {
-                if (panel) panel.remove();
-                resolve(true);
-              }, 180);
-            };
-          }
-        }
-      }, intervalMs);
-    });
   }
 
   async function inialisasiSistem() {
     try {
       aktifkanPengubahKameraKeGaleri();
-      const isLicenseValidAndActive = await tampilkanWelcomeLoadingScreen();
 
-      if (isLicenseValidAndActive) {
-        mulaiJalankanSkrip();
+      let targetStatus = null;
+      const loader = tampilkanLoadingScreen(() => {
+        if (targetStatus) tanganiStatusLisensi(targetStatus);
+      });
+
+      loader.updateProgress(20, 'Memulai Pemeriksaan Sistem...');
+
+      // Mengatur waktu jeda acak antara 3000ms (3s) hingga 6000ms (6s)
+      const randomDelayMs = Math.floor(Math.random() * (6000 - 3000 + 1)) + 3000;
+      const stepTime = randomDelayMs / 3;
+
+      await wait(stepTime);
+      loader.updateProgress(50, 'Menghubungkan ke Server...');
+
+      const resStatus = await ambilStatusLisensiServer();
+
+      if (!resStatus || resStatus.status === 'error') {
+        loader.tampilkanGagal('Koneksi Gagal! Periksa Internet Anda.');
+        return;
       }
+
+      targetStatus = resStatus;
+
+      await wait(stepTime);
+      loader.updateProgress(80, 'Memuat Data Penugasan...');
+
+      await wait(stepTime);
+
+      loader.siapLanjut();
 
       if (intervalMonitorLisensi) clearInterval(intervalMonitorLisensi);
       intervalMonitorLisensi = setInterval(() => {
-        periksaStatusLisensiOnline(false);
+        if (!isPaymentModalOpen && !isPaymentSuccess) {
+          ambilStatusLisensiServer().then((res) => {
+            if (!res.valid && res.status !== 'active') tanganiStatusLisensi(res);
+          });
+        }
       }, 60000);
-
     } catch (e) {
-      console.error('[Autofill] Gagal inisialisasi, membuka modal aktivasi:', e);
       tampilkanModalAktivasi('', false);
     }
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(inialisasiSistem, 300);
-    });
+    document.addEventListener('DOMContentLoaded', () => setTimeout(inialisasiSistem, 300));
   } else {
     setTimeout(inialisasiSistem, 300);
   }

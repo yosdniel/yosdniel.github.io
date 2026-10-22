@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="id" class="dark">
 <head>
 <meta charset="UTF-8">
@@ -48,11 +48,11 @@ border: 1px solid rgba(255, 255, 255, 0.08);
 <!-- Version Badge -->
 <div class="my-6 p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 flex items-center justify-between">
 <span class="text-xs font-semibold text-slate-400">Versi Rilis Terbaru:</span>
-<span id="latest-version" class="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold font-mono">v1.5.42</span>
+<span id="latest-version" class="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold font-mono">v...</span>
 </div>
-<!-- Download Button (Immediately functional) -->
-<a id="download-btn" href="https://mindspace-id.vercel.app/files/sipgn-autofill.user.js" target="_blank" class="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 active:scale-[0.99] text-slate-950 font-extrabold py-3.5 px-4 rounded-2xl text-xs sm:text-sm transition duration-200 shadow-lg shadow-amber-500/20">
-<span>📥 Download & Install Script</span>
+<!-- Download Button (Loading State) -->
+<a id="download-btn" href="#" target="_blank" class="w-full inline-flex items-center justify-center gap-2 bg-slate-800 text-slate-400 cursor-not-allowed font-extrabold py-3.5 px-4 rounded-2xl text-xs sm:text-sm transition duration-200 border border-slate-700 pointer-events-none">
+<span>⏳ Memuat Link Download...</span>
 </a>
 <!-- Changelog Box -->
 <div class="mt-6 text-left bg-slate-900/90 p-4 rounded-2xl border border-slate-800/80">
@@ -60,12 +60,8 @@ border: 1px solid rgba(255, 255, 255, 0.08);
 <span class="w-2 h-2 rounded-full bg-brand-500"></span>
 <b class="text-brand-400 uppercase text-[10px] tracking-wider">Catatan Pembaruan:</b>
 </div>
-<div id="changelog-text" class="text-xs text-slate-300 leading-relaxed">
-<ul class="space-y-1.5 my-1 pl-0.5 text-xs text-slate-300 leading-relaxed">
-<li class="flex items-start gap-2"><span class="text-brand-400 font-bold shrink-0 select-none">•</span><span>Pembaruan stabilitas koneksi otomatisasi SIPGN</span></li>
-<li class="flex items-start gap-2"><span class="text-brand-400 font-bold shrink-0 select-none">•</span><span>Penyesuaian skrip dengan update sistem terbaru</span></li>
-<li class="flex items-start gap-2"><span class="text-brand-400 font-bold shrink-0 select-none">•</span><span>Optimalisasi pengisian formulir distribusi POP</span></li>
-</ul>
+<div id="changelog-text" class="text-xs text-slate-400 leading-relaxed italic">
+Memuat changelog...
 </div>
 </div>
 <!-- Footer -->
@@ -74,8 +70,8 @@ border: 1px solid rgba(255, 255, 255, 0.08);
 </div>
 </div>
 <script>
-(function() {
 const API_URL = 'https://mindspace-id.vercel.app/api/tokopay?action=check_version';
+// Helper untuk memformat teks changelog menjadi bullet list
 function renderFormattedChangelog(rawText) {
 if (!rawText) return '';
 if (typeof rawText !== 'string') {
@@ -110,44 +106,45 @@ htmlOutput += '</ul>';
 }
 return htmlOutput || <p class="text-slate-300 text-xs">${rawText}</p>;
 }
-async function checkForUpdates() {
-try {
+// AbortController untuk membatasi timeout koneksi jika Vercel cold start
 const controller = new AbortController();
-const timeoutId = setTimeout(() => controller.abort(), 3500);
-const res = await fetch(API_URL, {
-headers: { 'Accept': 'application/json' },
-cache: 'no-store',
-signal: controller.signal
-});
+const timeoutId = setTimeout(() => controller.abort(), 4000);
+fetch(API_URL, { signal: controller.signal })
+.then(res => {
 clearTimeout(timeoutId);
-if (!res.ok) return;
-const data = await res.json();
-if (!data) return;
+if (!res.ok) throw new Error('HTTP Error ' + res.status);
+return res.json();
+})
+.then(data => {
+const btn = document.getElementById('download-btn');
+const verEl = document.getElementById('latest-version');
+const changeEl = document.getElementById('changelog-text');
+// Mendukung format JSON langsung maupun terbungkus di data.data
 const version = data.version || (data.data && data.data.version);
 const downloadUrl = data.download_url || (data.data && data.data.download_url);
 const changelog = data.changelog || (data.data && data.data.changelog);
-if (version) {
-const verEl = document.getElementById('latest-version');
-if (verEl) verEl.innerText = v${String(version).replace(/^v/i, '')};
-}
-if (downloadUrl) {
-const btn = document.getElementById('download-btn');
-if (btn) btn.href = downloadUrl;
-}
-if (changelog) {
-const changeEl = document.getElementById('changelog-text');
-if (changeEl) changeEl.innerHTML = renderFormattedChangelog(changelog);
-}
-} catch (err) {
-// Silent fallback: UI remains pre-rendered and functional
-}
-}
-if (document.readyState === 'loading') {
-document.addEventListener('DOMContentLoaded', checkForUpdates);
+if (version && downloadUrl) {
+verEl.innerText = v${String(version).replace(/^v/i, '')};
+btn.href = downloadUrl;
+btn.innerHTML = '<span>📥 Download & Install Script</span>';
+btn.className = 'w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 active:scale-[0.99] text-slate-950 font-extrabold py-3.5 px-4 rounded-2xl text-xs sm:text-sm transition duration-200 shadow-lg shadow-amber-500/20';
+changeEl.innerHTML = renderFormattedChangelog(changelog || '- Perbaikan performa dan penyesuaian sistem.');
 } else {
-checkForUpdates();
+throw new Error('Data tidak lengkap');
 }
-})();
+})
+.catch(() => {
+clearTimeout(timeoutId);
+const btn = document.getElementById('download-btn');
+document.getElementById('latest-version').innerText = 'v1.5.42';
+document.getElementById('changelog-text').innerHTML = renderFormattedChangelog(
+'- Pembaruan stabilitas koneksi otomatisasi SIPGN\n- Penyesuaian skrip dengan update sistem terbaru\n- Optimalisasi pengisian formulir distribusi POP'
+);
+// Link cadangan jika API terganggu atau timeout
+btn.href = 'https://mindspace-id.vercel.app/files/sipgn-autofill.user.js';
+btn.innerHTML = '<span>📥 Download (Link Cadangan)</span>';
+btn.className = 'w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 active:scale-[0.99] text-slate-950 font-extrabold py-3.5 px-4 rounded-2xl text-xs sm:text-sm transition duration-200 shadow-lg shadow-amber-500/20';
+});
 </script>
 </body>
 </html>

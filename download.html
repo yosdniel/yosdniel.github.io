@@ -32,118 +32,97 @@ backdrop-filter: blur(16px);
 -webkit-backdrop-filter: blur(16px);
 border: 1px solid rgba(255, 255, 255, 0.08);
 }
+.btn-download {
+display: inline-flex;
+align-items: center;
+justify-content: center;
+gap: 0.5rem;
+width: 100%;
+background: linear-gradient(135deg, #f59e0b, #d97706);
+color: #020617;
+font-weight: 800;
+padding: 0.875rem 1rem;
+border-radius: 1rem;
+text-decoration: none;
+font-size: 0.875rem;
+transition: all 0.2s ease;
+box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.25);
+}
+.btn-download:hover {
+background: linear-gradient(135deg, #fbbf24, #f59e0b);
+transform: translateY(-1px);
+}
+.btn-download.disabled {
+opacity: 0.5;
+pointer-events: none;
+cursor: not-allowed;
+background: #334155 !important;
+color: #94a3b8 !important;
+box-shadow: none !important;
+transform: none !important;
+}
 </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex items-center justify-center p-4 antialiased relative overflow-x-hidden selection:bg-brand-500 selection:text-white">
-<!-- Ambient Background Effect -->
+​<!-- Ambient Background Effect -->
 <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/30 via-slate-950 to-slate-950 pointer-events-none"></div>
-<!-- Main Card Container -->
+​<!-- Main Card Container -->
 <div class="glass-card w-full max-w-md p-6 sm:p-8 rounded-3xl shadow-2xl relative z-10 border border-slate-800 text-center my-auto">
-<!-- Icon Header -->
+​<!-- Icon Header -->
 <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-brand-500 to-indigo-600 mx-auto flex items-center justify-center text-white text-2xl mb-4 shadow-xl shadow-brand-500/30 border border-indigo-400/30">
 🚀
 </div>
-<h2 class="font-extrabold text-xl sm:text-2xl text-white tracking-tight">SIPGN Autofill</h2>
+​<h2 class="font-extrabold text-xl sm:text-2xl text-white tracking-tight">SIPGN Autofill</h2>
 <p class="text-xs text-slate-400 mt-1 leading-relaxed">Skrip Otomatisasi Tugas Pengiriman & Distribusi POP</p>
-<!-- Version Badge -->
+​<!-- Version Badge -->
 <div class="my-6 p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 flex items-center justify-between">
 <span class="text-xs font-semibold text-slate-400">Versi Rilis Terbaru:</span>
-<span id="latest-version" class="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold font-mono">v...</span>
+<b id="latest-version" class="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold font-mono">v...</b>
 </div>
-<!-- Download Button (Loading State) -->
-<a id="download-btn" href="#" target="_blank" class="w-full inline-flex items-center justify-center gap-2 bg-slate-800 text-slate-400 cursor-not-allowed font-extrabold py-3.5 px-4 rounded-2xl text-xs sm:text-sm transition duration-200 border border-slate-700 pointer-events-none">
-<span>⏳ Memuat Link Download...</span>
+​<!-- Tombol Download -->
+<a id="download-btn" href="#" target="_blank" class="btn-download disabled">
+⏳ Memuat Link Download...
 </a>
-<!-- Changelog Box -->
+​<!-- Changelog Box -->
 <div class="mt-6 text-left bg-slate-900/90 p-4 rounded-2xl border border-slate-800/80">
 <div class="flex items-center gap-1.5 mb-2">
 <span class="w-2 h-2 rounded-full bg-brand-500"></span>
 <b class="text-brand-400 uppercase text-[10px] tracking-wider">Catatan Pembaruan:</b>
 </div>
-<div id="changelog-text" class="text-xs text-slate-400 leading-relaxed italic">
-Memuat changelog...
+<div id="changelog-text" class="text-xs text-slate-300 leading-relaxed font-mono whitespace-pre-wrap">Memuat changelog...</div>
 </div>
-</div>
-<!-- Footer -->
+​<!-- Footer -->
 <div class="mt-6 pt-4 border-t border-slate-800/80 text-center">
 <span class="text-[10px] text-slate-500">Mindspace Studio © 2026</span>
 </div>
-</div>
-<script>
+​</div>
+​<script>
 const API_URL = 'https://mindspace-id.vercel.app/api/tokopay?action=check_version';
-// Helper untuk memformat teks changelog menjadi bullet list
-function renderFormattedChangelog(rawText) {
-if (!rawText) return '';
-if (typeof rawText !== 'string') {
-if (Array.isArray(rawText)) rawText = rawText.join('\n');
-else rawText = String(rawText);
-}
-const lines = rawText.split('\n');
-let htmlOutput = '';
-let inList = false;
-lines.forEach(line => {
-const trimmed = line.trim();
-if (!trimmed) return;
-const isBullet = /^[-•]\s+/.test(trimmed) || /^[-•]$/.test(trimmed);
-const isNumbered = /^\d+[.)]\s+/.test(trimmed);
-if (isBullet || isNumbered) {
-if (!inList) {
-htmlOutput += '<ul class="space-y-1.5 my-1 pl-0.5 text-xs text-slate-300 leading-relaxed">';
-inList = true;
-}
-const content = trimmed.replace(/^([-•]|\d+[.)])\s/, '');
-htmlOutput += <li class="flex items-start gap-2"><span class="text-brand-400 font-bold shrink-0 select-none">•</span><span>${content}</span></li>;
-} else {
-if (inList) {
-htmlOutput += '</ul>';
-inList = false;
-}
-htmlOutput += <p class="mb-1 text-slate-300 text-xs">${trimmed}</p>;
-}
-});
-if (inList) {
-htmlOutput += '</ul>';
-}
-return htmlOutput || <p class="text-slate-300 text-xs">${rawText}</p>;
-}
-// AbortController untuk membatasi timeout koneksi jika Vercel cold start
-const controller = new AbortController();
-const timeoutId = setTimeout(() => controller.abort(), 4000);
-fetch(API_URL, { signal: controller.signal })
-.then(res => {
-clearTimeout(timeoutId);
-if (!res.ok) throw new Error('HTTP Error ' + res.status);
-return res.json();
-})
+​fetch(API_URL)
+.then(res => res.json())
 .then(data => {
 const btn = document.getElementById('download-btn');
 const verEl = document.getElementById('latest-version');
 const changeEl = document.getElementById('changelog-text');
-// Mendukung format JSON langsung maupun terbungkus di data.data
-const version = data.version || (data.data && data.data.version);
-const downloadUrl = data.download_url || (data.data && data.data.download_url);
-const changelog = data.changelog || (data.data && data.data.changelog);
-if (version && downloadUrl) {
-verEl.innerText = v${String(version).replace(/^v/i, '')};
-btn.href = downloadUrl;
-btn.innerHTML = '<span>📥 Download & Install Script</span>';
-btn.className = 'w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 active:scale-[0.99] text-slate-950 font-extrabold py-3.5 px-4 rounded-2xl text-xs sm:text-sm transition duration-200 shadow-lg shadow-amber-500/20';
-changeEl.innerHTML = renderFormattedChangelog(changelog || '- Perbaikan performa dan penyesuaian sistem.');
+​if (data && data.version && data.download_url) {
+verEl.innerText = v${data.version};
+​// Mengeset link tombol sesuai URL yang diinput Admin
+btn.href = data.download_url;
+btn.innerHTML = '📥 Download & Install Script';
+btn.classList.remove('disabled');
+​changeEl.innerText = data.changelog || 'Perbaikan performa dan penyesuaian sistem.';
 } else {
 throw new Error('Data tidak lengkap');
 }
 })
 .catch(() => {
-clearTimeout(timeoutId);
 const btn = document.getElementById('download-btn');
 document.getElementById('latest-version').innerText = 'v1.5.42';
-document.getElementById('changelog-text').innerHTML = renderFormattedChangelog(
-'- Pembaruan stabilitas koneksi otomatisasi SIPGN\n- Penyesuaian skrip dengan update sistem terbaru\n- Optimalisasi pengisian formulir distribusi POP'
-);
-// Link cadangan jika API terganggu atau timeout
+document.getElementById('changelog-text').innerText = 'Gagal memuat informasi versi dari server.';
+​// Link cadangan jika API terganggu
 btn.href = 'https://mindspace-id.vercel.app/files/sipgn-autofill.user.js';
-btn.innerHTML = '<span>📥 Download (Link Cadangan)</span>';
-btn.className = 'w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 active:scale-[0.99] text-slate-950 font-extrabold py-3.5 px-4 rounded-2xl text-xs sm:text-sm transition duration-200 shadow-lg shadow-amber-500/20';
+btn.innerHTML = '📥 Download (Link Cadangan)';
+btn.classList.remove('disabled');
 });
 </script>
 </body>

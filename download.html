@@ -14,6 +14,7 @@ extend: {
 fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
 colors: {
 brand: {
+400: '#818cf8',
 500: '#6366f1',
 600: '#4f46e5',
 700: '#4338ca'
@@ -47,10 +48,10 @@ border: 1px solid rgba(255, 255, 255, 0.08);
 <!-- Version Badge -->
 <div class="my-6 p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 flex items-center justify-between">
 <span class="text-xs font-semibold text-slate-400">Versi Rilis Terbaru:</span>
-<span id="latest-version" class="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold font-mono">v...</span>
+<span id="latest-version" class="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold font-mono">Memuat...</span>
 </div>
-<!-- Download Button (Loading State Default) -->
-<a id="download-btn" href="#" target="_blank" class="w-full inline-flex items-center justify-center gap-2 bg-slate-900 text-slate-500 font-bold py-3.5 px-4 rounded-2xl text-xs sm:text-sm pointer-events-none transition duration-200 border border-slate-800 cursor-not-allowed">
+<!-- Download Button -->
+<a id="download-btn" href="#" target="_blank" class="w-full inline-flex items-center justify-center gap-2 bg-slate-900 text-slate-500 font-bold py-3.5 px-4 rounded-2xl text-xs sm:text-sm transition duration-200 border border-slate-800 cursor-not-allowed">
 <svg class="animate-spin h-4 w-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -74,7 +75,9 @@ border: 1px solid rgba(255, 255, 255, 0.08);
 </div>
 <script>
 const API_URL = 'https://mindspace-id.vercel.app/api/tokopay?action=check_version';
-// Helper to dynamically format bullet strings into clean HTML bullet items
+const FALLBACK_DOWNLOAD_URL = 'https://mindspace-id.vercel.app/files/sipgn-autofill.user.js';
+const FALLBACK_VERSION = 'v1.5.42';
+// Formatter to render clean HTML bullet lists for lines starting with "-", "•", "*" or numbers
 function renderFormattedChangelog(rawText) {
 if (!rawText) return '<div class="text-slate-500 italic">Tidak ada catatan pembaruan.</div>';
 const lines = rawText.split('\n');
@@ -83,8 +86,7 @@ let inList = false;
 lines.forEach(line => {
 const trimmed = line.trim();
 if (!trimmed) return;
-// Check for bullet formats: "-", "•", "" or numbered items "1."
-const isBullet = /^[-•]\s+/.test(trimmed);
+const isBullet = /^[-•*]\s+/.test(trimmed);
 const isNumbered = /^\d+[.)]\s+/.test(trimmed);
 if (isBullet || isNumbered) {
 if (!inList) {
@@ -106,30 +108,50 @@ htmlOutput += '</ul>';
 }
 return htmlOutput || <p class="text-slate-300">${rawText}</p>;
 }
-fetch(API_URL)
-.then(res => res.json())
-.then(data => {
+function applyFallbackState() {
 const btn = document.getElementById('download-btn');
 const verEl = document.getElementById('latest-version');
 const changeEl = document.getElementById('changelog-text');
-if (data && data.version && data.download_url) {
-verEl.innerText = v${data.version};
-btn.href = data.download_url;
-btn.className = "w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 active:scale-[0.99] text-slate-950 font-extrabold py-3.5 px-4 rounded-2xl text-xs sm:text-sm transition duration-200 shadow-lg shadow-amber-500/20";
-btn.innerHTML = '📥 Download & Install Script';
-changeEl.innerHTML = renderFormattedChangelog(data.changelog);
-} else {
-throw new Error('Data tidak lengkap');
-}
-})
-.catch(() => {
-const btn = document.getElementById('download-btn');
-document.getElementById('latest-version').innerText = 'v1.5.42';
-document.getElementById('changelog-text').innerHTML = '<div class="text-red-400 text-xs">Gagal memuat informasi versi dari server.</div>';
-btn.href = 'https://mindspace-id.vercel.app/files/sipgn-autofill.user.js';
+verEl.innerText = FALLBACK_VERSION;
+btn.href = FALLBACK_DOWNLOAD_URL;
 btn.className = "w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 active:scale-[0.99] text-white font-bold py-3.5 px-4 rounded-2xl text-xs sm:text-sm transition duration-200 shadow-lg shadow-indigo-500/25";
 btn.innerHTML = '📥 Download (Link Cadangan)';
+changeEl.innerHTML = renderFormattedChangelog(
+"- Pembaruan stabilitas koneksi otomatisasi SIPGN\n- Penyesuaian skrip dengan update sistem terbaru\n- Optimalisasi pengisian formulir distribusi POP"
+);
+}
+async function loadVersionInfo() {
+const controller = new AbortController();
+const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s timeout safeguard
+try {
+const res = await fetch(API_URL, {
+signal: controller.signal,
+headers: { 'Accept': 'application/json' }
 });
+clearTimeout(timeoutId);
+if (!res.ok) throw new Error(HTTP Error Status: ${res.status});
+const data = await res.json();
+// Flexible key extraction
+const version = data.version || (data.data && data.data.version);
+const downloadUrl = data.download_url || (data.data && data.data.download_url);
+const changelog = data.changelog || (data.data && data.data.changelog);
+if (version && downloadUrl) {
+document.getElementById('latest-version').innerText = v${version.replace(/^v/i, '')};
+const btn = document.getElementById('download-btn');
+btn.href = downloadUrl;
+btn.className = "w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 active:scale-[0.99] text-slate-950 font-extrabold py-3.5 px-4 rounded-2xl text-xs sm:text-sm transition duration-200 shadow-lg shadow-amber-500/20";
+btn.innerHTML = '📥 Download & Install Script';
+document.getElementById('changelog-text').innerHTML = renderFormattedChangelog(changelog);
+} else {
+throw new Error('Informasi versi dari server tidak lengkap');
+}
+} catch (err) {
+console.warn('Gagal memuat API versi server, beralih ke link cadangan:', err);
+applyFallbackState();
+}
+}
+// Execute on page load
+loadVersionInfo();
 </script>
 </body>
 </html>

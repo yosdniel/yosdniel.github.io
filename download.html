@@ -3,9 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Download SIPGN Autofill Update</title>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <title>Download SIPGN Autofill Update - Mindspace Studio</title>
+  
+  <!-- FAVICON & PWA METAS -->
+  <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon.ico">
+  <meta name="theme-color" content="#020617">
+
   <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -17,6 +22,7 @@
               400: '#818cf8',
               500: '#6366f1',
               600: '#4f46e5',
+              700: '#4338ca'
             }
           }
         }
@@ -24,65 +30,170 @@
     }
   </script>
   <style>
-    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; overflow-x: hidden; }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.25); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.5); }
+    
     .glass-card {
-      background: rgba(15, 23, 42, 0.75);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       border: 1px solid rgba(255, 255, 255, 0.08);
     }
-    .btn-download.disabled { background: #1e293b !important; color: #64748b !important; border: 1px solid rgba(255, 255, 255, 0.04); pointer-events: none; cursor: not-allowed; }
+    .btn-download.disabled {
+      background: #1e293b !important;
+      color: #64748b !important;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      pointer-events: none;
+      cursor: not-allowed;
+    }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 flex items-center justify-center min-h-screen p-4 selection:bg-brand-500 selection:text-white relative overflow-x-hidden">
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between p-4 sm:p-6 lg:p-10 selection:bg-brand-500 selection:text-white relative">
 
-  <!-- Background Glow Effect -->
-  <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/20 via-slate-950 to-slate-950 pointer-events-none"></div>
+  <!-- Background Ambient Glow -->
+  <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/30 via-slate-950 to-slate-950 pointer-events-none"></div>
 
-  <div class="glass-card rounded-3xl p-6 sm:p-8 w-full max-w-sm text-center shadow-2xl relative z-10 border border-slate-800">
-    <div class="w-14 h-14 bg-brand-500/10 border border-brand-500/20 rounded-2xl mx-auto flex items-center justify-center text-2xl mb-3 shadow-lg shadow-brand-500/20">🚀</div>
-    
-    <h2 class="font-extrabold text-lg sm:text-xl text-white tracking-tight">SIPGN Autofill</h2>
-    <p class="text-xs text-slate-400 mt-1 leading-relaxed">Skrip Otomatisasi Tugas Pengiriman & Distribusi POP</p>
-    
-    <div class="my-5 py-3 bg-slate-900/60 rounded-2xl border border-slate-800/80">
-      <span class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Versi Terbaru</span><br>
-      <b id="latest-version" class="text-emerald-400 font-black text-lg sm:text-xl mt-0.5 inline-block">v...</b>
-    </div>
-
-    <!-- Tombol Download (Mulai dari status Loading) -->
-    <a id="download-btn" href="#" target="_blank" class="btn-download block bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 active:scale-[0.98] text-white font-bold py-3.5 px-4 rounded-2xl text-xs sm:text-sm transition shadow-xl shadow-brand-500/25">
-      ⏳ Memuat Link Download...
-    </a>
-
-    <div class="mt-5 text-left bg-slate-900/90 p-4 rounded-2xl border border-slate-800/80">
-      <div class="text-[10px] font-extrabold text-brand-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-        <span>📋</span> Catatan Pembaruan:
+  <!-- TOP HEADER NAVBAR -->
+  <header class="w-full max-w-5xl mx-auto flex items-center justify-between relative z-10 py-3 px-4 sm:px-6 glass-card rounded-2xl mb-6 shadow-xl">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 bg-brand-500/15 border border-brand-500/30 rounded-xl flex items-center justify-center text-xl shadow-md">🚀</div>
+      <div>
+        <h1 class="font-extrabold text-sm sm:text-base text-white tracking-tight">SIPGN Autofill</h1>
+        <span class="text-[10px] text-slate-400 block font-medium">Official Userscript Portal &bull; Mindspace Studio</span>
       </div>
-      <!-- Perbaikan formatting bullet points (indentasi & line-height rapi) -->
-      <div id="changelog-text" class="changelog-content text-xs text-slate-300 leading-relaxed font-mono whitespace-pre-wrap pl-1">Memuat changelog...</div>
     </div>
-  </div>
+    <div class="flex items-center gap-2">
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold shadow-sm">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Server Active
+      </span>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER: RESPONSIVE GRID -->
+  <main class="w-full max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10 my-auto">
+    
+    <!-- LEFT COLUMN: HERO & DOWNLOAD ACTION (Span 7) -->
+    <div class="lg:col-span-7 glass-card rounded-3xl p-6 sm:p-8 flex flex-col justify-between border border-slate-800 shadow-2xl relative overflow-hidden">
+      <div class="absolute -right-16 -top-16 w-48 h-48 bg-brand-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div>
+        <div class="inline-block px-3 py-1 rounded-xl bg-brand-500/10 text-brand-400 border border-brand-500/20 text-xs font-bold mb-4">
+          ✨ Versi Terbaru Tersedia
+        </div>
+        <h2 class="font-black text-2xl sm:text-3xl lg:text-4xl text-white tracking-tight leading-tight">
+          Otomatisasi Pengiriman & Distribusi POP Lebih Cepat.
+        </h2>
+        <p class="text-xs sm:text-sm text-slate-400 mt-3 leading-relaxed">
+          Tingkatkan efisiensi kerja harian Anda dengan skrip otomatisasi cerdas yang terintegrasi penuh dengan sistem SIPGN. Pembaruan otomatis, aman, dan ringan.
+        </p>
+      </div>
+
+      <div class="my-6 p-4 sm:p-5 bg-slate-900/80 rounded-2xl border border-slate-800/90 flex items-center justify-between gap-4">
+        <div>
+          <span class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block">Build Version</span>
+          <b id="latest-version" class="text-emerald-400 font-black text-xl sm:text-2xl mt-0.5 inline-block">v...</b>
+        </div>
+        <div class="text-right">
+          <span class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block">Platform</span>
+          <span class="text-xs text-slate-300 font-semibold mt-0.5 inline-block">Tampermonkey / Violentmonkey</span>
+        </div>
+      </div>
+
+      <!-- DOWNLOAD BUTTON -->
+      <div class="space-y-3">
+        <a id="download-btn" href="#" target="_blank" class="btn-download block bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 active:scale-[0.99] text-white font-extrabold py-4 px-6 rounded-2xl text-sm sm:text-base text-center transition shadow-xl shadow-brand-500/30">
+          ⏳ Memuat Link Download dari Server...
+        </a>
+        <p class="text-[11px] text-slate-500 text-center">Pastikan ekstensi Tampermonkey sudah terpasang di browser Anda.</p>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN: CHANGELOG & SYSTEM GUIDE (Span 5) -->
+    <div class="lg:col-span-5 flex flex-col gap-6">
+      
+      <!-- CHANGELOG CARD -->
+      <div class="glass-card rounded-3xl p-6 sm:p-7 border border-slate-800 shadow-xl flex-1 flex flex-col">
+        <div class="text-xs font-extrabold text-brand-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+          <span>📋</span> Catatan Pembaruan (Changelog)
+        </div>
+        <div id="changelog-container" class="text-xs sm:text-sm text-slate-300 leading-relaxed bg-slate-950/80 p-4 rounded-2xl border border-slate-800/80 flex-1 overflow-auto max-h-56 space-y-2">
+          <div class="text-slate-500 italic font-mono text-center py-4">Memuat changelog dari server...</div>
+        </div>
+      </div>
+
+      <!-- QUICK GUIDE CARD -->
+      <div class="glass-card rounded-3xl p-6 border border-slate-800 shadow-xl">
+        <div class="text-xs font-extrabold text-white uppercase tracking-wider mb-3 flex items-center gap-2">
+          <span>💡</span> Panduan Instalasi Cepat
+        </div>
+        <ol class="text-xs text-slate-400 space-y-2 list-decimal list-inside leading-relaxed">
+          <li>Install ekstensi <b class="text-white">Tampermonkey</b> di Chrome/Edge/Firefox.</li>
+          <li>Klik tombol <b class="text-brand-400">Download & Install Script</b> di atas.</li>
+          <li>Konfirmasi instalasi pada tab baru yang terbuka.</li>
+          <li>Buka halaman SIPGN dan skrip akan aktif otomatis.</li>
+        </ol>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="w-full max-w-5xl mx-auto text-center py-6 text-xs text-slate-500 relative z-10 border-t border-slate-900 mt-10">
+    <p>Mindspace Studio &copy; 2026</p>
+  </footer>
 
   <script>
     const API_URL = 'https://mindspace-id.vercel.app/api/tokopay?action=check_version';
+
+    function renderChangelog(rawText) {
+      const container = document.getElementById('changelog-container');
+      container.innerHTML = '';
+      
+      if (!rawText) {
+        container.innerHTML = '<div class="text-slate-400 font-mono text-xs">• Peningkatan performa dan pembaruan sistem.</div>';
+        return;
+      }
+
+      // Pisahkan baris untuk memformat bullets secara rapi
+      const lines = rawText.split('\n').map(l => l.trim()).filter(l => l);
+      
+      if (lines.length === 0) {
+        container.innerHTML = `<div class="text-slate-300 font-mono text-xs">• ${rawText}</div>`;
+        return;
+      }
+
+      lines.forEach(line => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'flex items-start gap-2 font-mono text-xs text-slate-300';
+        
+        // Bersihkan simbol bullet lama jika ada, lalu format ulang agar seragam
+        let cleanText = line.replace(/^[-*•]\s*/, '');
+        
+        itemDiv.innerHTML = `
+          <span class="text-brand-400 font-bold select-none">&bull;</span>
+          <span class="flex-1">${cleanText}</span>
+        `;
+        container.appendChild(itemDiv);
+      });
+    }
 
     fetch(API_URL)
       .then(res => res.json())
       .then(data => {
         const btn = document.getElementById('download-btn');
         const verEl = document.getElementById('latest-version');
-        const changeEl = document.getElementById('changelog-text');
 
         if (data && data.version && data.download_url) {
           verEl.innerText = `v${data.version}`;
-          
-          // Mengeset link tombol sesuai URL yang diinput Admin
           btn.href = data.download_url;
           btn.innerHTML = '📥 Download & Install Script';
           btn.classList.remove('disabled');
 
-          changeEl.innerText = data.changelog || 'Perbaikan performa dan penyesuaian sistem.';
+          renderChangelog(data.changelog);
         } else {
           throw new Error('Data tidak lengkap');
         }
@@ -90,9 +201,9 @@
       .catch(() => {
         const btn = document.getElementById('download-btn');
         document.getElementById('latest-version').innerText = 'v1.5.42';
-        document.getElementById('changelog-text').innerText = 'Gagal memuat informasi versi dari server.';
         
-        // Link cadangan jika API terganggu
+        renderChangelog('• Perbaikan bug sinkronisasi.\n• Peningkatan kecepatan eksekusi.');
+        
         btn.href = 'https://mindspace-id.vercel.app/files/sipgn-autofill.user.js';
         btn.innerHTML = '📥 Download (Link Cadangan)';
         btn.classList.remove('disabled');

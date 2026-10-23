@@ -55,13 +55,6 @@
       border: 1px solid rgba(255, 255, 255, 0.08);
     }
     
-    .glass-card-light {
-      background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(0, 0, 0, 0.06);
-    }
-    
     .scrollbar-none::-webkit-scrollbar { display: none; }
     .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
@@ -71,7 +64,7 @@
   <!-- TOAST NOTIFICATION -->
   <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-[100000] max-w-[90vw] w-auto px-5 py-3 rounded-2xl shadow-2xl border text-white font-bold text-xs sm:text-sm transition-all duration-300 -translate-y-20 opacity-0 pointer-events-none flex items-center gap-2"></div>
 
-  <!-- HIDDEN FILE INPUT FOR IMPORT DATA -->
+  <!-- HIDDEN FILE INPUT -->
   <input type="file" id="importFileInput" accept=".csv, .json" class="hidden" onchange="processImportFile(event)">
 
   <!-- CONFIRM MODAL -->
@@ -95,32 +88,25 @@
           <span class="text-lg">☁️</span>
           <div>
             <h3 id="jsonModalTitle" class="text-xs sm:text-sm font-bold text-white">Preview Cloud Backup JSON</h3>
-            <span id="jsonModalSubtitle" class="text-[10px] text-slate-400 block">Inspection & Copy Utility</span>
+            <span id="jsonModalSubtitle" class="text-[10px] text-slate-400 block">Inspection Utility</span>
           </div>
         </div>
         <button onclick="closeJsonPreviewModal()" class="w-8 h-8 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white flex items-center justify-center font-bold text-xs transition">✕</button>
       </div>
-      
       <div class="my-4 flex-1 overflow-hidden flex flex-col">
         <pre id="jsonPreviewContainer" class="bg-slate-950/90 p-4 rounded-2xl border border-slate-800/80 text-[11px] text-brand-400 font-mono overflow-auto flex-1 whitespace-pre-wrap leading-relaxed select-all scrollbar-none"></pre>
       </div>
-
       <div class="flex gap-3 pt-2">
-        <button onclick="copyJsonPreview()" class="flex-1 bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-bold py-3 rounded-xl text-xs transition shadow-lg shadow-brand-500/25 flex items-center justify-center gap-1.5">
-          <span>📋</span> Salin JSON
-        </button>
-        <button onclick="downloadBackupCloud()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3 rounded-xl text-xs transition flex items-center justify-center gap-1.5">
-          <span>📥</span> Download File
-        </button>
+        <button onclick="copyJsonPreview()" class="flex-1 bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-bold py-3 rounded-xl text-xs transition shadow-lg shadow-brand-500/25 flex items-center justify-center gap-1.5">📋 Salin JSON</button>
+        <button onclick="downloadBackupCloud()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3 rounded-xl text-xs transition flex items-center justify-center gap-1.5">📥 Download File</button>
         <button onclick="closeJsonPreviewModal()" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 font-bold px-5 rounded-xl text-xs transition border border-slate-700">Tutup</button>
       </div>
     </div>
   </div>
 
-  <!-- BACKDROP OVERLAY FOR MOBILE SIDEBAR -->
   <div id="sidebarBackdrop" onclick="toggleSidebarMobile(false)" class="fixed inset-0 z-30 bg-slate-950/70 backdrop-blur-sm hidden lg:hidden transition-opacity duration-300 opacity-0"></div>
 
-  <!-- STRICT ISOLATED LOGIN VIEW -->
+  <!-- LOGIN VIEW -->
   <div id="viewLandingPage" class="view-section active fixed inset-0 z-[9999] bg-slate-950 w-full h-full items-center justify-center p-4 overflow-y-auto">
     <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/30 via-slate-950 to-slate-950 pointer-events-none"></div>
     <div class="glass-card w-full max-w-md p-6 sm:p-8 rounded-3xl shadow-2xl relative z-10 border border-slate-800 my-auto">
@@ -146,7 +132,7 @@
     </div>
   </div>
 
-  <!-- MAIN DASHBOARD VIEW -->
+  <!-- DASHBOARD APP -->
   <div id="viewDashboardApp" class="view-section min-h-screen w-full flex-col lg:flex-row">
     
     <!-- SIDEBAR -->
@@ -158,9 +144,7 @@
           </div>
           <span class="font-extrabold text-lg text-white tracking-tight">MindHUB</span>
         </div>
-        <button onclick="toggleSidebarMobile(false)" class="lg:hidden p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/50">
-          ✕
-        </button>
+        <button onclick="toggleSidebarMobile(false)" class="lg:hidden p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/50">✕</button>
       </div>
 
       <div class="flex-1 overflow-y-auto px-4 py-6 space-y-1.5 scrollbar-none">
@@ -169,30 +153,24 @@
         <button onclick="bukaFitur('overview')" id="navOverview" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-brand-500/15 text-brand-400 text-xs font-bold transition border border-brand-500/30 shadow-sm">
           <span class="text-base">⊞</span> Overview
         </button>
-
         <button onclick="bukaFitur('device')" id="navDevice" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
           <span class="text-base">👥</span> Client Devices
         </button>
-
         <button onclick="bukaFitur('transfer')" id="navTransfer" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
           <span class="text-base">🔄</span> Migrate Data
         </button>
 
         <div class="text-[10px] font-extrabold text-slate-500 uppercase px-3 mt-6 mb-2 tracking-wider">System Config</div>
-
         <button onclick="bukaFitur('packages')" id="navPackages" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
           <span class="text-base">📦</span> Pricing Plans
         </button>
-
         <button onclick="bukaFitur('vouchers')" id="navVouchers" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
           <span class="text-base">🎟️</span> Promo Vouchers
         </button>
-
         <button onclick="bukaFitur('release')" id="navRelease" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
           <span class="text-base">🚀</span> Cloud Updater
         </button>
 
-        <!-- PWA INSTALL BUTTON FOR ANDROID -->
         <button onclick="triggerPWAInstall()" class="pwa-install-btn nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs font-bold transition border border-indigo-500/20 mt-4">
           <span class="text-base">📱</span> Install Android App
         </button>
@@ -216,7 +194,6 @@
           </button>
           <h1 id="appTitle" class="font-extrabold text-xs sm:text-base text-white tracking-tight truncate max-w-[200px] sm:max-w-none">Hub Overview</h1>
         </div>
-        
         <div class="flex items-center gap-3">
           <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-bold text-xs sm:text-sm shadow-lg shadow-brand-500/20 border border-indigo-400/30 overflow-hidden p-0.5">
             <img src="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon32.png" alt="Admin Avatar" class="w-full h-full object-cover rounded-xl">
@@ -224,19 +201,17 @@
         </div>
       </header>
 
-      <!-- MAIN CONTENT -->
+      <!-- MAIN CONTAINER -->
       <main class="flex-1 p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto">
         
-        <!-- OVERVIEW SUBVIEW -->
+        <!-- OVERVIEW -->
         <div id="subViewMainMenu" class="subview-section active space-y-4 sm:space-y-6">
-          
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
             <div class="lg:col-span-2 glass-card p-6 sm:p-8 rounded-3xl flex flex-col justify-center relative overflow-hidden border border-slate-800">
               <div class="absolute -right-10 -top-10 w-48 h-48 sm:w-64 sm:h-64 bg-brand-500/15 rounded-full blur-3xl pointer-events-none"></div>
               <h2 class="text-xl sm:text-2xl font-extrabold text-white mb-2 relative z-10">Welcome to MindHUB Base</h2>
               <p class="text-slate-400 text-xs sm:text-sm max-w-md leading-relaxed relative z-10">All systems operational. Monitor device authorization, live statistics, and synchronization in real-time.</p>
             </div>
-
             <div class="glass-card p-5 sm:p-6 rounded-3xl flex flex-col justify-between border border-slate-800">
               <span class="text-[10px] sm:text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Monthly Revenue</span>
               <h3 id="statRevBulan" class="text-2xl sm:text-3xl font-black text-white mt-2">Rp 0</h3>
@@ -253,13 +228,11 @@
             </div>
           </div>
 
-          <!-- REVENUE CHART & QRIS STATUS -->
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
             <div class="lg:col-span-2 glass-card p-5 sm:p-6 rounded-3xl border border-slate-800">
               <div class="text-xs sm:text-sm font-bold text-slate-300 mb-4">📈 Revenue Trend (Last 7 Days)</div>
               <div id="chartBarsContainer" class="flex items-end justify-between h-36 pt-4 border-b border-slate-800/80 px-2 gap-2"></div>
             </div>
-
             <div class="glass-card p-5 sm:p-6 rounded-3xl border border-slate-800 flex flex-col justify-between">
               <div>
                 <h4 class="font-bold text-white text-xs sm:text-sm mb-1">QRIS Payment Gateway</h4>
@@ -272,9 +245,7 @@
             </div>
           </div>
 
-          <!-- ADVANCED SYSTEM HEALTH & METRICS GRID -->
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <!-- API LATENCY WIDGET -->
             <div class="glass-card p-4 sm:p-5 rounded-2xl border border-slate-800 flex items-center justify-between">
               <div>
                 <span class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block">API Health & Latency</span>
@@ -292,7 +263,6 @@
               </div>
             </div>
 
-            <!-- LICENSE DISTRIBUTION WIDGET -->
             <div class="glass-card p-4 sm:p-5 rounded-2xl border border-slate-800 flex flex-col justify-between">
               <div class="flex justify-between items-center">
                 <span class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">License Ratio</span>
@@ -305,55 +275,44 @@
               </div>
             </div>
 
-            <!-- EXPORT & IMPORT DATA CENTER -->
             <div class="glass-card p-4 sm:p-5 rounded-2xl border border-slate-800 flex items-center justify-between">
               <div>
                 <span class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block">Data Management</span>
                 <span class="text-xs text-slate-400 mt-0.5 block">CSV / JSON Sync</span>
               </div>
               <div class="flex gap-2">
-                <button onclick="exportLicensesCSV()" title="Export License Data" class="bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 active:scale-95 px-3 py-2 rounded-xl text-xs font-bold transition border border-indigo-500/20 flex items-center gap-1">
-                  <span>📥</span> Export
-                </button>
-                <button onclick="document.getElementById('importFileInput').click()" title="Import License Data" class="bg-brand-500/10 hover:bg-brand-500/20 text-brand-400 active:scale-95 px-3 py-2 rounded-xl text-xs font-bold transition border border-brand-500/20 flex items-center gap-1">
-                  <span>📤</span> Import
-                </button>
+                <button onclick="exportLicensesCSV()" class="bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 active:scale-95 px-3 py-2 rounded-xl text-xs font-bold transition border border-indigo-500/20 flex items-center gap-1">📥 Export</button>
+                <button onclick="document.getElementById('importFileInput').click()" class="bg-brand-500/10 hover:bg-brand-500/20 text-brand-400 active:scale-95 px-3 py-2 rounded-xl text-xs font-bold transition border border-brand-500/20 flex items-center gap-1">📤 Import</button>
               </div>
             </div>
           </div>
 
-          <!-- ACTION GRID -->
           <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
             <div onclick="bukaFitur('device')" class="glass-card p-4 sm:p-5 rounded-2xl hover:border-brand-500/50 cursor-pointer transition group">
               <div class="text-2xl mb-2 group-hover:scale-110 transition-transform">🔍</div>
               <h3 class="font-bold text-white text-xs sm:text-sm">Client Devices</h3>
               <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5">Manage licenses</p>
             </div>
-
             <div onclick="bukaFitur('transfer')" class="glass-card p-4 sm:p-5 rounded-2xl hover:border-brand-500/50 cursor-pointer transition group">
               <div class="text-2xl mb-2 group-hover:scale-110 transition-transform">🔄</div>
               <h3 class="font-bold text-white text-xs sm:text-sm">Migrate Device</h3>
               <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5">Transfer data</p>
             </div>
-
             <div onclick="bukaFitur('packages')" class="glass-card p-4 sm:p-5 rounded-2xl hover:border-brand-500/50 cursor-pointer transition group">
               <div class="text-2xl mb-2 group-hover:scale-110 transition-transform">📦</div>
               <h3 class="font-bold text-white text-xs sm:text-sm">Pricing Plans</h3>
               <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5">Subscription rates</p>
             </div>
-
             <div onclick="bukaFitur('vouchers')" class="glass-card p-4 sm:p-5 rounded-2xl hover:border-brand-500/50 cursor-pointer transition group">
               <div class="text-2xl mb-2 group-hover:scale-110 transition-transform">🎟️</div>
               <h3 class="font-bold text-white text-xs sm:text-sm">Promo Vouchers</h3>
               <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5">Manage coupons</p>
             </div>
-
             <div onclick="bukaFitur('release')" class="glass-card p-4 sm:p-5 rounded-2xl hover:border-brand-500/50 cursor-pointer transition group">
               <div class="text-2xl mb-2 group-hover:scale-110 transition-transform">🚀</div>
               <h3 class="font-bold text-white text-xs sm:text-sm">Cloud Updater</h3>
               <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5">Publish scripts</p>
             </div>
-
             <div onclick="triggerPWAInstall()" class="glass-card p-4 sm:p-5 rounded-2xl hover:border-brand-500/50 cursor-pointer transition group border-indigo-500/30">
               <div class="text-2xl mb-2 group-hover:scale-110 transition-transform">📱</div>
               <h3 class="font-bold text-white text-xs sm:text-sm">Install App</h3>
@@ -361,7 +320,6 @@
             </div>
           </div>
 
-          <!-- EXPIRING LICENSES RADAR -->
           <div class="glass-card p-5 rounded-2xl border border-slate-800 space-y-3">
             <div class="flex items-center justify-between flex-wrap gap-2">
               <div class="flex items-center gap-2">
@@ -374,13 +332,11 @@
               <div class="text-center text-slate-500 text-xs py-4">Checking active license status...</div>
             </div>
           </div>
-
         </div>
 
-        <!-- DEVICE LIST SUBVIEW -->
+        <!-- DEVICE LIST -->
         <div id="subViewDeviceCheck" class="subview-section space-y-4 max-w-4xl mx-auto">
           <div class="glass-card p-5 sm:p-8 rounded-3xl space-y-4 border border-slate-800">
-            
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
               <div class="sm:col-span-2">
                 <label class="block text-[10px] sm:text-xs font-bold text-slate-400 uppercase mb-2">Cari Device ID / SPPG</label>
@@ -397,7 +353,6 @@
               </div>
             </div>
 
-            <!-- TABS & BULK SELECT CONTROLS -->
             <div class="flex justify-between items-center flex-wrap gap-2 border-b border-slate-800/80 pb-3">
               <div class="flex gap-2 overflow-x-auto scrollbar-none" id="filterTabsContainer">
                 <button class="px-3.5 py-2 rounded-xl bg-brand-500 text-white text-xs font-bold tab-btn active whitespace-nowrap" onclick="setFilterTab('all', this)">All</button>
@@ -406,15 +361,13 @@
                 <button class="px-3.5 py-2 rounded-xl bg-slate-800/80 text-slate-400 text-xs font-semibold tab-btn whitespace-nowrap" onclick="setFilterTab('expired', this)">Expired</button>
                 <button class="px-3.5 py-2 rounded-xl bg-slate-800/80 text-slate-400 text-xs font-semibold tab-btn whitespace-nowrap" onclick="setFilterTab('revoked', this)">Revoked</button>
               </div>
-
               <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-400 hover:text-white font-bold select-none px-2 py-1 bg-slate-900 rounded-xl border border-slate-800">
                 <input type="checkbox" id="chkSelectAllDevices" onchange="toggleSelectAllDevices(this.checked)" class="rounded border-slate-700 text-brand-500 focus:ring-0 bg-slate-950">
                 <span>Select All</span>
               </label>
             </div>
 
-            <!-- FLOATING BULK BATCH ACTION BAR -->
-            <div id="bulkActionsToolbar" class="hidden bg-slate-900/95 border border-brand-500/30 p-3 sm:p-4 rounded-2xl flex items-center justify-between flex-wrap gap-3 shadow-xl backdrop-blur-md animate-in fade-in">
+            <div id="bulkActionsToolbar" class="hidden bg-slate-900/95 border border-brand-500/30 p-3 sm:p-4 rounded-2xl flex items-center justify-between flex-wrap gap-3 shadow-xl backdrop-blur-md">
               <div class="text-xs text-slate-300 font-bold">
                 <span id="bulkSelectedCount" class="text-brand-400 font-extrabold text-sm">0</span> Device Dipilih
               </div>
@@ -431,16 +384,13 @@
               <div class="text-center text-slate-500 text-xs py-10">Memuat data...</div>
             </div>
 
-            <button onclick="bukaFitur('overview')" class="w-full bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-2xl text-xs font-bold transition border border-slate-700">
-              🔙 Kembali ke Menu
-            </button>
+            <button onclick="bukaFitur('overview')" class="w-full bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-2xl text-xs font-bold transition border border-slate-700">🔙 Kembali ke Menu</button>
           </div>
         </div>
 
-        <!-- DEVICE DETAIL SUBVIEW -->
+        <!-- DEVICE DETAIL -->
         <div id="subViewDeviceDetail" class="subview-section space-y-4 sm:space-y-6 max-w-2xl mx-auto">
           <div class="glass-card p-5 sm:p-8 rounded-3xl space-y-5 border border-slate-800">
-            
             <div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-2 text-xs sm:text-sm">
               <div class="flex justify-between items-center gap-2"><span>Device ID</span> <span id="dispDeviceId" class="text-amber-400 font-mono font-bold truncate max-w-[180px] sm:max-w-none">-</span></div>
               <div class="flex justify-between items-center gap-2"><span>SPPG</span> <span id="dispSppgName" class="text-brand-400 font-bold truncate max-w-[180px] sm:max-w-none">-</span></div>
@@ -449,7 +399,6 @@
               <div class="flex justify-between items-center gap-2"><span>Last Active</span> <span id="dispLastActive" class="text-slate-400">-</span></div>
             </div>
 
-            <!-- SINGLE USE VOUCHER GENERATOR -->
             <div class="bg-brand-500/10 p-4 sm:p-5 rounded-2xl border border-brand-500/20 space-y-3">
               <div class="font-bold text-brand-400 text-xs uppercase tracking-wider flex items-center justify-between flex-wrap gap-1">
                 <span>🎫 Generate Voucher Device Ini</span>
@@ -469,7 +418,6 @@
               </div>
             </div>
 
-            <!-- BACKUP CARD -->
             <div id="backupInfoCard" class="hidden bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-2 text-xs">
               <div class="font-bold text-brand-400 uppercase tracking-wider flex items-center justify-between">
                 <span>Cloud Backup Data KPM</span>
@@ -489,7 +437,6 @@
                 <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Edit SPPG Name</label>
                 <input type="text" id="editSppgName" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
               </div>
-
               <div>
                 <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Aksi Cepat Tambah Durasi</label>
                 <div class="grid grid-cols-3 sm:grid-cols-6 gap-1.5 sm:gap-2">
@@ -501,12 +448,10 @@
                   <button onclick="setLifetime()" class="bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-xl text-xs font-bold">♾️</button>
                 </div>
               </div>
-
               <div>
                 <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Manual Exp Date</label>
                 <input type="date" id="editExpDate" onchange="cekOtomatisStatusTanggal()" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
               </div>
-
               <div>
                 <label class="block text-xs font-bold text-slate-400 uppercase mb-2">License Status</label>
                 <select id="editStatus" onchange="ubahStatusDropdown(this.value)" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
@@ -521,15 +466,14 @@
             <div class="pt-4 space-y-3">
               <button onclick="simpanPerubahanLisensi()" class="w-full bg-brand-500 hover:bg-brand-600 active:scale-[0.99] text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-brand-500/25 transition">Save Configuration</button>
               <div class="flex gap-3">
-                <button id="btnHapusLisensi" onclick="hapusLisensiWithModal()" class="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 py-3 rounded-2xl text-xs font-bold transition border border-red-500/20">Delete License</button>
+                <button onclick="hapusLisensiWithModal()" class="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 py-3 rounded-2xl text-xs font-bold transition border border-red-500/20">Delete License</button>
                 <button onclick="bukaFitur('device')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-2xl text-xs font-bold transition">Back to List</button>
               </div>
             </div>
-
           </div>
         </div>
 
-        <!-- MIGRATION SUBVIEW -->
+        <!-- MIGRATION -->
         <div id="subViewTransferDevice" class="subview-section max-w-xl mx-auto space-y-4">
           <div class="glass-card p-5 sm:p-8 rounded-3xl space-y-4 border border-slate-800">
             <div class="bg-brand-500/10 border border-brand-500/20 p-4 rounded-2xl text-xs text-slate-300 leading-relaxed">
@@ -543,17 +487,14 @@
               <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Device ID Tujuan (Baru)</label>
               <input type="text" id="inputTargetDevice" placeholder="DEV-YYYY" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs font-mono uppercase">
             </div>
-            <!-- DIPERBAIKI: Tombol Menu di samping migrasi data kini berukuran besar, proporsional, dan elegan -->
             <div class="flex gap-3 pt-2">
               <button onclick="eksekusiOperDeviceWithModal()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white py-3.5 px-6 rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-amber-500/20 transition">🚀 Migrasi Sekarang</button>
-              <button onclick="bukaFitur('overview')" class="w-32 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 py-3.5 px-5 rounded-2xl text-xs sm:text-sm font-bold transition border border-slate-700 flex items-center justify-center gap-2">
-                <span>🏠</span> Menu
-              </button>
+              <button onclick="bukaFitur('overview')" class="w-32 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 py-3.5 px-5 rounded-2xl text-xs sm:text-sm font-bold transition border border-slate-700 flex items-center justify-center gap-2"><span>🏠</span> Menu</button>
             </div>
           </div>
         </div>
 
-        <!-- PACKAGES SUBVIEW -->
+        <!-- PACKAGES -->
         <div id="subViewPackages" class="subview-section max-w-2xl mx-auto space-y-4">
           <div class="glass-card p-5 sm:p-8 rounded-3xl space-y-4 border border-slate-800">
             <div class="flex items-center justify-between flex-wrap gap-2">
@@ -563,17 +504,15 @@
               </div>
               <button onclick="tambahBarisPaketForm()" class="bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-bold px-3.5 py-2 rounded-xl text-xs transition shadow-md shadow-brand-500/20">+ Tambah Paket</button>
             </div>
-            
             <div id="containerListPaket" class="space-y-3 max-h-[450px] overflow-y-auto pr-1"></div>
-
             <div class="flex gap-2 pt-2">
-              <button onclick="simpanPengaturanPaketServer()" class="flex-2 w-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-bold py-3.5 rounded-2xl text-xs transition">💾 Simpan Paket</button>
+              <button onclick="simpanPengaturanPaketServer()" class="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-bold py-3.5 rounded-2xl text-xs transition">💾 Simpan Paket</button>
               <button onclick="bukaFitur('overview')" class="flex-1 bg-slate-800 hover:bg-slate-700 active:scale-[0.99] text-slate-300 font-bold py-3.5 rounded-2xl text-xs transition">Menu</button>
             </div>
           </div>
         </div>
 
-        <!-- VOUCHERS SUBVIEW -->
+        <!-- VOUCHERS -->
         <div id="subViewVouchers" class="subview-section max-w-3xl mx-auto space-y-4">
           <div class="glass-card p-5 sm:p-8 rounded-3xl space-y-4 border border-slate-800">
             <div class="flex items-center justify-between flex-wrap gap-2">
@@ -583,17 +522,15 @@
               </div>
               <button onclick="tambahBarisVoucherForm()" class="bg-brand-500 hover:bg-brand-600 text-white font-bold px-3.5 py-2 rounded-xl text-xs transition">+ Tambah Voucher</button>
             </div>
-
             <div id="containerListVoucher" class="space-y-3 max-h-[450px] overflow-y-auto pr-1"></div>
-
             <div class="flex gap-2 pt-2">
-              <button onclick="simpanPengaturanVoucherServer()" class="flex-2 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-2xl text-xs transition">💾 Simpan Semua Voucher</button>
+              <button onclick="simpanPengaturanVoucherServer()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-2xl text-xs transition">💾 Simpan Semua Voucher</button>
               <button onclick="bukaFitur('overview')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3.5 rounded-2xl text-xs transition">Menu</button>
             </div>
           </div>
         </div>
 
-        <!-- UPDATER RELEASE SUBVIEW -->
+        <!-- RELEASE UPDATER -->
         <div id="subViewRelease" class="subview-section max-w-xl mx-auto space-y-4">
           <div class="glass-card p-5 sm:p-8 rounded-3xl space-y-4 border border-slate-800">
             <div class="bg-indigo-500/10 border border-indigo-500/20 p-4 rounded-2xl text-xs text-slate-300">
@@ -612,7 +549,7 @@
               <textarea id="inputChangelog" rows="4" placeholder="- Perbaikan bug&#10;- Peningkatan performa" onkeydown="handleChangelogAutoBullet(event)" onfocus="if(!this.value) this.value='- ';" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs font-mono"></textarea>
             </div>
             <div class="flex gap-2 pt-2">
-              <button onclick="simpanUpdateReleaseServer()" class="flex-2 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-2xl text-xs transition">🚀 Rilis Update</button>
+              <button onclick="simpanUpdateReleaseServer()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-2xl text-xs transition">🚀 Rilis Update</button>
               <button onclick="bukaFitur('overview')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3.5 rounded-2xl text-xs transition">Menu</button>
             </div>
           </div>
@@ -637,10 +574,27 @@
     let confirmCallbackFn = null;
     let deferredPrompt = null;
 
-    // Safety Void Fallback
-    function addAuditLog(msg) {}
+    /* HELPER FORMAT TANGGAL & WAKTU */
+    function formatTanggalIndo(dateStr) {
+      if (!dateStr || dateStr === '-') return '-';
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
 
-    /* PWA INIT & REGISTRATION FOR ANDROID WITH 512 LOGO */
+    function formatWaktuRelatif(dateStr) {
+      if (!dateStr) return '-';
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      const now = new Date();
+      const diffSec = Math.floor((now - d) / 1000);
+      if (diffSec < 60) return 'Baru saja';
+      if (diffSec < 3600) return `${Math.floor(diffSec / 60)} menit lalu`;
+      if (diffSec < 86400) return `${Math.floor(diffSec / 3600)} jam lalu`;
+      return formatTanggalIndo(dateStr);
+    }
+
+    /* PWA INIT */
     (function initPWA() {
       const manifest = {
         name: "MindHUB Admin Dashboard",
@@ -652,41 +606,16 @@
         background_color: "#020617",
         theme_color: "#6366f1",
         icons: [
-          {
-            src: "https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon512.png",
-            sizes: "192x192",
-            type: "image/png",
-            purpose: "any maskable"
-          },
-          {
-            src: "https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon512.png",
-            sizes: "512x512",
-            type: "image/png",
-            purpose: "any maskable"
-          }
+          { src: "https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon512.png", sizes: "192x192", type: "image/png" },
+          { src: "https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon512.png", sizes: "512x512", type: "image/png" }
         ]
       };
-      
       const blobManifest = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
       const manifestUrl = URL.createObjectURL(blobManifest);
       const link = document.createElement('link');
       link.rel = 'manifest';
       link.href = manifestUrl;
       document.head.appendChild(link);
-
-      if ('serviceWorker' in navigator) {
-        const swContent = `
-          const CACHE_NAME = 'mindhub-pwa-v2';
-          self.addEventListener('install', event => { self.skipWaiting(); });
-          self.addEventListener('activate', event => { event.waitUntil(clients.claim()); });
-          self.addEventListener('fetch', event => {
-            event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
-          });
-        `;
-        const blobSW = new Blob([swContent], { type: 'text/javascript' });
-        const swUrl = URL.createObjectURL(blobSW);
-        navigator.serviceWorker.register(swUrl).catch(() => {});
-      }
     })();
 
     window.addEventListener('beforeinstallprompt', (e) => {
@@ -698,24 +627,18 @@
       if (deferredPrompt) {
         deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-          showToast('Aplikasi MindHUB berhasil diinstall!');
-        }
+        if (outcome === 'accepted') showToast('Aplikasi MindHUB berhasil diinstall!');
         deferredPrompt = null;
       } else {
         if (window.matchMedia('(display-mode: standalone)').matches) {
           showToast('MindHUB sudah berjalan dalam mode Aplikasi PWA!', true);
         } else {
-          showConfirmModal(
-            'Install Aplikasi MindHUB',
-            'Untuk menginstall MindHUB sebagai Aplikasi di Android:\n\n1. Ketuk ikon titik tiga (⋮) di kanan atas browser Chrome.\n2. Pilih "Tambah ke Layar Utama" atau "Install Aplikasi" (Install App).\n3. Konfirmasi instalasi.',
-            null
-          );
+          showConfirmModal('Install Aplikasi MindHUB', 'Ketuk ikon titik tiga (⋮) di kanan atas browser Chrome, lalu pilih "Tambah ke Layar Utama" atau "Install Aplikasi".', null);
         }
       }
     }
 
-    /* FEATURE LATENCY PING MONITOR */
+    /* SYSTEM HEALTH PING */
     async function checkSystemHealth() {
       const pingEl = document.getElementById('statPingMs');
       const statusEl = document.getElementById('statApiStatus');
@@ -738,7 +661,7 @@
       }
     }
 
-    /* CSV EXPORT CENTER FEATURE */
+    /* CSV EXPORT */
     function exportLicensesCSV() {
       if (!globalUserList || globalUserList.length === 0) {
         return showToast('Tidak ada data lisensi untuk diexport', false);
@@ -764,24 +687,21 @@
       showToast('Data lisensi berhasil diexport ke CSV!');
     }
 
-    /* IMPORT DATA CSV / JSON FEATURE */
+    /* IMPORT FILE */
     async function processImportFile(e) {
       const file = e.target.files[0];
       if (!file) return;
-
       const reader = new FileReader();
       reader.onload = async (evt) => {
         try {
           const content = evt.target.result;
           let licensesToImport = [];
-
           if (file.name.toLowerCase().endsWith('.json')) {
             const json = JSON.parse(content);
             licensesToImport = Array.isArray(json) ? json : (json.licenses || json.users || []);
           } else {
             const lines = content.split('\n').map(l => l.trim()).filter(l => l);
-            if (lines.length <= 1) return showToast('File CSV kosong atau format tidak valid', false);
-            
+            if (lines.length <= 1) return showToast('File CSV kosong atau tidak valid', false);
             for (let i = 1; i < lines.length; i++) {
               const cols = lines[i].split(',').map(c => c.replace(/^"|"$/g, '').trim());
               if (cols[0]) {
@@ -795,39 +715,32 @@
               }
             }
           }
+          if (licensesToImport.length === 0) return showToast('Tidak ada data lisensi valid', false);
 
-          if (licensesToImport.length === 0) {
-            return showToast('Tidak ada data lisensi valid yang ditemukan', false);
-          }
-
-          showConfirmModal(
-            'Import Data Lisensi',
-            `Ditemukan ${licensesToImport.length} data lisensi.\nLanjutkan proses import dan sinkronisasi ke server?`,
-            async () => {
-              showToast('Proses impor data sedang berjalan...', true);
-              let successCount = 0;
-              for (const lic of licensesToImport) {
-                try {
-                  const res = await fetch(VERCEL_API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      action: 'save_license',
-                      device_id: lic.device_id,
-                      sppg_name: lic.sppg_name || '',
-                      status: lic.status || 'active',
-                      exp_date: lic.exp_date || '',
-                      license_key: buatLicenseKey(lic.exp_date || '2099-12-31', lic.device_id),
-                      admin_secret: adminPasswordSecret
-                    })
-                  });
-                  if (res.ok) successCount++;
-                } catch (err) {}
-              }
-              showToast(`Import selesai: ${successCount} dari ${licensesToImport.length} lisensi terisi!`);
-              muatDaftarSemuaUser();
+          showConfirmModal('Import Data Lisensi', `Ditemukan ${licensesToImport.length} data. Lanjutkan proses import ke server?`, async () => {
+            showToast('Proses impor sedang berjalan...', true);
+            let successCount = 0;
+            for (const lic of licensesToImport) {
+              try {
+                const res = await fetch(VERCEL_API_URL, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    action: 'save_license',
+                    device_id: lic.device_id,
+                    sppg_name: lic.sppg_name || '',
+                    status: lic.status || 'active',
+                    exp_date: lic.exp_date || '',
+                    license_key: buatLicenseKey(lic.exp_date || '2099-12-31', lic.device_id),
+                    admin_secret: adminPasswordSecret
+                  })
+                });
+                if (res.ok) successCount++;
+              } catch (err) {}
             }
-          );
+            showToast(`Import selesai: ${successCount} dari ${licensesToImport.length} berhasil!`);
+            muatDaftarSemuaUser();
+          });
         } catch (err) {
           showToast('Gagal membaca atau memproses file import', false);
         }
@@ -839,7 +752,6 @@
     function renderExpiringRadar() {
       const container = document.getElementById('expiringRadarContainer');
       if (!container) return;
-
       const hariIniDate = new Date();
       const batasRadarDate = new Date();
       batasRadarDate.setDate(hariIniDate.getDate() + 7);
@@ -852,14 +764,9 @@
 
       container.innerHTML = '';
       if (expiringUsers.length === 0) {
-        container.innerHTML = `
-          <div class="text-center py-4 bg-slate-900/50 rounded-xl border border-slate-800/60">
-            <span class="text-xs text-emerald-400 font-bold">✨ Semua Lisensi Aktif Aman (> 7 Hari Masa Aktif)</span>
-          </div>
-        `;
+        container.innerHTML = `<div class="text-center py-4 bg-slate-900/50 rounded-xl border border-slate-800/60"><span class="text-xs text-emerald-400 font-bold">✨ Semua Lisensi Aman (> 7 Hari)</span></div>`;
         return;
       }
-
       expiringUsers.forEach(u => {
         const div = document.createElement('div');
         div.className = 'bg-slate-900/80 border border-amber-500/20 p-3 rounded-xl flex items-center justify-between text-xs gap-2';
@@ -870,11 +777,8 @@
           </div>
           <div class="text-right shrink-0">
             <div class="text-[10px] text-slate-400">Exp: <b class="text-white">${formatTanggalIndo(u.exp_date)}</b></div>
-            <button onclick="quickRenewDevice('${u.device_id}', 7)" class="mt-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold px-2.5 py-1 rounded-lg text-[10px] transition border border-amber-500/30">
-              +7 Hari
-            </button>
-          </div>
-        `;
+            <button onclick="quickRenewDevice('${u.device_id}', 7)" class="mt-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold px-2.5 py-1 rounded-lg text-[10px] transition border border-amber-500/30">+7 Hari</button>
+          </div>`;
         container.appendChild(div);
       });
     }
@@ -882,7 +786,6 @@
     async function quickRenewDevice(deviceId, days) {
       const userObj = globalUserList.find(u => u.device_id === deviceId);
       if (!userObj) return;
-
       let baseDate = new Date();
       if (userObj.exp_date && userObj.exp_date !== '-') {
         const parsed = new Date(userObj.exp_date);
@@ -893,13 +796,7 @@
       const mm = String(baseDate.getMonth() + 1).padStart(2, '0');
       const dd = String(baseDate.getDate()).padStart(2, '0');
 
-      const updatedObj = {
-        ...userObj,
-        exp_date: `${yyyy}-${mm}-${dd}`,
-        status: 'active',
-        license_key: buatLicenseKey(`${yyyy}-${mm}-${dd}`, deviceId)
-      };
-
+      const updatedObj = { ...userObj, exp_date: `${yyyy}-${mm}-${dd}`, status: 'active', license_key: buatLicenseKey(`${yyyy}-${mm}-${dd}`, deviceId) };
       try {
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
@@ -950,17 +847,14 @@
         const val = textarea.value;
         const lastLineBreak = val.lastIndexOf('\n', start - 1);
         const currentLine = val.substring(lastLineBreak + 1, start);
-        
         const match = currentLine.match(/^(\s*[-•*]\s*)/);
         if (match) {
           e.preventDefault();
           const bullet = match[1];
           const trimmedLine = currentLine.trim();
           if (trimmedLine === '-' || trimmedLine === '•' || trimmedLine === '*') {
-            const newText = val.substring(0, lastLineBreak < 0 ? 0 : lastLineBreak) + val.substring(end);
-            textarea.value = newText;
-            const newPos = lastLineBreak < 0 ? 0 : lastLineBreak;
-            textarea.selectionStart = textarea.selectionEnd = newPos;
+            textarea.value = val.substring(0, lastLineBreak < 0 ? 0 : lastLineBreak) + val.substring(end);
+            textarea.selectionStart = textarea.selectionEnd = lastLineBreak < 0 ? 0 : lastLineBreak;
           } else {
             const prefix = bullet.endsWith(' ') ? bullet : bullet + ' ';
             const insertText = '\n' + prefix;
@@ -1029,7 +923,6 @@
       toggleSidebarMobile(false);
     }
 
-    /* PENGATUR SIDEBAR ACTIVE STATE & BUKA FITUR */
     function highlightActiveNav(activeId) {
       const navIds = ['navOverview', 'navDevice', 'navTransfer', 'navPackages', 'navVouchers', 'navRelease'];
       navIds.forEach(id => {
@@ -1097,7 +990,7 @@
         if (res.ok && data.status) {
           adminPasswordSecret = pass;
           gantiView('viewDashboardApp');
-          bukaFitur('overview'); // Membuka halaman overview saja saat pertama masuk
+          bukaFitur('overview');
           showToast('Access Granted');
         } else {
           showToast(data.error || 'Access Denied', false);
@@ -1176,27 +1069,38 @@
           group.className = 'flex flex-col items-center flex-1 h-full justify-end';
           group.innerHTML = `
             <div class="w-full max-w-[20px] bg-brand-500 hover:bg-brand-400 rounded-t-md transition-all duration-300" style="height: ${Math.max(8, tinggiPersen)}px;" title="Rp ${val.toLocaleString('id-ID')}"></div>
-            <div class="text-[9px] text-slate-500 mt-2 font-mono">H-${6-idx}</div>
-          `;
+            <div class="text-[9px] text-slate-500 mt-2 font-mono">H-${6-idx}</div>`;
           chartContainer.appendChild(group);
         });
       } catch (e) {}
     }
 
+    /* SAFE SYNC ENGINE UNTUK MENGHINDARI SYNC FAILED */
     async function muatDaftarSemuaUser() {
       const container = document.getElementById('listAllUsersContainer');
       if (container) container.innerHTML = '<div class="text-center text-slate-500 text-xs py-10">Fetching secure data...</div>';
       try {
-        const res = await fetch(`${VERCEL_API_URL}?action=get_all_licenses`);
-        const data = await res.json();
-        globalUserList = data.licenses || data.users || [];
+        const res = await fetch(`${VERCEL_API_URL}?action=get_all_licenses`, { method: 'GET', headers: { 'Accept': 'application/json' } });
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        
+        const textData = await res.text();
+        let data;
+        try {
+          data = JSON.parse(textData);
+        } catch (err) {
+          throw new Error('Invalid JSON response from server');
+        }
+
+        globalUserList = Array.isArray(data) ? data : (data.licenses || data.users || data.data || []);
         selectedDeviceIds = [];
         updateBulkToolbarUI();
         filterUserList();
         renderExpiringRadar();
         updateLicenseRatio();
       } catch (e) { 
-        if (container) container.innerHTML = '<div class="text-center text-red-500 text-xs py-10">Sync Failed.</div>'; 
+        console.error("Sync error:", e);
+        globalUserList = [];
+        if (container) container.innerHTML = '<div class="text-center text-red-400 text-xs py-10">⚠️ Sync Failed / Server Timeout. Silakan refresh halaman atau periksa koneksi API.</div>'; 
       }
     }
 
@@ -1209,7 +1113,6 @@
       filterUserList();
     }
 
-    /* BATCH / BULK SELECTION ENGINE */
     function toggleSelectDevice(deviceId, checked, event) {
       if (event) event.stopPropagation();
       if (checked) {
@@ -1234,7 +1137,6 @@
       const toolbar = document.getElementById('bulkActionsToolbar');
       const countEl = document.getElementById('bulkSelectedCount');
       if (!toolbar || !countEl) return;
-
       if (selectedDeviceIds.length > 0) {
         countEl.textContent = selectedDeviceIds.length;
         toolbar.classList.remove('hidden');
@@ -1248,7 +1150,6 @@
     async function bulkExtendDuration(days) {
       if (selectedDeviceIds.length === 0) return;
       showToast(`Extending ${selectedDeviceIds.length} licenses (+${days} days)...`, true);
-
       let success = 0;
       for (const id of selectedDeviceIds) {
         const userObj = globalUserList.find(u => u.device_id === id);
@@ -1262,14 +1163,7 @@
           const yyyy = baseDate.getFullYear();
           const mm = String(baseDate.getMonth() + 1).padStart(2, '0');
           const dd = String(baseDate.getDate()).padStart(2, '0');
-
-          const updated = {
-            ...userObj,
-            exp_date: `${yyyy}-${mm}-${dd}`,
-            status: 'active',
-            license_key: buatLicenseKey(`${yyyy}-${mm}-${dd}`, id)
-          };
-
+          const updated = { ...userObj, exp_date: `${yyyy}-${mm}-${dd}`, status: 'active', license_key: buatLicenseKey(`${yyyy}-${mm}-${dd}`, id) };
           try {
             const res = await fetch(VERCEL_API_URL, {
               method: 'POST',
@@ -1287,17 +1181,11 @@
     async function bulkUpdateStatus(statusStr) {
       if (selectedDeviceIds.length === 0) return;
       showToast(`Updating status to ${statusStr.toUpperCase()} for ${selectedDeviceIds.length} items...`, true);
-
       let success = 0;
       for (const id of selectedDeviceIds) {
         const userObj = globalUserList.find(u => u.device_id === id);
         if (userObj) {
-          const updated = {
-            ...userObj,
-            status: statusStr,
-            license_key: buatLicenseKey(userObj.exp_date || '2026-12-31', id)
-          };
-
+          const updated = { ...userObj, status: statusStr, license_key: buatLicenseKey(userObj.exp_date || '2026-12-31', id) };
           try {
             const res = await fetch(VERCEL_API_URL, {
               method: 'POST',
@@ -1314,26 +1202,22 @@
 
     function bulkDeleteLicensesWithModal() {
       if (selectedDeviceIds.length === 0) return;
-      showConfirmModal(
-        '🚨 Hapus Batch Lisensi',
-        `Apakah Anda yakin ingin MENGHAPUS ${selectedDeviceIds.length} lisensi terpilih secara permanen?\n\nTindakan ini tidak dapat dibatalkan!`,
-        async () => {
-          showToast(`Deleting ${selectedDeviceIds.length} licenses...`, true);
-          let success = 0;
-          for (const id of selectedDeviceIds) {
-            try {
-              const res = await fetch(VERCEL_API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'delete_license', device_id: id, admin_secret: adminPasswordSecret })
-              });
-              if (res.ok) success++;
-            } catch (e) {}
-          }
-          showToast(`Bulk delete complete: ${success} licenses removed.`);
-          muatDaftarSemuaUser();
+      showConfirmModal('🚨 Hapus Batch Lisensi', `Apakah Anda yakin ingin MENGHAPUS ${selectedDeviceIds.length} lisensi terpilih secara permanen?\n\nTindakan ini tidak dapat dibatalkan!`, async () => {
+        showToast(`Deleting ${selectedDeviceIds.length} licenses...`, true);
+        let success = 0;
+        for (const id of selectedDeviceIds) {
+          try {
+            const res = await fetch(VERCEL_API_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'delete_license', device_id: id, admin_secret: adminPasswordSecret })
+            });
+            if (res.ok) success++;
+          } catch (e) {}
         }
-      );
+        showToast(`Bulk delete complete: ${success} licenses removed.`);
+        muatDaftarSemuaUser();
+      });
     }
 
     function filterUserList() {
@@ -1349,17 +1233,11 @@
         return matchQ && matchS;
       });
 
-      // SORTING LOGIC
       filtered.sort((a, b) => {
-        if (sortOpt === 'exp_asc') {
-          return (a.exp_date || '9999').localeCompare(b.exp_date || '9999');
-        } else if (sortOpt === 'exp_desc') {
-          return (b.exp_date || '0000').localeCompare(a.exp_date || '0000');
-        } else if (sortOpt === 'name_asc') {
-          return (a.device_id || '').localeCompare(b.device_id || '');
-        } else if (sortOpt === 'active_desc') {
-          return (b.last_active || b.updated_at || '0').localeCompare(a.last_active || a.updated_at || '0');
-        }
+        if (sortOpt === 'exp_asc') return (a.exp_date || '9999').localeCompare(b.exp_date || '9999');
+        else if (sortOpt === 'exp_desc') return (b.exp_date || '0000').localeCompare(a.exp_date || '0000');
+        else if (sortOpt === 'name_asc') return (a.device_id || '').localeCompare(b.device_id || '');
+        else if (sortOpt === 'active_desc') return (b.last_active || b.updated_at || '0').localeCompare(a.last_active || a.updated_at || '0');
         return 0;
       });
 
@@ -1379,7 +1257,6 @@
         else if (stat === 'revoked') badge = '<span class="px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 text-[10px] font-bold uppercase">Revoked</span>';
 
         const isChecked = selectedDeviceIds.includes(u.device_id);
-
         const div = document.createElement('div');
         div.className = `bg-slate-900/60 hover:bg-slate-800/80 border ${isChecked ? 'border-brand-500/80 bg-brand-500/5' : 'border-slate-800/80'} p-3.5 sm:p-4 rounded-2xl cursor-pointer flex justify-between items-center transition gap-3`;
         div.innerHTML = `
@@ -1391,8 +1268,7 @@
               <div class="text-[10px] text-slate-500 mt-0.5">s/d: ${formatTanggalIndo(u.exp_date)}</div>
             </div>
           </div>
-          <div class="shrink-0">${badge}</div>
-        `;
+          <div class="shrink-0">${badge}</div>`;
         div.onclick = (e) => {
           if (e.target.tagName !== 'INPUT') pilihUser(u, stat);
         };
@@ -1433,20 +1309,14 @@
       renderDetail();
     }
 
-    /* GENERATE VOUCHER SINGLE-USE PROPER ALGORITHM (HIDDEN FROM PROMO LIST) */
     async function generateVoucherDevice(numDays) {
-      if (!currentLicenseData || !currentLicenseData.device_id) {
-        return showToast('Pilih Device ID terlebih dahulu', false);
-      }
-      
+      if (!currentLicenseData || !currentLicenseData.device_id) return showToast('Pilih Device ID terlebih dahulu', false);
       const p1 = Math.random().toString(36).substring(2, 8).toUpperCase();
       const p2 = Math.random().toString(36).substring(2, 8).toUpperCase();
       const code = `MIND-${p1}-${p2}`;
-      
       const voucherInput = document.getElementById('dispGeneratedVoucher');
       voucherInput.value = '⏳ Generating...';
 
-      // 30 days valid window for voucher redemption
       const voucherExpDate = new Date();
       voucherExpDate.setDate(voucherExpDate.getDate() + 30);
       const expDateStr = voucherExpDate.toISOString().slice(0, 10);
@@ -1458,7 +1328,6 @@
           const dataGet = await resGet.json();
           vouchersList = dataGet.vouchers || [];
         }
-        
         const newVoucher = {
           code: code,
           type: 'days',
@@ -1472,26 +1341,19 @@
           used_count: 0,
           exp_date: expDateStr,
           device_id: currentLicenseData.device_id,
-          is_single_use: true, // <-- Ditandai agar tersembunyi dari halaman promo vouchers publik
+          is_single_use: true,
           created_at: new Date().toISOString()
         };
-        
         vouchersList.push(newVoucher);
-        
         const resSave = await fetch(VERCEL_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'save_vouchers',
-            vouchers: vouchersList,
-            admin_secret: adminPasswordSecret
-          })
+          body: JSON.stringify({ action: 'save_vouchers', vouchers: vouchersList, admin_secret: adminPasswordSecret })
         });
-        
         const resultSave = await resSave.json();
         if (resSave.ok && (resultSave.success || resultSave.status)) {
           voucherInput.value = code;
-          showToast(`Voucher ${code} (${numDays} Hari) berhasil dibuat & aktif!`);
+          showToast(`Voucher ${code} (${numDays} Hari) berhasil dibuat!`);
         } else {
           voucherInput.value = code;
           showToast(`Voucher ${code} dibuat di lokal, gagal simpan server.`, false);
@@ -1520,16 +1382,13 @@
         const parts = currentLicenseData.exp_date.split('-');
         if (parts.length === 3) {
           const parsed = new Date(parts[0], parts[1] - 1, parts[2]);
-          if (!isNaN(parsed.getTime()) && parsed > baseDate) {
-            baseDate = parsed;
-          }
+          if (!isNaN(parsed.getTime()) && parsed > baseDate) baseDate = parsed;
         }
       }
       baseDate.setDate(baseDate.getDate() + jumlahHari);
       const yyyy = baseDate.getFullYear();
       const mm = String(baseDate.getMonth() + 1).padStart(2, '0');
       const dd = String(baseDate.getDate()).padStart(2, '0');
-      
       currentLicenseData.exp_date = `${yyyy}-${mm}-${dd}`;
       currentLicenseData.status = 'active';
       renderDetail();
@@ -1562,36 +1421,25 @@
       } catch (e) { showToast('Network Error', false); }
     }
 
-    /* CONFIRMATION POP-UP FOR DELETING LICENSE */
     function hapusLisensiWithModal() {
       if (!currentLicenseData || !currentLicenseData.device_id) return;
       const deviceId = currentLicenseData.device_id;
       const sppgName = currentLicenseData.sppg_name || 'Client';
-
-      showConfirmModal(
-        '🚨 Menghapus Lisensi Device',
-        `Apakah Anda yakin ingin MENGHAPUS PERMANEN lisensi ini?\n\n• Device ID: ${deviceId}\n• SPPG: ${sppgName}\n\nTindakan ini tidak dapat dibatalkan!`,
-        async () => {
-          try {
-            const res = await fetch(VERCEL_API_URL, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ action: 'delete_license', device_id: deviceId, admin_secret: adminPasswordSecret })
-            });
-            if (res.ok) {
-              showToast(`Lisensi ${deviceId} berhasil dihapus!`);
-              bukaFitur('device');
-            } else {
-              showToast('Gagal menghapus lisensi dari server.', false);
-            }
-          } catch (e) {
-            showToast('Network error saat menghapus lisensi.', false);
-          }
-        }
-      );
+      showConfirmModal('🚨 Menghapus Lisensi Device', `Apakah Anda yakin ingin MENGHAPUS PERMANEN lisensi ini?\n\n• Device ID: ${deviceId}\n• SPPG: ${sppgName}`, async () => {
+        try {
+          const res = await fetch(VERCEL_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'delete_license', device_id: deviceId, admin_secret: adminPasswordSecret })
+          });
+          if (res.ok) {
+            showToast(`Lisensi ${deviceId} berhasil dihapus!`);
+            bukaFitur('device');
+          } else showToast('Gagal menghapus lisensi dari server.', false);
+        } catch (e) { showToast('Network error', false); }
+      });
     }
 
-    /* ROBUST CLOUD BACKUP PARSING & 3-DAY AUTOMATIC EXPIRATION PURGER */
     async function muatBackupDevice(deviceId) {
       const card = document.getElementById('backupInfoCard');
       if (!card) return;
@@ -1602,8 +1450,6 @@
         const res = await fetch(`${VERCEL_API_URL}?action=get_backup&device_id=${encodeURIComponent(deviceId)}&_t=${Date.now()}`);
         if (!res.ok) return;
         const data = await res.json();
-        
-        // Extract backup payload across varying DB structures
         let backupData = null;
         if (data && data.backup_data !== undefined) backupData = data.backup_data;
         else if (data && data.backup !== undefined) backupData = data.backup;
@@ -1613,57 +1459,42 @@
         if (typeof backupData === 'string') {
           try { backupData = JSON.parse(backupData); } catch (e) {}
         }
-
-        const isErrorResponse = data && (data.error || data.status === false || data.found === false || data.message === "Backup not found");
+        const isErrorResponse = data && (data.error || data.status === false || data.found === false);
         const isValidPayload = backupData && typeof backupData === 'object' && Object.keys(backupData).length > 0 && !isErrorResponse;
 
         if (isValidPayload) {
-          // 3-DAY AUTOMATIC EXPIRATION PURGE LOGIC
           const timeVal = data.created_at || data.updated_at || data.timestamp;
           if (timeVal) {
             const backupDate = new Date(timeVal);
             const now = new Date();
             const diffMs = now.getTime() - backupDate.getTime();
-            const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000; // 259,200,000 ms
-
+            const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
             if (!isNaN(backupDate.getTime()) && diffMs > THREE_DAYS_MS) {
-              // Auto Purge Expired Backup from Server
               try {
                 await fetch(VERCEL_API_URL, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ action: 'delete_backup', device_id: deviceId, admin_secret: adminPasswordSecret })
                 });
-                showToast(`Backup ${deviceId} kadaluarsa (>3 hari) & dihapus otomatis.`, false);
               } catch (e) {}
               return;
             }
           }
-
           currentBackupPayload = backupData;
           document.getElementById('dispBackupFilename').textContent = `sipgn-backup-${deviceId}.json`;
           document.getElementById('dispBackupTime').textContent = formatWaktuRelatif(timeVal || new Date().toISOString());
           card.classList.remove('hidden');
         }
-      } catch (e) {
-        console.error("Error fetching cloud backup:", e);
-      }
+      } catch (e) {}
     }
 
-    /* PREVIEW BACKUP JSON MODAL */
     function previewBackupCloud() {
-      if (!currentBackupPayload) return showToast('No backup available to preview', false);
+      if (!currentBackupPayload) return showToast('No backup available', false);
       const deviceId = currentLicenseData ? currentLicenseData.device_id : 'backup';
-      
       const modal = document.getElementById('jsonViewerModal');
-      const container = document.getElementById('jsonPreviewContainer');
-      const title = document.getElementById('jsonModalTitle');
-      const subtitle = document.getElementById('jsonModalSubtitle');
-
-      title.textContent = `Backup JSON: ${deviceId}`;
-      subtitle.textContent = `File: sipgn-backup-${deviceId}.json`;
-      container.textContent = JSON.stringify(currentBackupPayload, null, 2);
-
+      document.getElementById('jsonPreviewContainer').textContent = JSON.stringify(currentBackupPayload, null, 2);
+      document.getElementById('jsonModalTitle').textContent = `Backup JSON: ${deviceId}`;
+      document.getElementById('jsonModalSubtitle').textContent = `File: sipgn-backup-${deviceId}.json`;
       modal.classList.remove('hidden');
       modal.classList.add('flex');
     }
@@ -1750,7 +1581,7 @@
         <div class="grid grid-cols-12 gap-2 sm:flex-1">
           <div class="col-span-12 sm:col-span-5">
             <label class="block text-[9px] text-slate-500 font-extrabold uppercase mb-1">Nama Paket</label>
-            <input type="text" class="inp-nama w-full px-3 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-600 font-semibold outline-none focus:border-brand-500 transition" value="${nama}" placeholder="Contoh: Paket VIP 30 Hari">
+            <input type="text" class="inp-nama w-full px-3 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-600 font-semibold outline-none focus:border-brand-500 transition" value="${nama}" placeholder="Contoh: Paket VIP">
           </div>
           <div class="col-span-5 sm:col-span-3">
             <label class="block text-[9px] text-slate-500 font-extrabold uppercase mb-1">Durasi (Hari)</label>
@@ -1762,12 +1593,8 @@
           </div>
         </div>
         <div class="flex justify-end sm:block shrink-0 pt-1 sm:pt-4">
-          <button onclick="this.closest('.p-3.5, .p-4').remove()" class="w-full sm:w-9 h-9 bg-red-500/15 hover:bg-red-500/25 active:scale-95 text-red-400 border border-red-500/20 rounded-xl font-bold flex items-center justify-center gap-1 text-xs transition">
-            <span class="sm:hidden text-[10px]">Hapus Paket</span>
-            <span>✕</span>
-          </button>
-        </div>
-      `;
+          <button onclick="this.closest('.p-3.5, .p-4').remove()" class="w-full sm:w-9 h-9 bg-red-500/15 hover:bg-red-500/25 active:scale-95 text-red-400 border border-red-500/20 rounded-xl font-bold flex items-center justify-center gap-1 text-xs transition">✕</button>
+        </div>`;
       container.appendChild(div);
     }
 
@@ -1792,35 +1619,21 @@
       } catch (err) { showToast('Network Error', false); }
     }
 
-    /* VOUCHER PROMO MANAGEMENT & FILTERING (HIDING SINGLE-USE VOUCHERS) */
     async function muatDataVoucherServer() {
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=get_vouchers`);
         const data = await res.json();
         const allVouchers = data.vouchers || [];
-        
-        // HANYA AMBIL VOUCHER UMUM (Sembunyikan single-use / voucher device khusus)
         const list = allVouchers.filter(v => !v.is_single_use && (!v.device_id || v.device_id === 'ALL' || v.device_id === ''));
-        
         const container = document.getElementById('containerListVoucher');
         container.innerHTML = '';
-
         if (list.length === 0) {
           tambahBarisVoucherForm('PROMO50', 'percent', 50, 100, 0, '2026-12-31', 'ALL');
         } else {
           const todayStr = new Date().toISOString().slice(0, 10);
           list.forEach(v => {
             const isExpired = (v.exp_date && v.exp_date < todayStr) || (v.quota && v.used_count >= v.quota);
-            tambahBarisVoucherForm(
-              v.code,
-              v.type || v.discount_type || 'percent',
-              v.value !== undefined ? v.value : (v.discount_value || 0),
-              v.quota || 100,
-              v.used_count || 0,
-              v.exp_date || '2026-12-31',
-              v.device_id || 'ALL',
-              isExpired
-            );
+            tambahBarisVoucherForm(v.code, v.type || v.discount_type || 'percent', v.value !== undefined ? v.value : (v.discount_value || 0), v.quota || 100, v.used_count || 0, v.exp_date || '2026-12-31', v.device_id || 'ALL', isExpired);
           });
         }
       } catch (err) { showToast('Failed to load vouchers', false); }
@@ -1830,22 +1643,19 @@
       const container = document.getElementById('containerListVoucher');
       const div = document.createElement('div');
       div.className = `p-3 rounded-2xl border ${isExpired ? 'bg-red-950/20 border-red-500/30' : 'bg-slate-900/80 border-slate-800'} space-y-2.5 transition`;
-      
       const defaultExp = exp_date || new Date(Date.now() + 30*24*60*60*1000).toISOString().slice(0, 10);
-
       div.innerHTML = `
         <div class="flex items-center justify-between gap-2 flex-wrap">
           <div class="flex items-center gap-2 flex-1 min-w-[180px]">
-            <input type="text" class="inp-code px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-brand-400 font-mono font-bold uppercase w-full" value="${code}" placeholder="KODE VOUCHER">
-            ${isExpired ? '<span class="px-2 py-0.5 rounded bg-red-500/20 text-red-400 text-[9px] font-bold uppercase border border-red-500/30">Expired/Habis</span>' : ''}
+            <input type="text" class="inp-code px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-brand-400 font-mono font-bold uppercase w-full" value="${code}" placeholder="KODE">
+            ${isExpired ? '<span class="px-2 py-0.5 rounded bg-red-500/20 text-red-400 text-[9px] font-bold uppercase border border-red-500/30">Expired</span>' : ''}
           </div>
           <div class="flex items-center gap-2">
             <span class="text-[10px] text-slate-500 font-mono">Pakai: <b class="text-slate-300">${used_count}</b> /</span>
-            <input type="number" class="inp-quota w-20 px-2 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white text-center" value="${quota}" placeholder="Kuota">
+            <input type="number" class="inp-quota w-20 px-2 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white text-center" value="${quota}">
             <button onclick="this.closest('.p-3').remove()" class="w-8 h-8 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 rounded-xl font-bold flex items-center justify-center transition">✕</button>
           </div>
         </div>
-
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
           <div>
             <label class="block text-[9px] text-slate-500 font-extrabold uppercase mb-1">Tipe Promo</label>
@@ -1853,35 +1663,28 @@
               <option value="percent" ${type==='percent'?'selected':''}>Diskon (%)</option>
               <option value="fixed" ${type==='fixed'?'selected':''}>Diskon (Rp)</option>
               <option value="days" ${type==='days'?'selected':''}>Tambah Durasi (Hari)</option>
-              <option value="hours" ${type==='hours'?'selected':''}>Tambah Durasi (Jam)</option>
-              <option value="price" ${type==='price'?'selected':''}>Set Harga Khusus (Rp)</option>
             </select>
           </div>
-
           <div>
             <label class="block text-[9px] text-slate-500 font-extrabold uppercase mb-1">Nilai Promo</label>
-            <input type="number" class="inp-value w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white" value="${value}" placeholder="Nilai/Nominal">
+            <input type="number" class="inp-value w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white" value="${value}">
           </div>
-
           <div>
-            <label class="block text-[9px] text-slate-500 font-extrabold uppercase mb-1">Kadaluarsa Voucher</label>
+            <label class="block text-[9px] text-slate-500 font-extrabold uppercase mb-1">Kadaluarsa</label>
             <input type="date" class="inp-exp w-full px-2 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white" value="${defaultExp}">
           </div>
-
           <div>
             <label class="block text-[9px] text-slate-500 font-extrabold uppercase mb-1">Target Device ID</label>
-            <input type="text" class="inp-device w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-amber-400 font-mono uppercase" value="${device_id}" placeholder="ALL atau DEV-XXXX">
+            <input type="text" class="inp-device w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-amber-400 font-mono uppercase" value="${device_id}">
           </div>
         </div>
-        <input type="hidden" class="inp-used" value="${used_count}">
-      `;
+        <input type="hidden" class="inp-used" value="${used_count}">`;
       container.appendChild(div);
     }
 
     async function simpanPengaturanVoucherServer() {
       const rows = document.querySelectorAll('#containerListVoucher > div');
       const vouchers = [];
-      
       rows.forEach(r => {
         const code = r.querySelector('.inp-code').value.trim().toUpperCase();
         const type = r.querySelector('.inp-type').value;
@@ -1890,22 +1693,10 @@
         const used_count = Number(r.querySelector('.inp-used').value) || 0;
         const exp_date = r.querySelector('.inp-exp').value;
         const device_id = r.querySelector('.inp-device').value.trim().toUpperCase() || 'ALL';
-
         if (code) {
-          vouchers.push({
-            code: code,
-            type: type,
-            discount_type: type,
-            value: value,
-            discount_value: value,
-            quota: quota,
-            used_count: used_count,
-            exp_date: exp_date,
-            device_id: device_id
-          });
+          vouchers.push({ code, type, discount_type: type, value, discount_value: value, quota, used_count, exp_date, device_id });
         }
       });
-
       try {
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
@@ -1914,10 +1705,10 @@
         });
         const result = await res.json();
         if (res.ok && (result.success || result.status)) {
-          showToast('Daftar Voucher Promo Berhasil Disimpan!');
+          showToast('Voucher Promo Berhasil Disimpan!');
           muatDataVoucherServer();
         } else showToast(result.error || 'Gagal menyimpan voucher', false);
-      } catch (err) { showToast('Network Error saat menyimpan voucher', false); }
+      } catch (err) { showToast('Network Error', false); }
     }
 
     async function muatDataReleaseServer() {
@@ -1937,7 +1728,6 @@
       const download_url = document.getElementById('inputDownloadUrl').value.trim();
       const changelog = document.getElementById('inputChangelog').value.trim();
       if (!version || !download_url) return showToast('Version & URL required', false);
-
       try {
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',

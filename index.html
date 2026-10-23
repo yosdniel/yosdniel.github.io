@@ -494,7 +494,7 @@
           </div>
         </div>
 
-        <!-- PACKAGES -->
+        <!-- PACKAGES (PRICING PLANS) -->
         <div id="subViewPackages" class="subview-section max-w-2xl mx-auto space-y-4">
           <div class="glass-card p-5 sm:p-8 rounded-3xl space-y-4 border border-slate-800">
             <div class="flex items-center justify-between flex-wrap gap-2">
@@ -502,12 +502,12 @@
                 <label class="font-bold text-xs uppercase text-slate-300">Daftar Paket Langganan</label>
                 <p class="text-[11px] text-slate-400">Atur nama paket, durasi hari, dan nominal harga langganan.</p>
               </div>
-              <button onclick="tambahBarisPaketForm()" class="bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-bold px-3.5 py-2 rounded-xl text-xs transition shadow-md shadow-brand-500/20">+ Tambah Paket</button>
+              <button onclick="tambahBarisPaketForm()" class="bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-bold px-4 py-3.5 rounded-2xl text-xs sm:text-sm transition shadow-lg shadow-brand-500/20 flex items-center justify-center gap-1.5">+ Tambah Paket</button>
             </div>
             <div id="containerListPaket" class="space-y-3 max-h-[450px] overflow-y-auto pr-1"></div>
-            <div class="flex gap-2 pt-2">
-              <button onclick="simpanPengaturanPaketServer()" class="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-bold py-3.5 rounded-2xl text-xs transition">💾 Simpan Paket</button>
-              <button onclick="bukaFitur('overview')" class="flex-1 bg-slate-800 hover:bg-slate-700 active:scale-[0.99] text-slate-300 font-bold py-3.5 rounded-2xl text-xs transition">Menu</button>
+            <div class="flex gap-3 pt-2">
+              <button onclick="simpanPengaturanPaketServer()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white py-3.5 px-6 rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2">💾 Simpan Paket</button>
+              <button onclick="bukaFitur('overview')" class="w-32 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 py-3.5 px-5 rounded-2xl text-xs sm:text-sm font-bold transition border border-slate-700 flex items-center justify-center gap-2"><span>🏠</span> Menu</button>
             </div>
           </div>
         </div>
@@ -520,12 +520,12 @@
                 <label class="font-bold text-xs uppercase text-slate-300">Kode Kupon & Voucher Promo</label>
                 <p class="text-[11px] text-slate-400">Atur diskon, kuota pemakaian, dan tanggal kadaluarsa voucher promo.</p>
               </div>
-              <button onclick="tambahBarisVoucherForm()" class="bg-brand-500 hover:bg-brand-600 text-white font-bold px-3.5 py-2 rounded-xl text-xs transition">+ Tambah Voucher</button>
+              <button onclick="tambahBarisVoucherForm()" class="bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-bold px-4 py-3.5 rounded-2xl text-xs sm:text-sm transition shadow-lg shadow-brand-500/20 flex items-center justify-center gap-1.5">+ Tambah Voucher</button>
             </div>
             <div id="containerListVoucher" class="space-y-3 max-h-[450px] overflow-y-auto pr-1"></div>
-            <div class="flex gap-2 pt-2">
-              <button onclick="simpanPengaturanVoucherServer()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-2xl text-xs transition">💾 Simpan Semua Voucher</button>
-              <button onclick="bukaFitur('overview')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3.5 rounded-2xl text-xs transition">Menu</button>
+            <div class="flex gap-3 pt-2">
+              <button onclick="simpanPengaturanVoucherServer()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white py-3.5 px-6 rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2">💾 Simpan Semua Voucher</button>
+              <button onclick="bukaFitur('overview')" class="w-32 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 py-3.5 px-5 rounded-2xl text-xs sm:text-sm font-bold transition border border-slate-700 flex items-center justify-center gap-2"><span>🏠</span> Menu</button>
             </div>
           </div>
         </div>
@@ -548,9 +548,9 @@
               <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Changelog</label>
               <textarea id="inputChangelog" rows="4" placeholder="- Perbaikan bug&#10;- Peningkatan performa" onkeydown="handleChangelogAutoBullet(event)" onfocus="if(!this.value) this.value='- ';" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs font-mono"></textarea>
             </div>
-            <div class="flex gap-2 pt-2">
-              <button onclick="simpanUpdateReleaseServer()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-2xl text-xs transition">🚀 Rilis Update</button>
-              <button onclick="bukaFitur('overview')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3.5 rounded-2xl text-xs transition">Menu</button>
+            <div class="flex gap-3 pt-2">
+              <button onclick="simpanUpdateReleaseServer()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white py-3.5 px-6 rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2">🚀 Rilis Update</button>
+              <button onclick="bukaFitur('overview')" class="w-32 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 py-3.5 px-5 rounded-2xl text-xs sm:text-sm font-bold transition border border-slate-700 flex items-center justify-center gap-2"><span>🏠</span> Menu</button>
             </div>
           </div>
         </div>

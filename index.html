@@ -166,29 +166,29 @@
       <div class="flex-1 overflow-y-auto px-4 py-6 space-y-1.5 scrollbar-none">
         <div class="text-[10px] font-extrabold text-slate-500 uppercase px-3 mb-2 tracking-wider">Dashboard</div>
         
-        <button onclick="kembaliKeMenu()" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-brand-500/15 text-brand-400 text-xs font-bold transition">
+        <button onclick="bukaFitur('overview')" id="navOverview" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-brand-500/15 text-brand-400 text-xs font-bold transition border border-brand-500/30 shadow-sm">
           <span class="text-base">⊞</span> Overview
         </button>
 
-        <button onclick="bukaFitur('device')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition">
+        <button onclick="bukaFitur('device')" id="navDevice" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
           <span class="text-base">👥</span> Client Devices
         </button>
 
-        <button onclick="bukaFitur('transfer')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition">
+        <button onclick="bukaFitur('transfer')" id="navTransfer" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
           <span class="text-base">🔄</span> Migrate Data
         </button>
 
         <div class="text-[10px] font-extrabold text-slate-500 uppercase px-3 mt-6 mb-2 tracking-wider">System Config</div>
 
-        <button onclick="bukaFitur('packages')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition">
+        <button onclick="bukaFitur('packages')" id="navPackages" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
           <span class="text-base">📦</span> Pricing Plans
         </button>
 
-        <button onclick="bukaFitur('vouchers')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition">
+        <button onclick="bukaFitur('vouchers')" id="navVouchers" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
           <span class="text-base">🎟️</span> Promo Vouchers
         </button>
 
-        <button onclick="bukaFitur('release')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition">
+        <button onclick="bukaFitur('release')" id="navRelease" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
           <span class="text-base">🚀</span> Cloud Updater
         </button>
 
@@ -431,7 +431,7 @@
               <div class="text-center text-slate-500 text-xs py-10">Memuat data...</div>
             </div>
 
-            <button onclick="kembaliKeMenu()" class="w-full bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-2xl text-xs font-bold transition border border-slate-700">
+            <button onclick="bukaFitur('overview')" class="w-full bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-2xl text-xs font-bold transition border border-slate-700">
               🔙 Kembali ke Menu
             </button>
           </div>
@@ -449,7 +449,7 @@
               <div class="flex justify-between items-center gap-2"><span>Last Active</span> <span id="dispLastActive" class="text-slate-400">-</span></div>
             </div>
 
-            <!-- SINGLE USE VOUCHER GENERATOR (UPDATED BUTTONS & PAYLOADS) -->
+            <!-- SINGLE USE VOUCHER GENERATOR -->
             <div class="bg-brand-500/10 p-4 sm:p-5 rounded-2xl border border-brand-500/20 space-y-3">
               <div class="font-bold text-brand-400 text-xs uppercase tracking-wider flex items-center justify-between flex-wrap gap-1">
                 <span>🎫 Generate Voucher Device Ini</span>
@@ -543,9 +543,12 @@
               <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Device ID Tujuan (Baru)</label>
               <input type="text" id="inputTargetDevice" placeholder="DEV-YYYY" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs font-mono uppercase">
             </div>
-            <div class="flex gap-2 pt-2">
-              <button onclick="eksekusiOperDeviceWithModal()" class="flex-2 w-full bg-amber-500 hover:bg-amber-600 text-white py-3.5 rounded-2xl text-xs font-bold transition">🚀 Migrasi Sekarang</button>
-              <button onclick="kembaliKeMenu()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 py-3.5 rounded-2xl text-xs font-bold transition">Menu</button>
+            <!-- DIPERBAIKI: Tombol Menu di samping migrasi data kini berukuran besar, proporsional, dan elegan -->
+            <div class="flex gap-3 pt-2">
+              <button onclick="eksekusiOperDeviceWithModal()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white py-3.5 px-6 rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-amber-500/20 transition">🚀 Migrasi Sekarang</button>
+              <button onclick="bukaFitur('overview')" class="w-32 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 py-3.5 px-5 rounded-2xl text-xs sm:text-sm font-bold transition border border-slate-700 flex items-center justify-center gap-2">
+                <span>🏠</span> Menu
+              </button>
             </div>
           </div>
         </div>
@@ -565,7 +568,7 @@
 
             <div class="flex gap-2 pt-2">
               <button onclick="simpanPengaturanPaketServer()" class="flex-2 w-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-bold py-3.5 rounded-2xl text-xs transition">💾 Simpan Paket</button>
-              <button onclick="kembaliKeMenu()" class="flex-1 bg-slate-800 hover:bg-slate-700 active:scale-[0.99] text-slate-300 font-bold py-3.5 rounded-2xl text-xs transition">Menu</button>
+              <button onclick="bukaFitur('overview')" class="flex-1 bg-slate-800 hover:bg-slate-700 active:scale-[0.99] text-slate-300 font-bold py-3.5 rounded-2xl text-xs transition">Menu</button>
             </div>
           </div>
         </div>
@@ -585,7 +588,7 @@
 
             <div class="flex gap-2 pt-2">
               <button onclick="simpanPengaturanVoucherServer()" class="flex-2 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-2xl text-xs transition">💾 Simpan Semua Voucher</button>
-              <button onclick="kembaliKeMenu()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3.5 rounded-2xl text-xs transition">Menu</button>
+              <button onclick="bukaFitur('overview')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3.5 rounded-2xl text-xs transition">Menu</button>
             </div>
           </div>
         </div>
@@ -610,7 +613,7 @@
             </div>
             <div class="flex gap-2 pt-2">
               <button onclick="simpanUpdateReleaseServer()" class="flex-2 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-2xl text-xs transition">🚀 Rilis Update</button>
-              <button onclick="kembaliKeMenu()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3.5 rounded-2xl text-xs transition">Menu</button>
+              <button onclick="bukaFitur('overview')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3.5 rounded-2xl text-xs transition">Menu</button>
             </div>
           </div>
         </div>
@@ -1026,35 +1029,57 @@
       toggleSidebarMobile(false);
     }
 
-    function kembaliKeMenu() {
-      gantiSubView('subViewMainMenu');
-      document.getElementById('appTitle').textContent = 'Hub Overview';
-      muatStatistikDashboard();
-      muatStatusQrisServer();
-      checkSystemHealth();
-      muatDaftarSemuaUser();
+    /* PENGATUR SIDEBAR ACTIVE STATE & BUKA FITUR */
+    function highlightActiveNav(activeId) {
+      const navIds = ['navOverview', 'navDevice', 'navTransfer', 'navPackages', 'navVouchers', 'navRelease'];
+      navIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (id === activeId) {
+          el.className = 'nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-brand-500/15 text-brand-400 text-xs font-bold transition border border-brand-500/30 shadow-sm';
+        } else {
+          el.className = 'nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent';
+        }
+      });
     }
 
-    function formatTanggalIndo(dateStr) {
-      if (!dateStr || dateStr === '-') return '-';
-      try {
-        const d = new Date(dateStr);
-        if (isNaN(d.getTime())) return dateStr;
-        return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }).format(d);
-      } catch (e) { return dateStr; }
-    }
-
-    function formatWaktuRelatif(dateString) {
-      if (!dateString) return '-';
-      try {
-        const targetDate = new Date(dateString);
-        if (isNaN(targetDate.getTime())) return dateString;
-        const selisihDetik = Math.floor((new Date() - targetDate) / 1000);
-        if (selisihDetik < 60) return 'Baru saja';
-        else if (selisihDetik < 3600) return `${Math.floor(selisihDetik / 60)} mnt lalu`;
-        else if (selisihDetik < 86400) return `${Math.floor(selisihDetik / 3600)} jam lalu`;
-        else return targetDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
-      } catch (e) { return dateString; }
+    function bukaFitur(fitur) {
+      if (fitur === 'overview') {
+        highlightActiveNav('navOverview');
+        gantiSubView('subViewMainMenu');
+        document.getElementById('appTitle').textContent = 'Hub Overview';
+        muatStatistikDashboard();
+        muatStatusQrisServer();
+        checkSystemHealth();
+        muatDaftarSemuaUser();
+      } else if (fitur === 'device') {
+        highlightActiveNav('navDevice');
+        document.getElementById('searchUserQuery').value = '';
+        gantiSubView('subViewDeviceCheck');
+        document.getElementById('appTitle').textContent = 'Client Devices';
+        muatDaftarSemuaUser();
+      } else if (fitur === 'transfer') {
+        highlightActiveNav('navTransfer');
+        document.getElementById('inputSourceDevice').value = '';
+        document.getElementById('inputTargetDevice').value = '';
+        gantiSubView('subViewTransferDevice');
+        document.getElementById('appTitle').textContent = 'Migrate Device';
+      } else if (fitur === 'packages') {
+        highlightActiveNav('navPackages');
+        gantiSubView('subViewPackages');
+        document.getElementById('appTitle').textContent = 'Pricing Plans';
+        muatDataPaketServer();
+      } else if (fitur === 'vouchers') {
+        highlightActiveNav('navVouchers');
+        gantiSubView('subViewVouchers');
+        document.getElementById('appTitle').textContent = 'Promo Vouchers';
+        muatDataVoucherServer();
+      } else if (fitur === 'release') {
+        highlightActiveNav('navRelease');
+        gantiSubView('subViewRelease');
+        document.getElementById('appTitle').textContent = 'Cloud Updater';
+        muatDataReleaseServer();
+      }
     }
 
     async function verifikasiAdminPassword() {
@@ -1072,7 +1097,7 @@
         if (res.ok && data.status) {
           adminPasswordSecret = pass;
           gantiView('viewDashboardApp');
-          kembaliKeMenu();
+          bukaFitur('overview'); // Membuka halaman overview saja saat pertama masuk
           showToast('Access Granted');
         } else {
           showToast(data.error || 'Access Denied', false);
@@ -1089,32 +1114,6 @@
       document.getElementById('inputAdminPassword').value = '';
       gantiView('viewLandingPage');
       showToast('Logged out securely');
-    }
-
-    function bukaFitur(fitur) {
-      if (fitur === 'device') {
-        document.getElementById('searchUserQuery').value = '';
-        gantiSubView('subViewDeviceCheck');
-        document.getElementById('appTitle').textContent = 'Client Devices';
-        muatDaftarSemuaUser();
-      } else if (fitur === 'transfer') {
-        document.getElementById('inputSourceDevice').value = '';
-        document.getElementById('inputTargetDevice').value = '';
-        gantiSubView('subViewTransferDevice');
-        document.getElementById('appTitle').textContent = 'Migrate Device';
-      } else if (fitur === 'packages') {
-        gantiSubView('subViewPackages');
-        document.getElementById('appTitle').textContent = 'Pricing Plans';
-        muatDataPaketServer();
-      } else if (fitur === 'vouchers') {
-        gantiSubView('subViewVouchers');
-        document.getElementById('appTitle').textContent = 'Promo Vouchers';
-        muatDataVoucherServer();
-      } else if (fitur === 'release') {
-        gantiSubView('subViewRelease');
-        document.getElementById('appTitle').textContent = 'Cloud Updater';
-        muatDataReleaseServer();
-      }
     }
 
     async function muatStatusQrisServer() {
@@ -1434,7 +1433,7 @@
       renderDetail();
     }
 
-    /* GENERATE VOUCHER SINGLE-USE PROPER ALGORITHM (UPDATED FOR DAYS) */
+    /* GENERATE VOUCHER SINGLE-USE PROPER ALGORITHM (HIDDEN FROM PROMO LIST) */
     async function generateVoucherDevice(numDays) {
       if (!currentLicenseData || !currentLicenseData.device_id) {
         return showToast('Pilih Device ID terlebih dahulu', false);
@@ -1473,6 +1472,7 @@
           used_count: 0,
           exp_date: expDateStr,
           device_id: currentLicenseData.device_id,
+          is_single_use: true, // <-- Ditandai agar tersembunyi dari halaman promo vouchers publik
           created_at: new Date().toISOString()
         };
         
@@ -1792,12 +1792,16 @@
       } catch (err) { showToast('Network Error', false); }
     }
 
-    /* VOUCHER PROMO MANAGEMENT & ALGORITHM OVERHAUL */
+    /* VOUCHER PROMO MANAGEMENT & FILTERING (HIDING SINGLE-USE VOUCHERS) */
     async function muatDataVoucherServer() {
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=get_vouchers`);
         const data = await res.json();
-        const list = data.vouchers || [];
+        const allVouchers = data.vouchers || [];
+        
+        // HANYA AMBIL VOUCHER UMUM (Sembunyikan single-use / voucher device khusus)
+        const list = allVouchers.filter(v => !v.is_single_use && (!v.device_id || v.device_id === 'ALL' || v.device_id === ''));
+        
         const container = document.getElementById('containerListVoucher');
         container.innerHTML = '';
 

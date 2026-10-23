@@ -449,19 +449,19 @@
               <div class="flex justify-between items-center gap-2"><span>Last Active</span> <span id="dispLastActive" class="text-slate-400">-</span></div>
             </div>
 
-            <!-- SINGLE USE VOUCHER GENERATOR -->
+            <!-- SINGLE USE VOUCHER GENERATOR (UPDATED BUTTONS & PAYLOADS) -->
             <div class="bg-brand-500/10 p-4 sm:p-5 rounded-2xl border border-brand-500/20 space-y-3">
               <div class="font-bold text-brand-400 text-xs uppercase tracking-wider flex items-center justify-between flex-wrap gap-1">
                 <span>🎫 Generate Voucher Device Ini</span>
                 <span class="text-[10px] text-slate-400 font-normal">(Single-use per Device ID)</span>
               </div>
               <div class="grid grid-cols-3 sm:grid-cols-6 gap-1.5 sm:gap-2">
-                <button onclick="generateVoucherDevice(1)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">1 Jam</button>
-                <button onclick="generateVoucherDevice(24)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">1 Hari</button>
-                <button onclick="generateVoucherDevice(72)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">3 Hari</button>
-                <button onclick="generateVoucherDevice(168)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">7 Hari</button>
-                <button onclick="generateVoucherDevice(336)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">14 Hari</button>
-                <button onclick="generateVoucherDevice(720)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">30 Hari</button>
+                <button onclick="generateVoucherDevice(1)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">1 Hari</button>
+                <button onclick="generateVoucherDevice(3)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">3 Hari</button>
+                <button onclick="generateVoucherDevice(7)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">7 Hari</button>
+                <button onclick="generateVoucherDevice(14)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">14 Hari</button>
+                <button onclick="generateVoucherDevice(30)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">30 Hari</button>
+                <button onclick="generateVoucherDevice(60)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">60 Hari</button>
               </div>
               <div class="flex gap-2">
                 <input type="text" id="dispGeneratedVoucher" readonly placeholder="MIND-XXXXXX-XXXXXX" class="flex-1 bg-slate-900/90 border border-slate-700 px-3 sm:px-4 py-2.5 rounded-xl font-mono text-xs sm:text-sm text-brand-400 font-bold text-center">
@@ -1434,8 +1434,8 @@
       renderDetail();
     }
 
-    /* GENERATE VOUCHER SINGLE-USE PROPER ALGORITHM */
-    async function generateVoucherDevice(hours) {
+    /* GENERATE VOUCHER SINGLE-USE PROPER ALGORITHM (UPDATED FOR DAYS) */
+    async function generateVoucherDevice(numDays) {
       if (!currentLicenseData || !currentLicenseData.device_id) {
         return showToast('Pilih Device ID terlebih dahulu', false);
       }
@@ -1462,10 +1462,13 @@
         
         const newVoucher = {
           code: code,
-          type: 'hours',
-          discount_type: 'hours',
-          value: hours,
-          discount_value: hours,
+          type: 'days',
+          discount_type: 'days',
+          value: numDays,
+          discount_value: numDays,
+          days: numDays,
+          hours: numDays * 24,
+          duration: numDays,
           quota: 1,
           used_count: 0,
           exp_date: expDateStr,
@@ -1488,7 +1491,7 @@
         const resultSave = await resSave.json();
         if (resSave.ok && (resultSave.success || resultSave.status)) {
           voucherInput.value = code;
-          showToast(`Voucher ${code} berhasil dibuat & aktif!`);
+          showToast(`Voucher ${code} (${numDays} Hari) berhasil dibuat & aktif!`);
         } else {
           voucherInput.value = code;
           showToast(`Voucher ${code} dibuat di lokal, gagal simpan server.`, false);

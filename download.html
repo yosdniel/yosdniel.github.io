@@ -1,38 +1,66 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Download SIPGN Autofill Update</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+          colors: {
+            brand: {
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+            }
+          }
+        }
+      }
+    }
+  </script>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 16px; box-sizing: border-box; }
-    .card { background: #1e293b; padding: 32px; border-radius: 16px; border: 1px solid #334155; width: 100%; max-width: 380px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }
-    .btn-download { display: block; background: #eab308; color: #0f172a; font-weight: 700; padding: 12px; border-radius: 10px; text-decoration: none; margin-top: 20px; transition: 0.2s; font-size: 14px; }
-    .btn-download:hover { background: #facc15; }
-    .btn-download.disabled { background: #475569; color: #94a3b8; pointer-events: none; cursor: not-allowed; }
-    .changelog { text-align: left; background: #0f172a; padding: 14px; border-radius: 10px; font-size: 12px; color: #cbd5e1; margin-top: 15px; border: 1px solid #334155; }
-    .changelog-content { margin-top: 6px; color: #94a3b8; line-height: 1.5; white-space: pre-wrap; font-family: inherit; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .glass-card {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .btn-download.disabled { background: #1e293b !important; color: #64748b !important; border: 1px solid rgba(255, 255, 255, 0.04); pointer-events: none; cursor: not-allowed; }
   </style>
 </head>
-<body>
+<body class="bg-slate-950 text-slate-100 flex items-center justify-center min-h-screen p-4 selection:bg-brand-500 selection:text-white relative overflow-x-hidden">
 
-  <div class="card">
-    <h2 style="margin: 0; font-size: 20px;">🚀 SIPGN Autofill</h2>
-    <p style="font-size: 13px; color: #94a3b8; margin: 6px 0 0 0;">Skrip Otomatisasi Tugas Pengiriman & Distribusi POP</p>
+  <!-- Background Glow Effect -->
+  <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/20 via-slate-950 to-slate-950 pointer-events-none"></div>
+
+  <div class="glass-card rounded-3xl p-6 sm:p-8 w-full max-w-sm text-center shadow-2xl relative z-10 border border-slate-800">
+    <div class="w-14 h-14 bg-brand-500/10 border border-brand-500/20 rounded-2xl mx-auto flex items-center justify-center text-2xl mb-3 shadow-lg shadow-brand-500/20">🚀</div>
     
-    <div style="margin: 20px 0;">
-      <span style="font-size: 12px; color: #cbd5e1;">Versi Terbaru:</span><br>
-      <b id="latest-version" style="color: #4ade80; font-size: 18px;">v...</b>
+    <h2 class="font-extrabold text-lg sm:text-xl text-white tracking-tight">SIPGN Autofill</h2>
+    <p class="text-xs text-slate-400 mt-1 leading-relaxed">Skrip Otomatisasi Tugas Pengiriman & Distribusi POP</p>
+    
+    <div class="my-5 py-3 bg-slate-900/60 rounded-2xl border border-slate-800/80">
+      <span class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Versi Terbaru</span><br>
+      <b id="latest-version" class="text-emerald-400 font-black text-lg sm:text-xl mt-0.5 inline-block">v...</b>
     </div>
 
     <!-- Tombol Download (Mulai dari status Loading) -->
-    <a id="download-btn" href="#" target="_blank" class="btn-download disabled">
+    <a id="download-btn" href="#" target="_blank" class="btn-download block bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 active:scale-[0.98] text-white font-bold py-3.5 px-4 rounded-2xl text-xs sm:text-sm transition shadow-xl shadow-brand-500/25">
       ⏳ Memuat Link Download...
     </a>
 
-    <div class="changelog">
-      <b style="color: #38bdf8; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">Catatan Pembaruan:</b>
-      <div id="changelog-text" class="changelog-content">Memuat changelog...</div>
+    <div class="mt-5 text-left bg-slate-900/90 p-4 rounded-2xl border border-slate-800/80">
+      <div class="text-[10px] font-extrabold text-brand-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+        <span>📋</span> Catatan Pembaruan:
+      </div>
+      <!-- Perbaikan formatting bullet points (indentasi & line-height rapi) -->
+      <div id="changelog-text" class="changelog-content text-xs text-slate-300 leading-relaxed font-mono whitespace-pre-wrap pl-1">Memuat changelog...</div>
     </div>
   </div>
 

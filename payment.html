@@ -84,7 +84,7 @@ box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.25);
 Masukkan Device ID Anda
 </h2>
 <p class="text-xs sm:text-sm text-slate-400 mt-2 leading-relaxed">
-Masukkan Device ID Anda dan klik tombol Cek Device ID untuk memuat informasi akun serta pilihan paket langganan.
+Masukkan Device ID Anda lalu klik <b class="text-white">Cek Device</b> untuk memuat info akun dan pilihan paket langganan.
 </p>
 </div>
 <div class="space-y-4">
@@ -112,15 +112,15 @@ Masukkan Device ID Anda dan klik tombol Cek Device ID untuk memuat informasi aku
 <span id="info-status" class="font-bold">-</span>
 </div>
 </div>
-<!-- PACKAGES DROPDOWN CONTAINER (Muncul setelah device valid) -->
-<div id="packages-section" class="space-y-2">
+<!-- PACKAGES CONTAINER (Muncul setelah device dicek) -->
+<div id="packages-section" class="space-y-2 hidden">
 <label class="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">Pilih Paket Langganan</label>
-<select id="select-package" class="w-full px-4 py-3.5 rounded-2xl border border-slate-700 bg-slate-900/90 text-white text-xs sm:text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition">
-<option value="" disabled selected>-- Silakan Cek Device ID Terlebih Dahulu --</option>
-</select>
+<div id="packages-container" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+<div class="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 text-center text-xs text-slate-500">Silakan cek Device ID terlebih dahulu.</div>
 </div>
 </div>
-<button onclick="prosesBuatQr()" id="btn-create-qr" class="w-full bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 active:scale-[0.99] text-white font-extrabold py-4 px-6 rounded-2xl text-sm sm:text-base text-center transition shadow-xl shadow-brand-500/30 opacity-60 pointer-events-none">
+</div>
+<button onclick="prosesBuatQr()" id="btn-create-qr" class="w-full bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 active:scale-[0.99] text-white font-extrabold py-4 px-6 rounded-2xl text-sm sm:text-base text-center transition shadow-xl shadow-brand-500/30 opacity-50 pointer-events-none">
 🚀 Buat QRIS Pembayaran
 </button>
 </div>
@@ -187,11 +187,11 @@ Selesai / Perpanjang Lagi
 </footer>
 <script>
 const API_URL = 'https://mindspace-id.vercel.app/api/tokopay';
-let activePackages = [];
 let selectedPaketHari = 7;
 let selectedNominal = 100;
 let currentReffId = null;
 let pollingInterval = null;
+let isDeviceChecked = false;
 function showToast(msg, isSuccess = true) {
 const t = document.getElementById('toast');
 t.textContent = msg;
@@ -221,46 +221,59 @@ btnCheck.disabled = true;
 btnCheck.textContent = 'Memeriksa...';
 try {
 // Ambil data detail lisensi device
-const resLic = await fetch(${API_URL}?action=check_license&device_id=${encodeURIComponent(deviceId)});
+const resLic = await fetch(${API_URL}?action=check_license&device_id=${encodeURIComponent(deviceId)}, { cache: 'no-store' });
 const licData = await resLic.json();
 // Tampilkan info box
 const infoBox = document.getElementById('device-info-box');
 document.getElementById('info-sppg-name').textContent = licData.sppg_name || 'Belum Terdaftar / Unregistered';
-document.getElementById('info-exp-date').textContent = licData.exp_date ? new Date(licData.exp_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+let expFormatted = '-';
+if (licData.exp_date && licData.exp_date !== '-') {
+const dExp = new Date(licData.exp_date);
+if (!isNaN(dExp.getTime())) {
+expFormatted = dExp.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+} else {
+expFormatted = licData.exp_date;
+}
+}
+document.getElementById('info-exp-date').textContent = expFormatted;
 let statusBadge = '<span class="text-emerald-400">Aktif</span>';
 if (licData.status === 'expired') statusBadge = '<span class="text-red-400">Kadaluarsa</span>';
-else if (licData.status === 'unregistered') statusBadge = '<span class="text-amber-400">Baru / Belum Pernah Aktif</span>';
+else if (licData.status === 'unregistered' || !licData.status) statusBadge = '<span class="text-amber-400">Baru / Belum Terdaftar</span>';
+else if (licData.status === 'hold') statusBadge = '<span class="text-amber-400">Ditangguhkan (Hold)</span>';
+else if (licData.status === 'revoked') statusBadge = '<span class="text-purple-400">Dicabut (Revoked)</span>';
 document.getElementById('info-status').innerHTML = statusBadge;
 infoBox.classList.remove('hidden');
 // Ambil data paket dari endpoint admin dashboard
-const resPkg = await fetch(${API_URL}?action=get_packages);
+const resPkg = await fetch(${API_URL}?action=get_packages, { cache: 'no-store' });
 const pkgData = await resPkg.json();
-activePackages = pkgData.packages || [
+const activePackages = pkgData.packages || [
 { hari: 7, harga: 100, nama: 'Paket 7 Hari' },
 { hari: 30, harga: 50000, nama: 'Paket 30 Hari' }
 ];
-const selectEl = document.getElementById('select-package');
-selectEl.innerHTML = '';
+const container = document.getElementById('packages-container');
+container.innerHTML = '';
 activePackages.forEach((pkg, index) => {
-const opt = document.createElement('option');
-opt.value = index;
-opt.textContent = ${pkg.nama || Paket ${pkg.hari} Hari} (${pkg.hari} Hari) - Rp ${Number(pkg.harga).toLocaleString('id-ID')};
-selectEl.appendChild(opt);
-});
-if (activePackages.length > 0) {
-selectedPaketHari = activePackages[0].hari;
-selectedNominal = activePackages[0].harga;
+const isSelected = index === 0;
+if (isSelected) {
+selectedPaketHari = Number(pkg.hari);
+selectedNominal = Number(pkg.harga);
 }
-selectEl.onchange = (e) => {
-const selectedPkg = activePackages[e.target.value];
-if (selectedPkg) {
-selectedPaketHari = selectedPkg.hari;
-selectedNominal = selectedPkg.harga;
-}
+const div = document.createElement('div');
+div.className = package-card p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between ${isSelected ? 'selected' : ''};
+div.onclick = () => {
+document.querySelectorAll('.package-card').forEach(c => c.classList.remove('selected'));
+div.classList.add('selected');
+selectedPaketHari = Number(pkg.hari);
+selectedNominal = Number(pkg.harga);
 };
+div.innerHTML = <div> <span class="text-[10px] font-extrabold text-brand-400 uppercase tracking-wider block">${pkg.nama ||Paket ${pkg.hari} Hari}</span> <b class="text-white text-base sm:text-lg font-black mt-0.5 block">${pkg.hari} Hari Aktif</b> </div> <div class="mt-3 pt-3 border-t border-slate-800/80 flex items-center justify-between"> <span class="text-[10px] text-slate-400">Harga:</span> <span class="text-emerald-400 font-mono font-bold text-xs sm:text-sm">Rp ${Number(pkg.harga).toLocaleString('id-ID')}</span> </div> ;
+container.appendChild(div);
+});
+document.getElementById('packages-section').classList.remove('hidden');
 // Aktifkan tombol buat QRIS
 const btnCreate = document.getElementById('btn-create-qr');
-btnCreate.classList.remove('opacity-60', 'pointer-events-none');
+btnCreate.classList.remove('opacity-50', 'pointer-events-none');
+isDeviceChecked = true;
 showToast('Device ID berhasil diverifikasi!');
 } catch (err) {
 showToast('Gagal memverifikasi Device ID dari server.', false);
@@ -277,9 +290,13 @@ showToast('Device ID wajib diisi terlebih dahulu!', false);
 deviceIdInput.focus();
 return;
 }
+if (!isDeviceChecked) {
+showToast('Silakan klik "Cek Device" terlebih dahulu!', false);
+return;
+}
 const btn = document.getElementById('btn-create-qr');
 btn.disabled = true;
-btn.textContent = '⏳ Menghubungkan ke Gateway...';
+btn.textContent = '⏳ Menghubungkan ke Gateway Tokopay...';
 try {
 const res = await fetch(API_URL, {
 method: 'POST',
@@ -291,22 +308,29 @@ nominal: selectedNominal
 })
 });
 const data = await res.json();
-if (res.ok && data.success && data.qr_string) {
+if (res.ok && data.success && (data.qr_string || data.qr_link)) {
 currentReffId = data.reff_id || data.ref_id;
 document.getElementById('qris-subtitle').textContent = Device: ${deviceId} (${selectedPaketHari} Hari);
 document.getElementById('qris-total-amount').textContent = Rp ${Number(data.total_bayar || selectedNominal).toLocaleString('id-ID')};
 const qrBox = document.getElementById('qrcode-box');
 qrBox.innerHTML = '';
+if (data.qr_string) {
 const qr = qrcode(0, 'M');
 qr.addData(data.qr_string);
 qr.make();
 qrBox.innerHTML = qr.createImgTag(5, 8);
+} else if (data.qr_link) {
+const img = document.createElement('img');
+img.src = data.qr_link;
+img.className = 'w-48 h-48 object-contain';
+qrBox.appendChild(img);
+}
 document.getElementById('step-selection').classList.add('hidden');
 document.getElementById('step-qris').classList.remove('hidden');
 mulaiPollingStatus();
 showToast('QRIS berhasil dibuat! Silakan lakukan pembayaran.');
 } else {
-throw new Error(data.error || 'Gagal membuat QRIS.');
+throw new Error(data.error || 'Gagal membuat QRIS dari gateway.');
 }
 } catch (err) {
 showToast(err.message || 'Terjadi kesalahan koneksi.', false);
@@ -320,14 +344,23 @@ if (pollingInterval) clearInterval(pollingInterval);
 pollingInterval = setInterval(async () => {
 if (!currentReffId) return;
 try {
-const res = await fetch(${API_URL}?reff_id=${encodeURIComponent(currentReffId)});
+const res = await fetch(${API_URL}?reff_id=${encodeURIComponent(currentReffId)}, { cache: 'no-store' });
 const data = await res.json();
 if (data && data.is_paid) {
 clearInterval(pollingInterval);
 document.getElementById('step-qris').classList.add('hidden');
 document.getElementById('step-success').classList.remove('hidden');
 document.getElementById('success-device-id').textContent = document.getElementById('input-device-id').value.trim().toUpperCase();
-document.getElementById('success-exp-date').textContent = data.exp_date ? new Date(data.exp_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Berhasil Diperpanjang';
+let expSuccess = 'Berhasil Diperpanjang';
+if (data.exp_date) {
+const dExp = new Date(data.exp_date);
+if (!isNaN(dExp.getTime())) {
+expSuccess = dExp.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+} else {
+expSuccess = data.exp_date;
+}
+}
+document.getElementById('success-exp-date').textContent = expSuccess;
 showToast('Pembayaran Berhasil! Lisensi diperpanjang.');
 }
 } catch (e) {}

@@ -241,12 +241,19 @@ else if (licData.status === 'hold') statusBadge = '<span class="text-amber-400">
 else if (licData.status === 'revoked') statusBadge = '<span class="text-purple-400">Dicabut (Revoked)</span>';
 document.getElementById('info-status').innerHTML = statusBadge;
 infoBox.classList.remove('hidden');
-const resPkg = await fetch(${API_URL}?action=get_packages, { cache: 'no-store' });
-const pkgData = await resPkg.json();
-const activePackages = (pkgData && pkgData.packages && pkgData.packages.length > 0) ? pkgData.packages : [
+let activePackages = [
 { hari: 7, harga: 100, nama: 'Paket 7 Hari' },
 { hari: 30, harga: 50000, nama: 'Paket 30 Hari' }
 ];
+try {
+const resPkg = await fetch(${API_URL}?action=get_packages, { cache: 'no-store' });
+const pkgData = await resPkg.json();
+if (pkgData && pkgData.packages && pkgData.packages.length > 0) {
+activePackages = pkgData.packages;
+}
+} catch (e) {
+console.warn('Menggunakan paket bawaan:', e);
+}
 const container = document.getElementById('packages-container');
 container.innerHTML = '';
 activePackages.forEach((pkg, index) => {

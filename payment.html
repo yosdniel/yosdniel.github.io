@@ -97,7 +97,7 @@ Masukkan Device ID Anda lalu klik <b class="text-white">Cek Device</b> untuk mem
 </button>
 </div>
 </div>
-<!-- DEVICE INFO PREVIEW BOX (Hidden by default until checked) -->
+<!-- DEVICE INFO PREVIEW BOX -->
 <div id="device-info-box" class="hidden bg-slate-900/90 p-4 rounded-2xl border border-slate-800 space-y-2 text-xs">
 <div class="flex justify-between items-center text-slate-300">
 <span class="font-medium text-slate-400">Nama SPPG:</span>
@@ -112,7 +112,7 @@ Masukkan Device ID Anda lalu klik <b class="text-white">Cek Device</b> untuk mem
 <span id="info-status" class="font-bold">-</span>
 </div>
 </div>
-<!-- PACKAGES CONTAINER (Muncul setelah device dicek) -->
+<!-- PACKAGES CONTAINER -->
 <div id="packages-section" class="space-y-2 hidden">
 <label class="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">Pilih Paket Langganan</label>
 <div id="packages-container" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -220,10 +220,8 @@ const btnCheck = document.getElementById('btn-check-device');
 btnCheck.disabled = true;
 btnCheck.textContent = 'Memeriksa...';
 try {
-// Ambil data detail lisensi device
 const resLic = await fetch(${API_URL}?action=check_license&device_id=${encodeURIComponent(deviceId)}, { cache: 'no-store' });
 const licData = await resLic.json();
-// Tampilkan info box
 const infoBox = document.getElementById('device-info-box');
 document.getElementById('info-sppg-name').textContent = licData.sppg_name || 'Belum Terdaftar / Unregistered';
 let expFormatted = '-';
@@ -243,10 +241,9 @@ else if (licData.status === 'hold') statusBadge = '<span class="text-amber-400">
 else if (licData.status === 'revoked') statusBadge = '<span class="text-purple-400">Dicabut (Revoked)</span>';
 document.getElementById('info-status').innerHTML = statusBadge;
 infoBox.classList.remove('hidden');
-// Ambil data paket dari endpoint admin dashboard
 const resPkg = await fetch(${API_URL}?action=get_packages, { cache: 'no-store' });
 const pkgData = await resPkg.json();
-const activePackages = pkgData.packages || [
+const activePackages = (pkgData && pkgData.packages && pkgData.packages.length > 0) ? pkgData.packages : [
 { hari: 7, harga: 100, nama: 'Paket 7 Hari' },
 { hari: 30, harga: 50000, nama: 'Paket 30 Hari' }
 ];
@@ -270,7 +267,6 @@ div.innerHTML = <div> <span class="text-[10px] font-extrabold text-brand-400 upp
 container.appendChild(div);
 });
 document.getElementById('packages-section').classList.remove('hidden');
-// Aktifkan tombol buat QRIS
 const btnCreate = document.getElementById('btn-create-qr');
 btnCreate.classList.remove('opacity-50', 'pointer-events-none');
 isDeviceChecked = true;

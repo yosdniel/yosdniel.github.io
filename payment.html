@@ -49,6 +49,13 @@ border-color: #6366f1 !important;
 background: rgba(99, 102, 241, 0.12) !important;
 box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.25);
 }
+#qrcode-box img {
+margin: 0 auto;
+max-width: 100%;
+height: auto;
+display: block;
+border-radius: 12px;
+}
 </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between p-4 sm:p-6 lg:p-10 selection:bg-brand-500 selection:text-white relative">
@@ -194,6 +201,7 @@ let pollingInterval = null;
 let isDeviceChecked = false;
 function showToast(msg, isSuccess = true) {
 const t = document.getElementById('toast');
+if (!t) return;
 t.textContent = msg;
 t.className = fixed top-4 left-1/2 -translate-x-1/2 z-[100000] max-w-[90vw] w-auto px-5 py-3 rounded-2xl shadow-2xl border text-white font-bold text-xs sm:text-sm transition-all duration-300 translate-y-0 opacity-100 ${isSuccess ? 'bg-emerald-600 border-emerald-500' : 'bg-red-600 border-red-500'};
 setTimeout(() => {
@@ -210,18 +218,33 @@ cekDeviceId();
 });
 async function cekDeviceId() {
 const inputEl = document.getElementById('input-device-id');
-const deviceId = inputEl.value.trim().toUpperCase();
+let deviceId = inputEl.value.trim().toUpperCase();
 if (!deviceId) {
 showToast('Masukkan Device ID terlebih dahulu!', false);
 inputEl.focus();
 return;
 }
+inputEl.value = deviceId;
 const btnCheck = document.getElementById('btn-check-device');
 btnCheck.disabled = true;
 btnCheck.textContent = 'Memeriksa...';
+let licData = {
+sppg_name: 'Belum Terdaftar / Unregistered',
+status: 'unregistered',
+exp_date: '-'
+};
 try {
 const resLic = await fetch(${API_URL}?action=check_license&device_id=${encodeURIComponent(deviceId)}, { cache: 'no-store' });
-const licData = await resLic.json();
+if (resLic.ok) {
+const rawLic = await resLic.json();
+if (rawLic && typeof rawLic === 'object') {
+licData = rawLic;
+}
+}
+} catch (err) {
+console.warn('Gagal koneksi license check, menggunakan mode fallback:', err);
+}
+// Display Device Info Box
 const infoBox = document.getElementById('device-info-box');
 document.getElementById('info-sppg-name').textContent = licData.sppg_name || 'Belum Terdaftar / Unregistered';
 let expFormatted = '-';
@@ -234,29 +257,48 @@ expFormatted = licData.exp_date;
 }
 }
 document.getElementById('info-exp-date').textContent = expFormatted;
-let statusBadge = '<span class="text-emerald-400">Aktif</span>';
-if (licData.status === 'expired') statusBadge = '<span class="text-red-400">Kadaluarsa</span>';
-else if (licData.status === 'unregistered' || !licData.status) statusBadge = '<span class="text-amber-400">Baru / Belum Terdaftar</span>';
-else if (licData.status === 'hold') statusBadge = '<span class="text-amber-400">Ditangguhkan (Hold)</span>';
-else if (licData.status === 'revoked') statusBadge = '<span class="text-purple-400">Dicabut (Revoked)</span>';
+let statusBadge = '<span class="text-amber-400 font-bold">Baru / Belum Terdaftar</span>';
+if (licData.status === 'active' || licData.valid === true) {
+statusBadge = '<span class="text-emerald-400 font-bold">Aktif</span>';
+} else if (licData.status === 'expired') {
+statusBadge = '<span class="text-red-400 font-bold">Kadaluarsa</span>';
+} else if (licData.status === 'hold') {
+statusBadge = '<span class="text-amber-400 font-bold">Ditangguhkan (Hold)</span>';
+} else if (licData.status === 'revoked') {
+statusBadge = '<span class="text-purple-400 font-bold">Dicabut (Revoked)</span>';
+}
 document.getElementById('info-status').innerHTML = statusBadge;
 infoBox.classList.remove('hidden');
+// Load Packages
 let activePackages = [
 { hari: 7, harga: 100, nama: 'Paket 7 Hari' },
 { hari: 30, harga: 50000, nama: 'Paket 30 Hari' }
 ];
 try {
 const resPkg = await fetch(${API_URL}?action=get_packages, { cache: 'no-store' });
+if (resPkg.ok) {
 const pkgData = await resPkg.json();
-if (pkgData && pkgData.packages && pkgData.packages.length > 0) {
+if (pkgData && Array.isArray(pkgData.packages) && pkgData.packages.length > 0) {
 activePackages = pkgData.packages;
+}
 }
 } catch (e) {
 console.warn('Menggunakan paket bawaan:', e);
 }
+renderPackages(activePackages);
+document.getElementById('packages-section').classList.remove('hidden');
+const btnCreate = document.getElementById('btn-create-qr');
+btnCreate.classList.remove('opacity-50', 'pointer-events-none');
+btnCreate.disabled = false;
+isDeviceChecked = true;
+btnCheck.disabled = false;
+btnCheck.textContent = '🔍 Cek Device';
+showToast('Device ID berhasil diverifikasi!');
+}
+function renderPackages(packages) {
 const container = document.getElementById('packages-container');
 container.innerHTML = '';
-activePackages.forEach((pkg, index) => {
+packages.forEach((pkg, index) => {
 const isSelected = index === 0;
 if (isSelected) {
 selectedPaketHari = Number(pkg.hari);
@@ -273,17 +315,6 @@ selectedNominal = Number(pkg.harga);
 div.innerHTML = <div> <span class="text-[10px] font-extrabold text-brand-400 uppercase tracking-wider block">${pkg.nama ||Paket ${pkg.hari} Hari}</span> <b class="text-white text-base sm:text-lg font-black mt-0.5 block">${pkg.hari} Hari Aktif</b> </div> <div class="mt-3 pt-3 border-t border-slate-800/80 flex items-center justify-between"> <span class="text-[10px] text-slate-400">Harga:</span> <span class="text-emerald-400 font-mono font-bold text-xs sm:text-sm">Rp ${Number(pkg.harga).toLocaleString('id-ID')}</span> </div> ;
 container.appendChild(div);
 });
-document.getElementById('packages-section').classList.remove('hidden');
-const btnCreate = document.getElementById('btn-create-qr');
-btnCreate.classList.remove('opacity-50', 'pointer-events-none');
-isDeviceChecked = true;
-showToast('Device ID berhasil diverifikasi!');
-} catch (err) {
-showToast('Gagal memverifikasi Device ID dari server.', false);
-} finally {
-btnCheck.disabled = false;
-btnCheck.textContent = '🔍 Cek Device';
-}
 }
 async function prosesBuatQr() {
 const deviceIdInput = document.getElementById('input-device-id');
@@ -325,7 +356,7 @@ qrBox.innerHTML = qr.createImgTag(5, 8);
 } else if (data.qr_link) {
 const img = document.createElement('img');
 img.src = data.qr_link;
-img.className = 'w-48 h-48 object-contain';
+img.className = 'w-48 h-48 object-contain rounded-xl';
 qrBox.appendChild(img);
 }
 document.getElementById('step-selection').classList.add('hidden');

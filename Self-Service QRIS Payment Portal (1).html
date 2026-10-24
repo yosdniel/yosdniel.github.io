@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Perpanjang Lisensi SIPGN Autofill &bull; Mindspace Studio</title>
+  
+  <!-- FAVICON & PWA METAS -->
+  <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon.ico">
+  <meta name="theme-color" content="#020617">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+          colors: {
+            brand: {
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; overflow-x: hidden; }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.25); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.5); }
+    
+    .glass-card {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .package-card {
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .package-card.selected {
+      border-color: #6366f1 !important;
+      background: rgba(99, 102, 241, 0.12) !important;
+      box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.25);
+    }
+    #qrcode-box img, #qrcode-box canvas {
+      margin: 0 auto;
+      max-width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 12px;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between p-4 sm:p-6 lg:p-10 selection:bg-brand-500 selection:text-white relative">
+
+  <!-- Background Ambient Glow -->
+  <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/30 via-slate-950 to-slate-950 pointer-events-none"></div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-[100000] max-w-[90vw] w-auto px-5 py-3 rounded-2xl shadow-2xl border text-white font-bold text-xs sm:text-sm transition-all duration-300 -translate-y-20 opacity-0 pointer-events-none flex items-center gap-2"></div>
+
+  <!-- TOP HEADER NAVBAR -->
+  <header class="w-full max-w-2xl mx-auto flex items-center justify-between relative z-10 py-3 px-4 sm:px-6 glass-card rounded-2xl mb-6 shadow-xl">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 bg-brand-500/15 border border-brand-500/30 rounded-xl flex items-center justify-center text-xl shadow-md">⚡</div>
+      <div>
+        <h1 class="font-extrabold text-sm sm:text-base text-white tracking-tight">Perpanjang Lisensi SIPGN</h1>
+        <span class="text-[10px] text-slate-400 block font-medium">Self-Service QRIS Portal &bull; Mindspace Studio</span>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold shadow-sm">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Gateway Active
+      </span>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="w-full max-w-2xl mx-auto flex-1 flex flex-col justify-center relative z-10 my-auto">
+    <div class="glass-card rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-2xl relative overflow-hidden">
+      
+      <!-- STEP 1: INPUT DEVICE ID & PILIH PAKET -->
+      <div id="step-selection" class="space-y-6">
+        <div>
+          <div class="inline-block px-3 py-1 rounded-xl bg-brand-500/10 text-brand-400 border border-brand-500/20 text-xs font-bold mb-3">
+            🔐 Portal Pembayaran Otomatis
+          </div>
+          <h2 class="font-black text-2xl sm:text-3xl text-white tracking-tight leading-tight">
+            Masukkan Device ID Anda
+          </h2>
+          <p class="text-xs sm:text-sm text-slate-400 mt-2 leading-relaxed">
+            Masukkan Device ID Anda lalu klik <b class="text-white">Cek Device</b> untuk memuat info akun dan pilihan paket langganan.
+          </p>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">Device ID</label>
+            <div class="flex gap-2">
+              <input type="text" id="input-device-id" placeholder="Contoh: DEV-19A2-44E5" class="w-full px-4 py-3.5 rounded-2xl border border-slate-700 bg-slate-900/90 text-white font-mono uppercase text-xs sm:text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition" onkeyup="if(event.key==='Enter') cekDeviceId()">
+              <button onclick="cekDeviceId()" id="btn-check-device" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-bold px-5 rounded-2xl text-xs sm:text-sm transition border border-slate-700 shrink-0">
+                🔍 Cek Device
+              </button>
+            </div>
+          </div>
+
+          <!-- DEVICE INFO PREVIEW BOX -->
+          <div id="device-info-box" class="hidden bg-slate-900/90 p-4 rounded-2xl border border-slate-800 space-y-2 text-xs">
+            <div class="flex justify-between items-center text-slate-300">
+              <span class="font-medium text-slate-400">Nama SPPG:</span>
+              <span id="info-sppg-name" class="font-bold text-brand-400">-</span>
+            </div>
+            <div class="flex justify-between items-center text-slate-300">
+              <span class="font-medium text-slate-400">Masa Aktif Saat Ini:</span>
+              <span id="info-exp-date" class="font-bold text-emerald-400">-</span>
+            </div>
+            <div class="flex justify-between items-center text-slate-300">
+              <span class="font-medium text-slate-400">Status Lisensi:</span>
+              <span id="info-status" class="font-bold">-</span>
+            </div>
+          </div>
+
+          <!-- PACKAGES CONTAINER -->
+          <div id="packages-section" class="space-y-2 hidden">
+            <label class="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">Pilih Paket Langganan</label>
+            <div id="packages-container" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 text-center text-xs text-slate-500">Silakan cek Device ID terlebih dahulu.</div>
+            </div>
+          </div>
+        </div>
+
+        <button onclick="prosesBuatQr()" id="btn-create-qr" class="w-full bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 active:scale-[0.99] text-white font-extrabold py-4 px-6 rounded-2xl text-sm sm:text-base text-center transition shadow-xl shadow-brand-500/30 opacity-50 pointer-events-none" disabled>
+          🚀 Buat QRIS Pembayaran
+        </button>
+      </div>
+
+      <!-- STEP 2: TAMPILAN QRIS & POLLING -->
+      <div id="step-qris" class="hidden space-y-6 text-center">
+        <div>
+          <div class="inline-block px-3 py-1 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-bold mb-3">
+            ⏳ Menunggu Pembayaran QRIS Realtime
+          </div>
+          <h2 class="font-black text-xl sm:text-2xl text-white tracking-tight">
+            Scan QRIS untuk Memperpanjang Lisensi
+          </h2>
+          <p id="qris-subtitle" class="text-xs text-slate-400 mt-1 font-mono">-</p>
+        </div>
+
+        <!-- QR CODE RENDER CONTAINER -->
+        <div class="bg-white p-5 rounded-3xl inline-block shadow-2xl mx-auto border-4 border-slate-800">
+          <div id="qrcode-box" class="flex items-center justify-center min-w-[200px] min-h-[200px]"></div>
+        </div>
+
+        <div class="bg-slate-900/90 p-4 rounded-2xl border border-slate-800 max-w-sm mx-auto space-y-1">
+          <span class="text-[10px] uppercase font-extrabold text-slate-500 tracking-wider block">Total Tagihan</span>
+          <b id="qris-total-amount" class="text-emerald-400 font-black text-2xl">Rp 0</b>
+          <span id="qris-fee-info" class="text-[10px] text-slate-400 block font-mono pt-0.5"></span>
+          <span class="text-[10px] text-slate-400 block pt-1 border-t border-slate-800/80 mt-2">Scan menggunakan BCA, Mandiri, QRIS, GoPay, OVO, Dana, ShopeePay, dll.</span>
+        </div>
+
+        <div class="flex items-center justify-center gap-2 text-xs text-brand-400 font-bold bg-brand-500/10 py-2.5 px-4 rounded-xl border border-brand-500/20 max-w-sm mx-auto">
+          <span class="w-2.5 h-2.5 rounded-full bg-brand-400 animate-ping"></span>
+          <span id="polling-status-text">Mengecek status pembayaran otomatis...</span>
+        </div>
+
+        <button onclick="kembaliKePilihan()" class="text-xs text-slate-400 hover:text-white underline font-semibold pt-2 block mx-auto">
+          &larr; Batalkan &amp; Ganti Paket / Device ID
+        </button>
+      </div>
+
+      <!-- STEP 3: PEMBAYARAN SUKSES -->
+      <div id="step-success" class="hidden space-y-6 text-center py-6">
+        <div class="w-20 h-20 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 rounded-3xl mx-auto flex items-center justify-center text-4xl shadow-2xl shadow-emerald-500/20 animate-bounce">
+          🎉
+        </div>
+        <div>
+          <h2 class="font-black text-2xl sm:text-3xl text-white tracking-tight">
+            Pembayaran Berhasil!
+          </h2>
+          <p class="text-xs sm:text-sm text-slate-300 mt-2 leading-relaxed">
+            Lisensi perangkat Anda telah otomatis diperpanjang oleh sistem.
+          </p>
+        </div>
+
+        <div class="bg-slate-900/90 p-5 rounded-2xl border border-slate-800 max-w-sm mx-auto space-y-3 text-left">
+          <div class="flex justify-between items-center text-xs border-b border-slate-800 pb-2">
+            <span class="text-slate-400 font-medium">Device ID:</span>
+            <span id="success-device-id" class="font-mono text-brand-400 font-bold">-</span>
+          </div>
+          <div class="flex justify-between items-center text-xs">
+            <span class="text-slate-400 font-medium">Masa Aktif Baru:</span>
+            <span id="success-exp-date" class="font-mono text-emerald-400 font-bold">-</span>
+          </div>
+        </div>
+
+        <button onclick="location.reload()" class="bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-bold py-3.5 px-8 rounded-2xl text-xs sm:text-sm transition shadow-lg shadow-brand-500/25">
+          Selesai / Perpanjang Lagi
+        </button>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="w-full max-w-2xl mx-auto text-center py-6 text-xs text-slate-500 relative z-10 border-t border-slate-900 mt-10">
+    <p>Mindspace Studio &copy; 2026 &bull; SIPGN Autofill Management System</p>
+  </footer>
+
+  <script>
+    const API_URL = 'https://mindspace-id.vercel.app/api/tokopay';
+    
+    let selectedPaketHari = 7;
+    let selectedNominal = 25000;
+    let currentReffId = null;
+    let pollingInterval = null;
+    let isDeviceChecked = false;
+
+    function formatRupiah(num) {
+      return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        maximumFractionDigits: 0
+      }).format(Number(num) || 0);
+    }
+
+    function showToast(msg, isSuccess = true) {
+      const t = document.getElementById('toast');
+      if (!t) return;
+      t.textContent = msg;
+      t.className = `fixed top-4 left-1/2 -translate-x-1/2 z-[100000] max-w-[90vw] w-auto px-5 py-3 rounded-2xl shadow-2xl border text-white font-bold text-xs sm:text-sm transition-all duration-300 translate-y-0 opacity-100 ${isSuccess ? 'bg-emerald-600 border-emerald-500' : 'bg-red-600 border-red-500'}`;
+      setTimeout(() => {
+        t.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-[100000] max-w-[90vw] w-auto px-5 py-3 rounded-2xl shadow-2xl border text-white font-bold text-xs sm:text-sm transition-all duration-300 -translate-y-20 opacity-0 pointer-events-none';
+      }, 4000);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const devParam = urlParams.get('device_id') || urlParams.get('did');
+      if (devParam) {
+        document.getElementById('input-device-id').value = devParam.toUpperCase();
+        cekDeviceId();
+      }
+    });
+
+    async function cekDeviceId() {
+      const inputEl = document.getElementById('input-device-id');
+      let deviceId = inputEl.value.trim().toUpperCase();
+
+      if (!deviceId) {
+        showToast('Masukkan Device ID terlebih dahulu!', false);
+        inputEl.focus();
+        return;
+      }
+
+      inputEl.value = deviceId;
+
+      const btnCheck = document.getElementById('btn-check-device');
+      btnCheck.disabled = true;
+      btnCheck.textContent = 'Memeriksa...';
+
+      let licData = {
+        sppg_name: 'Belum Terdaftar / Unregistered',
+        status: 'unregistered',
+        exp_date: '-'
+      };
+
+      try {
+        const resLic = await fetch(`${API_URL}?action=check_license&device_id=${encodeURIComponent(deviceId)}`, { cache: 'no-store' });
+        if (resLic.ok) {
+          const rawLic = await resLic.json();
+          if (rawLic && typeof rawLic === 'object') {
+            licData = rawLic;
+          }
+        }
+      } catch (err) {
+        console.warn('Gagal koneksi license check, menggunakan mode fallback:', err);
+      }
+
+      // Display Device Info Box
+      const infoBox = document.getElementById('device-info-box');
+      document.getElementById('info-sppg-name').textContent = licData.sppg_name || 'Belum Terdaftar / Unregistered';
+      
+      let expFormatted = '-';
+      if (licData.exp_date && licData.exp_date !== '-') {
+        const dExp = new Date(licData.exp_date);
+        if (!isNaN(dExp.getTime())) {
+          expFormatted = dExp.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+        } else {
+          expFormatted = licData.exp_date;
+        }
+      }
+      document.getElementById('info-exp-date').textContent = expFormatted;
+      
+      let statusBadge = '<span class="text-amber-400 font-bold">Baru / Belum Terdaftar</span>';
+      if (licData.status === 'active' || licData.valid === true) {
+        statusBadge = '<span class="text-emerald-400 font-bold">Aktif</span>';
+      } else if (licData.status === 'expired') {
+        statusBadge = '<span class="text-red-400 font-bold">Kadaluarsa</span>';
+      } else if (licData.status === 'hold') {
+        statusBadge = '<span class="text-amber-400 font-bold">Ditangguhkan (Hold)</span>';
+      } else if (licData.status === 'revoked') {
+        statusBadge = '<span class="text-purple-400 font-bold">Dicabut (Revoked)</span>';
+      }
+      
+      document.getElementById('info-status').innerHTML = statusBadge;
+      infoBox.classList.remove('hidden');
+
+      // Default package presets as configured in dashboard
+      let activePackages = [
+        { hari: 7, harga: 25000, nama: 'Paket 7 Hari' },
+        { hari: 14, harga: 40000, nama: 'Paket 14 Hari' },
+        { hari: 30, harga: 70000, nama: 'Paket 30 Hari' },
+        { hari: 60, harga: 100000, nama: 'Paket 60 Hari' }
+      ];
+
+      try {
+        const resPkg = await fetch(`${API_URL}?action=get_packages`, { cache: 'no-store' });
+        if (resPkg.ok) {
+          const pkgData = await resPkg.json();
+          if (pkgData && Array.isArray(pkgData.packages) && pkgData.packages.length > 0) {
+            activePackages = pkgData.packages;
+          }
+        }
+      } catch (e) {
+        console.warn('Menggunakan paket bawaan:', e);
+      }
+
+      renderPackages(activePackages);
+
+      document.getElementById('packages-section').classList.remove('hidden');
+      
+      const btnCreate = document.getElementById('btn-create-qr');
+      btnCreate.classList.remove('opacity-50', 'pointer-events-none');
+      btnCreate.disabled = false;
+      isDeviceChecked = true;
+
+      btnCheck.disabled = false;
+      btnCheck.textContent = '🔍 Cek Device';
+
+      showToast('Device ID berhasil diverifikasi!');
+    }
+
+    function renderPackages(packages) {
+      const container = document.getElementById('packages-container');
+      container.innerHTML = '';
+
+      packages.forEach((pkg, index) => {
+        const isSelected = index === 0;
+        if (isSelected) {
+          selectedPaketHari = Number(pkg.hari);
+          selectedNominal = Number(pkg.harga);
+        }
+
+        const div = document.createElement('div');
+        div.className = `package-card p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between ${isSelected ? 'selected' : ''}`;
+        div.onclick = () => {
+          document.querySelectorAll('.package-card').forEach(c => c.classList.remove('selected'));
+          div.classList.add('selected');
+          selectedPaketHari = Number(pkg.hari);
+          selectedNominal = Number(pkg.harga);
+        };
+        div.innerHTML = `
+          <div>
+            <span class="text-[10px] font-extrabold text-brand-400 uppercase tracking-wider block">${pkg.nama || `Paket ${pkg.hari} Hari`}</span>
+            <b class="text-white text-base sm:text-lg font-black mt-0.5 block">${pkg.hari} Hari Aktif</b>
+          </div>
+          <div class="mt-3 pt-3 border-t border-slate-800/80 flex items-center justify-between">
+            <span class="text-[10px] text-slate-400">Harga:</span>
+            <span class="text-emerald-400 font-mono font-bold text-xs sm:text-sm">${formatRupiah(pkg.harga)}</span>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    async function prosesBuatQr() {
+      const deviceIdInput = document.getElementById('input-device-id');
+      const deviceId = deviceIdInput.value.trim().toUpperCase();
+
+      if (!deviceId) {
+        showToast('Device ID wajib diisi terlebih dahulu!', false);
+        deviceIdInput.focus();
+        return;
+      }
+
+      if (!isDeviceChecked) {
+        showToast('Silakan klik "Cek Device" terlebih dahulu!', false);
+        return;
+      }
+
+      const btn = document.getElementById('btn-create-qr');
+      btn.disabled = true;
+      btn.textContent = '⏳ Menghubungkan ke Gateway Tokopay...';
+
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            device_id: deviceId,
+            paket_hari: selectedPaketHari,
+            nominal: selectedNominal,
+            metode: 'QRISREALTIME'
+          })
+        });
+
+        const data = await res.json();
+        
+        // Safely extract QR data across wrapper formats
+        const qrString = data.qr_string || data.qrCode || data.data?.qr_string || data.data?.qrCode || data.data?.qr_code;
+        const qrLink = data.qr_link || data.qr_url || data.data?.qr_link || data.data?.qr_url || data.data?.qrCodeUrl;
+        const refId = data.reff_id || data.ref_id || data.trx_id || data.data?.ref_id || data.data?.trx_id || data.data?.reff_id;
+        
+        const isExplicitError = (data.success === false) || 
+                                (data.status === 'Error') || 
+                                (data.status === false) || 
+                                (data.status === 0);
+
+        const errorMessage = data.error || data.message || data.data?.error || data.data?.message || data.msg;
+
+        if (isExplicitError || (!qrString && !qrLink)) {
+          const finalErr = errorMessage || 'Gateway Tokopay menolak permintaan QRIS. Pastikan Merchant ID & Secret Tokopay di Vercel sudah aktif.';
+          throw new Error(finalErr);
+        }
+
+        const feeCalculated = Math.ceil(selectedNominal * 0.017);
+        const totalAmount = data.total_bayar || data.total || data.data?.total_bayar || (selectedNominal + feeCalculated);
+
+        currentReffId = refId;
+        
+        document.getElementById('qris-subtitle').textContent = `Device: ${deviceId} • ${selectedPaketHari} Hari`;
+        document.getElementById('qris-total-amount').textContent = formatRupiah(totalAmount);
+        document.getElementById('qris-fee-info').textContent = `(Harga: ${formatRupiah(selectedNominal)} + Fee 1.7%: ${formatRupiah(feeCalculated)})`;
+
+        const qrBox = document.getElementById('qrcode-box');
+        qrBox.innerHTML = '';
+        
+        if (qrString) {
+          const qr = qrcode(0, 'M');
+          qr.addData(qrString);
+          qr.make();
+          qrBox.innerHTML = qr.createImgTag(6, 8);
+          const qrImg = qrBox.querySelector('img');
+          if (qrImg) {
+            qrImg.className = 'w-56 h-56 object-contain rounded-xl shadow-md mx-auto';
+          }
+        } else if (qrLink) {
+          const img = document.createElement('img');
+          img.src = qrLink;
+          img.className = 'w-56 h-56 object-contain rounded-xl shadow-md mx-auto';
+          qrBox.appendChild(img);
+        }
+
+        document.getElementById('step-selection').classList.add('hidden');
+        document.getElementById('step-qris').classList.remove('hidden');
+
+        mulaiPollingStatus();
+        showToast('QRIS berhasil dibuat! Silakan scan untuk membayar.');
+
+      } catch (err) {
+        showToast(err.message || 'Terjadi kesalahan koneksi ke gateway Tokopay.', false);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🚀 Buat QRIS Pembayaran';
+      }
+    }
+
+    function mulaiPollingStatus() {
+      if (pollingInterval) clearInterval(pollingInterval);
+      
+      pollingInterval = setInterval(async () => {
+        if (!currentReffId) return;
+        try {
+          const res = await fetch(`${API_URL}?reff_id=${encodeURIComponent(currentReffId)}`, { cache: 'no-store' });
+          const data = await res.json();
+
+          const statusVal = data.status || data.data?.status;
+          const isPaid = data.is_paid || statusVal === 'Success' || statusVal === 'SUCCESS' || statusVal === 'paid';
+
+          if (isPaid) {
+            clearInterval(pollingInterval);
+            document.getElementById('step-qris').classList.add('hidden');
+            document.getElementById('step-success').classList.remove('hidden');
+            
+            document.getElementById('success-device-id').textContent = document.getElementById('input-device-id').value.trim().toUpperCase();
+            
+            let expSuccess = 'Berhasil Diperpanjang';
+            const expVal = data.exp_date || data.data?.exp_date;
+            if (expVal) {
+              const dExp = new Date(expVal);
+              if (!isNaN(dExp.getTime())) {
+                expSuccess = dExp.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+              } else {
+                expSuccess = expVal;
+              }
+            }
+            document.getElementById('success-exp-date').textContent = expSuccess;
+            
+            showToast('Pembayaran Berhasil! Lisensi diperpanjang.');
+          }
+        } catch (e) {
+          console.warn('Polling status error:', e);
+        }
+      }, 4000);
+    }
+
+    function kembaliKePilihan() {
+      if (pollingInterval) clearInterval(pollingInterval);
+      currentReffId = null;
+      document.getElementById('step-qris').classList.add('hidden');
+      document.getElementById('step-selection').classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
+```
+
+All updates are applied directly in the editor. You can now test the portal and verify Tokopay QRIS generation!

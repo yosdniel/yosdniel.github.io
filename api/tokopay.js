@@ -948,9 +948,9 @@ export default async function handler(req, res) {
     }
 
     const refIdOrder = reff_id || `SIPGN__${cleanDevId}__${paketHariFix}__${Date.now()}`;
-    // Perbaikan formula signature Tokopay (merchant_id + secret_key + ref_id tanpa colon)
+    // Formula Signature MD5 Tokopay yang bersih dari karakter titik dua
     const signature = crypto.createHash('md5').update(`${merchantId}${secretKey}${refIdOrder}`).digest('hex');
-    const metodeChannel = body.metode || body.kode_channel || 'QRIS';
+    const metodeChannel = body.metode || body.kode_channel || 'QRISREALTIME';
 
     try {
       const tokopayRes = await fetch(`https://api.tokopay.id/v1/order?merchant=${merchantId}&secret=${secretKey}&reff_id=${encodeURIComponent(refIdOrder)}&ref_id=${encodeURIComponent(refIdOrder)}&nominal=${nominal}&metode=${encodeURIComponent(metodeChannel)}&kode_channel=${encodeURIComponent(metodeChannel)}&signature=${signature}`, { cache: 'no-store' });
@@ -983,7 +983,7 @@ export default async function handler(req, res) {
     const secretKey = process.env.TOKOPAY_SECRET_KEY;
     if (!merchantId || !secretKey) return res.status(200).json({ is_paid: false, error: 'Kunci Tokopay belum diatur.' });
 
-    // Perbaikan formula signature status check Tokopay (merchant_id + secret_key + reff_id tanpa colon)
+    // Formula Signature MD5 Status Check Tokopay
     const signature = crypto.createHash('md5').update(`${merchantId}${secretKey}${reff_id}`).digest('hex');
 
     try {

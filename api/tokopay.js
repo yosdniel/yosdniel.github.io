@@ -695,7 +695,7 @@ export default async function handler(req, res) {
 
       const hariIniWIB = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
       if (lic.exp_date && lic.exp_date < hariIniWIB) {
-        return res.status(200).json({ valid: false, status: 'expired', exp_date: lic.exp_date, qris_enabled: qrisEnabled, sppg_name: lic.sppg_name || '', msg: 'Masa aktif lisensi anda telah habis. Silahkan lakukan perpanjangan masa aktif.' });
+        return res.status(200).json({ valid: false, status: 'expired', exp_date: lic.exp_date, qris_enabled: qrisEnabled, sppg_name: lic.sppg_name || '', msg: 'Masa aktif lisensi anda telah habis. Silahkan melakukan perpanjangan masa aktif agar dapat mengakses fitur kembali.' });
       }
 
       const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');

@@ -690,8 +690,8 @@ export default async function handler(req, res) {
       const lic = Array.isArray(licenses) && licenses.length > 0 ? licenses[0] : null;
 
       if (!lic) return res.status(200).json({ valid: false, status: 'unregistered', qris_enabled: qrisEnabled, msg: 'Device ID belum terdaftar.' });
-      if (lic.status === 'revoked') return res.status(200).json({ valid: false, status: 'revoked', qris_enabled: qrisEnabled, msg: 'Akses dicabut oleh Admin.' });
-      if (lic.status === 'hold') return res.status(200).json({ valid: false, status: 'hold', qris_enabled: qrisEnabled, msg: 'Lisensi dalam penangguhan.' });
+      if (lic.status === 'revoked') return res.status(200).json({ valid: false, status: 'revoked', qris_enabled: qrisEnabled, msg: 'Akses perangkat Anda telah dicabut secara permanen. Perangkat tidak dapat lagi mengakses fitur otomatisasi SIPGN.' });
+      if (lic.status === 'hold') return res.status(200).json({ valid: false, status: 'hold', qris_enabled: qrisEnabled, msg: 'Akses perangkat Anda saat ini sedang ditangguhkan oleh Administrator. Silakan hubungi admin untuk informasi lebih lanjut.' });
 
       const hariIniWIB = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
       if (lic.exp_date && lic.exp_date < hariIniWIB) {

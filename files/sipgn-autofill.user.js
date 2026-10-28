@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SIPGN Autofill POP - Mindspace Studio
 // @namespace    sipgn-autofill
-// @version      1.5.55
+// @version      1.5.56
 // @description  Isi otomatis form Tugas Pengiriman & Klaim Voucher Durasi Custom Baru (dengan Fake Camera & Adaptif Mobile Bottom Sheet & Floating FAB)
 // @match        https://pop-sipgn.bgn.go.id/distribution*
 // @match        https://pop-sipgn.bgn.go.id/*
@@ -19,9 +19,6 @@
 (function () {
   'use strict';
 
-  // ==========================================
-  // MODUL FAKE CAMERA (INJECT EARLY)
-  // ==========================================
   (function inisialisasiFakeCamera() {
     try {
       const canvas = document.createElement('canvas');
@@ -34,7 +31,6 @@
         ctx.fillStyle = '#000';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         if (!img) return;
-        // Cover mode agar gambar memenuhi canvas
         const r = Math.max(canvas.width / img.width, canvas.height / img.height);
         const w = img.width * r, h = img.height * r;
         ctx.drawImage(img, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
@@ -73,12 +69,9 @@
     }
   })();
 
-  // ==========================================
-  // SCRIPT UTAMA AUTOFILL
-  // ==========================================
   const CURRENT_VERSION = (typeof GM_info !== 'undefined' && GM_info.script)
     ? GM_info.script.version
-    : '1.5.55';
+    : '1.5.56';
 
   const VERCEL_API_URL = 'https://mindspace-id.vercel.app/api/tokopay';
   const SECRET_SALT = 'MINDSTUDIO2026';
@@ -99,10 +92,8 @@
   let daftarVouchersGlobal = [];
   let kodeVoucherTerpakai = null;
 
-  // State khusus Mobile Bottom Sheet
   let mobilePanelOpen = false;
 
-  // Modern Splash Loading Screen Handler
   function tampilkanLoadingScreen(onLanjutkan) {
     const splashLama = document.getElementById('sipgn-splash-loading');
     if (splashLama) splashLama.remove();
@@ -136,7 +127,7 @@
         }
       </style>
       <div style="position: relative; background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(56, 189, 248, 0.3); backdrop-filter: blur(16px); color: #f8fafc; padding: 36px 30px; border-radius: 24px; width: 380px; max-width: 90vw; text-align: center; box-shadow: 0 30px 60px -15px rgba(0,0,0,0.8);">
-        
+
         <div style="position: relative; width: 80px; height: 80px; margin: 0 auto 20px auto;">
           <div style="position: absolute; inset: 0; border: 3px solid rgba(56, 189, 248, 0.15); border-top-color: #38bdf8; border-radius: 50%; animation: sipgnRotateRing 1.2s linear infinite;"></div>
           <div style="width: 100%; height: 100%; background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(37, 99, 235, 0.3)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 34px; animation: sipgnPulseGlow 2.5s infinite;">
@@ -144,9 +135,9 @@
           </div>
         </div>
 
-        <h3 style="margin: 0 0 4px 0; font-size: 20px; font-weight: 800; background: linear-gradient(135deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">SIPGN Autofill POP</h3>
-        <div style="font-size: 11px; color: #94a3b8; font-weight: 600; margin-bottom: 6px;">Versi v${CURRENT_VERSION}</div>
-        <div style="font-size: 13px; font-weight: 700; color: #38bdf8; margin-bottom: 20px; letter-spacing: 0.3px;">${escapeHtml(sapaanTeks)}</div>
+        <h3 style="margin: 0 0 2px 0; font-size: 20px; font-weight: 800; background: linear-gradient(135deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">SIPGN Autofill POP</h3>
+        <div style="font-size: 11px; color: #94a3b8; font-weight: 600; margin-bottom: 15px;">v${CURRENT_VERSION}</div>
+        <div style="font-size: 13px; font-weight: 700; color: #38bdf8; margin-bottom: 10px; letter-spacing: 0.3px;">${escapeHtml(sapaanTeks)}</div>
 
         <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(51, 65, 85, 0.6); border-radius: 12px; padding: 12px; margin-bottom: 20px;">
           <div id="sipgn-splash-status" style="font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 8px;">Memeriksa Sistem & Lisensi...</div>
@@ -337,11 +328,7 @@
         device_id: devId,
         sppg_name: nama
       }),
-      onload: function (res) {
-        try {
-          console.log('[Autofill] Sinkronisasi nama SPPG ke database berhasil.');
-        } catch (e) {}
-      },
+      onload: function (res) {},
       onerror: function () {
         console.warn('[Autofill] Gagal meng-upload nama SPPG ke database server.');
       }
@@ -1012,6 +999,9 @@ ${escapeHtml(changelog)}
 
     const modalSuksesLama = document.getElementById('sipgn-success-modal');
     if (modalSuksesLama) modalSuksesLama.remove();
+
+    const modalStatusLama = document.getElementById('sipgn-status-modal');
+    if (modalStatusLama) modalStatusLama.remove();
 
     const topZ = dapatkanTopZIndex();
     const overlay = document.createElement('div');
@@ -1810,15 +1800,26 @@ ${escapeHtml(changelog)}
     if (modalLama) modalLama.remove();
 
     const isHold = warnaTema === 'hold';
-    const bgHeader = isHold
-      ? 'linear-gradient(135deg, rgba(217, 119, 6, 0.25), rgba(180, 83, 9, 0.4))'
-      : 'linear-gradient(135deg, rgba(225, 29, 72, 0.25), rgba(159, 18, 57, 0.4))';
+    const isExpired = warnaTema === 'expired';
 
-    const borderColor = isHold ? 'rgba(245, 158, 11, 0.45)' : 'rgba(239, 68, 68, 0.45)';
-    const textColor = isHold ? '#fef08a' : '#fecaca';
-    const accentIcon = isHold ? '⏸️' : '🚫';
+    let bgHeader = 'linear-gradient(135deg, rgba(225, 29, 72, 0.25), rgba(159, 18, 57, 0.4))';
+    let borderColor = 'rgba(239, 68, 68, 0.45)';
+    let textColor = '#fecaca';
+    let accentIcon = '🚫';
+
+    if (isHold) {
+      bgHeader = 'linear-gradient(135deg, rgba(217, 119, 6, 0.25), rgba(180, 83, 9, 0.4))';
+      borderColor = 'rgba(245, 158, 11, 0.45)';
+      textColor = '#fef08a';
+      accentIcon = '⏸️';
+    } else if (isExpired) {
+      bgHeader = 'linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(185, 28, 28, 0.4))';
+      borderColor = 'rgba(239, 68, 68, 0.5)';
+      textColor = '#fecaca';
+      accentIcon = '⏰';
+    }
+
     const devId = dapatkanDeviceID();
-
     const topZ = dapatkanTopZIndex();
     const overlay = document.createElement('div');
     overlay.id = 'sipgn-status-modal';
@@ -1841,7 +1842,7 @@ ${escapeHtml(changelog)}
         }
       </style>
 
-      <div style="position: relative; background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid ${borderColor}; color: #f8fafc; padding: 32px 28px; border-radius: 24px; width: 460px; max-width: 92vw; text-align: center; box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.8); animation: sipgnPopStatusModal 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
+      <div style="position: relative; background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid ${borderColor}; color: #f8fafc; padding: 28px; border-radius: 24px; width: 460px; max-width: 92vw; text-align: center; box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.8); animation: sipgnPopStatusModal 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; max-height: 90vh; overflow-y: auto;">
         <div style="width: 68px; height: 68px; background: ${bgHeader}; border: 1px solid ${borderColor}; color: ${textColor}; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 18px auto; animation: sipgnPulseStatusIcon 3s infinite;">
           ${accentIcon}
         </div>
@@ -1852,13 +1853,13 @@ ${escapeHtml(changelog)}
 
         <h3 style="margin: 12px 0 8px 0; font-size: 22px; font-weight: 800; color: ${textColor}; letter-spacing: -0.3px;">${judulText}</h3>
 
-        <div style="background: rgba(15, 23, 42, 0.7); color: #cbd5e1; padding: 16px; border-radius: 14px; font-size: 13px; margin: 16px 0; border: 1px solid ${borderColor}; line-height: 1.6; text-align: left;">
+        <div style="background: rgba(15, 23, 42, 0.7); color: #cbd5e1; padding: 14px; border-radius: 14px; font-size: 12px; margin: 14px 0; border: 1px solid ${borderColor}; line-height: 1.5; text-align: left;">
           ${pesanText}
         </div>
 
-        <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(51, 65, 85, 0.8); border-radius: 12px; padding: 10px 14px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+        <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(51, 65, 85, 0.8); border-radius: 12px; padding: 10px 14px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
           <div style="text-align: left;">
-            <div style="font-size: 10px; text-transform: uppercase; color: #94a3b8; font-weight: 700;">Identitas Perangkat:</div>
+            <div style="font-size: 10px; text-transform: uppercase; color: #94a3b8; font-weight: 700;">Device ID :</div>
             <div id="sipgn-dev-id-status" style="font-size: 13px; font-weight: 700; color: #facc15; font-family: monospace;">${devId}</div>
           </div>
           <button id="sipgn-btn-copy-devid" style="background: rgba(250, 204, 21, 0.15); border: 1px solid rgba(250, 204, 21, 0.3); color: #facc15; padding: 6px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; transition: 0.2s;">
@@ -1866,11 +1867,22 @@ ${escapeHtml(changelog)}
           </button>
         </div>
 
-        <button id="sipgn-btn-reload-status" style="width: 100%; padding: 13px; border: none; border-radius: 12px; background: linear-gradient(135deg, #334155, #1e293b); color: white; font-weight: 700; cursor: pointer; font-size: 13px; transition: all 0.2s; border: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);">
+        ${isExpired ? `
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 14px; padding: 14px; margin-bottom: 16px; text-align: left;">
+            <label style="display: block; font-size: 11px; font-weight: 700; color: #38bdf8; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">🔑 Perpanjang Dengan Kode Voucher:</label>
+            <div style="display: flex; gap: 8px; margin-bottom: 6px;">
+              <input type="text" id="sipgn-expired-input-voucher" placeholder="MASUKKAN KODE VOUCHER" style="flex: 2; box-sizing: border-box; padding: 10px 12px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 12px; font-weight: 700; text-transform: uppercase; outline: none;" />
+              <button id="sipgn-expired-btn-apply-voucher" style="flex: 1; padding: 10px; border: none; border-radius: 10px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; font-weight: 700; cursor: pointer; font-size: 12px; transition: 0.2s;">Klaim</button>
+            </div>
+            <div id="sipgn-expired-voucher-feedback" style="font-size: 11px; min-height: 16px; font-weight: 600;"></div>
+          </div>
+        ` : ''}
+
+        <button id="sipgn-btn-reload-status" style="width: 100%; padding: 12px; border: none; border-radius: 12px; background: linear-gradient(135deg, #334155, #1e293b); color: white; font-weight: 700; cursor: pointer; font-size: 13px; transition: all 0.2s; border: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);">
           🔄 Muat Ulang Halaman
         </button>
 
-        <div style="margin-top: 20px; font-size: 11px; color: #64748b;">Powered by <b style="color: #94a3b8;">Mindspace Studio</b></div>
+        <div style="margin-top: 16px; font-size: 11px; color: #64748b;">Powered by <b style="color: #94a3b8;">Mindspace Studio</b></div>
       </div>
     `;
 
@@ -1883,6 +1895,49 @@ ${escapeHtml(changelog)}
         btnCopy.textContent = '✅ Tersalin!';
         setTimeout(() => { btnCopy.textContent = '📋 Salin ID'; }, 2000);
       };
+    }
+
+    if (isExpired) {
+      const inputVoucher = document.getElementById('sipgn-expired-input-voucher');
+      const btnApplyVoucher = document.getElementById('sipgn-expired-btn-apply-voucher');
+      const voucherFeedback = document.getElementById('sipgn-expired-voucher-feedback');
+
+      if (btnApplyVoucher) {
+        btnApplyVoucher.onclick = async () => {
+          const kode = inputVoucher.value.trim().toUpperCase();
+          if (!kode) {
+            voucherFeedback.textContent = 'Masukkan kode voucher terlebih dahulu.';
+            voucherFeedback.style.color = '#ef4444';
+            return;
+          }
+
+          btnApplyVoucher.disabled = true;
+          btnApplyVoucher.textContent = 'Memeriksa...';
+          voucherFeedback.textContent = '';
+
+          try {
+            const resKlaim = await klaimVoucherVercel(kode);
+            if (resKlaim.success) {
+              voucherFeedback.textContent = resKlaim.message;
+              voucherFeedback.style.color = '#4ade80';
+              setTimeout(() => {
+                overlay.remove();
+                eksekusiSuksesPembayaran(0, devId, resKlaim.exp_date, 0);
+              }, 1000);
+            } else {
+              voucherFeedback.textContent = resKlaim.error || 'Voucher tidak valid.';
+              voucherFeedback.style.color = '#ef4444';
+              btnApplyVoucher.disabled = false;
+              btnApplyVoucher.textContent = 'Klaim';
+            }
+          } catch (err) {
+            voucherFeedback.textContent = 'Gagal memproses klaim voucher.';
+            voucherFeedback.style.color = '#ef4444';
+            btnApplyVoucher.disabled = false;
+            btnApplyVoucher.textContent = 'Klaim';
+          }
+        };
+      }
     }
 
     document.getElementById('sipgn-btn-reload-status').onclick = () => {
@@ -3102,14 +3157,12 @@ ${escapeHtml(changelog)}
         user-select: none !important;
       }
 
-      /* Kustomisasi Mobile Responsif Form */
       @media (max-width: 640px) {
         #sipgn-kpm-form-inputs-container {
           grid-template-columns: 1fr !important;
           gap: 12px !important;
         }
 
-        /* Standardize all pop-up modals on mobile to bottom sheet with max-height 40% */
         #sipgn-license-modal,
         #sipgn-kpm-form-modal,
         #sipgn-update-modal,
@@ -3254,7 +3307,6 @@ ${escapeHtml(changelog)}
 
       const mobileMode = isMobileDevice();
 
-      // --- RESPONSIF HP: FLOATING FAB BUTTON & BOTTOM SHEET ---
       if (mobileMode) {
         if (!mobilePanelOpen) {
           const fab = document.createElement('button');
@@ -3922,9 +3974,6 @@ ${escapeHtml(changelog)}
     }
   }
 
-  // ==========================================
-  // INITIALIZATION ENGINE
-  // ==========================================
   function ambilStatusLisensiServer() {
     const currentDevId = dapatkanDeviceID();
     return new Promise((resolve) => {
@@ -3939,24 +3988,47 @@ ${escapeHtml(changelog)}
             if (data && data.sppg_name) simpanNamaSPPG(data.sppg_name);
             let statusSekarang = data.valid ? 'active' : (data.status || 'expired');
             if (data.exp_date) currentDatabaseExpDate = data.exp_date;
-            resolve({ status: statusSekarang, valid: !!data.valid, msg: data.msg || '' });
+            const pesanOutput = data.msg || data.message || data.reason || '';
+            resolve({ status: statusSekarang, valid: !!data.valid, msg: pesanOutput });
           } catch (e) {
             resolve({ status: 'error', valid: false, msg: 'Respon server gagal.' });
           }
         },
-        onerror: () => resolve({ status: 'error', valid: false })
+        onerror: () => resolve({ status: 'error', valid: false, msg: '' })
       });
     });
   }
 
   function tanganiStatusLisensi(resStatus) {
-    if (resStatus.status === 'active' || resStatus.valid) {
+    const status = resStatus.status;
+    const pesanServer = (resStatus.msg && String(resStatus.msg).trim()) ? String(resStatus.msg).trim() : null;
+
+    if (resStatus.valid || status === 'active') {
       mulaiJalankanSkrip();
+    } else if (status === 'hold') {
+      tampilkanModalStatusSitus(
+        'Akses Lisensi Ditangguhkan',
+        pesanServer || 'Akses perangkat Anda saat ini sedang ditangguhkan oleh administrator system. Silakan hubungi admin untuk informasi lebih lanjut.',
+        'hold'
+      );
+    } else if (status === 'revoked') {
+      tampilkanModalStatusSitus(
+        'Akses Lisensi Dicabut',
+        pesanServer || 'Akses perangkat Anda telah dicabut secara permanen. Perangkat tidak dapat lagi mengakses fitur otomatisasi SIPGN.',
+        'revoked'
+      );
+    } else if (status === 'expired') {
+      tampilkanModalStatusSitus(
+        'Masa Aktif Lisensi Habis',
+        pesanServer || 'Masa aktif lisensi pada perangkat ini telah habis. Silakan masukkan kode voucher perpanjangan atau bayar via QRIS.',
+        'expired'
+      );
     } else {
+      const pesanModal = pesanServer || '';
       if (!dapatkanNamaSPPG()) {
-        tampilkanModalWelcomeSPPG(() => tampilkanModalAktivasi(resStatus.msg || '', false));
+        tampilkanModalWelcomeSPPG(() => tampilkanModalAktivasi(pesanModal, false));
       } else {
-        tampilkanModalAktivasi(resStatus.msg || '', false);
+        tampilkanModalAktivasi(pesanModal, false);
       }
     }
   }
@@ -3971,14 +4043,13 @@ ${escapeHtml(changelog)}
       });
 
       loader.updateProgress(20, 'Memulai Pemeriksaan Sistem...');
-      
-      // Mengatur waktu jeda acak antara 3000ms (3s) hingga 6000ms (6s)
+
       const randomDelayMs = Math.floor(Math.random() * (6000 - 3000 + 1)) + 3000;
       const stepTime = randomDelayMs / 3;
 
       await wait(stepTime);
       loader.updateProgress(50, 'Menghubungkan ke Server...');
-      
+
       const resStatus = await ambilStatusLisensiServer();
 
       if (!resStatus || resStatus.status === 'error') {
@@ -3990,7 +4061,7 @@ ${escapeHtml(changelog)}
 
       await wait(stepTime);
       loader.updateProgress(80, 'Memuat Data Penugasan...');
-      
+
       await wait(stepTime);
 
       loader.siapLanjut();

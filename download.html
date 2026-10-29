@@ -104,7 +104,7 @@
 
       <!-- DOWNLOAD BUTTON -->
       <div class="space-y-3">
-        <a id="download-btn" href="#" target="_blank" class="btn-download block bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 active:scale-[0.99] text-white font-extrabold py-4 px-6 rounded-2xl text-sm sm:text-base text-center transition shadow-xl shadow-brand-500/30">
+        <a id="download-btn" href="#" target="_blank" onclick="trackDownloadClick()" class="btn-download block bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 active:scale-[0.99] text-white font-extrabold py-4 px-6 rounded-2xl text-sm sm:text-base text-center transition shadow-xl shadow-brand-500/30">
           ⏳ Memuat Link Download dari Server...
         </a>
         <p class="text-[11px] text-slate-500 text-center">Pastikan ekstensi Tampermonkey sudah terpasang di browser Anda.</p>
@@ -148,6 +148,18 @@
 
   <script>
     const API_URL = 'https://mindspace-id.vercel.app/api/tokopay?action=check_version';
+    const TRACK_URL = 'https://mindspace-id.vercel.app/api/tokopay';
+
+    function trackDownloadClick() {
+      try {
+        fetch(TRACK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'track_download' }),
+          keepalive: true
+        }).catch(() => {});
+      } catch (e) {}
+    }
 
     function renderChangelog(rawText) {
       const container = document.getElementById('changelog-container');

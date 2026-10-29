@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>MindHUB - Admin Dashboard</title>
+  <title>MindHUB - Admin Dashboard & Payment Gateway</title>
   
   <!-- FAVICON & PWA METAS -->
   <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon.ico">
@@ -15,6 +15,7 @@
   <meta name="apple-mobile-web-app-title" content="MindHUB">
 
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script>
     tailwind.config = {
@@ -53,6 +54,16 @@
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    
+    .package-card {
+      transition: all 0.2s ease-in-out;
+      cursor: pointer;
+    }
+    .package-card.selected {
+      border-color: #6366f1;
+      background: rgba(99, 102, 241, 0.12);
+      box-shadow: 0 0 20px rgba(99, 102, 241, 0.2);
     }
     
     .scrollbar-none::-webkit-scrollbar { display: none; }
@@ -115,7 +126,7 @@
           <img src="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon512.png" alt="MindHUB Logo" class="w-full h-full object-cover rounded-xl">
         </div>
         <h2 class="font-extrabold text-xl sm:text-2xl text-white tracking-tight">MindHUB</h2>
-        <p class="text-xs text-slate-400 mt-1">Secure Admin Gateway</p>
+        <p class="text-xs text-slate-400 mt-1">Secure Admin Gateway & Payment Hub</p>
       </div>
       <div class="space-y-4 sm:space-y-5 text-left">
         <div>
@@ -210,7 +221,7 @@
             <div class="lg:col-span-2 glass-card p-6 sm:p-8 rounded-3xl flex flex-col justify-center relative overflow-hidden border border-slate-800">
               <div class="absolute -right-10 -top-10 w-48 h-48 sm:w-64 sm:h-64 bg-brand-500/15 rounded-full blur-3xl pointer-events-none"></div>
               <h2 class="text-xl sm:text-2xl font-extrabold text-white mb-2 relative z-10">Welcome to MindHUB Base</h2>
-              <p class="text-slate-400 text-xs sm:text-sm max-w-md leading-relaxed relative z-10">All systems operational. Monitor device authorization, live statistics, and synchronization in real-time.</p>
+              <p class="text-slate-400 text-xs sm:text-sm max-w-md leading-relaxed relative z-10">All systems operational. Monitor device authorization, live statistics, and payment gateway synchronization in real-time.</p>
             </div>
             <div class="glass-card p-5 sm:p-6 rounded-3xl flex flex-col justify-between border border-slate-800">
               <span class="text-[10px] sm:text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Monthly Revenue</span>
@@ -518,7 +529,7 @@
             <div class="flex items-center justify-between flex-wrap gap-2">
               <div>
                 <label class="font-bold text-xs uppercase text-slate-300">Kode Kupon & Voucher Promo</label>
-                <p class="text-[11px] text-slate-400">Atur diskon, kuota pemakaian, dan tanggal kadaluarsa voucher promo.</p>
+                <p class="text-[11px] text-slate-400">Atur diskon persentase, nominal tetap (Rp), atau bonus hari yang otomatis terhubung ke pembayaran klien.</p>
               </div>
               <button onclick="tambahBarisVoucherForm()" class="bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-bold px-4 py-3.5 rounded-2xl text-xs sm:text-sm transition shadow-lg shadow-brand-500/20 flex items-center justify-center gap-1.5">+ Tambah Voucher</button>
             </div>
@@ -1340,8 +1351,9 @@
           quota: 1,
           used_count: 0,
           exp_date: expDateStr,
-          device_id: currentLicenseData.device_id,
+          device_id: currentLicenseData.device_id, // Target device ID tersemat secara spesifik
           is_single_use: true,
+          is_device_specific: true, // Ditandai sebagai voucher perangkat khusus agar tidak tampil di daftar promo umum
           created_at: new Date().toISOString()
         };
         vouchersList.push(newVoucher);
@@ -1353,7 +1365,7 @@
         const resultSave = await resSave.json();
         if (resSave.ok && (resultSave.success || resultSave.status)) {
           voucherInput.value = code;
-          showToast(`Voucher ${code} (${numDays} Hari) berhasil dibuat!`);
+          showToast(`Voucher ${code} (${numDays} Hari) berhasil dibuat khusus ${currentLicenseData.device_id}!`);
         } else {
           voucherInput.value = code;
           showToast(`Voucher ${code} dibuat di lokal, gagal simpan server.`, false);
@@ -1367,7 +1379,14 @@
     function salinVoucherDevice() {
       const val = document.getElementById('dispGeneratedVoucher').value;
       if (!val || val.includes('Generating')) return;
-      navigator.clipboard.writeText(val);
+      document.execCommand ? (function(){
+        const el = document.createElement('textarea');
+        el.value = val;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+      })() : navigator.clipboard.writeText(val);
       showToast('Copied to clipboard');
     }
 
@@ -1507,7 +1526,15 @@
 
     function copyJsonPreview() {
       if (!currentBackupPayload) return;
-      navigator.clipboard.writeText(JSON.stringify(currentBackupPayload, null, 2));
+      const val = JSON.stringify(currentBackupPayload, null, 2);
+      document.execCommand ? (function(){
+        const el = document.createElement('textarea');
+        el.value = val;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+      })() : navigator.clipboard.writeText(val);
       showToast('JSON Backup copied to clipboard!');
     }
 
@@ -1568,7 +1595,7 @@
         const list = data.packages || [];
         const container = document.getElementById('containerListPaket');
         container.innerHTML = '';
-        if (list.length === 0) tambahBarisPaketForm('Paket 7 Hari', 7, 10000);
+        if (list.length === 0) tambahBarisPaketForm('Paket 7 Hari', 7, 25000);
         else list.forEach(p => tambahBarisPaketForm(p.nama, p.hari, p.harga));
       } catch (err) { showToast('Failed to load packages', false); }
     }
@@ -1611,10 +1638,10 @@
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'save_packages', packages })
+          body: JSON.stringify({ action: 'save_packages', packages, admin_secret: adminPasswordSecret })
         });
         const result = await res.json();
-        if (result.success) { showToast('Packages saved!'); muatDataPaketServer(); }
+        if (res.ok && (result.success || result.status)) { showToast('Packages saved!'); muatDataPaketServer(); }
         else showToast('Save failed', false);
       } catch (err) { showToast('Network Error', false); }
     }
@@ -1624,7 +1651,8 @@
         const res = await fetch(`${VERCEL_API_URL}?action=get_vouchers`);
         const data = await res.json();
         const allVouchers = data.vouchers || [];
-        const list = allVouchers.filter(v => !v.is_single_use && (!v.device_id || v.device_id === 'ALL' || v.device_id === ''));
+        // Saring hanya voucher yang dibuat manual oleh admin (hilangkan voucher otomatis single-use device)
+        const list = allVouchers.filter(v => !v.is_device_specific && (!v.device_id || v.device_id === 'ALL' || v.device_id === ''));
         const container = document.getElementById('containerListVoucher');
         container.innerHTML = '';
         if (list.length === 0) {
@@ -1684,7 +1712,7 @@
 
     async function simpanPengaturanVoucherServer() {
       const rows = document.querySelectorAll('#containerListVoucher > div');
-      const vouchers = [];
+      const newManualVouchers = [];
       rows.forEach(r => {
         const code = r.querySelector('.inp-code').value.trim().toUpperCase();
         const type = r.querySelector('.inp-type').value;
@@ -1694,14 +1722,26 @@
         const exp_date = r.querySelector('.inp-exp').value;
         const device_id = r.querySelector('.inp-device').value.trim().toUpperCase() || 'ALL';
         if (code) {
-          vouchers.push({ code, type, discount_type: type, value, discount_value: value, quota, used_count, exp_date, device_id });
+          newManualVouchers.push({ code, type, discount_type: type, value, discount_value: value, quota, used_count, exp_date, device_id, is_device_specific: false });
         }
       });
+
       try {
+        // Ambil dulu voucher yang ada di server agar voucher khusus device yang sudah ada tidak terhapus
+        const resGet = await fetch(`${VERCEL_API_URL}?action=get_vouchers`);
+        let existingVouchers = [];
+        if (resGet.ok) {
+          const dataGet = await resGet.json();
+          existingVouchers = dataGet.vouchers || [];
+        }
+        // Pertahankan voucher device-specific yang sudah ada
+        const deviceSpecificVouchers = existingVouchers.filter(v => v.is_device_specific || (v.device_id && v.device_id !== 'ALL' && v.device_id !== ''));
+        const combinedVouchers = [...newManualVouchers, ...deviceSpecificVouchers];
+
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'save_vouchers', vouchers, admin_secret: adminPasswordSecret })
+          body: JSON.stringify({ action: 'save_vouchers', vouchers: combinedVouchers, admin_secret: adminPasswordSecret })
         });
         const result = await res.json();
         if (res.ok && (result.success || result.status)) {

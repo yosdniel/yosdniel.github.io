@@ -16,7 +16,7 @@
 <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-[100000] max-w-[90vw] w-auto px-5 py-3 rounded-2xl shadow-2xl border text-white font-bold text-xs sm:text-sm transition-all duration-300 -translate-y-20 opacity-0 pointer-events-none flex items-center gap-2"></div>
 <header class="w-full max-w-2xl mx-auto flex items-center justify-between relative z-10 py-3 px-4 sm:px-6 glass-card rounded-2xl mb-6 shadow-xl">
 <div class="flex items-center gap-3"><div class="w-10 h-10 bg-brand-500/15 border border-brand-500/30 rounded-xl flex items-center justify-center text-xl shadow-md">⚡</div><div><h1 class="font-extrabold text-sm sm:text-base text-white tracking-tight">Perpanjang Lisensi SIPGN</h1><span class="text-[10px] text-slate-400 block font-medium">Self-Service QRIS Portal &bull; Mindspace Studio</span></div></div>
-<div class="flex items-center gap-2"><div id="gateway-status-badge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700 text-slate-400 text-[11px] font-bold shadow-sm transition-all duration-300"><span id="gateway-dot" class="w-2 h-2 rounded-full bg-slate-500"></span><span id="gateway-text">Mengecek status...</span></div></div>
+<div class="flex items-center gap-2"><div id="gateway-status-badge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold shadow-sm transition-all duration-300"><span id="gateway-dot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span><span id="gateway-text">Mengecek status...</span></div></div>
 </header>
 <main class="w-full max-w-2xl mx-auto flex-1 flex flex-col justify-center relative z-10 my-auto">
 <div class="glass-card rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-2xl relative overflow-hidden">
@@ -61,19 +61,240 @@
 </main>
 <footer class="w-full max-w-2xl mx-auto text-center py-6 text-xs text-slate-500 relative z-10 border-t border-slate-900 mt-10"><p>Mindspace Studio &copy; 2026 &bull; SIPGN Autofill Management System</p></footer>
 <script>
-const U='https://mindspace-id.vercel.app/api/tokopay';let _p=7,_n=25000,_bn=25000,_disc=0,_ap=null,_ref=null,_pi=null,_ci=null,_chk=false,_gi=null,_go=true;function fmt(n){return new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(n)||0)}function toast(m,s=true){const t=document.getElementById('toast');if(!t)return;t.textContent=m;t.className=`fixed top-4 left-1/2 -translate-x-1/2 z-[100000] max-w-[90vw] w-auto px-5 py-3 rounded-2xl shadow-2xl border text-white font-bold text-xs sm:text-sm transition-all duration-300 translate-y-0 opacity-100 ${s?'bg-emerald-600 border-emerald-500':'bg-red-600 border-red-500'}`;setTimeout(()=>{t.className='fixed top-4 left-1/2 -translate-x-1/2 z-[100000] max-w-[90vw] w-auto px-5 py-3 rounded-2xl shadow-2xl border text-white font-bold text-xs sm:text-sm transition-all duration-300 -translate-y-20 opacity-0 pointer-events-none'},4000)}
-window.addEventListener('DOMContentLoaded',()=>{gStat();_gi=setInterval(gStat,15000);const q=new URLSearchParams(window.location.search),d=q.get('device_id')||q.get('did');if(d){document.getElementById('input-device-id').value=d.toUpperCase();_x.chk()}});
-async function gStat(){const b=document.getElementById('gateway-status-badge'),dt=document.getElementById('gateway-dot'),tx=document.getElementById('gateway-text'),bc=document.getElementById('btn-check-device'),bq=document.getElementById('btn-create-qr');try{const r=await fetch(`${U}?action=gateway_status`,{cache:'no-store'});if(r.ok){const d=await r.json(),st=d.gateway_active??d.qris_toggle??d.active??d.status,en=st===true||st===1||st==='active'||st==='online'||st==='enabled'||st==='Enabled';if(en){b.className='inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold shadow-sm transition-all duration-300';dt.className='w-2 h-2 rounded-full bg-emerald-400 animate-pulse';tx.textContent=d.message||'Gateway Active';_go=true;bc.disabled=false;if(_chk){bq.classList.remove('opacity-50','pointer-events-none');bq.disabled=false}return}else{b.className='inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[11px] font-bold shadow-sm transition-all duration-300';dt.className='w-2 h-2 rounded-full bg-amber-400';tx.textContent='Gateway Disabled / Maintenance';_go=false;lockErr();return}}throw new Error()}catch(e){try{const f=await fetch(`${U}?action=get_packages`,{cache:'no-store'});if(f.ok){const p=await f.json(),pst=p.gateway_active??p.qris_toggle??p.active,pen=pst===true||pst===1||pst==='active'||pst==='enabled';if(pen){b.className='inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold shadow-sm transition-all duration-300';dt.className='w-2 h-2 rounded-full bg-emerald-400 animate-pulse';tx.textContent='Gateway Active';_go=true;bc.disabled=false;if(_chk){bq.classList.remove('opacity-50','pointer-events-none');bq.disabled=false}return}}}catch(x){}b.className='inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-[11px] font-bold shadow-sm transition-all duration-300';dt.className='w-2 h-2 rounded-full bg-red-500';tx.textContent='Gateway Disconnected';_go=false;lockErr()}}
-function lockErr(){_go=false;const bq=document.getElementById('btn-create-qr');bq.classList.add('opacity-50','pointer-events-none');bq.disabled=true;bq.textContent='❌ Pembayaran sedang tidak aktif'}
+const U='https://mindspace-id.vercel.app/api/tokopay';let _p=7,_n=25000,_bn=25000,_disc=0,_ap=null,_ref=null,_pi=null,_ci=null,_chk=false,_gi=null,_go=true;
+function fmt(n){return new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(n)||0)}
+function toast(m,s=true){const t=document.getElementById('toast');if(!t)return;t.textContent=m;t.className=`fixed top-4 left-1/2 -translate-x-1/2 z-[100000] max-w-[90vw] w-auto px-5 py-3 rounded-2xl shadow-2xl border text-white font-bold text-xs sm:text-sm transition-all duration-300 translate-y-0 opacity-100 ${s?'bg-emerald-600 border-emerald-500':'bg-red-600 border-red-500'}`;setTimeout(()=>{t.className='fixed top-4 left-1/2 -translate-x-1/2 z-[100000] max-w-[90vw] w-auto px-5 py-3 rounded-2xl shadow-2xl border text-white font-bold text-xs sm:text-sm transition-all duration-300 -translate-y-20 opacity-0 pointer-events-none'},4000)}
+
+function getTanggalIndoGMT7(){
+  const days=['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+  const months=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'];
+  const now=new Date();
+  const utc=now.getTime()+(now.getTimezoneOffset()*60000);
+  const gmt7=new Date(utc+(7*3600000));
+  return `${days[gmt7.getDay()]}, ${gmt7.getDate()} ${months[gmt7.getMonth()]} ${gmt7.getFullYear()}`;
+}
+
+window.addEventListener('DOMContentLoaded',()=>{
+  gStat();
+  _gi=setInterval(gStat,15000);
+  const q=new URLSearchParams(window.location.search),d=q.get('device_id')||q.get('did');
+  if(d){document.getElementById('input-device-id').value=d.toUpperCase();_x.chk()}
+});
+
+async function gStat(){
+  const b=document.getElementById('gateway-status-badge'),dt=document.getElementById('gateway-dot'),tx=document.getElementById('gateway-text'),bc=document.getElementById('btn-check-device'),bq=document.getElementById('btn-create-qr');
+  _go=true;
+  bc.disabled=false;
+  b.className='inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold shadow-sm transition-all duration-300';
+  dt.className='w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+  tx.textContent=`${getTanggalIndoGMT7()}`;
+  if(_chk){
+    bq.classList.remove('opacity-50','pointer-events-none');
+    bq.disabled=false;
+  }
+}
+
 window._x={
-chk:async()=>{if(!_go){toast('Gateway pembayaran sedang tidak aktif!',false);return}const el=document.getElementById('input-device-id'),id=el.value.trim().toUpperCase();if(!id){toast('Masukkan Device ID terlebih dahulu!',false);el.focus();return}el.value=id;const bc=document.getElementById('btn-check-device');bc.disabled=true;bc.textContent='Memeriksa...';let lc=null;try{const rc=await fetch(`${U}?action=check_license&device_id=${encodeURIComponent(id)}`,{cache:'no-store'});if(rc.ok){const j=await rc.json();if(j&&typeof j==='object')lc=j}}catch(e){}const un=!lc||lc.status==='unregistered'||lc.valid===false||lc.error||lc.found===false||(lc.sppg_name&&lc.sppg_name.toLowerCase().includes('belum terdaftar'));if(un){document.getElementById('device-info-box').classList.add('hidden');document.getElementById('packages-section').classList.add('hidden');const bq=document.getElementById('btn-create-qr');bq.classList.add('opacity-50','pointer-events-none');bq.disabled=true;_chk=false;bc.disabled=false;bc.textContent='🔍 Cek Device';toast('Device ID tidak ditemukan atau belum terdaftar!',false);el.focus();return}document.getElementById('info-sppg-name').textContent=lc.sppg_name||'Terdaftar';let ef='-';if(lc.exp_date&&lc.exp_date!=='-'){const de=new Date(lc.exp_date);ef=!isNaN(de.getTime())?de.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}):lc.exp_date}document.getElementById('info-exp-date').textContent=ef;let sb='<span class="text-amber-400 font-bold">Terdaftar</span>';if(lc.status==='active'||lc.valid===true)sb='<span class="text-emerald-400 font-bold">Aktif</span>';else if(lc.status==='expired')sb='<span class="text-red-400 font-bold">Kadaluarsa</span>';document.getElementById('info-status').innerHTML=sb;document.getElementById('device-info-box').classList.remove('hidden');let pk=[{hari:7,harga:25000,nama:'Paket 7 Hari'},{hari:14,harga:40000,nama:'Paket 14 Hari'},{hari:30,harga:70000,nama:'Paket 30 Hari'},{hari:60,harga:100000,nama:'Paket 60 Hari'}];try{const rp=await fetch(`${U}?action=get_packages`,{cache:'no-store'});if(rp.ok){const pj=await rp.json();if(pj&&Array.isArray(pj.packages)&&pj.packages.length>0)pk=pj.packages}}catch(e){}renderPk(pk);document.getElementById('packages-section').classList.remove('hidden');const bq=document.getElementById('btn-create-qr');if(_go){bq.classList.remove('opacity-50','pointer-events-none');bq.disabled=false}_chk=true;bc.disabled=false;bc.textContent='🔍 Cek Device';toast('Device ID berhasil diverifikasi!')},
-promo:async()=>{const pi=document.getElementById('input-promo-code'),pm=document.getElementById('promo-msg'),c=pi.value.trim().toUpperCase();if(!c){toast('Masukkan kode promo!',false);return}pm.classList.remove('hidden');pm.className='text-[11px] font-medium text-slate-400';pm.textContent='Memvalidasi promo...';try{const r=await fetch(`${U}?action=check_promo&code=${encodeURIComponent(c)}`,{cache:'no-store'});if(r.ok){const d=await r.json();if(d&&d.valid){_ap=c;_disc=d.type==='percent'?Math.round(_bn*(Number(d.value)/100)):(Number(d.value)||5000);_n=Math.max(0,_bn-_disc);pm.className='text-[11px] font-semibold text-emerald-400';pm.textContent=`✔ Promo "${c}" aktif! Diskon ${fmt(_disc)}`;toast(`Promo berhasil! Diskon ${fmt(_disc)}`);return}else{throw new Error(d.message||'Promo tidak valid')}}}catch(e){if(c==='MINDSPACE20'||c==='SIPGN'){_ap=c;_disc=5000;_n=Math.max(0,_bn-_disc);pm.className='text-[11px] font-semibold text-emerald-400';pm.textContent=`✔ Promo "${c}" aktif! Diskon ${fmt(_disc)}`;toast(`Promo ${c} diterapkan!`);return}_disc=0;_n=_bn;_ap=null;pm.className='text-[11px] font-semibold text-red-400';pm.textContent=e.message||'Kode promo salah.';toast('Kode promo tidak valid',false)}},
-qr:async()=>{if(!_go){toast('Gateway tidak aktif!',false);return}const ie=document.getElementById('input-device-id'),id=ie.value.trim().toUpperCase();if(!id){toast('Device ID wajib diisi!',false);ie.focus();return}if(!_chk){toast('Silakan cek Device ID terlebih dahulu!',false);return}const btn=document.getElementById('btn-create-qr');btn.disabled=true;btn.textContent='⏳ Menghubungkan Gateway...';try{const r=await fetch(U,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({device_id:id,paket_hari:_p,nominal:_n,base_nominal:_bn,discount:_disc,promo_code:_ap,metode:'QRISREALTIME'})}),d=await r.json(),qs=d.qr_string||d.qrCode||d.data?.qr_string||d.data?.qrCode||d.data?.qr_code,ql=d.qr_link||d.qr_url||d.data?.qr_link||d.data?.qr_url||d.data?.qrCodeUrl,rf=d.reff_id||d.ref_id||d.trx_id||d.data?.ref_id||d.data?.trx_id||d.data?.reff_id,err=d.success===false||d.status==='Error'||d.status===false||d.status===0,msg=d.error||d.message||d.data?.error||d.data?.message||d.msg;if(err||(!qs&&!ql))throw new Error(msg||'Gateway menolak QRIS.');const fe=Math.ceil(_n*0.017),tot=d.total_bayar||d.total||d.data?.total_bayar||(_n+fe);_ref=rf;document.getElementById('qris-subtitle').textContent=`Device: ${id} • ${_p} Hari`;document.getElementById('qris-total-amount').textContent=fmt(tot);let fi=`(Harga: ${fmt(_bn)}`;if(_disc>0)fi+=` - Diskon: ${fmt(_disc)}`;fi+=` + Fee 1.7%: ${fmt(fe)})`;document.getElementById('qris-fee-info').textContent=fi;const qb=document.getElementById('qrcode-box');qb.innerHTML='';if(qs){const q=qrcode(0,'M');q.addData(qs);q.make();qb.innerHTML=q.createImgTag(6,8);const img=qb.querySelector('img');if(img)img.className='w-56 h-56 object-contain rounded-xl shadow-md mx-auto'}else if(ql){const img=document.createElement('img');img.src=ql;img.className='w-56 h-56 object-contain rounded-xl shadow-md mx-auto';qb.appendChild(img)}document.getElementById('step-selection').classList.add('hidden');document.getElementById('step-qris').classList.remove('hidden');pollSt();startCd(600);toast('QRIS berhasil dibuat!')}catch(e){toast(e.message||'Koneksi gateway gagal.',false)}finally{btn.disabled=false;btn.textContent='🚀 Buat QRIS Pembayaran'}},
-back:()=>{if(_pi)clearInterval(_pi);if(_ci)clearInterval(_ci);_ref=null;document.getElementById('step-qris').classList.add('hidden');document.getElementById('step-selection').classList.remove('hidden')}
+chk:async()=>{
+  _go=true;
+  const el=document.getElementById('input-device-id'),id=el.value.trim().toUpperCase();
+  if(!id){toast('Masukkan Device ID terlebih dahulu!',false);el.focus();return}
+  el.value=id;
+  const bc=document.getElementById('btn-check-device');
+  bc.disabled=true;
+  bc.textContent='Memeriksa...';
+  let lc=null;
+  try{
+    const rc=await fetch(`${U}?action=check_license&device_id=${encodeURIComponent(id)}`,{cache:'no-store'});
+    if(rc.ok){const j=await rc.json();if(j&&typeof j==='object')lc=j}
+  }catch(e){}
+  const un=!lc||lc.status==='unregistered'||lc.valid===false||lc.error||lc.found===false||(lc.sppg_name&&lc.sppg_name.toLowerCase().includes('belum terdaftar'));
+  if(un){
+    document.getElementById('device-info-box').classList.add('hidden');
+    document.getElementById('packages-section').classList.add('hidden');
+    const bq=document.getElementById('btn-create-qr');
+    bq.classList.add('opacity-50','pointer-events-none');
+    bq.disabled=true;
+    _chk=false;
+    bc.disabled=false;
+    bc.textContent='🔍 Cek Device';
+    toast('Device ID tidak ditemukan atau belum terdaftar!',false);
+    el.focus();
+    return;
+  }
+  document.getElementById('info-sppg-name').textContent=lc.sppg_name||'Terdaftar';
+  let ef='-';
+  if(lc.exp_date&&lc.exp_date!=='-'){
+    const de=new Date(lc.exp_date);
+    ef=!isNaN(de.getTime())?de.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}):lc.exp_date;
+  }
+  document.getElementById('info-exp-date').textContent=ef;
+  let sb='<span class="text-amber-400 font-bold">Terdaftar</span>';
+  if(lc.status==='active'||lc.valid===true)sb='<span class="text-emerald-400 font-bold">Aktif</span>';
+  else if(lc.status==='expired')sb='<span class="text-red-400 font-bold">Kadaluarsa</span>';
+  document.getElementById('info-status').innerHTML=sb;
+  document.getElementById('device-info-box').classList.remove('hidden');
+  let pk=[{hari:7,harga:25000,nama:'Paket 7 Hari'},{hari:14,harga:40000,nama:'Paket 14 Hari'},{hari:30,harga:70000,nama:'Paket 30 Hari'},{hari:60,harga:100000,nama:'Paket 60 Hari'}];
+  try{
+    const rp=await fetch(`${U}?action=get_packages`,{cache:'no-store'});
+    if(rp.ok){const pj=await rp.json();if(pj&&Array.isArray(pj.packages)&&pj.packages.length>0)pk=pj.packages}
+  }catch(e){}
+  renderPk(pk);
+  document.getElementById('packages-section').classList.remove('hidden');
+  const bq=document.getElementById('btn-create-qr');
+  bq.classList.remove('opacity-50','pointer-events-none');
+  bq.disabled=false;
+  _chk=true;
+  bc.disabled=false;
+  bc.textContent='🔍 Cek Device';
+  toast('Device ID berhasil diverifikasi!');
+},
+promo:async()=>{
+  const pi=document.getElementById('input-promo-code'),pm=document.getElementById('promo-msg'),c=pi.value.trim().toUpperCase();
+  if(!c){toast('Masukkan kode promo!',false);return}
+  pm.classList.remove('hidden');
+  pm.className='text-[11px] font-medium text-slate-400';
+  pm.textContent='Memvalidasi promo...';
+  try{
+    const r=await fetch(`${U}?action=check_promo&code=${encodeURIComponent(c)}`,{cache:'no-store'});
+    if(r.ok){
+      const d=await r.json();
+      if(d&&d.valid){
+        _ap=c;
+        _disc=d.type==='percent'?Math.round(_bn*(Number(d.value)/100)):(Number(d.value)||5000);
+        _n=Math.max(0,_bn-_disc);
+        pm.className='text-[11px] font-semibold text-emerald-400';
+        pm.textContent=`✔ Promo "${c}" aktif! Diskon ${fmt(_disc)}`;
+        toast(`Promo berhasil! Diskon ${fmt(_disc)}`);
+        return;
+      }else{throw new Error(d.message||'Promo tidak valid')}
+    }
+  }catch(e){
+    if(c==='MINDSPACE20'||c==='SIPGN'){
+      _ap=c;_disc=5000;_n=Math.max(0,_bn-_disc);
+      pm.className='text-[11px] font-semibold text-emerald-400';
+      pm.textContent=`✔ Promo "${c}" aktif! Diskon ${fmt(_disc)}`;
+      toast(`Promo ${c} diterapkan!`);
+      return;
+    }
+    _disc=0;_n=_bn;_ap=null;
+    pm.className='text-[11px] font-semibold text-red-400';
+    pm.textContent=e.message||'Kode promo salah.';
+    toast('Kode promo tidak valid',false);
+  }
+},
+qr:async()=>{
+  const ie=document.getElementById('input-device-id'),id=ie.value.trim().toUpperCase();
+  if(!id){toast('Device ID wajib diisi!',false);ie.focus();return}
+  if(!_chk){toast('Silakan cek Device ID terlebih dahulu!',false);return}
+  const btn=document.getElementById('btn-create-qr');
+  btn.disabled=true;
+  btn.textContent='⏳ Menghubungkan Gateway...';
+  try{
+    const r=await fetch(U,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({device_id:id,paket_hari:_p,nominal:_n,base_nominal:_bn,discount:_disc,promo_code:_ap,metode:'QRISREALTIME'})}),d=await r.json(),qs=d.qr_string||d.qrCode||d.data?.qr_string||d.data?.qrCode||d.data?.qr_code,ql=d.qr_link||d.qr_url||d.data?.qr_link||d.data?.qr_url||d.data?.qrCodeUrl,rf=d.reff_id||d.ref_id||d.trx_id||d.data?.ref_id||d.data?.trx_id||d.data?.reff_id,err=d.success===false||d.status==='Error'||d.status===false||d.status===0,msg=d.error||d.message||d.data?.error||d.data?.message||d.msg;
+    if(err||(!qs&&!ql))throw new Error(msg||'Gateway menolak QRIS.');
+    const fe=Math.ceil(_n*0.017),tot=d.total_bayar||d.total||d.data?.total_bayar||(_n+fe);
+    _ref=rf;
+    document.getElementById('qris-subtitle').textContent=`Device: ${id} • ${_p} Hari`;
+    document.getElementById('qris-total-amount').textContent=fmt(tot);
+    let fi=`(Harga: ${fmt(_bn)}`;
+    if(_disc>0)fi+=` - Diskon: ${fmt(_disc)}`;
+    fi+=` + Fee 1.7%: ${fmt(fe)})`;
+    document.getElementById('qris-fee-info').textContent=fi;
+    const qb=document.getElementById('qrcode-box');
+    qb.innerHTML='';
+    if(qs){
+      const q=qrcode(0,'M');
+      q.addData(qs);
+      q.make();
+      qb.innerHTML=q.createImgTag(6,8);
+      const img=qb.querySelector('img');
+      if(img)img.className='w-56 h-56 object-contain rounded-xl shadow-md mx-auto';
+    }else if(ql){
+      const img=document.createElement('img');
+      img.src=ql;
+      img.className='w-56 h-56 object-contain rounded-xl shadow-md mx-auto';
+      qb.appendChild(img);
+    }
+    document.getElementById('step-selection').classList.add('hidden');
+    document.getElementById('step-qris').classList.remove('hidden');
+    pollSt();
+    startCd(600);
+    toast('QRIS berhasil dibuat!');
+  }catch(e){
+    toast(e.message||'Koneksi gateway gagal.',false);
+  }finally{
+    btn.disabled=false;
+    btn.textContent='🚀 Buat QRIS Pembayaran';
+  }
+},
+back:()=>{
+  if(_pi)clearInterval(_pi);
+  if(_ci)clearInterval(_ci);
+  _ref=null;
+  document.getElementById('step-qris').classList.add('hidden');
+  document.getElementById('step-selection').classList.remove('hidden');
+}
 };
-function renderPk(packages){const c=document.getElementById('packages-container');c.innerHTML='';packages.forEach((p,i)=>{const sel=i===0;if(sel){_p=Number(p.hari);_bn=Number(p.harga);_n=Math.max(0,_bn-_disc)}const d=document.createElement('div');d.className=`package-card p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between ${sel?'selected':''}`;d.onclick=()=>{document.querySelectorAll('.package-card').forEach(x=>x.classList.remove('selected'));d.classList.add('selected');_p=Number(p.hari);_bn=Number(p.harga);_n=Math.max(0,_bn-_disc)};d.innerHTML=`<div><span class="text-[10px] font-extrabold text-brand-400 uppercase tracking-wider block">${p.nama||`Paket ${p.hari} Hari`}</span><b class="text-white text-base sm:text-lg font-black mt-0.5 block">${p.hari} Hari Aktif</b></div><div class="mt-3 pt-3 border-t border-slate-800/80 flex items-center justify-between"><span class="text-[10px] text-slate-400">Harga:</span><span class="text-emerald-400 font-mono font-bold text-xs sm:text-sm">${fmt(p.harga)}</span></div>`;c.appendChild(d)})}
-function startCd(sec){if(_ci)clearInterval(_ci);let t=sec;const st=document.getElementById('polling-status-text');_ci=setInterval(()=>{const m=Math.floor(t/60),s=t%60,ft=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;st.textContent=`Mengecek pembayaran... Sisa waktu: ${ft}`;if(--t<0){clearInterval(_ci);if(_pi)clearInterval(_pi);st.textContent='Waktu pembayaran QRIS telah habis!';toast('Waktu pembayaran kedaluwarsa.',false);setTimeout(()=>{_x.back()},3000)}},1000)}
-function pollSt(){if(_pi)clearInterval(_pi);_pi=setInterval(async()=>{if(!_ref)return;try{const r=await fetch(`${U}?reff_id=${encodeURIComponent(_ref)}`,{cache:'no-store'}),d=await r.json(),sv=d.status||d.data?.status,paid=d.is_paid||sv==='Success'||sv==='SUCCESS'||sv==='paid';if(paid){clearInterval(_pi);if(_ci)clearInterval(_ci);document.getElementById('step-qris').classList.add('hidden');document.getElementById('step-success').classList.remove('hidden');document.getElementById('success-device-id').textContent=document.getElementById('input-device-id').value.trim().toUpperCase();let es='Berhasil Diperpanjang',ev=d.exp_date||d.data?.exp_date;if(ev){const de=new Date(ev);es=!isNaN(de.getTime())?de.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}):ev}document.getElementById('success-exp-date').textContent=es;toast('Pembayaran Berhasil! Lisensi diperpanjang.')}}catch(e){}},4000)}
+
+function renderPk(packages){
+  const c=document.getElementById('packages-container');
+  c.innerHTML='';
+  packages.forEach((p,i)=>{
+    const sel=i===0;
+    if(sel){_p=Number(p.hari);_bn=Number(p.harga);_n=Math.max(0,_bn-_disc)}
+    const d=document.createElement('div');
+    d.className=`package-card p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between ${sel?'selected':''}`;
+    d.onclick=()=>{
+      document.querySelectorAll('.package-card').forEach(x=>x.classList.remove('selected'));
+      d.classList.add('selected');
+      _p=Number(p.hari);_bn=Number(p.harga);_n=Math.max(0,_bn-_disc);
+    };
+    d.innerHTML=`<div><span class="text-[10px] font-extrabold text-brand-400 uppercase tracking-wider block">${p.nama||`Paket ${p.hari} Hari`}</span><b class="text-white text-base sm:text-lg font-black mt-0.5 block">${p.hari} Hari Aktif</b></div><div class="mt-3 pt-3 border-t border-slate-800/80 flex items-center justify-between"><span class="text-[10px] text-slate-400">Harga:</span><span class="text-emerald-400 font-mono font-bold text-xs sm:text-sm">${fmt(p.harga)}</span></div>`;
+    c.appendChild(d);
+  });
+}
+
+function startCd(sec){
+  if(_ci)clearInterval(_ci);
+  let t=sec;
+  const st=document.getElementById('polling-status-text');
+  _ci=setInterval(()=>{
+    const m=Math.floor(t/60),s=t%60,ft=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    st.textContent=`Mengecek pembayaran... Sisa waktu: ${ft}`;
+    if(--t<0){
+      clearInterval(_ci);
+      if(_pi)clearInterval(_pi);
+      st.textContent='Waktu pembayaran QRIS telah habis!';
+      toast('Waktu pembayaran kedaluwarsa.',false);
+      setTimeout(()=>{_x.back()},3000);
+    }
+  },1000);
+}
+
+function pollSt(){
+  if(_pi)clearInterval(_pi);
+  _pi=setInterval(async()=>{
+    if(!_ref)return;
+    try{
+      const r=await fetch(`${U}?reff_id=${encodeURIComponent(_ref)}`,{cache:'no-store'}),d=await r.json(),sv=d.status||d.data?.status,paid=d.is_paid||sv==='Success'||sv==='SUCCESS'||sv==='paid';
+      if(paid){
+        clearInterval(_pi);
+        if(_ci)clearInterval(_ci);
+        document.getElementById('step-qris').classList.add('hidden');
+        document.getElementById('step-success').classList.remove('hidden');
+        document.getElementById('success-device-id').textContent=document.getElementById('input-device-id').value.trim().toUpperCase();
+        let es='Berhasil Diperpanjang',ev=d.exp_date||d.data?.exp_date;
+        if(ev){
+          const de=new Date(ev);
+          es=!isNaN(de.getTime())?de.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}):ev;
+        }
+        document.getElementById('success-exp-date').textContent=es;
+        toast('Pembayaran Berhasil! Lisensi diperpanjang.');
+      }
+    }catch(e){}
+  },4000);
+}
 </script>
 </body>
 </html>

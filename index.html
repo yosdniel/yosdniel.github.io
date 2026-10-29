@@ -241,36 +241,81 @@
 
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
             <div class="lg:col-span-2 glass-card p-5 sm:p-6 rounded-3xl border border-slate-800">
-              <div class="text-xs sm:text-sm font-bold text-slate-300 mb-4">📈 Revenue Trend (Last 7 Days)</div>
-              <div id="chartBarsContainer" class="flex items-end justify-between h-36 pt-4 border-b border-slate-800/80 px-2 gap-2"></div>
-            </div>
-            <div class="glass-card p-5 sm:p-6 rounded-3xl border border-slate-800 flex flex-col justify-between">
-              <div>
-                <h4 class="font-bold text-white text-xs sm:text-sm mb-1">QRIS Payment Gateway</h4>
-                <p class="text-xs text-slate-400 leading-relaxed">Toggle automated QRIS payment processing for active client apps.</p>
+              <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+                <div>
+                  <div class="text-xs sm:text-sm font-bold text-slate-300 flex items-center gap-2">
+                    <span>📈 Revenue Trend</span>
+                  </div>
+                  <p class="text-[10px] text-slate-400 mt-0.5">Analisis tren pendapatan real-time</p>
+                </div>
+                <div class="flex bg-slate-900 p-1 rounded-xl border border-slate-800 text-[10px] font-bold">
+                  <button id="btnTf7d" onclick="setRevenueTimeframe('7d')" class="px-3 py-1 rounded-lg bg-brand-500 text-white transition shadow-md shadow-brand-500/20">7d</button>
+                  <button id="btnTf14d" onclick="setRevenueTimeframe('14d')" class="px-3 py-1 rounded-lg text-slate-400 hover:text-white transition">14d</button>
+                  <button id="btnTf1m" onclick="setRevenueTimeframe('1m')" class="px-3 py-1 rounded-lg text-slate-400 hover:text-white transition">1m</button>
+                </div>
               </div>
-              <div class="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between">
-                <span class="text-xs font-semibold text-slate-400">QRIS State:</span>
-                <button id="btnToggleQris" onclick="toggleStatusQrisServer()" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl text-xs transition shadow-lg shadow-emerald-500/20">Active</button>
+              
+              <!-- FULL WIDTH CHART CONTAINER -->
+              <div class="w-full bg-slate-900/50 p-4 sm:p-5 rounded-2xl border border-slate-800/80">
+                <div id="chartBarsContainer" class="w-full flex items-end justify-between h-44 pt-6 border-b border-slate-800/80 px-1 sm:px-2 gap-1 sm:gap-2"></div>
+              </div>
+            </div>
+            
+            <!-- LIVE HEARTBEAT SYSTEM STATUS CARD -->
+            <div class="glass-card p-5 sm:p-6 rounded-3xl border border-slate-800 flex flex-col justify-between relative overflow-hidden">
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="relative flex h-3 w-3">
+                      <span id="heartbeatPulseRing" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span id="heartbeatDot" class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                    </span>
+                    <h4 class="font-bold text-white text-xs sm:text-sm">MindHUB System Status</h4>
+                  </div>
+                  <span id="heartbeatLiveValue" class="text-[11px] font-mono font-extrabold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-lg">-- ms</span>
+                </div>
+                <p class="text-[11px] text-slate-400 leading-relaxed">Seluruh sistem, database lisensi, dan updater berjalan normal secara otomatis.</p>
+                
+                <!-- LIVE REALTIME HEARTBEAT CANVAS GRAPH -->
+                <div class="w-full bg-slate-950/80 rounded-2xl p-3 border border-slate-800/80 relative">
+                  <div class="flex items-center justify-between text-[9px] font-mono text-slate-500 mb-1">
+                    <span>LIVE LATENCY MONITOR</span>
+                    <span class="text-emerald-400 animate-pulse font-bold">1 Hz REALTIME</span>
+                  </div>
+                  <div class="w-full h-20 relative">
+                    <canvas id="heartbeatCanvas" class="w-full h-full block"></canvas>
+                  </div>
+                  <div class="flex justify-between items-center text-[9px] font-mono text-slate-500 mt-1 pt-1 border-t border-slate-900">
+                    <span id="hbMinMs">Min: --</span>
+                    <span id="hbAvgMs">Avg: --</span>
+                    <span id="hbMaxMs">Max: --</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-400">System Engine:</span>
+                <span id="systemEngineBadge" class="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold rounded-xl text-xs">Online</span>
               </div>
             </div>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <!-- TOTAL DOWNLOADS STAT CARD -->
             <div class="glass-card p-4 sm:p-5 rounded-2xl border border-slate-800 flex items-center justify-between">
               <div>
-                <span class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block">API Health & Latency</span>
+                <span class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block">Total Script Downloads</span>
                 <div class="flex items-center gap-2 mt-1">
                   <span class="relative flex h-2.5 w-2.5">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-500"></span>
                   </span>
-                  <span id="statApiStatus" class="text-xs font-bold text-emerald-400">Operational</span>
+                  <span class="text-xs font-bold text-brand-400">download.html Portal</span>
                 </div>
               </div>
               <div class="text-right">
-                <span id="statPingMs" class="text-base sm:text-lg font-mono font-bold text-white">-- ms</span>
-                <span class="text-[9px] text-slate-500 block">Vercel Edge</span>
+                <span id="statTotalDownloads" class="text-base sm:text-xl font-mono font-black text-emerald-400">0</span>
+                <span class="text-[9px] text-slate-500 block">Total Ditekan</span>
               </div>
             </div>
 
@@ -581,9 +626,14 @@
     let currentStatusFilter = 'all';
     let currentLicenseData = null;
     let currentBackupPayload = null;
-    let isQrisActiveState = true;
     let confirmCallbackFn = null;
     let deferredPrompt = null;
+    let activeTimeframe = '7d';
+    let globalStatsData = null;
+    
+    // HEARTBEAT MONITOR STATE
+    let heartbeatPoints = new Array(30).fill(40);
+    let heartbeatInterval = null;
 
     /* HELPER FORMAT TANGGAL & WAKTU */
     function formatTanggalIndo(dateStr) {
@@ -605,71 +655,156 @@
       return formatTanggalIndo(dateStr);
     }
 
-    /* PWA INIT */
-    (function initPWA() {
-      const manifest = {
-        name: "MindHUB Admin Dashboard",
-        short_name: "MindHUB",
-        description: "MindHUB Secure Admin Gateway & License Manager",
-        start_url: "./index.min.html",
-        display: "standalone",
-        orientation: "portrait",
-        background_color: "#020617",
-        theme_color: "#6366f1",
-        icons: [
-          { src: "https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon512.png", sizes: "192x192", type: "image/png" },
-          { src: "https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon512.png", sizes: "512x512", type: "image/png" }
-        ]
+    /* SYSTEM HEALTH PING & LIVE HEARTBEAT MONITOR */
+    function initLiveHeartbeatGraph() {
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
+      
+      const canvas = document.getElementById('heartbeatCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+
+      const resizeCanvas = () => {
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * (window.devicePixelRatio || 1);
+        canvas.height = rect.height * (window.devicePixelRatio || 1);
+        ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
       };
-      const blobManifest = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
-      const manifestUrl = URL.createObjectURL(blobManifest);
-      const link = document.createElement('link');
-      link.rel = 'manifest';
-      link.href = manifestUrl;
-      document.head.appendChild(link);
-    })();
+      resizeCanvas();
 
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-    });
+      const drawHeartbeat = () => {
+        const w = canvas.getBoundingClientRect().width;
+        const h = canvas.getBoundingClientRect().height;
+        ctx.clearRect(0, 0, w, h);
 
-    async function triggerPWAInstall() {
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') showToast('Aplikasi MindHUB berhasil diinstall!');
-        deferredPrompt = null;
-      } else {
-        if (window.matchMedia('(display-mode: standalone)').matches) {
-          showToast('MindHUB sudah berjalan dalam mode Aplikasi PWA!', true);
-        } else {
-          showConfirmModal('Install Aplikasi MindHUB', 'Ketuk ikon titik tiga (⋮) di kanan atas browser Chrome, lalu pilih "Tambah ke Layar Utama" atau "Install Aplikasi".', null);
+        // Draw grid lines
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+        ctx.lineWidth = 1;
+        for (let y = 0; y < h; y += 12) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(w, y);
+          ctx.stroke();
         }
-      }
+
+        if (heartbeatPoints.length < 2) return;
+
+        const maxPing = Math.max(...heartbeatPoints, 120);
+        const minPing = Math.min(...heartbeatPoints, 10);
+        const stepX = w / (heartbeatPoints.length - 1);
+
+        // Gradient fill under line
+        const grad = ctx.createLinearGradient(0, 0, 0, h);
+        grad.addColorStop(0, 'rgba(16, 185, 129, 0.35)');
+        grad.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+
+        ctx.beginPath();
+        heartbeatPoints.forEach((val, i) => {
+          const x = i * stepX;
+          const normalized = (val - Math.min(minPing, 20)) / (maxPing - Math.min(minPing, 20) || 1);
+          const y = h - (normalized * (h - 16) + 8);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+
+        // Line styling
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 2;
+        ctx.shadowColor = '#10b981';
+        ctx.shadowBlur = 8;
+        ctx.stroke();
+
+        // Fill area below
+        ctx.lineTo(w, h);
+        ctx.lineTo(0, h);
+        ctx.closePath();
+        ctx.fillStyle = grad;
+        ctx.shadowBlur = 0;
+        ctx.fill();
+
+        // Pulse dot at the latest point
+        const lastIndex = heartbeatPoints.length - 1;
+        const lastX = lastIndex * stepX;
+        const lastNorm = (heartbeatPoints[lastIndex] - Math.min(minPing, 20)) / (maxPing - Math.min(minPing, 20) || 1);
+        const lastY = h - (lastNorm * (h - 16) + 8);
+
+        ctx.beginPath();
+        ctx.arc(lastX, lastY, 4, 0, Math.PI * 2);
+        ctx.fillStyle = '#34d399';
+        ctx.shadowColor = '#34d399';
+        ctx.shadowBlur = 10;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      };
+
+      const updatePulsePing = async () => {
+        const start = performance.now();
+        let currentLatency = 35;
+        let isSuccess = true;
+
+        try {
+          const res = await fetch(`${VERCEL_API_URL}?action=check_license&device_id=PING_${Date.now()}`, { cache: 'no-store' });
+          const end = performance.now();
+          currentLatency = Math.round(end - start);
+          if (!res.ok) isSuccess = false;
+        } catch (e) {
+          currentLatency = Math.round(performance.now() - start) || 180;
+          isSuccess = false;
+        }
+
+        heartbeatPoints.shift();
+        heartbeatPoints.push(currentLatency);
+
+        // Update Stats UI
+        const minVal = Math.min(...heartbeatPoints);
+        const maxVal = Math.max(...heartbeatPoints);
+        const avgVal = Math.round(heartbeatPoints.reduce((a, b) => a + b, 0) / heartbeatPoints.length);
+
+        const hbVal = document.getElementById('heartbeatLiveValue');
+        const statPingMs = document.getElementById('statPingMs');
+        const minEl = document.getElementById('hbMinMs');
+        const maxEl = document.getElementById('hbMaxMs');
+        const avgEl = document.getElementById('hbAvgMs');
+        const dot = document.getElementById('heartbeatDot');
+        const ring = document.getElementById('heartbeatPulseRing');
+        const badge = document.getElementById('systemEngineBadge');
+
+        if (hbVal) hbVal.textContent = `${currentLatency} ms`;
+        if (statPingMs) statPingMs.textContent = `${currentLatency} ms`;
+        if (minEl) minEl.textContent = `Min: ${minVal}ms`;
+        if (maxEl) maxEl.textContent = `Max: ${maxVal}ms`;
+        if (avgEl) avgEl.textContent = `Avg: ${avgVal}ms`;
+
+        if (!isSuccess || currentLatency > 250) {
+          if (dot) dot.className = 'relative inline-flex rounded-full h-3 w-3 bg-amber-500';
+          if (ring) ring.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75';
+          if (hbVal) hbVal.className = 'text-[11px] font-mono font-extrabold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-lg';
+          if (badge) {
+            badge.textContent = 'Degraded';
+            badge.className = 'px-3 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 font-bold rounded-xl text-xs';
+          }
+        } else {
+          if (dot) dot.className = 'relative inline-flex rounded-full h-3 w-3 bg-emerald-500';
+          if (ring) ring.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75';
+          if (hbVal) hbVal.className = 'text-[11px] font-mono font-extrabold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-lg';
+          if (badge) {
+            badge.textContent = 'Online';
+            badge.className = 'px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold rounded-xl text-xs';
+          }
+        }
+
+        drawHeartbeat();
+      };
+
+      updatePulsePing();
+      heartbeatInterval = setInterval(updatePulsePing, 1000);
+      window.addEventListener('resize', () => {
+        resizeCanvas();
+        drawHeartbeat();
+      });
     }
 
-    /* SYSTEM HEALTH PING */
     async function checkSystemHealth() {
-      const pingEl = document.getElementById('statPingMs');
-      const statusEl = document.getElementById('statApiStatus');
-      const start = performance.now();
-      try {
-        const res = await fetch(`${VERCEL_API_URL}?action=check_license&device_id=HEALTH_CHECK`, { method: 'GET' });
-        const end = performance.now();
-        const latency = Math.round(end - start);
-        if (pingEl) pingEl.textContent = `${latency} ms`;
-        if (statusEl) {
-          statusEl.textContent = 'Operational';
-          statusEl.className = 'text-xs font-bold text-emerald-400';
-        }
-      } catch (e) {
-        if (pingEl) pingEl.textContent = 'Offline';
-        if (statusEl) {
-          statusEl.textContent = 'Degraded';
-          statusEl.className = 'text-xs font-bold text-rose-400';
-        }
-      }
+      initLiveHeartbeatGraph();
     }
 
     /* CSV EXPORT */
@@ -953,7 +1088,6 @@
         gantiSubView('subViewMainMenu');
         document.getElementById('appTitle').textContent = 'Hub Overview';
         muatStatistikDashboard();
-        muatStatusQrisServer();
         checkSystemHealth();
         muatDaftarSemuaUser();
       } else if (fitur === 'device') {
@@ -1020,73 +1154,96 @@
       showToast('Logged out securely');
     }
 
-    async function muatStatusQrisServer() {
-      try {
-        const res = await fetch(`${VERCEL_API_URL}?action=check_license&device_id=DUMMY_CHECK`);
-        const data = await res.json();
-        if (data && data.qris_enabled !== undefined) {
-          isQrisActiveState = Boolean(data.qris_enabled);
-          updateTombolQrisUI();
-        }
-      } catch (e) {}
-    }
-
-    function updateTombolQrisUI() {
-      const btn = document.getElementById('btnToggleQris');
-      if (isQrisActiveState) {
-        btn.textContent = 'Active'; btn.className = 'px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl text-xs transition shadow-lg shadow-emerald-500/20';
-      } else {
-        btn.textContent = 'Disabled'; btn.className = 'px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl text-xs transition shadow-lg shadow-red-500/20';
-      }
-    }
-
-    async function toggleStatusQrisServer() {
-      const newState = !isQrisActiveState;
-      const btn = document.getElementById('btnToggleQris');
-      btn.disabled = true;
-      try {
-        const res = await fetch(VERCEL_API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'save_setting', key: 'qris_enabled', value: newState, admin_secret: adminPasswordSecret })
-        });
-        const result = await res.json();
-        if (res.ok && (result.success || result.status)) {
-          isQrisActiveState = newState; updateTombolQrisUI();
-          showToast(`QRIS status: ${newState ? 'Active' : 'Disabled'}`);
-        } else {
-          showToast(result.error || 'Failed to toggle QRIS.', false);
-        }
-      } catch (e) {
-        showToast('Network error.', false);
-      } finally { btn.disabled = false; }
-    }
-
     async function muatStatistikDashboard() {
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=get_stats`);
         const data = await res.json();
+        globalStatsData = data;
         document.getElementById('statRevHari').textContent = `Rp ${(data.harian || 0).toLocaleString('id-ID')}`;
         document.getElementById('statRevMinggu').textContent = `Rp ${(data.mingguan || 0).toLocaleString('id-ID')}`;
         document.getElementById('statRevBulan').textContent = `Rp ${(data.bulanan || 0).toLocaleString('id-ID')}`;
 
-        const chartContainer = document.getElementById('chartBarsContainer');
-        chartContainer.innerHTML = '';
-        const chartData = data.chart_harian || [0,0,0,0,0,0,0];
-        const maxVal = Math.max(...chartData, 1000);
-        chartData.forEach((val, idx) => {
-          const tinggiPersen = Math.round((val / maxVal) * 80);
-          const group = document.createElement('div');
-          group.className = 'flex flex-col items-center flex-1 h-full justify-end';
-          group.innerHTML = `
-            <div class="w-full max-w-[20px] bg-brand-500 hover:bg-brand-400 rounded-t-md transition-all duration-300" style="height: ${Math.max(8, tinggiPersen)}px;" title="Rp ${val.toLocaleString('id-ID')}"></div>
-            <div class="text-[9px] text-slate-500 mt-2 font-mono">H-${6-idx}</div>`;
-          chartContainer.appendChild(group);
-        });
+        // Load total download count from API stats or licenses
+        const totalDl = data.total_downloads !== undefined ? data.total_downloads : (data.download_count || 0);
+        const dlEl = document.getElementById('statTotalDownloads');
+        if (dlEl) dlEl.textContent = Number(totalDl).toLocaleString('id-ID');
+
+        renderRevenueChart();
       } catch (e) {}
     }
 
-    /* SAFE SYNC ENGINE UNTUK MENGHINDARI SYNC FAILED */
+    function setRevenueTimeframe(timeframe) {
+      activeTimeframe = timeframe;
+      ['7d', '14d', '1m'].forEach(tf => {
+        const btn = document.getElementById(`btnTf${tf}`);
+        if (!btn) return;
+        if (tf === timeframe) {
+          btn.className = 'px-3 py-1 rounded-lg bg-brand-500 text-white transition shadow-md shadow-brand-500/20';
+        } else {
+          btn.className = 'px-3 py-1 rounded-lg text-slate-400 hover:text-white transition';
+        }
+      });
+      renderRevenueChart();
+    }
+
+    function renderRevenueChart() {
+      const chartContainer = document.getElementById('chartBarsContainer');
+      if (!chartContainer) return;
+      chartContainer.innerHTML = '';
+
+      let rawChartData = [];
+      if (globalStatsData) {
+        if (activeTimeframe === '7d') rawChartData = globalStatsData.chart_harian || [];
+        else if (activeTimeframe === '14d') rawChartData = globalStatsData.chart_14d || globalStatsData.chart_harian || [];
+        else if (activeTimeframe === '1m') rawChartData = globalStatsData.chart_30d || globalStatsData.chart_harian || [];
+      }
+
+      let totalDays = 7;
+      if (activeTimeframe === '14d') totalDays = 14;
+      else if (activeTimeframe === '1m') totalDays = 30;
+
+      let chartData = [];
+      if (Array.isArray(rawChartData) && rawChartData.length >= totalDays) {
+        chartData = rawChartData.slice(-totalDays);
+      } else {
+        chartData = new Array(totalDays).fill(0);
+        if (Array.isArray(rawChartData)) {
+          const offset = totalDays - rawChartData.length;
+          rawChartData.forEach((val, i) => {
+            if (i + offset >= 0 && i + offset < totalDays) {
+              chartData[i + offset] = val;
+            }
+          });
+        }
+      }
+
+      const maxVal = Math.max(...chartData, 1000);
+      const now = new Date();
+
+      chartData.forEach((val, idx) => {
+        const daysAgo = totalDays - 1 - idx;
+        const targetDate = new Date(now.getTime() - (daysAgo * 86400000));
+        
+        let dateLabel = daysAgo === 0 ? 'Hari Ini' : targetDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+        const tinggiPersen = Math.round((val / maxVal) * 80);
+        
+        const group = document.createElement('div');
+        group.className = 'flex flex-col items-center shrink-0 flex-1 h-full justify-end group/bar relative';
+        
+        const labelHtml = activeTimeframe === '1m' ? '' : `<div class="text-[9px] text-slate-500 mt-2 font-mono whitespace-nowrap">${dateLabel}</div>`;
+
+        group.innerHTML = `
+          <div class="w-full bg-gradient-to-t from-brand-600 via-indigo-500 to-purple-400 hover:from-brand-500 hover:via-indigo-400 hover:to-purple-300 rounded-t-xl transition-all duration-300 cursor-pointer shadow-[0_0_15px_rgba(99,102,241,0.25)] hover:shadow-[0_0_20px_rgba(168,85,247,0.4)] relative border-t border-purple-300/40" style="height: ${Math.max(8, tinggiPersen)}px;">
+            <div class="opacity-0 group-hover/bar:opacity-100 pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-900/95 text-slate-100 text-[10px] font-bold px-2.5 py-1 rounded-xl border border-indigo-500/40 shadow-xl whitespace-nowrap z-30 transition-all backdrop-blur-md">
+              ${dateLabel}: Rp ${val.toLocaleString('id-ID')}
+            </div>
+          </div>
+          ${labelHtml}
+        `;
+        chartContainer.appendChild(group);
+      });
+    }
+
     async function muatDaftarSemuaUser() {
       const container = document.getElementById('listAllUsersContainer');
       if (container) container.innerHTML = '<div class="text-center text-slate-500 text-xs py-10">Fetching secure data...</div>';
@@ -1351,9 +1508,9 @@
           quota: 1,
           used_count: 0,
           exp_date: expDateStr,
-          device_id: currentLicenseData.device_id, // Target device ID tersemat secara spesifik
+          device_id: currentLicenseData.device_id,
           is_single_use: true,
-          is_device_specific: true, // Ditandai sebagai voucher perangkat khusus agar tidak tampil di daftar promo umum
+          is_device_specific: true,
           created_at: new Date().toISOString()
         };
         vouchersList.push(newVoucher);
@@ -1651,7 +1808,6 @@
         const res = await fetch(`${VERCEL_API_URL}?action=get_vouchers`);
         const data = await res.json();
         const allVouchers = data.vouchers || [];
-        // Saring hanya voucher yang dibuat manual oleh admin (hilangkan voucher otomatis single-use device)
         const list = allVouchers.filter(v => !v.is_device_specific && (!v.device_id || v.device_id === 'ALL' || v.device_id === ''));
         const container = document.getElementById('containerListVoucher');
         container.innerHTML = '';
@@ -1722,19 +1878,17 @@
         const exp_date = r.querySelector('.inp-exp').value;
         const device_id = r.querySelector('.inp-device').value.trim().toUpperCase() || 'ALL';
         if (code) {
-          newManualVouchers.push({ code, type, discount_type: type, value, discount_value: value, quota, used_count, exp_date, device_id, is_device_specific: false });
+          newManualVouchers.push({ code, type, discount_type: type, value, discount_value: value, quota, used_count, exp_date, device_id, is_device_specific: device_id !== 'ALL' && device_id !== '' });
         }
       });
 
       try {
-        // Ambil dulu voucher yang ada di server agar voucher khusus device yang sudah ada tidak terhapus
         const resGet = await fetch(`${VERCEL_API_URL}?action=get_vouchers`);
         let existingVouchers = [];
         if (resGet.ok) {
           const dataGet = await resGet.json();
           existingVouchers = dataGet.vouchers || [];
         }
-        // Pertahankan voucher device-specific yang sudah ada
         const deviceSpecificVouchers = existingVouchers.filter(v => v.is_device_specific || (v.device_id && v.device_id !== 'ALL' && v.device_id !== ''));
         const combinedVouchers = [...newManualVouchers, ...deviceSpecificVouchers];
 

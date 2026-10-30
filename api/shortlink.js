@@ -26,6 +26,7 @@ let memoryStorage = [
 ];
 
 export default async function handler(req, res) {
+  // CORS Headers untuk mengizinkan akses dari mana saja tanpa diblokir browser
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST,PUT,DELETE');
@@ -34,6 +35,7 @@ export default async function handler(req, res) {
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
   );
 
+  // Penanganan HTTP Preflight OPTIONS Request
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
@@ -121,6 +123,7 @@ export default async function handler(req, res) {
       });
     }
 
+    // Default Status Response
     return res.status(200).json({
       name: 'MindLink Cloud API',
       domain: 'minduniverse.id',

@@ -5,16 +5,39 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>MindHUB - Admin Dashboard & Payment Gateway</title>
   
-  <!-- INSTANT REDIRECT SCRIPT (FIXED INFINITE LOOP & ALL URL PATHS) -->
+  <!-- SAFE REDIRECT SCRIPT (ANTI INFINITE LOOP & CANVAS PREVIEW SAFE) -->
   <script>
     (function() {
-      var currentHost = window.location.hostname;
-      var targetHost = 'minduniverse.id';
-      
-      // Hanya redirect jika host SAAT INI bukan targetHost
-      if (currentHost !== targetHost) {
-        var newUrl = 'https://' + targetHost + window.location.pathname + window.location.search + window.location.hash;
-        window.location.replace(newUrl);
+      try {
+        var currentHost = window.location.hostname;
+        var targetHost = 'minduniverse.id';
+
+        // Abaikan redirect jika di lingkungan lokal, preview, atau iframe/canvas editor
+        var isLocalOrPreview = !currentHost || 
+          currentHost === 'localhost' || 
+          currentHost === '127.0.0.1' || 
+          currentHost.indexOf('vercel.app') !== -1 || 
+          currentHost.indexOf('github.io') !== -1 ||
+          window.self !== window.top; // Mencegah loop di dalam iframe/preview
+
+        if (!isLocalOrPreview && currentHost !== targetHost) {
+          // Anti-loop session guard
+          var redirectKey = 'mindhub_redirect_attempts';
+          var attempts = parseInt(sessionStorage.getItem(redirectKey) || '0', 10);
+
+          if (attempts < 2) {
+            sessionStorage.setItem(redirectKey, (attempts + 1).toString());
+            var newUrl = 'https://' + targetHost + window.location.pathname + window.location.search + window.location.hash;
+            window.location.replace(newUrl);
+          } else {
+            console.warn('[MindHUB] Redirect loop detected & prevented.');
+          }
+        } else {
+          // Reset tracker jika sudah di host target atau preview
+          sessionStorage.removeItem('mindhub_redirect_attempts');
+        }
+      } catch (e) {
+        console.error('[MindHUB] Redirect script error:', e);
       }
     })();
   </script>

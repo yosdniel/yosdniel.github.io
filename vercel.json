@@ -1,3 +1,13 @@
 {
-  "cleanUrls": true
+"cleanUrls": true,
+"rewrites": [
+{
+"source": "/api/(.)",
+"destination": "/api/$1"
+},
+{
+"source": "/((?!api/|assets/|favicon\.ico). )",
+"destination": "/api/shortlink?r=$1"
+}
+]
 }

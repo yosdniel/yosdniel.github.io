@@ -255,9 +255,9 @@
                 </div>
               </div>
               
-              <!-- FULL WIDTH CHART CONTAINER (RESPONSIVE MOBILE SCROLLER FIX) -->
+              <!-- FULL WIDTH CHART CONTAINER WITH COMPACT TIGHT SPACING -->
               <div class="w-full bg-slate-900/50 p-3 sm:p-5 rounded-2xl border border-slate-800/80 overflow-x-auto scrollbar-none">
-                <div id="chartBarsContainer" class="min-w-[320px] w-full flex items-end justify-between h-44 sm:h-48 pt-6 border-b border-slate-800/80 px-1 sm:px-2 gap-1.5 sm:gap-2"></div>
+                <div id="chartBarsContainer" class="w-full min-w-[320px] flex items-end justify-between h-44 sm:h-48 pt-6 border-b border-slate-800/80 px-1 sm:px-2 gap-1 sm:gap-1.5"></div>
               </div>
             </div>
             
@@ -1227,12 +1227,13 @@
         const tinggiPersen = Math.round((val / maxVal) * 80);
         
         const group = document.createElement('div');
-        group.className = 'flex flex-col items-center shrink-0 flex-1 h-full justify-end group/bar relative';
+        // Menggunakan flex-1 dan max-w agar setiap batang fleksibel memenuhi kontainer dengan jarak rapat-rapat
+        group.className = 'flex flex-col items-center shrink-0 flex-1 h-full justify-end group/bar relative min-w-[12px]';
         
         const labelHtml = activeTimeframe === '1m' ? '' : `<div class="text-[9px] text-slate-500 mt-2 font-mono whitespace-nowrap">${dateLabel}</div>`;
 
         group.innerHTML = `
-          <div class="w-full min-w-[20px] bg-gradient-to-t from-brand-600 via-indigo-500 to-purple-400 hover:from-brand-500 hover:via-indigo-400 hover:to-purple-300 rounded-t-xl transition-all duration-300 cursor-pointer shadow-[0_0_15px_rgba(99,102,241,0.25)] hover:shadow-[0_0_20px_rgba(168,85,247,0.4)] relative border-t border-purple-300/40" style="height: ${Math.max(8, tinggiPersen)}px;">
+          <div class="w-full min-w-[10px] bg-gradient-to-t from-brand-600 via-indigo-500 to-purple-400 hover:from-brand-500 hover:via-indigo-400 hover:to-purple-300 rounded-t-xl transition-all duration-300 cursor-pointer shadow-[0_0_15px_rgba(99,102,241,0.25)] hover:shadow-[0_0_20px_rgba(168,85,247,0.4)] relative border-t border-purple-300/40" style="height: ${Math.max(8, tinggiPersen)}px;">
             <div class="opacity-0 group-hover/bar:opacity-100 pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-900/95 text-slate-100 text-[10px] font-bold px-2.5 py-1 rounded-xl border border-indigo-500/40 shadow-xl whitespace-nowrap z-30 transition-all backdrop-blur-md">
               ${dateLabel}: Rp ${val.toLocaleString('id-ID')}
             </div>
@@ -1932,6 +1933,10 @@
           showToast(`Release v${version} published!`);
         } else showToast(result.error || 'Publish failed', false);
       } catch (err) { showToast('Network Error', false); }
+    }
+
+    function triggerPWAInstall() {
+      showToast('PWA Install Triggered');
     }
   </script>
 </body>

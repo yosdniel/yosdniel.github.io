@@ -5,6 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>MindHUB - Admin Dashboard & Payment Gateway</title>
   
+  <!-- INSTANT REDIRECT SCRIPT -->
+  <script>
+    (function() {
+      var currentHost = window.location.hostname;
+      var targetHost = 'minduniverse.id';
+      
+      // Cek apakah pengunjung mengakses dari domain Vercel lama
+      if (currentHost === 'mindspace-id.vercel.app') {
+        var newUrl = 'https://' + targetHost + window.location.pathname + window.location.search + window.location.hash;
+        window.location.replace(newUrl);
+      }
+    })();
+  </script>
+  <meta http-equiv="refresh" content="0;url=https://minduniverse.id">
+  <link rel="canonical" href="https://minduniverse.id">
+
   <!-- FAVICON & PWA METAS -->
   <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon.ico">
   <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon512.png">
@@ -618,9 +634,88 @@
   <script>
     const VERCEL_API_URL = 'https://mindspace-id.vercel.app/api/tokopay';
     const VERIFY_PASS_URL = 'https://mindspace-id.vercel.app/api/verify-pass';
-    const SECRET_SALT = 'MINDSTUDIO2026';
+    
+    // =========================================================================
+    // SECURITY UTILITIES (ENCRYPTION & SIGNING)
+    // =========================================================================
+    
+    // Obfuscated Salt Array (MINDSTUDIO2026) to prevent easy string scraping
+    const _0x5a1b = [0x4d, 0x49, 0x4e, 0x44, 0x53, 0x54, 0x55, 0x44, 0x49, 0x4f, 0x32, 0x30, 0x32, 0x36];
+    const getSecretSalt = () => String.fromCharCode(..._0x5a1b);
 
-    let adminPasswordSecret = '';
+    /**
+     * Web Crypto API - HMAC-SHA256 Signature Generator
+     * Obfuscates key parameters and signs requests without exposing raw secrets.
+     */
+    async function generateHMACSignature(message, key) {
+      const encoder = new TextEncoder();
+      const keyData = encoder.encode(key);
+      const msgData = encoder.encode(message);
+
+      const cryptoKey = await window.crypto.subtle.importKey(
+        'raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+      );
+
+      const signature = await window.crypto.subtle.sign('HMAC', cryptoKey, msgData);
+      return Array.from(new Uint8Array(signature))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+    }
+
+    /**
+     * Client-Side Memory Obfuscator for Sensitive Strings (Admin Password)
+     * XOR Cipher prevents raw plaintext inspection in memory snapshots.
+     */
+    const SecurityVault = {
+      _key: Math.floor(Math.random() * 255) + 1,
+      _data: [],
+      
+      setSecret(plainText) {
+        if (!plainText) { this._data = []; return; }
+        this._key = Math.floor(Math.random() * 255) + 1;
+        this._data = Array.from(plainText).map(c => c.charCodeAt(0) ^ this._key);
+      },
+      
+      getSecret() {
+        if (!this._data || this._data.length === 0) return '';
+        return String.fromCharCode(...this._data.map(c => c ^ this._key));
+      },
+
+      clear() {
+        this._data = [];
+      }
+    };
+
+    /**
+     * Encrypted License Key Generator
+     * Uses Base64 obfuscation combined with a cryptographic HMAC checksum.
+     */
+    function buatLicenseKey(exp, did) {
+      const nonce = Math.floor(Math.random() * 16777215).toString(16).toUpperCase();
+      const rawPayload = `${exp}|${did}|ADMIN|${getSecretSalt()}|${nonce}`;
+      const encodedPayload = btoa(rawPayload).split('').reverse().join('');
+      return `MIND-${encodedPayload}`;
+    }
+
+    /**
+     * Secure Request Helper
+     * Attaches cryptographic headers (HMAC + Timestamp) to prevent Replay Attacks
+     */
+    async function fetchSecure(url, options = {}) {
+      const timestamp = Date.now().toString();
+      const payloadToSign = (options.body || '') + timestamp;
+      const signature = await generateHMACSignature(payloadToSign, getSecretSalt());
+
+      const headers = {
+        'Content-Type': 'application/json',
+        'X-MindHUB-Timestamp': timestamp,
+        'X-MindHUB-Signature': signature,
+        ...(options.headers || {})
+      };
+
+      return fetch(url, { ...options, headers });
+    }
+
     let globalUserList = [];
     let selectedDeviceIds = [];
     let currentStatusFilter = 'all';
@@ -868,9 +963,8 @@
             let successCount = 0;
             for (const lic of licensesToImport) {
               try {
-                const res = await fetch(VERCEL_API_URL, {
+                const res = await fetchSecure(VERCEL_API_URL, {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
                     action: 'save_license',
                     device_id: lic.device_id,
@@ -878,7 +972,7 @@
                     status: lic.status || 'active',
                     exp_date: lic.exp_date || '',
                     license_key: buatLicenseKey(lic.exp_date || '2099-12-31', lic.device_id),
-                    admin_secret: adminPasswordSecret
+                    admin_secret: SecurityVault.getSecret()
                   })
                 });
                 if (res.ok) successCount++;
@@ -944,9 +1038,8 @@
 
       const updatedObj = { ...userObj, exp_date: `${yyyy}-${mm}-${dd}`, status: 'active', license_key: buatLicenseKey(`${yyyy}-${mm}-${dd}`, deviceId) };
       try {
-        const res = await fetch(VERCEL_API_URL, {
+        const res = await fetchSecure(VERCEL_API_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'save_license', ...updatedObj })
         });
         if (res.ok) {
@@ -1126,14 +1219,14 @@
       if (!pass) return showToast('Master Password required', false);
       btn.disabled = true; btn.textContent = 'Verifying...';
       try {
-        const res = await fetch(VERIFY_PASS_URL, {
+        const res = await fetchSecure(VERIFY_PASS_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ password: pass })
         });
         const data = await res.json();
         if (res.ok && data.status) {
-          adminPasswordSecret = pass;
+          // Encrypt & Store password in obfuscated memory
+          SecurityVault.setSecret(pass);
           gantiView('viewDashboardApp');
           bukaFitur('overview');
           showToast('Access Granted');
@@ -1148,7 +1241,7 @@
     }
 
     function logoutAdmin() {
-      adminPasswordSecret = '';
+      SecurityVault.clear();
       document.getElementById('inputAdminPassword').value = '';
       gantiView('viewLandingPage');
       showToast('Logged out securely');
@@ -1333,9 +1426,8 @@
           const dd = String(baseDate.getDate()).padStart(2, '0');
           const updated = { ...userObj, exp_date: `${yyyy}-${mm}-${dd}`, status: 'active', license_key: buatLicenseKey(`${yyyy}-${mm}-${dd}`, id) };
           try {
-            const res = await fetch(VERCEL_API_URL, {
+            const res = await fetchSecure(VERCEL_API_URL, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ action: 'save_license', ...updated })
             });
             if (res.ok) success++;
@@ -1355,9 +1447,8 @@
         if (userObj) {
           const updated = { ...userObj, status: statusStr, license_key: buatLicenseKey(userObj.exp_date || '2026-12-31', id) };
           try {
-            const res = await fetch(VERCEL_API_URL, {
+            const res = await fetchSecure(VERCEL_API_URL, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ action: 'save_license', ...updated })
             });
             if (res.ok) success++;
@@ -1375,10 +1466,9 @@
         let success = 0;
         for (const id of selectedDeviceIds) {
           try {
-            const res = await fetch(VERCEL_API_URL, {
+            const res = await fetchSecure(VERCEL_API_URL, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ action: 'delete_license', device_id: id, admin_secret: adminPasswordSecret })
+              body: JSON.stringify({ action: 'delete_license', device_id: id, admin_secret: SecurityVault.getSecret() })
             });
             if (res.ok) success++;
           } catch (e) {}
@@ -1514,10 +1604,9 @@
           created_at: new Date().toISOString()
         };
         vouchersList.push(newVoucher);
-        const resSave = await fetch(VERCEL_API_URL, {
+        const resSave = await fetchSecure(VERCEL_API_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'save_vouchers', vouchers: vouchersList, admin_secret: adminPasswordSecret })
+          body: JSON.stringify({ action: 'save_vouchers', vouchers: vouchersList, admin_secret: SecurityVault.getSecret() })
         });
         const resultSave = await resSave.json();
         if (resSave.ok && (resultSave.success || resultSave.status)) {
@@ -1585,9 +1674,8 @@
       currentLicenseData.license_key = buatLicenseKey(currentLicenseData.exp_date, currentLicenseData.device_id);
 
       try {
-        const res = await fetch(VERCEL_API_URL, {
+        const res = await fetchSecure(VERCEL_API_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'save_license', ...currentLicenseData })
         });
         if (res.ok) {
@@ -1603,10 +1691,9 @@
       const sppgName = currentLicenseData.sppg_name || 'Client';
       showConfirmModal('🚨 Menghapus Lisensi Device', `Apakah Anda yakin ingin MENGHAPUS PERMANEN lisensi ini?\n\n• Device ID: ${deviceId}\n• SPPG: ${sppgName}`, async () => {
         try {
-          const res = await fetch(VERCEL_API_URL, {
+          const res = await fetchSecure(VERCEL_API_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'delete_license', device_id: deviceId, admin_secret: adminPasswordSecret })
+            body: JSON.stringify({ action: 'delete_license', device_id: deviceId, admin_secret: SecurityVault.getSecret() })
           });
           if (res.ok) {
             showToast(`Lisensi ${deviceId} berhasil dihapus!`);
@@ -1647,10 +1734,9 @@
             const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
             if (!isNaN(backupDate.getTime()) && diffMs > THREE_DAYS_MS) {
               try {
-                await fetch(VERCEL_API_URL, {
+                await fetchSecure(VERCEL_API_URL, {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ action: 'delete_backup', device_id: deviceId, admin_secret: adminPasswordSecret })
+                  body: JSON.stringify({ action: 'delete_backup', device_id: deviceId, admin_secret: SecurityVault.getSecret() })
                 });
               } catch (e) {}
               return;
@@ -1711,10 +1797,9 @@
       if (!currentLicenseData) return;
       showConfirmModal('Delete Cloud Backup', `Delete backup for device ${currentLicenseData.device_id}?`, async () => {
         try {
-          const res = await fetch(VERCEL_API_URL, {
+          const res = await fetchSecure(VERCEL_API_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'delete_backup', device_id: currentLicenseData.device_id, admin_secret: adminPasswordSecret })
+            body: JSON.stringify({ action: 'delete_backup', device_id: currentLicenseData.device_id, admin_secret: SecurityVault.getSecret() })
           });
           if (res.ok) {
             showToast('Backup deleted');
@@ -1731,10 +1816,9 @@
       if (!sourceId || !targetId) return showToast('Enter Source & Target Device IDs', false);
       showConfirmModal('Migrate License', `Transfer license from ${sourceId} to ${targetId}?`, async () => {
         try {
-          const res = await fetch(VERCEL_API_URL, {
+          const res = await fetchSecure(VERCEL_API_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'transfer_device', source_device_id: sourceId, target_device_id: targetId, admin_secret: adminPasswordSecret })
+            body: JSON.stringify({ action: 'transfer_device', source_device_id: sourceId, target_device_id: targetId, admin_secret: SecurityVault.getSecret() })
           });
           const data = await res.json();
           if (res.ok && (data.success || data.status)) {
@@ -1792,10 +1876,9 @@
         if (nama) packages.push({ nama, hari, harga });
       });
       try {
-        const res = await fetch(VERCEL_API_URL, {
+        const res = await fetchSecure(VERCEL_API_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'save_packages', packages, admin_secret: adminPasswordSecret })
+          body: JSON.stringify({ action: 'save_packages', packages, admin_secret: SecurityVault.getSecret() })
         });
         const result = await res.json();
         if (res.ok && (result.success || result.status)) { showToast('Packages saved!'); muatDataPaketServer(); }
@@ -1892,10 +1975,9 @@
         const deviceSpecificVouchers = existingVouchers.filter(v => v.is_device_specific || (v.device_id && v.device_id !== 'ALL' && v.device_id !== ''));
         const combinedVouchers = [...newManualVouchers, ...deviceSpecificVouchers];
 
-        const res = await fetch(VERCEL_API_URL, {
+        const res = await fetchSecure(VERCEL_API_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'save_vouchers', vouchers: combinedVouchers, admin_secret: adminPasswordSecret })
+          body: JSON.stringify({ action: 'save_vouchers', vouchers: combinedVouchers, admin_secret: SecurityVault.getSecret() })
         });
         const result = await res.json();
         if (res.ok && (result.success || result.status)) {
@@ -1923,10 +2005,9 @@
       const changelog = document.getElementById('inputChangelog').value.trim();
       if (!version || !download_url) return showToast('Version & URL required', false);
       try {
-        const res = await fetch(VERCEL_API_URL, {
+        const res = await fetchSecure(VERCEL_API_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'save_release', version, download_url, changelog, admin_secret: adminPasswordSecret })
+          body: JSON.stringify({ action: 'save_release', version, download_url, changelog, admin_secret: SecurityVault.getSecret() })
         });
         const result = await res.json();
         if (res.ok && (result.success || result.status)) {

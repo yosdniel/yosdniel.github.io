@@ -6,7 +6,7 @@
 "destination": "/api/$1"
 },
 {
-"source": "/((?!api/|assets/|favicon\.ico|.\.).*)",
+"source": "/((?!api/|assets/|favicon\.ico|.\..).)",
 "destination": "/api/shortlink?r=$1"
 }
 ]

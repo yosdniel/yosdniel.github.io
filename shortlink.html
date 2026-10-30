@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MindLink - Professional Cloud URL Shortener & Analytics</title>
+  
+  <!-- FAVICON & METAS -->
+  <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon.ico">
+  <meta name="theme-color" content="#020617">
+  
+  <!-- TAILWIND CSS & QR CODE GENERATOR -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+          colors: {
+            brand: {
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; overflow-x: hidden; }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.25); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.5); }
+    
+    .glass-card {
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    
+    #qrcode-preview img, #qrcode-preview canvas {
+      margin: 0 auto;
+      max-width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 12px;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between p-4 sm:p-6 lg:p-10 selection:bg-brand-500 selection:text-white relative">
+
+  <!-- Ambient Glow -->
+  <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/30 via-slate-950 to-slate-950 pointer-events-none"></div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-[100000] max-w-[90vw] w-auto px-5 py-3 rounded-2xl shadow-2xl border text-white font-bold text-xs sm:text-sm transition-all duration-300 -translate-y-20 opacity-0 pointer-events-none flex items-center gap-2"></div>
+
+  <!-- QR CODE MODAL -->
+  <div id="qrModal" class="fixed inset-0 z-[100000] bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4">
+    <div class="glass-card rounded-3xl p-6 max-w-sm w-full text-center border border-slate-800 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-white text-sm">QR Code Shortlink</h3>
+        <button onclick="closeQrModal()" class="w-8 h-8 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white flex items-center justify-center font-bold text-xs transition">✕</button>
+      </div>
+      <div class="bg-white p-4 rounded-2xl inline-block shadow-inner">
+        <div id="qrcode-preview" class="min-w-[180px] min-h-[180px] flex items-center justify-center"></div>
+      </div>
+      <p id="modalShortUrlText" class="text-xs font-mono text-brand-400 font-bold truncate"></p>
+      <button onclick="closeQrModal()" class="w-full bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-bold py-3 rounded-xl text-xs transition border border-slate-700">Tutup</button>
+    </div>
+  </div>
+
+  <!-- HEADER -->
+  <header class="w-full max-w-4xl mx-auto flex items-center justify-between relative z-10 py-3 px-4 sm:px-6 glass-card rounded-2xl mb-6 shadow-xl">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 bg-brand-500/15 border border-brand-500/30 rounded-xl flex items-center justify-center text-xl shadow-md">🔗</div>
+      <div>
+        <h1 class="font-extrabold text-sm sm:text-base text-white tracking-tight">MindLink Cloud</h1>
+        <span class="text-[10px] text-slate-400 block font-medium">Custom Domain: minduniverse.id</span>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <span id="dbStatusBadge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold shadow-sm">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> minduniverse.id Connected
+      </span>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="w-full max-w-4xl mx-auto flex-1 flex flex-col gap-6 relative z-10 my-auto">
+    
+    <!-- SHORTENER CARD -->
+    <div class="glass-card rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-2xl relative overflow-hidden space-y-6">
+      <div class="absolute -right-16 -top-16 w-48 h-48 bg-brand-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div>
+        <div class="inline-block px-3 py-1 rounded-xl bg-brand-500/10 text-brand-400 border border-brand-500/20 text-xs font-bold mb-3">
+          🌐 Custom Domain Active (`minduniverse.id`)
+        </div>
+        <h2 class="font-black text-2xl sm:text-3xl text-white tracking-tight">Persingkat URL dengan minduniverse.id</h2>
+        <p class="text-xs sm:text-sm text-slate-400 mt-2">Semua tautan yang Anda buat akan menggunakan domain kustom Anda dan tersimpan permanen di cloud database.</p>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">URL Panjang (Destination URL)</label>
+          <input type="url" id="inputLongUrl" placeholder="https://example.com/very-long-url-path..." class="w-full px-4 py-3.5 rounded-2xl border border-slate-700 bg-slate-900/90 text-white text-xs sm:text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition">
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">Custom Alias (Opsional)</label>
+            <div class="flex items-center bg-slate-900/90 rounded-2xl border border-slate-700 overflow-hidden focus-within:border-brand-500">
+              <span class="px-3 text-xs text-slate-400 font-mono select-none">minduniverse.id/</span>
+              <input type="text" id="inputCustomAlias" placeholder="alias-unik" class="w-full py-3.5 pr-4 bg-transparent text-white text-xs sm:text-sm outline-none font-mono">
+            </div>
+          </div>
+          <div>
+            <label class="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">Catatan / Title (Opsional)</label>
+            <input type="text" id="inputLinkTitle" placeholder="Contoh: Landing Page Promo" class="w-full px-4 py-3.5 rounded-2xl border border-slate-700 bg-slate-900/90 text-white text-xs sm:text-sm outline-none focus:border-brand-500">
+          </div>
+        </div>
+
+        <button onclick="createNewShortlink()" id="btnSubmitLink" class="w-full bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 active:scale-[0.99] text-white font-extrabold py-4 px-6 rounded-2xl text-sm sm:text-base text-center transition shadow-xl shadow-brand-500/30">
+          🚀 Buat Shortlink minduniverse.id
+        </button>
+      </div>
+    </div>
+
+    <!-- RESULT / HISTORY CONTAINER -->
+    <div class="glass-card rounded-3xl p-6 sm:p-7 border border-slate-800 shadow-xl space-y-4">
+      <div class="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <span class="text-base">📋</span>
+          <h3 class="font-bold text-white text-sm sm:text-base">Daftar Shortlink minduniverse.id</h3>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="fetchCloudLinks()" class="bg-brand-500/10 hover:bg-brand-500/20 text-brand-400 font-bold px-3.5 py-1.5 rounded-xl text-xs transition border border-brand-500/20 flex items-center gap-1">🔄 Refresh</button>
+        </div>
+      </div>
+
+      <div id="linksListContainer" class="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+        <div class="text-center py-10 text-slate-500 text-xs font-medium">Memuat data dari minduniverse.id database...</div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="w-full max-w-4xl mx-auto text-center py-6 text-xs text-slate-500 relative z-10 border-t border-slate-900 mt-10">
+    <p>Mindspace Studio &copy; 2026 &bull; Custom Domain: minduniverse.id</p>
+  </footer>
+
+  <script>
+    const CUSTOM_DOMAIN = 'https://minduniverse.id';
+    const API_URL = `${CUSTOM_DOMAIN}/api/shortlink`;
+
+    function showToast(msg, isSuccess = true) {
+      const t = document.getElementById('toast');
+      if (!t) return;
+      t.textContent = msg;
+      t.className = `fixed top-4 left-1/2 -translate-x-1/2 z-[100000] max-w-[90vw] w-auto px-5 py-3 rounded-2xl shadow-2xl border text-white font-bold text-xs sm:text-sm transition-all duration-300 translate-y-0 opacity-100 ${isSuccess ? 'bg-emerald-600 border-emerald-500' : 'bg-red-600 border-red-500'}`;
+      setTimeout(() => {
+        t.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-[100000] max-w-[90vw] w-auto px-5 py-3 rounded-2xl shadow-2xl border text-white font-bold text-xs sm:text-sm transition-all duration-300 -translate-y-20 opacity-0 pointer-events-none';
+      }, 3500);
+    }
+
+    async function fetchCloudLinks() {
+      const container = document.getElementById('linksListContainer');
+      try {
+        const res = await fetch(`${API_URL}?action=get_all`, { cache: 'no-store' });
+        if (!res.ok) throw new Error('Gagal mengambil data dari server');
+        const data = await res.json();
+        const links = Array.isArray(data) ? data : (data.links || []);
+        renderLinks(links);
+      } catch (e) {
+        const localFallback = JSON.parse(localStorage.getItem('minduniverse_links') || '[]');
+        renderLinks(localFallback);
+        showToast('Menggunakan mode lokal (Koneksi minduniverse.id pending)', false);
+      }
+    }
+
+    async function createNewShortlink() {
+      const longUrlInput = document.getElementById('inputLongUrl');
+      const aliasInput = document.getElementById('inputCustomAlias');
+      const titleInput = document.getElementById('inputLinkTitle');
+      const btn = document.getElementById('btnSubmitLink');
+
+      let longUrl = longUrlInput.value.trim();
+      let alias = aliasInput.value.trim().replace(/[^a-zA-Z0-9-_]/g, '');
+      let title = titleInput.value.trim();
+
+      if (!longUrl) {
+        showToast('Masukkan URL tujuan terlebih dahulu!', false);
+        longUrlInput.focus();
+        return;
+      }
+
+      if (!longUrl.startsWith('http://') && !longUrl.startsWith('https://')) {
+        longUrl = 'https://' + longUrl;
+      }
+
+      btn.disabled = true;
+      btn.textContent = '⏳ Menyimpan ke minduniverse.id Database...';
+
+      const payload = {
+        action: 'create_shortlink',
+        long_url: longUrl,
+        alias: alias || undefined,
+        title: title || 'Tautan Pendek'
+      };
+
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        
+        if (!res.ok || data.success === false) {
+          throw new Error(data.error || 'Gagal menyimpan ke server');
+        }
+
+        longUrlInput.value = '';
+        aliasInput.value = '';
+        titleInput.value = '';
+
+        showToast('Berhasil disimpan ke minduniverse.id!');
+        fetchCloudLinks();
+      } catch (e) {
+        const localFallback = JSON.parse(localStorage.getItem('minduniverse_links') || '[]');
+        const newAlias = alias || Math.random().toString(36).substring(2, 8);
+        const newObj = {
+          id: 'lnk_' + Date.now(),
+          title: title || 'Tautan Pendek',
+          long_url: longUrl,
+          alias: newAlias,
+          short_url: `${CUSTOM_DOMAIN}/${newAlias}`,
+          clicks: 0,
+          created_at: new Date().toISOString()
+        };
+        localFallback.unshift(newObj);
+        localStorage.setItem('minduniverse_links', JSON.stringify(localFallback));
+        
+        longUrlInput.value = '';
+        aliasInput.value = '';
+        titleInput.value = '';
+        renderLinks(localFallback);
+        showToast('Tersimpan secara lokal (Mock Database Mode)');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🚀 Buat Shortlink minduniverse.id';
+      }
+    }
+
+    function renderLinks(links) {
+      const container = document.getElementById('linksListContainer');
+      if (!container) return;
+
+      if (!links || links.length === 0) {
+        container.innerHTML = '<div class="text-center py-10 text-slate-500 text-xs font-medium">Belum ada shortlink tersimpan di database minduniverse.id.</div>';
+        return;
+      }
+
+      container.innerHTML = '';
+      links.forEach((link) => {
+        const shortUrl = link.short_url || `${CUSTOM_DOMAIN}/${link.alias}`;
+        const div = document.createElement('div');
+        div.className = 'bg-slate-900/90 border border-slate-800 p-4 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition hover:border-slate-700';
+        div.innerHTML = `
+          <div class="min-w-0 flex-1 space-y-1">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-white text-xs sm:text-sm truncate">${link.title || 'Tautan Pendek'}</span>
+              <span class="text-[10px] bg-brand-500/15 border border-brand-500/30 text-brand-400 font-mono px-2 py-0.5 rounded-lg">${link.clicks || 0} Klik</span>
+            </div>
+            <a href="${shortUrl}" target="_blank" class="text-xs text-brand-400 font-mono font-bold hover:underline block truncate">${shortUrl}</a>
+            <div class="text-[10px] text-slate-400 truncate max-w-md">Asli: <a href="${link.long_url}" target="_blank" class="hover:text-slate-200 underline">${link.long_url}</a></div>
+          </div>
+          <div class="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
+            <button onclick="showQrModal('${shortUrl}')" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 font-bold px-3 py-2 rounded-xl text-xs transition border border-slate-700 flex items-center gap-1">📱 QR</button>
+            <button onclick="copyToClipboard('${shortUrl}')" class="bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-bold px-3.5 py-2 rounded-xl text-xs transition flex items-center gap-1 shadow-md shadow-brand-500/20">📋 Salin</button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function copyToClipboard(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          showToast('Shortlink disalin ke clipboard!');
+        }).catch(() => fallbackCopy(text));
+      } else {
+        fallbackCopy(text);
+      }
+    }
+
+    function fallbackCopy(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        showToast('Shortlink disalin ke clipboard!');
+      } catch (e) {
+        showToast('Gagal menyalin tautan', false);
+      }
+      document.body.removeChild(ta);
+    }
+
+    function showQrModal(url) {
+      const modal = document.getElementById('qrModal');
+      const box = document.getElementById('qrcode-preview');
+      const txt = document.getElementById('modalShortUrlText');
+      
+      box.innerHTML = '';
+      txt.textContent = url;
+
+      try {
+        const q = qrcode(0, 'M');
+        q.addData(url);
+        q.make();
+        box.innerHTML = q.createImgTag(5, 6);
+        const img = box.querySelector('img');
+        if (img) img.className = 'w-48 h-48 object-contain rounded-xl mx-auto';
+      } catch (e) {
+        box.textContent = 'Gagal membuat QR Code';
+      }
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeQrModal() {
+      const modal = document.getElementById('qrModal');
+      modal.classList.remove('flex');
+      modal.classList.add('hidden');
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      const params = new URLSearchParams(window.location.search);
+      let aliasParam = params.get('r');
+      
+      if (!aliasParam && window.location.pathname.length > 1) {
+        aliasParam = window.location.pathname.replace(/^\//, '');
+      }
+
+      if (aliasParam) {
+        try {
+          const res = await fetch(`${API_URL}?action=resolve&alias=${encodeURIComponent(aliasParam)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.long_url) {
+              window.location.replace(data.long_url);
+              return;
+            }
+          }
+        } catch (e) {}
+
+        const localFallback = JSON.parse(localStorage.getItem('minduniverse_links') || '[]');
+        const found = localFallback.find(l => l.alias === aliasParam);
+        if (found) {
+          window.location.replace(found.long_url);
+          return;
+        }
+      }
+      fetchCloudLinks();
+    });
+  </script>
+</body>
+          </html>

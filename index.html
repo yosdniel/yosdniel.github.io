@@ -240,7 +240,7 @@
           </div>
 
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-            <div class="lg:col-span-2 glass-card p-5 sm:p-6 rounded-3xl border border-slate-800">
+            <div class="lg:col-span-2 glass-card p-4 sm:p-6 rounded-3xl border border-slate-800">
               <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
                 <div>
                   <div class="text-xs sm:text-sm font-bold text-slate-300 flex items-center gap-2">
@@ -255,9 +255,9 @@
                 </div>
               </div>
               
-              <!-- FULL WIDTH CHART CONTAINER -->
-              <div class="w-full bg-slate-900/50 p-4 sm:p-5 rounded-2xl border border-slate-800/80">
-                <div id="chartBarsContainer" class="w-full flex items-end justify-between h-44 pt-6 border-b border-slate-800/80 px-1 sm:px-2 gap-1 sm:gap-2"></div>
+              <!-- FULL WIDTH CHART CONTAINER (RESPONSIVE MOBILE SCROLLER FIX) -->
+              <div class="w-full bg-slate-900/50 p-3 sm:p-5 rounded-2xl border border-slate-800/80 overflow-x-auto scrollbar-none">
+                <div id="chartBarsContainer" class="min-w-[320px] w-full flex items-end justify-between h-44 sm:h-48 pt-6 border-b border-slate-800/80 px-1 sm:px-2 gap-1.5 sm:gap-2"></div>
               </div>
             </div>
             
@@ -1163,7 +1163,6 @@
         document.getElementById('statRevMinggu').textContent = `Rp ${(data.mingguan || 0).toLocaleString('id-ID')}`;
         document.getElementById('statRevBulan').textContent = `Rp ${(data.bulanan || 0).toLocaleString('id-ID')}`;
 
-        // Load total download count from API stats or licenses
         const totalDl = data.total_downloads !== undefined ? data.total_downloads : (data.download_count || 0);
         const dlEl = document.getElementById('statTotalDownloads');
         if (dlEl) dlEl.textContent = Number(totalDl).toLocaleString('id-ID');
@@ -1233,7 +1232,7 @@
         const labelHtml = activeTimeframe === '1m' ? '' : `<div class="text-[9px] text-slate-500 mt-2 font-mono whitespace-nowrap">${dateLabel}</div>`;
 
         group.innerHTML = `
-          <div class="w-full bg-gradient-to-t from-brand-600 via-indigo-500 to-purple-400 hover:from-brand-500 hover:via-indigo-400 hover:to-purple-300 rounded-t-xl transition-all duration-300 cursor-pointer shadow-[0_0_15px_rgba(99,102,241,0.25)] hover:shadow-[0_0_20px_rgba(168,85,247,0.4)] relative border-t border-purple-300/40" style="height: ${Math.max(8, tinggiPersen)}px;">
+          <div class="w-full min-w-[20px] bg-gradient-to-t from-brand-600 via-indigo-500 to-purple-400 hover:from-brand-500 hover:via-indigo-400 hover:to-purple-300 rounded-t-xl transition-all duration-300 cursor-pointer shadow-[0_0_15px_rgba(99,102,241,0.25)] hover:shadow-[0_0_20px_rgba(168,85,247,0.4)] relative border-t border-purple-300/40" style="height: ${Math.max(8, tinggiPersen)}px;">
             <div class="opacity-0 group-hover/bar:opacity-100 pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-900/95 text-slate-100 text-[10px] font-bold px-2.5 py-1 rounded-xl border border-indigo-500/40 shadow-xl whitespace-nowrap z-30 transition-all backdrop-blur-md">
               ${dateLabel}: Rp ${val.toLocaleString('id-ID')}
             </div>

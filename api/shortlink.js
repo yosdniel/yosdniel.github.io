@@ -1,9 +1,10 @@
 /**
  * MindLink Cloud URL Shortener Backend API
  * Domain: minduniverse.id
- * Handles shortlink creation, storage, alias resolution, and click tracking.
+ * Handles shortlink creation, cloud memory persistence, click tracking, and auto-redirection.
  */
 
+// Memory Database
 let memoryStorage = [
   {
     id: 'lnk_sample_1',
@@ -26,7 +27,7 @@ let memoryStorage = [
 ];
 
 export default async function handler(req, res) {
-  // CORS Headers untuk mengizinkan akses dari mana saja tanpa diblokir browser
+  // 1. Set Universal CORS & Access Headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST,PUT,DELETE');
@@ -35,7 +36,7 @@ export default async function handler(req, res) {
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
   );
 
-  // Penanganan HTTP Preflight OPTIONS Request
+  // Handle Preflight Request
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
@@ -43,33 +44,53 @@ export default async function handler(req, res) {
   try {
     const protocol = req.headers['x-forwarded-proto'] || 'https';
     const host = req.headers.host || 'minduniverse.id';
-    const fullUrl = `${protocol}://${host}${req.url || ''}`;
+    const reqUrl = req.url || '';
+    const fullUrl = `${protocol}://${host}${reqUrl}`;
     const urlObj = new URL(fullUrl);
     
+    // Extrak Parameter
     const action = urlObj.searchParams.get('action');
-    const aliasQuery = urlObj.searchParams.get('alias') || urlObj.searchParams.get('r');
+    let aliasQuery = urlObj.searchParams.get('alias') || urlObj.searchParams.get('r');
 
-    // 1. Resolve / Redirect Shortlink (?r=alias)
-    if (aliasQuery || action === 'resolve') {
-      const targetAlias = aliasQuery || urlObj.searchParams.get('alias');
-      const found = memoryStorage.find(l => l.alias.toLowerCase() === (targetAlias || '').toLowerCase());
+    // Detector Path Otomatis jika URL diakses langsung (contoh: minduniverse.id/pay)
+    if (!aliasQuery && !action) {
+      const pathname = urlObj.pathname.replace(/^\/+|\/+$/g, '');
+      if (pathname && !pathname.startsWith('api') && !pathname.includes('.')) {
+        aliasQuery = pathname;
+      }
+    }
+
+    // 2. Auto-Redirect / Resolve Shortlink (contoh: /pay -> Destination URL)
+    if (aliasQuery && aliasQuery !== 'shortlink') {
+      const found = memoryStorage.find(l => l.alias.toLowerCase() === aliasQuery.toLowerCase());
       
       if (found) {
         found.clicks = (found.clicks || 0) + 1;
         res.writeHead(302, { Location: found.long_url });
-        res.end();
-        return;
+        return res.end();
       } else {
-        return res.status(404).json({ error: 'Shortlink tidak ditemukan', alias: targetAlias });
+        return res.status(404).send(`
+          <!DOCTYPE html>
+          <html>
+          <head><title>404 Shortlink Tidak Ditemukan</title><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+          <body style="background:#020617;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center;">
+            <div>
+              <h1 style="color:#f43f5e;font-size:32px;">404 Not Found</h1>
+              <p style="color:#94a3b8;">Shortlink <b>minduniverse.id/${aliasQuery}</b> tidak ditemukan atau telah dihapus.</p>
+              <a href="https://minduniverse.id" style="color:#818cf8;text-decoration:none;font-weight:bold;">← Kembali ke Halaman Utama</a>
+            </div>
+          </body>
+          </html>
+        `);
       }
     }
 
-    // 2. Get All Links (?action=get_all)
+    // 3. Get All Saved Shortlinks (GET ?action=get_all)
     if (req.method === 'GET' && action === 'get_all') {
       return res.status(200).json({ success: true, links: memoryStorage });
     }
 
-    // 3. Create Shortlink (POST)
+    // 4. Create New Shortlink (POST)
     if (req.method === 'POST') {
       let body = req.body;
       if (!body && req.readable) {
@@ -118,19 +139,19 @@ export default async function handler(req, res) {
 
       return res.status(200).json({
         success: true,
-        message: 'Shortlink berhasil dibuat di minduniverse.id',
+        message: 'Shortlink berhasil disimpan ke minduniverse.id cloud database',
         link: newLink
       });
     }
 
-    // Default Status Response
+    // Default API Status Response
     return res.status(200).json({
-      name: 'MindLink Cloud API',
+      name: 'MindLink Cloud API Engine',
       domain: 'minduniverse.id',
-      status: 'active',
+      status: 'online',
       total_links: memoryStorage.length
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-}
+                                                        }

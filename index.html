@@ -5,20 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>MindHUB - Admin Dashboard & Payment Gateway</title>
   
-  <!-- INSTANT REDIRECT SCRIPT -->
+  <!-- INSTANT REDIRECT SCRIPT (FIXED INFINITE LOOP) -->
   <script>
     (function() {
       var currentHost = window.location.hostname;
       var targetHost = 'minduniverse.id';
       
-      // Cek apakah pengunjung mengakses dari domain Vercel lama
-      if (currentHost === 'mindspace-id.vercel.app') {
+      // Jalankan redirect HANYA jika pengunjung mengakses dari host Vercel lama
+      if (currentHost.indexOf('mindspace-id.vercel.app') !== -1) {
         var newUrl = 'https://' + targetHost + window.location.pathname + window.location.search + window.location.hash;
         window.location.replace(newUrl);
       }
     })();
   </script>
-  <meta http-equiv="refresh" content="0;url=https://minduniverse.id">
   <link rel="canonical" href="https://minduniverse.id">
 
   <!-- FAVICON & PWA METAS -->

@@ -11,8 +11,8 @@
       var currentHost = window.location.hostname;
       var targetHost = 'minduniverse.id';
       
-      // Redirect dari Vercel lama atau subdomain www ke domain utama minduniverse.id
-      if (currentHost.indexOf('mindspace-id.vercel.app') !== -1 || currentHost === 'www.minduniverse.id') {
+      // Hanya redirect jika host SAAT INI bukan targetHost
+      if (currentHost !== targetHost) {
         var newUrl = 'https://' + targetHost + window.location.pathname + window.location.search + window.location.hash;
         window.location.replace(newUrl);
       }

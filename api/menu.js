@@ -1,21 +1,11 @@
-/**
- * ============================================================
- * SPPG BANTAENG GANTARANGKEKE 1 - SUPABASE API SERVER (Vercel Native)
- * ============================================================
- * Dependencies: @supabase/supabase-js
- * Install: npm install @supabase/supabase-js
- */
-
 import { createClient } from '@supabase/supabase-js';
 
-// Konfigurasi Supabase Client
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
 const supabase = createClient(SUPABASE_URL || '', SUPABASE_ANON_KEY || '');
 
 export default async function handler(req, res) {
-    // Atur header CORS agar bisa diakses oleh frontend manapun
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -24,7 +14,6 @@ export default async function handler(req, res) {
         'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
     );
 
-    // Tangani preflight request (OPTIONS)
     if (req.method === 'OPTIONS') {
         res.status(200).end();
         return;
@@ -44,35 +33,12 @@ export default async function handler(req, res) {
         if (req.method === 'GET') {
             const { tanggal } = req.query;
 
-            // 1. Query data menu utama beserta relasi kandungan gizi
+            // 1. Ambil data menu utama
             let query = supabase
                 .from('menu')
-                .select(`
-                    id,
-                    nama_sppg,
-                    yayasan,
-                    tanggal,
-                    makanan_pokok,
-                    lauk_hewani,
-                    lauk_nabati,
-                    sayur,
-                    buah,
-                    pelengkap,
-                    foto,
-                    foto_list,
-                    catatan,
-                    gizi (
-                        porsi_tipe,
-                        energi,
-                        protein,
-                        lemak,
-                        karbohidrat,
-                        serat
-                    )
-                `)
+                .select('*')
                 .order('tanggal', { ascending: true });
 
-            // Filter tanggal jika ada parameter spesifik
             if (tanggal) {
                 query = query.eq('tanggal', tanggal);
             }
@@ -80,22 +46,37 @@ export default async function handler(req, res) {
             const { data: menuData, error: menuError } = await query;
             if (menuError) throw menuError;
 
-            // 2. Format struktur gizi menjadi bentuk objek { pk: {...}, pb: {...} }
+            // 2. Ambil data gizi secara terpisah untuk menghindari konflik relasi ganda
+            const menuIds = (menuData || []).map(m => m.id);
+            let giziData = [];
+            
+            if (menuIds.length > 0) {
+                const { data: giziRes, error: giziError } = await supabase
+                    .from('gizi')
+                    .select('*')
+                    .in('menu_id', menuIds);
+
+                if (!giziError) {
+                    giziData = giziRes || [];
+                }
+            }
+
+            // 3. Gabungkan data menu dan gizi secara manual di JavaScript
             const formattedMenu = (menuData || []).map(item => {
                 const giziObj = { pk: {}, pb: {} };
-                if (item.gizi && Array.isArray(item.gizi)) {
-                    item.gizi.forEach(g => {
-                        if (g.porsi_tipe === 'pk' || g.porsi_tipe === 'pb') {
-                            giziObj[g.porsi_tipe] = {
-                                energi: g.energi,
-                                protein: g.protein,
-                                lemak: g.lemak,
-                                karbohidrat: g.karbohidrat,
-                                serat: g.serat
-                            };
-                        }
-                    });
-                }
+                const itemGizi = giziData.filter(g => g.menu_id === item.id);
+
+                itemGizi.forEach(g => {
+                    if (g.porsi_tipe === 'pk' || g.porsi_tipe === 'pb') {
+                        giziObj[g.porsi_tipe] = {
+                            energi: g.energi,
+                            protein: g.protein,
+                            lemak: g.lemak,
+                            karbohidrat: g.karbohidrat,
+                            serat: g.serat
+                        };
+                    }
+                });
 
                 return {
                     id: item.id,
@@ -115,7 +96,7 @@ export default async function handler(req, res) {
                 };
             });
 
-            // 3. Ambil data himbauan aktif
+            // 4. Ambil data himbauan aktif
             const { data: himbauanData, error: himbauanError } = await supabase
                 .from('himbauan')
                 .select('ikon, judul, isi')
@@ -124,7 +105,6 @@ export default async function handler(req, res) {
 
             if (himbauanError) throw himbauanError;
 
-            // Hitung tanggal hari ini dalam zona waktu Asia/Jakarta (WIB)
             const todayStr = new Intl.DateTimeFormat('en-CA', {
                 timeZone: 'Asia/Jakarta',
                 year: 'numeric',
@@ -164,7 +144,6 @@ export default async function handler(req, res) {
                 return res.status(400).json({ ok: false, message: 'Tanggal wajib diisi!' });
             }
 
-            // 1. Upsert Data Menu utama
             const { data: newMenu, error: menuError } = await supabase
                 .from('menu')
                 .upsert({
@@ -186,7 +165,6 @@ export default async function handler(req, res) {
 
             if (menuError) throw menuError;
 
-            // 2. Upsert Data Gizi
             if (gizi) {
                 const giziRecords = [];
                 if (gizi.pk) {

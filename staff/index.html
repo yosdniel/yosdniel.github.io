@@ -502,6 +502,7 @@
                 };
 
                 const ratingsHtml = Object.entries(ratings).map(([key, val]) => {
+                    const orderedKeys = ['makanan_pokok', 'lauk_hewani', 'lauk_nabati', 'sayur', 'buah', 'pelengkap'];
                     const label = ratingLabelsMap[key] || menuDetail[key.replace('rating_', '')] || key;
                     const ratingNum = parseInt(val) || 0;
                     

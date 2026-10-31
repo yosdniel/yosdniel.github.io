@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#030712">
-    <title>Menu Hari Ini · SPPG Deli Serdang Tanjung Gusta</title>
+    <title>Menu Hari Ini · SPPG Deli Serdang Tanjung Gusta Sunggal</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon.ico">
@@ -116,7 +116,7 @@
                             Makan Bergizi Gratis
                         </div>
                         <h1 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight leading-snug" id="nama-sppg">SPPG Deli Serdang Tanjung Gusta Sunggal</h1>
-                        <p class="text-xs sm:text-sm font-medium text-slate-400" id="nama-yayasan">Yayasan Pendidikan Supardi Dharma Utama · Badan Gizi Nasional</p>
+                        <p class="text-xs sm:text-sm font-medium text-slate-400" id="nama-yayasan">Yayasan Tunas Ilmu Bantaeng · Badan Gizi Nasional</p>
                     </div>
                 </div>
 
@@ -143,7 +143,7 @@
         <!-- Footer -->
         <footer class="mt-8 pt-6 border-t border-slate-900 text-center sm:flex sm:items-center sm:justify-between text-xs text-slate-500 gap-4">
             <p>Disiapkan di dapur <b class="text-slate-300 font-semibold" id="footer-nama-sppg">SPPG Deli Serdang Tanjung Gusta Sunggal</b></p>
-            <p class="mt-2 sm:mt-0 text-slate-500" id="footer-yayasan">Yayasan Pendidikan Supardi Dharma Utama · Badan Gizi Nasional</p>
+            <p class="mt-2 sm:mt-0 text-slate-500" id="footer-yayasan">Yayasan Tunas Ilmu Bantaeng · Badan Gizi Nasional</p>
         </footer>
     </div>
 
@@ -236,28 +236,41 @@
 
         function blokGizi(menu) {
             const g = menu.gizi || {};
-            const kolom = ['pk', 'pb'].filter(function(p) { return adaIsi(g[p]); });
-            if (!kolom.length) return '';
+            const katList = [
+                { k: 'pk', label: 'Porsi Kecil', sub: 'PAUD – SD Kelas 3' },
+                { k: 'pb', label: 'Porsi Besar', sub: 'SD Kelas 4 – SMA' },
+                { k: 'balita', label: 'Balita', sub: 'Usia Dini' },
+                { k: 'bumil', label: 'Ibu Hamil', sub: 'Bumil' },
+                { k: 'busui', label: 'Ibu Menyusui', sub: 'Busui' }
+            ];
 
             const baris = ZAT.map(function(z) {
-                return '<div class="grid grid-cols-3 items-center py-3 px-4 border-b border-slate-800/60 last:border-0 ' + (z.utama ? 'bg-royal-500/10 font-bold' : '') + '">'
-                    + '<span class="text-xs sm:text-sm text-slate-300">' + z.label + ' <span class="text-[10px] text-slate-500">(' + z.satuan + ')</span></span>'
-                    + '<span class="text-center text-xs sm:text-sm text-white font-semibold">' + (g.pk && g.pk[z.kunci] != null ? esc(g.pk[z.kunci]) : '–') + '</span>'
-                    + '<span class="text-center text-xs sm:text-sm text-royal-400 font-bold">' + (g.pb && g.pb[z.kunci] != null ? esc(g.pb[z.kunci]) : '–') + '</span>'
-                    + '</div>';
+                const tds = katList.map(function(kat) {
+                    const val = g[kat.k] && g[kat.k][z.kunci] != null ? g[kat.k][z.kunci] : '–';
+                    return '<td class="text-center py-3 px-2 text-xs sm:text-sm ' + (z.utama ? 'font-bold text-white' : 'text-slate-300') + '">' + esc(val) + '</td>';
+                }).join('');
+
+                return '<tr class="border-b border-slate-800/60 last:border-0 ' + (z.utama ? 'bg-royal-500/10 font-bold' : '') + '">'
+                    + '<td class="py-3 px-3 text-xs sm:text-sm text-slate-300">' + z.label + ' <span class="text-[10px] text-slate-500">(' + z.satuan + ')</span></td>'
+                    + tds
+                    + '</tr>';
+            }).join('');
+
+            const headerCols = katList.map(function(kat) {
+                return '<th class="text-center py-2.5 px-2 text-[10px] sm:text-xs font-bold text-royal-400 uppercase tracking-wider">' + kat.label + '<br><span class="text-[9px] font-normal text-slate-400">' + kat.sub + '</span></th>';
             }).join('');
 
             return '<div class="glass-panel rounded-3xl overflow-hidden shadow-xl mb-6">'
                 + '<div class="p-4 sm:p-5 border-b border-slate-800 bg-slate-900/40 flex items-center justify-between">'
                 + '<h3 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">'
                 + '<svg class="w-5 h-5 text-royal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>'
-                + 'Kandungan Nilai Gizi Per Porsi'
+                + 'Kandungan Nilai Gizi Per Porsi (Lengkap)'
                 + '</h3>'
                 + '</div>'
-                + '<div class="grid grid-cols-3 py-2.5 px-4 bg-slate-900/85 text-[11px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-800">'
-                + '<span>Zat Gizi</span><span class="text-center">Porsi Kecil</span><span class="text-center text-royal-400">Porsi Besar</span>'
-                + '</div>'
-                + baris + '</div>';
+                + '<div class="overflow-x-auto"><table class="w-full text-left border-collapse">'
+                + '<thead><tr class="bg-slate-900/85 border-b border-slate-800"><th class="py-2.5 px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Zat Gizi</th>' + headerCols + '</tr></thead>'
+                + '<tbody>' + baris + '</tbody>'
+                + '</table></div></div>';
         }
 
         function blokHimbauan() {
@@ -289,8 +302,8 @@
                     + '</div>';
             }).join('');
 
-            return blokHimbauan()
-                + blokFoto(menu)
+            return blokFoto(menu)
+                + blokHimbauan()
                 + '<div class="mb-4 flex items-center justify-between px-1">'
                 + '<h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Susunan Menu Ompreng Hari Ini</h3>'
                 + (menu.pelengkap ? '<span class="text-xs font-medium text-royal-400 px-3 py-1 rounded-full bg-royal-500/10 border border-royal-500/20">Pelengkap: ' + esc(menu.pelengkap) + '</span>' : '')
@@ -354,7 +367,7 @@
             const elIsi = el('isi');
             if (menuAktif && menuAktif.makanan_pokok) {
                 const namaSppgText = menuAktif.nama_sppg || 'SPPG Deli Serdang Tanjung Gusta Sunggal';
-                const yayasanText = menuAktif.yayasan || 'Yayasan Pendidikan Supardi Dharma Utama';
+                const yayasanText = menuAktif.yayasan || 'Yayasan Tunas Ilmu Bantaeng';
 
                 el('nama-sppg').textContent = namaSppgText;
                 el('nama-yayasan').textContent = yayasanText + ' · Badan Gizi Nasional';

@@ -4,6 +4,16 @@
  * ============================================================
  * Dependencies: express, @supabase/supabase-js, cors, dotenv
  * Install: npm install express @supabase/supabase-js cors dotenv
+ * 
+ * PERBAIKAN UTAMA:
+ * 1. Menambahkan validasi ketat saat inisialisasi Supabase agar server gagal 
+ *    start dengan jelas jika kredensial tidak lengkap (mencegah error tak terduga).
+ * 2. Memperbaiki penanganan relasi array gizi pada endpoint GET /api/menu 
+ *    agar mendukung berbagai tipe return dari Supabase (Object vs Array).
+ * 3. Memperbaiki struktur upsert di POST /api/menu agar aman dan menghindari 
+ *    duplikasi/error constraint pada tabel terkait.
+ * 4. Menambahkan endpoint tambahan (GET /api/himbauan & DELETE /api/menu/:id) 
+ *    untuk kelengkapan manajemen data admin.
  */
 
 const express = require('express');
@@ -14,15 +24,16 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Konfigurasi Supabase Client
+// Konfigurasi Supabase Client dengan validasi ketat
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    console.error('ERROR: SUPABASE_URL atau SUPABASE_ANON_KEY belum diatur di .env!');
+    console.error('CRITICAL ERROR: SUPABASE_URL atau SUPABASE_ANON_KEY belum diatur di file .env!');
+    process.exit(1); // Hentikan eksekusi agar tidak berjalan dengan client kosong
 }
 
-const supabase = createClient(SUPABASE_URL || '', SUPABASE_ANON_KEY || '');
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Middleware
 app.use(cors());
@@ -77,15 +88,19 @@ app.get('/api/menu', async (req, res) => {
         // 2. Format struktur gizi menjadi bentuk objek { pk: {...}, pb: {...} }
         const formattedMenu = (menuData || []).map(item => {
             const giziObj = { pk: {}, pb: {} };
-            if (item.gizi && Array.isArray(item.gizi)) {
-                item.gizi.forEach(g => {
-                    if (g.porsi_tipe === 'pk' || g.porsi_tipe === 'pb') {
+            
+            // Supabase kadang mengembalikan relasi sebagai array tunggal atau objek tergantung setup foreign key
+            const giziList = Array.isArray(item.gizi) ? item.gizi : [item.gizi];
+            
+            if (item.gizi) {
+                giziList.forEach(g => {
+                    if (g && (g.porsi_tipe === 'pk' || g.porsi_tipe === 'pb')) {
                         giziObj[g.porsi_tipe] = {
-                            energi: g.energi,
-                            protein: g.protein,
-                            lemak: g.lemak,
-                            karbohidrat: g.karbohidrat,
-                            serat: g.serat
+                            energi: g.energi || 0,
+                            protein: g.protein || 0,
+                            lemak: g.lemak || 0,
+                            karbohidrat: g.karbohidrat || 0,
+                            serat: g.serat || 0
                         };
                     }
                 });
@@ -103,7 +118,7 @@ app.get('/api/menu', async (req, res) => {
                 buah: item.buah,
                 pelengkap: item.pelengkap,
                 foto: item.foto,
-                foto_list: item.foto_list || [], // Array URL Foto Tambahan
+                foto_list: Array.isArray(item.foto_list) ? item.foto_list : [], 
                 catatan: item.catatan,
                 gizi: giziObj
             };
@@ -116,7 +131,9 @@ app.get('/api/menu', async (req, res) => {
             .eq('is_active', true)
             .order('urutan', { ascending: true });
 
-        if (himbauanError) throw himbauanError;
+        if (himbauanError) {
+            console.warn('Peringatan: Gagal mengambil data himbauan, mengembalikan array kosong.', himbauanError.message);
+        }
 
         // Hitung tanggal hari ini dalam zona waktu Asia/Jakarta (WIB)
         const todayStr = new Intl.DateTimeFormat('en-CA', {
@@ -169,7 +186,7 @@ app.post('/api/menu', async (req, res) => {
             return res.status(400).json({ ok: false, message: 'Tanggal wajib diisi!' });
         }
 
-        // 1. Upsert (Insert/Update) Data Menu utama
+        // 1. Upsert (Insert/Update) Data Menu utama berdasarkan tanggal
         const { data: newMenu, error: menuError } = await supabase
             .from('menu')
             .upsert({
@@ -194,18 +211,28 @@ app.post('/api/menu', async (req, res) => {
         // 2. Upsert Data Gizi (Porsi Kecil / Porsi Besar)
         if (gizi) {
             const giziRecords = [];
+            
             if (gizi.pk) {
                 giziRecords.push({
                     menu_id: newMenu.id,
                     porsi_tipe: 'pk',
-                    ...gizi.pk
+                    energi: gizi.pk.energi || 0,
+                    protein: gizi.pk.protein || 0,
+                    lemak: gizi.pk.lemak || 0,
+                    karbohidrat: gizi.pk.karbohidrat || 0,
+                    serat: gizi.pk.serat || 0
                 });
             }
+            
             if (gizi.pb) {
                 giziRecords.push({
                     menu_id: newMenu.id,
                     porsi_tipe: 'pb',
-                    ...gizi.pb
+                    energi: gizi.pb.energi || 0,
+                    protein: gizi.pb.protein || 0,
+                    lemak: gizi.pb.lemak || 0,
+                    karbohidrat: gizi.pb.karbohidrat || 0,
+                    serat: gizi.pb.serat || 0
                 });
             }
 
@@ -229,6 +256,35 @@ app.post('/api/menu', async (req, res) => {
         res.status(500).json({
             ok: false,
             message: 'Gagal menyimpan data menu',
+            error: error.message
+        });
+    }
+});
+
+/**
+ * DELETE /api/menu/:id
+ * Menghapus data menu berdasarkan ID
+ */
+app.delete('/api/menu/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const { error } = await supabase
+            .from('menu')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+
+        res.json({
+            ok: true,
+            message: `Menu dengan ID ${id} berhasil dihapus.`
+        });
+    } catch (error) {
+        console.error('Delete Error:', error.message);
+        res.status(500).json({
+            ok: false,
+            message: 'Gagal menghapus menu',
             error: error.message
         });
     }

@@ -1,0 +1,1943 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MindHUB - Admin Dashboard & Payment Gateway</title>
+  
+  <!-- FAVICON & PWA METAS -->
+  <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon.ico">
+  <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon512.png">
+  <meta name="theme-color" content="#020617">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MindHUB">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; overflow-x: hidden; }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.25); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.5); }
+    
+    .view-section { display: none !important; }
+    .view-section.active { display: flex !important; }
+    .subview-section { display: none !important; }
+    .subview-section.active { display: block !important; }
+    
+    .glass-card {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    
+    .package-card {
+      transition: all 0.2s ease-in-out;
+      cursor: pointer;
+    }
+    .package-card.selected {
+      border-color: #6366f1;
+      background: rgba(99, 102, 241, 0.12);
+      box-shadow: 0 0 20px rgba(99, 102, 241, 0.2);
+    }
+    
+    .scrollbar-none::-webkit-scrollbar { display: none; }
+    .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-[100000] max-w-[90vw] w-auto px-5 py-3 rounded-2xl shadow-2xl border text-white font-bold text-xs sm:text-sm transition-all duration-300 -translate-y-20 opacity-0 pointer-events-none flex items-center gap-2"></div>
+
+  <!-- HIDDEN FILE INPUT -->
+  <input type="file" id="importFileInput" accept=".csv, .json" class="hidden" onchange="processImportFile(event)">
+
+  <!-- CONFIRM MODAL -->
+  <div id="customConfirmModal" class="fixed inset-0 z-[100000] bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4">
+    <div class="glass-card rounded-3xl shadow-2xl p-6 sm:p-7 max-w-sm w-full text-center border border-slate-800">
+      <div class="w-12 h-12 sm:w-14 sm:h-14 bg-amber-500/10 text-amber-500 rounded-2xl mx-auto flex items-center justify-center text-xl sm:text-2xl mb-4 font-bold border border-amber-500/20">⚠️</div>
+      <h3 id="modalConfirmTitle" class="text-sm sm:text-base font-bold text-white mb-2">Konfirmasi</h3>
+      <p id="modalConfirmMsg" class="text-xs text-slate-400 mb-6 leading-relaxed whitespace-pre-line"></p>
+      <div class="flex gap-3">
+        <button id="btnModalConfirmYes" class="flex-1 bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-bold py-3 rounded-xl text-xs transition shadow-lg shadow-brand-500/25">Ya</button>
+        <button id="btnModalConfirmNo" class="flex-1 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-bold py-3 rounded-xl text-xs transition border border-slate-700">Batal</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JSON BACKUP PREVIEW MODAL -->
+  <div id="jsonViewerModal" class="fixed inset-0 z-[100000] bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4">
+    <div class="glass-card rounded-3xl shadow-2xl p-5 sm:p-7 max-w-2xl w-full border border-slate-800 flex flex-col max-h-[85vh]">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">☁️</span>
+          <div>
+            <h3 id="jsonModalTitle" class="text-xs sm:text-sm font-bold text-white">Preview Cloud Backup JSON</h3>
+            <span id="jsonModalSubtitle" class="text-[10px] text-slate-400 block">Inspection Utility</span>
+          </div>
+        </div>
+        <button onclick="closeJsonPreviewModal()" class="w-8 h-8 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white flex items-center justify-center font-bold text-xs transition">✕</button>
+      </div>
+      <div class="my-4 flex-1 overflow-hidden flex flex-col">
+        <pre id="jsonPreviewContainer" class="bg-slate-950/90 p-4 rounded-2xl border border-slate-800/80 text-[11px] text-brand-400 font-mono overflow-auto flex-1 whitespace-pre-wrap leading-relaxed select-all scrollbar-none"></pre>
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button onclick="copyJsonPreview()" class="flex-1 bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-bold py-3 rounded-xl text-xs transition shadow-lg shadow-brand-500/25 flex items-center justify-center gap-1.5">📋 Salin JSON</button>
+        <button onclick="downloadBackupCloud()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3 rounded-xl text-xs transition flex items-center justify-center gap-1.5">📥 Download File</button>
+        <button onclick="closeJsonPreviewModal()" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 font-bold px-5 rounded-xl text-xs transition border border-slate-700">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="sidebarBackdrop" onclick="toggleSidebarMobile(false)" class="fixed inset-0 z-30 bg-slate-950/70 backdrop-blur-sm hidden lg:hidden transition-opacity duration-300 opacity-0"></div>
+
+  <!-- LOGIN VIEW -->
+  <div id="viewLandingPage" class="view-section active fixed inset-0 z-[9999] bg-slate-950 w-full h-full items-center justify-center p-4 overflow-y-auto">
+    <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/30 via-slate-950 to-slate-950 pointer-events-none"></div>
+    <div class="glass-card w-full max-w-md p-6 sm:p-8 rounded-3xl shadow-2xl relative z-10 border border-slate-800 my-auto">
+      <div class="text-center mb-6 sm:mb-8">
+        <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl mx-auto flex items-center justify-center mb-3 shadow-xl shadow-brand-500/30 border border-indigo-400/30 overflow-hidden bg-slate-900 p-1">
+          <img src="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon512.png" alt="MindHUB Logo" class="w-full h-full object-cover rounded-xl">
+        </div>
+        <h2 class="font-extrabold text-xl sm:text-2xl text-white tracking-tight">MindHUB</h2>
+        <p class="text-xs text-slate-400 mt-1">Secure Admin Gateway & Payment Hub</p>
+      </div>
+      <div class="space-y-4 sm:space-y-5 text-left">
+        <div>
+          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-2 tracking-wider">Master Password</label>
+          <input type="password" id="inputAdminPassword" placeholder="••••••••••••" class="w-full px-4 py-3 sm:py-3.5 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition" onkeyup="if(event.key==='Enter') verifikasiAdminPassword()">
+        </div>
+        <button id="btnLogin" onclick="verifikasiAdminPassword()" class="w-full bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 active:scale-[0.99] text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-xl shadow-brand-500/30 transition duration-200">
+          Authorize Access
+        </button>
+      </div>
+      <div class="mt-6 pt-4 border-t border-slate-800/80 text-center">
+        <span class="text-[10px] text-slate-500">Mindspace Studio &copy; 2026</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD APP -->
+  <div id="viewDashboardApp" class="view-section min-h-screen w-full flex-col lg:flex-row">
+    
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="w-72 glass-card border-r border-slate-800/80 flex flex-col fixed inset-y-0 left-0 z-40 transition-transform duration-300 -translate-x-full lg:translate-x-0">
+      <div class="h-20 flex items-center justify-between px-6 border-b border-slate-800/80">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-slate-900 border border-indigo-500/30 overflow-hidden p-0.5 shadow-md shadow-brand-500/20">
+            <img src="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon512.png" alt="MindHUB" class="w-full h-full object-cover rounded-lg">
+          </div>
+          <span class="font-extrabold text-lg text-white tracking-tight">MindHUB</span>
+        </div>
+        <button onclick="toggleSidebarMobile(false)" class="lg:hidden p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/50">✕</button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto px-4 py-6 space-y-1.5 scrollbar-none">
+        <div class="text-[10px] font-extrabold text-slate-500 uppercase px-3 mb-2 tracking-wider">Dashboard</div>
+        
+        <button onclick="bukaFitur('overview')" id="navOverview" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-brand-500/15 text-brand-400 text-xs font-bold transition border border-brand-500/30 shadow-sm">
+          <span class="text-base">⊞</span> Overview
+        </button>
+        <button onclick="bukaFitur('device')" id="navDevice" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
+          <span class="text-base">👥</span> Client Devices
+        </button>
+        <button onclick="bukaFitur('transfer')" id="navTransfer" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
+          <span class="text-base">🔄</span> Migrate Data
+        </button>
+
+        <div class="text-[10px] font-extrabold text-slate-500 uppercase px-3 mt-6 mb-2 tracking-wider">System Config</div>
+        <button onclick="bukaFitur('packages')" id="navPackages" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
+          <span class="text-base">📦</span> Pricing Plans
+        </button>
+        <button onclick="bukaFitur('vouchers')" id="navVouchers" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
+          <span class="text-base">🎟️</span> Promo Vouchers
+        </button>
+        <button onclick="bukaFitur('release')" id="navRelease" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
+          <span class="text-base">🚀</span> Cloud Updater
+        </button>
+
+        <button onclick="triggerPWAInstall()" class="pwa-install-btn nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs font-bold transition border border-indigo-500/20 mt-4">
+          <span class="text-base">📱</span> Install Android App
+        </button>
+      </div>
+
+      <div class="p-4 border-t border-slate-800/80">
+        <button onclick="logoutAdmin()" class="w-full bg-red-500/10 hover:bg-red-500/20 active:scale-95 text-red-400 py-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 border border-red-500/20">
+          <span>🚪</span> Logout Session
+        </button>
+      </div>
+    </aside>
+
+    <!-- CONTENT AREA -->
+    <div class="flex-1 lg:pl-72 flex flex-col min-h-screen w-full">
+      
+      <!-- HEADER -->
+      <header class="h-16 sm:h-20 glass-card border-b border-slate-800 px-4 sm:px-8 flex items-center justify-between sticky top-0 z-30">
+        <div class="flex items-center gap-3 sm:gap-4">
+          <button class="lg:hidden p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white active:scale-95 transition" onclick="toggleSidebarMobile(true)">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+          </button>
+          <h1 id="appTitle" class="font-extrabold text-xs sm:text-base text-white tracking-tight truncate max-w-[200px] sm:max-w-none">Hub Overview</h1>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-bold text-xs sm:text-sm shadow-lg shadow-brand-500/20 border border-indigo-400/30 overflow-hidden p-0.5">
+            <img src="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon32.png" alt="Admin Avatar" class="w-full h-full object-cover rounded-xl">
+          </div>
+        </div>
+      </header>
+
+      <!-- MAIN CONTAINER -->
+      <main class="flex-1 p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto">
+        
+        <!-- OVERVIEW -->
+        <div id="subViewMainMenu" class="subview-section active space-y-4 sm:space-y-6">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div class="lg:col-span-2 glass-card p-6 sm:p-8 rounded-3xl flex flex-col justify-center relative overflow-hidden border border-slate-800">
+              <div class="absolute -right-10 -top-10 w-48 h-48 sm:w-64 sm:h-64 bg-brand-500/15 rounded-full blur-3xl pointer-events-none"></div>
+              <h2 class="text-xl sm:text-2xl font-extrabold text-white mb-2 relative z-10">Welcome to MindHUB Base</h2>
+              <p class="text-slate-400 text-xs sm:text-sm max-w-md leading-relaxed relative z-10">All systems operational. Monitor device authorization, live statistics, and payment gateway synchronization in real-time.</p>
+            </div>
+            <div class="glass-card p-5 sm:p-6 rounded-3xl flex flex-col justify-between border border-slate-800">
+              <span class="text-[10px] sm:text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Monthly Revenue</span>
+              <h3 id="statRevBulan" class="text-2xl sm:text-3xl font-black text-white mt-2">Rp 0</h3>
+              <div class="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-slate-800">
+                <div>
+                  <span class="text-[10px] text-slate-500 uppercase font-bold">Today</span>
+                  <h4 id="statRevHari" class="text-xs sm:text-sm font-bold text-brand-400 mt-1">Rp 0</h4>
+                </div>
+                <div>
+                  <span class="text-[10px] text-slate-500 uppercase font-bold">This Week</span>
+                  <h4 id="statRevMinggu" class="text-xs sm:text-sm font-bold text-brand-400 mt-1">Rp 0</h4>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div class="lg:col-span-2 glass-card p-4 sm:p-6 rounded-3xl border border-slate-800">
+              <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+                <div>
+                  <div class="text-xs sm:text-sm font-bold text-slate-300 flex items-center gap-2">
+                    <span>📈 Revenue Trend</span>
+                  </div>
+                  <p class="text-[10px] text-slate-400 mt-0.5">Analisis tren pendapatan real-time</p>
+                </div>
+                <div class="flex bg-slate-900 p-1 rounded-xl border border-slate-800 text-[10px] font-bold">
+                  <button id="btnTf7d" onclick="setRevenueTimeframe('7d')" class="px-3 py-1 rounded-lg bg-brand-500 text-white transition shadow-md shadow-brand-500/20">7d</button>
+                  <button id="btnTf14d" onclick="setRevenueTimeframe('14d')" class="px-3 py-1 rounded-lg text-slate-400 hover:text-white transition">14d</button>
+                  <button id="btnTf1m" onclick="setRevenueTimeframe('1m')" class="px-3 py-1 rounded-lg text-slate-400 hover:text-white transition">1m</button>
+                </div>
+              </div>
+              
+              <!-- FULL WIDTH CHART CONTAINER WITH COMPACT TIGHT SPACING -->
+              <div class="w-full bg-slate-900/50 p-3 sm:p-5 rounded-2xl border border-slate-800/80 overflow-x-auto scrollbar-none">
+                <div id="chartBarsContainer" class="w-full min-w-[320px] flex items-end justify-between h-44 sm:h-48 pt-6 border-b border-slate-800/80 px-1 sm:px-2 gap-1 sm:gap-1.5"></div>
+              </div>
+            </div>
+            
+            <!-- LIVE HEARTBEAT SYSTEM STATUS CARD -->
+            <div class="glass-card p-5 sm:p-6 rounded-3xl border border-slate-800 flex flex-col justify-between relative overflow-hidden">
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="relative flex h-3 w-3">
+                      <span id="heartbeatPulseRing" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span id="heartbeatDot" class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                    </span>
+                    <h4 class="font-bold text-white text-xs sm:text-sm">MindHUB System Status</h4>
+                  </div>
+                  <span id="heartbeatLiveValue" class="text-[11px] font-mono font-extrabold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-lg">-- ms</span>
+                </div>
+                <p class="text-[11px] text-slate-400 leading-relaxed">Seluruh sistem, database lisensi, dan updater berjalan normal secara otomatis.</p>
+                
+                <!-- LIVE REALTIME HEARTBEAT CANVAS GRAPH -->
+                <div class="w-full bg-slate-950/80 rounded-2xl p-3 border border-slate-800/80 relative">
+                  <div class="flex items-center justify-between text-[9px] font-mono text-slate-500 mb-1">
+                    <span>LIVE LATENCY MONITOR</span>
+                    <span class="text-emerald-400 animate-pulse font-bold">1 Hz REALTIME</span>
+                  </div>
+                  <div class="w-full h-20 relative">
+                    <canvas id="heartbeatCanvas" class="w-full h-full block"></canvas>
+                  </div>
+                  <div class="flex justify-between items-center text-[9px] font-mono text-slate-500 mt-1 pt-1 border-t border-slate-900">
+                    <span id="hbMinMs">Min: --</span>
+                    <span id="hbAvgMs">Avg: --</span>
+                    <span id="hbMaxMs">Max: --</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-400">System Engine:</span>
+                <span id="systemEngineBadge" class="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold rounded-xl text-xs">Online</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <!-- TOTAL DOWNLOADS STAT CARD -->
+            <div class="glass-card p-4 sm:p-5 rounded-2xl border border-slate-800 flex items-center justify-between">
+              <div>
+                <span class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block">Total Script Downloads</span>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="relative flex h-2.5 w-2.5">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-500"></span>
+                  </span>
+                  <span class="text-xs font-bold text-brand-400">download.html Portal</span>
+                </div>
+              </div>
+              <div class="text-right">
+                <span id="statTotalDownloads" class="text-base sm:text-xl font-mono font-black text-emerald-400">0</span>
+                <span class="text-[9px] text-slate-500 block">Total Ditekan</span>
+              </div>
+            </div>
+
+            <div class="glass-card p-4 sm:p-5 rounded-2xl border border-slate-800 flex flex-col justify-between">
+              <div class="flex justify-between items-center">
+                <span class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">License Ratio</span>
+                <span id="statActiveRatio" class="text-[11px] font-bold text-brand-400">0% Active</span>
+              </div>
+              <div class="w-full bg-slate-900 rounded-full h-2 mt-3 overflow-hidden flex" id="licenseRatioBar">
+                <div class="bg-emerald-500 h-full transition-all duration-500" style="width: 0%"></div>
+                <div class="bg-amber-500 h-full transition-all duration-500" style="width: 0%"></div>
+                <div class="bg-red-500 h-full transition-all duration-500" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <div class="glass-card p-4 sm:p-5 rounded-2xl border border-slate-800 flex items-center justify-between">
+              <div>
+                <span class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block">Data Management</span>
+                <span class="text-xs text-slate-400 mt-0.5 block">CSV / JSON Sync</span>
+              </div>
+              <div class="flex gap-2">
+                <button onclick="exportLicensesCSV()" class="bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 active:scale-95 px-3 py-2 rounded-xl text-xs font-bold transition border border-indigo-500/20 flex items-center gap-1">📥 Export</button>
+                <button onclick="document.getElementById('importFileInput').click()" class="bg-brand-500/10 hover:bg-brand-500/20 text-brand-400 active:scale-95 px-3 py-2 rounded-xl text-xs font-bold transition border border-brand-500/20 flex items-center gap-1">📤 Import</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+            <div onclick="bukaFitur('device')" class="glass-card p-4 sm:p-5 rounded-2xl hover:border-brand-500/50 cursor-pointer transition group">
+              <div class="text-2xl mb-2 group-hover:scale-110 transition-transform">🔍</div>
+              <h3 class="font-bold text-white text-xs sm:text-sm">Client Devices</h3>
+              <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5">Manage licenses</p>
+            </div>
+            <div onclick="bukaFitur('transfer')" class="glass-card p-4 sm:p-5 rounded-2xl hover:border-brand-500/50 cursor-pointer transition group">
+              <div class="text-2xl mb-2 group-hover:scale-110 transition-transform">🔄</div>
+              <h3 class="font-bold text-white text-xs sm:text-sm">Migrate Device</h3>
+              <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5">Transfer data</p>
+            </div>
+            <div onclick="bukaFitur('packages')" class="glass-card p-4 sm:p-5 rounded-2xl hover:border-brand-500/50 cursor-pointer transition group">
+              <div class="text-2xl mb-2 group-hover:scale-110 transition-transform">📦</div>
+              <h3 class="font-bold text-white text-xs sm:text-sm">Pricing Plans</h3>
+              <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5">Subscription rates</p>
+            </div>
+            <div onclick="bukaFitur('vouchers')" class="glass-card p-4 sm:p-5 rounded-2xl hover:border-brand-500/50 cursor-pointer transition group">
+              <div class="text-2xl mb-2 group-hover:scale-110 transition-transform">🎟️</div>
+              <h3 class="font-bold text-white text-xs sm:text-sm">Promo Vouchers</h3>
+              <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5">Manage coupons</p>
+            </div>
+            <div onclick="bukaFitur('release')" class="glass-card p-4 sm:p-5 rounded-2xl hover:border-brand-500/50 cursor-pointer transition group">
+              <div class="text-2xl mb-2 group-hover:scale-110 transition-transform">🚀</div>
+              <h3 class="font-bold text-white text-xs sm:text-sm">Cloud Updater</h3>
+              <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5">Publish scripts</p>
+            </div>
+            <div onclick="triggerPWAInstall()" class="glass-card p-4 sm:p-5 rounded-2xl hover:border-brand-500/50 cursor-pointer transition group border-indigo-500/30">
+              <div class="text-2xl mb-2 group-hover:scale-110 transition-transform">📱</div>
+              <h3 class="font-bold text-white text-xs sm:text-sm">Install App</h3>
+              <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5">Android Native PWA</p>
+            </div>
+          </div>
+
+          <div class="glass-card p-5 rounded-2xl border border-slate-800 space-y-3">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+              <div class="flex items-center gap-2">
+                <span class="text-base">⚠️</span>
+                <span class="text-[11px] font-extrabold text-amber-400 uppercase tracking-wider">Licenses Expiring Soon (Next 7 Days)</span>
+              </div>
+              <button onclick="bukaFitur('device')" class="text-[10px] text-brand-400 font-bold hover:underline">View All Devices →</button>
+            </div>
+            <div id="expiringRadarContainer" class="space-y-2 max-h-48 overflow-y-auto">
+              <div class="text-center text-slate-500 text-xs py-4">Checking active license status...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DEVICE LIST -->
+        <div id="subViewDeviceCheck" class="subview-section space-y-4 max-w-4xl mx-auto">
+          <div class="glass-card p-5 sm:p-8 rounded-3xl space-y-4 border border-slate-800">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
+              <div class="sm:col-span-2">
+                <label class="block text-[10px] sm:text-xs font-bold text-slate-400 uppercase mb-2">Cari Device ID / SPPG</label>
+                <input type="text" id="searchUserQuery" placeholder="🔍 Ketik Device ID atau Nama SPPG..." class="w-full px-4 py-3 sm:py-3.5 rounded-2xl border border-slate-700 bg-slate-900/60 text-xs sm:text-sm text-white outline-none focus:border-brand-500 transition" oninput="filterUserList()">
+              </div>
+              <div>
+                <label class="block text-[10px] sm:text-xs font-bold text-slate-400 uppercase mb-2">Urutan / Sort</label>
+                <select id="sortDeviceOption" onchange="filterUserList()" class="w-full px-3 py-3 sm:py-3.5 rounded-2xl border border-slate-700 bg-slate-900/60 text-xs text-white outline-none focus:border-brand-500 transition">
+                  <option value="exp_asc">⚠️ Kadaluarsa Terdekat</option>
+                  <option value="exp_desc">⏳ Masa Aktif Terlama</option>
+                  <option value="name_asc">🔤 Device ID / Name A-Z</option>
+                  <option value="active_desc">⚡ Baru Saja Aktif</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="flex justify-between items-center flex-wrap gap-2 border-b border-slate-800/80 pb-3">
+              <div class="flex gap-2 overflow-x-auto scrollbar-none" id="filterTabsContainer">
+                <button class="px-3.5 py-2 rounded-xl bg-brand-500 text-white text-xs font-bold tab-btn active whitespace-nowrap" onclick="setFilterTab('all', this)">All</button>
+                <button class="px-3.5 py-2 rounded-xl bg-slate-800/80 text-slate-400 text-xs font-semibold tab-btn whitespace-nowrap" onclick="setFilterTab('active', this)">Active</button>
+                <button class="px-3.5 py-2 rounded-xl bg-slate-800/80 text-slate-400 text-xs font-semibold tab-btn whitespace-nowrap" onclick="setFilterTab('hold', this)">Hold</button>
+                <button class="px-3.5 py-2 rounded-xl bg-slate-800/80 text-slate-400 text-xs font-semibold tab-btn whitespace-nowrap" onclick="setFilterTab('expired', this)">Expired</button>
+                <button class="px-3.5 py-2 rounded-xl bg-slate-800/80 text-slate-400 text-xs font-semibold tab-btn whitespace-nowrap" onclick="setFilterTab('revoked', this)">Revoked</button>
+              </div>
+              <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-400 hover:text-white font-bold select-none px-2 py-1 bg-slate-900 rounded-xl border border-slate-800">
+                <input type="checkbox" id="chkSelectAllDevices" onchange="toggleSelectAllDevices(this.checked)" class="rounded border-slate-700 text-brand-500 focus:ring-0 bg-slate-950">
+                <span>Select All</span>
+              </label>
+            </div>
+
+            <div id="bulkActionsToolbar" class="hidden bg-slate-900/95 border border-brand-500/30 p-3 sm:p-4 rounded-2xl flex items-center justify-between flex-wrap gap-3 shadow-xl backdrop-blur-md">
+              <div class="text-xs text-slate-300 font-bold">
+                <span id="bulkSelectedCount" class="text-brand-400 font-extrabold text-sm">0</span> Device Dipilih
+              </div>
+              <div class="flex gap-2 flex-wrap text-xs">
+                <button onclick="bulkExtendDuration(7)" class="bg-brand-500/20 hover:bg-brand-500/30 text-brand-400 font-bold px-3 py-1.5 rounded-xl border border-brand-500/30 transition">+7 Hari</button>
+                <button onclick="bulkExtendDuration(30)" class="bg-brand-500/20 hover:bg-brand-500/30 text-brand-400 font-bold px-3 py-1.5 rounded-xl border border-brand-500/30 transition">+30 Hari</button>
+                <button onclick="bulkUpdateStatus('hold')" class="bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold px-3 py-1.5 rounded-xl border border-amber-500/30 transition">Set Hold</button>
+                <button onclick="bulkUpdateStatus('active')" class="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 font-bold px-3 py-1.5 rounded-xl border border-emerald-500/30 transition">Set Active</button>
+                <button onclick="bulkDeleteLicensesWithModal()" class="bg-red-500/20 hover:bg-red-500/30 text-red-400 font-bold px-3 py-1.5 rounded-xl border border-red-500/30 transition">🗑️ Hapus Batch</button>
+              </div>
+            </div>
+
+            <div class="space-y-2.5 max-h-[420px] overflow-y-auto" id="listAllUsersContainer">
+              <div class="text-center text-slate-500 text-xs py-10">Memuat data...</div>
+            </div>
+
+            <button onclick="bukaFitur('overview')" class="w-full bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-2xl text-xs font-bold transition border border-slate-700">🔙 Kembali ke Menu</button>
+          </div>
+        </div>
+
+        <!-- DEVICE DETAIL -->
+        <div id="subViewDeviceDetail" class="subview-section space-y-4 sm:space-y-6 max-w-2xl mx-auto">
+          <div class="glass-card p-5 sm:p-8 rounded-3xl space-y-5 border border-slate-800">
+            <div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-2 text-xs sm:text-sm">
+              <div class="flex justify-between items-center gap-2"><span>Device ID</span> <span id="dispDeviceId" class="text-amber-400 font-mono font-bold truncate max-w-[180px] sm:max-w-none">-</span></div>
+              <div class="flex justify-between items-center gap-2"><span>SPPG</span> <span id="dispSppgName" class="text-brand-400 font-bold truncate max-w-[180px] sm:max-w-none">-</span></div>
+              <div class="flex justify-between items-center gap-2"><span>Status</span> <span id="dispStatus">-</span></div>
+              <div class="flex justify-between items-center gap-2"><span>Exp Date</span> <span id="dispExpDate" class="text-white font-bold">-</span></div>
+              <div class="flex justify-between items-center gap-2"><span>Last Active</span> <span id="dispLastActive" class="text-slate-400">-</span></div>
+            </div>
+
+            <div class="bg-brand-500/10 p-4 sm:p-5 rounded-2xl border border-brand-500/20 space-y-3">
+              <div class="font-bold text-brand-400 text-xs uppercase tracking-wider flex items-center justify-between flex-wrap gap-1">
+                <span>🎫 Generate Voucher Device Ini</span>
+                <span class="text-[10px] text-slate-400 font-normal">(Single-use per Device ID)</span>
+              </div>
+              <div class="grid grid-cols-3 sm:grid-cols-6 gap-1.5 sm:gap-2">
+                <button onclick="generateVoucherDevice(1)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">1 Hari</button>
+                <button onclick="generateVoucherDevice(3)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">3 Hari</button>
+                <button onclick="generateVoucherDevice(7)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">7 Hari</button>
+                <button onclick="generateVoucherDevice(14)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">14 Hari</button>
+                <button onclick="generateVoucherDevice(30)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">30 Hari</button>
+                <button onclick="generateVoucherDevice(60)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">60 Hari</button>
+              </div>
+              <div class="flex gap-2">
+                <input type="text" id="dispGeneratedVoucher" readonly placeholder="MIND-XXXXXX-XXXXXX" class="flex-1 bg-slate-900/90 border border-slate-700 px-3 sm:px-4 py-2.5 rounded-xl font-mono text-xs sm:text-sm text-brand-400 font-bold text-center">
+                <button onclick="salinVoucherDevice()" class="bg-brand-500 hover:bg-brand-600 active:scale-95 text-white px-4 rounded-xl font-bold text-xs transition">Salin</button>
+              </div>
+            </div>
+
+            <div id="backupInfoCard" class="hidden bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-2 text-xs">
+              <div class="font-bold text-brand-400 uppercase tracking-wider flex items-center justify-between">
+                <span>Cloud Backup Data KPM</span>
+                <span class="text-[10px] text-emerald-400 font-mono">☁️ Verified (3D Auto-Purge)</span>
+              </div>
+              <div><b>Nama File:</b> <span id="dispBackupFilename" class="font-mono text-amber-400">-</span></div>
+              <div><b>Waktu Backup:</b> <span id="dispBackupTime" class="text-slate-400">-</span></div>
+              <div class="flex gap-2 pt-2">
+                <button onclick="previewBackupCloud()" class="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-1">👁️ Lihat JSON</button>
+                <button onclick="downloadBackupCloud()" class="flex-1 bg-brand-500 hover:bg-brand-600 text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-1">📥 Download</button>
+                <button onclick="hapusBackupCloudWithModal()" class="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold py-2.5 rounded-xl transition border border-red-500/20">🗑️ Hapus</button>
+              </div>
+            </div>
+
+            <div class="space-y-4 pt-2">
+              <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Edit SPPG Name</label>
+                <input type="text" id="editSppgName" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Aksi Cepat Tambah Durasi</label>
+                <div class="grid grid-cols-3 sm:grid-cols-6 gap-1.5 sm:gap-2">
+                  <button onclick="tambahHari(1)" class="bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-xl text-xs font-bold">+1H</button>
+                  <button onclick="tambahHari(7)" class="bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-xl text-xs font-bold">+7H</button>
+                  <button onclick="tambahHari(14)" class="bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-xl text-xs font-bold">+14H</button>
+                  <button onclick="tambahHari(30)" class="bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-xl text-xs font-bold">+30H</button>
+                  <button onclick="tambahHari(60)" class="bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-xl text-xs font-bold">+60H</button>
+                  <button onclick="setLifetime()" class="bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-xl text-xs font-bold">♾️</button>
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Manual Exp Date</label>
+                <input type="date" id="editExpDate" onchange="cekOtomatisStatusTanggal()" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">License Status</label>
+                <select id="editStatus" onchange="ubahStatusDropdown(this.value)" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
+                  <option value="active">Active</option>
+                  <option value="hold">Hold</option>
+                  <option value="revoked">Revoked</option>
+                  <option value="expired">Expired</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="pt-4 space-y-3">
+              <button onclick="simpanPerubahanLisensi()" class="w-full bg-brand-500 hover:bg-brand-600 active:scale-[0.99] text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-brand-500/25 transition">Save Configuration</button>
+              <div class="flex gap-3">
+                <button onclick="hapusLisensiWithModal()" class="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 py-3 rounded-2xl text-xs font-bold transition border border-red-500/20">Delete License</button>
+                <button onclick="bukaFitur('device')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-2xl text-xs font-bold transition">Back to List</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MIGRATION -->
+        <div id="subViewTransferDevice" class="subview-section max-w-xl mx-auto space-y-4">
+          <div class="glass-card p-5 sm:p-8 rounded-3xl space-y-4 border border-slate-800">
+            <div class="bg-brand-500/10 border border-brand-500/20 p-4 rounded-2xl text-xs text-slate-300 leading-relaxed">
+              <b>Migrasi Device ID:</b> Memindahkan masa aktif, status lisensi, nama SPPG, dan backup cloud dari <b>Device Asal</b> ke <b>Device Baru</b>.
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Device ID Asal</label>
+              <input type="text" id="inputSourceDevice" placeholder="DEV-XXXX" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs font-mono uppercase">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Device ID Tujuan (Baru)</label>
+              <input type="text" id="inputTargetDevice" placeholder="DEV-YYYY" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs font-mono uppercase">
+            </div>
+            <div class="flex gap-3 pt-2">
+              <button onclick="eksekusiOperDeviceWithModal()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white py-3.5 px-6 rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-amber-500/20 transition">🚀 Migrasi Sekarang</button>
+              <button onclick="bukaFitur('overview')" class="w-32 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 py-3.5 px-5 rounded-2xl text-xs sm:text-sm font-bold transition border border-slate-700 flex items-center justify-center gap-2"><span>🏠</span> Menu</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- PACKAGES (PRICING PLANS) -->
+        <div id="subViewPackages" class="subview-section max-w-2xl mx-auto space-y-4">
+          <div class="glass-card p-5 sm:p-8 rounded-3xl space-y-4 border border-slate-800">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <label class="font-bold text-xs uppercase text-slate-300">Daftar Paket Langganan</label>
+                <p class="text-[11px] text-slate-400">Atur nama paket, durasi hari, dan nominal harga langganan.</p>
+              </div>
+              <button onclick="tambahBarisPaketForm()" class="bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-bold px-4 py-3.5 rounded-2xl text-xs sm:text-sm transition shadow-lg shadow-brand-500/20 flex items-center justify-center gap-1.5">+ Tambah Paket</button>
+            </div>
+            <div id="containerListPaket" class="space-y-3 max-h-[450px] overflow-y-auto pr-1"></div>
+            <div class="flex gap-3 pt-2">
+              <button onclick="simpanPengaturanPaketServer()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white py-3.5 px-6 rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2">💾 Simpan Paket</button>
+              <button onclick="bukaFitur('overview')" class="w-32 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 py-3.5 px-5 rounded-2xl text-xs sm:text-sm font-bold transition border border-slate-700 flex items-center justify-center gap-2"><span>🏠</span> Menu</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- VOUCHERS -->
+        <div id="subViewVouchers" class="subview-section max-w-3xl mx-auto space-y-4">
+          <div class="glass-card p-5 sm:p-8 rounded-3xl space-y-4 border border-slate-800">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <label class="font-bold text-xs uppercase text-slate-300">Kode Kupon & Voucher Promo</label>
+                <p class="text-[11px] text-slate-400">Atur diskon persentase, nominal tetap (Rp), atau bonus hari yang otomatis terhubung ke pembayaran klien.</p>
+              </div>
+              <button onclick="tambahBarisVoucherForm()" class="bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-bold px-4 py-3.5 rounded-2xl text-xs sm:text-sm transition shadow-lg shadow-brand-500/20 flex items-center justify-center gap-1.5">+ Tambah Voucher</button>
+            </div>
+            <div id="containerListVoucher" class="space-y-3 max-h-[450px] overflow-y-auto pr-1"></div>
+            <div class="flex gap-3 pt-2">
+              <button onclick="simpanPengaturanVoucherServer()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white py-3.5 px-6 rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2">💾 Simpan Semua Voucher</button>
+              <button onclick="bukaFitur('overview')" class="w-32 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 py-3.5 px-5 rounded-2xl text-xs sm:text-sm font-bold transition border border-slate-700 flex items-center justify-center gap-2"><span>🏠</span> Menu</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- RELEASE UPDATER -->
+        <div id="subViewRelease" class="subview-section max-w-xl mx-auto space-y-4">
+          <div class="glass-card p-5 sm:p-8 rounded-3xl space-y-4 border border-slate-800">
+            <div class="bg-indigo-500/10 border border-indigo-500/20 p-4 rounded-2xl text-xs text-slate-300">
+              In-app userscript release metadata updater.
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Versi Terbaru</label>
+              <input type="text" id="inputReleaseVersion" placeholder="1.5.48" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-400 uppercase mb-2">URL Download File (.user.js)</label>
+              <input type="url" id="inputDownloadUrl" placeholder="https://..." class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Changelog</label>
+              <textarea id="inputChangelog" rows="4" placeholder="- Perbaikan bug&#10;- Peningkatan performa" onkeydown="handleChangelogAutoBullet(event)" onfocus="if(!this.value) this.value='- ';" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs font-mono"></textarea>
+            </div>
+            <div class="flex gap-3 pt-2">
+              <button onclick="simpanUpdateReleaseServer()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white py-3.5 px-6 rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2">🚀 Rilis Update</button>
+              <button onclick="bukaFitur('overview')" class="w-32 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 py-3.5 px-5 rounded-2xl text-xs sm:text-sm font-bold transition border border-slate-700 flex items-center justify-center gap-2"><span>🏠</span> Menu</button>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const VERCEL_API_URL = 'https://mindspace-id.vercel.app/api/tokopay';
+    const VERIFY_PASS_URL = 'https://mindspace-id.vercel.app/api/verify-pass';
+    const SECRET_SALT = 'MINDSTUDIO2026';
+
+    let adminPasswordSecret = '';
+    let globalUserList = [];
+    let selectedDeviceIds = [];
+    let currentStatusFilter = 'all';
+    let currentLicenseData = null;
+    let currentBackupPayload = null;
+    let confirmCallbackFn = null;
+    let deferredPrompt = null;
+    let activeTimeframe = '7d';
+    let globalStatsData = null;
+    
+    // HEARTBEAT MONITOR STATE
+    let heartbeatPoints = new Array(30).fill(40);
+    let heartbeatInterval = null;
+
+    /* HELPER FORMAT TANGGAL & WAKTU */
+    function formatTanggalIndo(dateStr) {
+      if (!dateStr || dateStr === '-') return '-';
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+
+    function formatWaktuRelatif(dateStr) {
+      if (!dateStr) return '-';
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      const now = new Date();
+      const diffSec = Math.floor((now - d) / 1000);
+      if (diffSec < 60) return 'Baru saja';
+      if (diffSec < 3600) return `${Math.floor(diffSec / 60)} menit lalu`;
+      if (diffSec < 86400) return `${Math.floor(diffSec / 3600)} jam lalu`;
+      return formatTanggalIndo(dateStr);
+    }
+
+    /* SYSTEM HEALTH PING & LIVE HEARTBEAT MONITOR */
+    function initLiveHeartbeatGraph() {
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
+      
+      const canvas = document.getElementById('heartbeatCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+
+      const resizeCanvas = () => {
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * (window.devicePixelRatio || 1);
+        canvas.height = rect.height * (window.devicePixelRatio || 1);
+        ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+      };
+      resizeCanvas();
+
+      const drawHeartbeat = () => {
+        const w = canvas.getBoundingClientRect().width;
+        const h = canvas.getBoundingClientRect().height;
+        ctx.clearRect(0, 0, w, h);
+
+        // Draw grid lines
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+        ctx.lineWidth = 1;
+        for (let y = 0; y < h; y += 12) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(w, y);
+          ctx.stroke();
+        }
+
+        if (heartbeatPoints.length < 2) return;
+
+        const maxPing = Math.max(...heartbeatPoints, 120);
+        const minPing = Math.min(...heartbeatPoints, 10);
+        const stepX = w / (heartbeatPoints.length - 1);
+
+        // Gradient fill under line
+        const grad = ctx.createLinearGradient(0, 0, 0, h);
+        grad.addColorStop(0, 'rgba(16, 185, 129, 0.35)');
+        grad.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+
+        ctx.beginPath();
+        heartbeatPoints.forEach((val, i) => {
+          const x = i * stepX;
+          const normalized = (val - Math.min(minPing, 20)) / (maxPing - Math.min(minPing, 20) || 1);
+          const y = h - (normalized * (h - 16) + 8);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+
+        // Line styling
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 2;
+        ctx.shadowColor = '#10b981';
+        ctx.shadowBlur = 8;
+        ctx.stroke();
+
+        // Fill area below
+        ctx.lineTo(w, h);
+        ctx.lineTo(0, h);
+        ctx.closePath();
+        ctx.fillStyle = grad;
+        ctx.shadowBlur = 0;
+        ctx.fill();
+
+        // Pulse dot at the latest point
+        const lastIndex = heartbeatPoints.length - 1;
+        const lastX = lastIndex * stepX;
+        const lastNorm = (heartbeatPoints[lastIndex] - Math.min(minPing, 20)) / (maxPing - Math.min(minPing, 20) || 1);
+        const lastY = h - (lastNorm * (h - 16) + 8);
+
+        ctx.beginPath();
+        ctx.arc(lastX, lastY, 4, 0, Math.PI * 2);
+        ctx.fillStyle = '#34d399';
+        ctx.shadowColor = '#34d399';
+        ctx.shadowBlur = 10;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      };
+
+      const updatePulsePing = async () => {
+        const start = performance.now();
+        let currentLatency = 35;
+        let isSuccess = true;
+
+        try {
+          const res = await fetch(`${VERCEL_API_URL}?action=check_license&device_id=PING_${Date.now()}`, { cache: 'no-store' });
+          const end = performance.now();
+          currentLatency = Math.round(end - start);
+          if (!res.ok) isSuccess = false;
+        } catch (e) {
+          currentLatency = Math.round(performance.now() - start) || 180;
+          isSuccess = false;
+        }
+
+        heartbeatPoints.shift();
+        heartbeatPoints.push(currentLatency);
+
+        // Update Stats UI
+        const minVal = Math.min(...heartbeatPoints);
+        const maxVal = Math.max(...heartbeatPoints);
+        const avgVal = Math.round(heartbeatPoints.reduce((a, b) => a + b, 0) / heartbeatPoints.length);
+
+        const hbVal = document.getElementById('heartbeatLiveValue');
+        const statPingMs = document.getElementById('statPingMs');
+        const minEl = document.getElementById('hbMinMs');
+        const maxEl = document.getElementById('hbMaxMs');
+        const avgEl = document.getElementById('hbAvgMs');
+        const dot = document.getElementById('heartbeatDot');
+        const ring = document.getElementById('heartbeatPulseRing');
+        const badge = document.getElementById('systemEngineBadge');
+
+        if (hbVal) hbVal.textContent = `${currentLatency} ms`;
+        if (statPingMs) statPingMs.textContent = `${currentLatency} ms`;
+        if (minEl) minEl.textContent = `Min: ${minVal}ms`;
+        if (maxEl) maxEl.textContent = `Max: ${maxVal}ms`;
+        if (avgEl) avgEl.textContent = `Avg: ${avgVal}ms`;
+
+        if (!isSuccess || currentLatency > 250) {
+          if (dot) dot.className = 'relative inline-flex rounded-full h-3 w-3 bg-amber-500';
+          if (ring) ring.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75';
+          if (hbVal) hbVal.className = 'text-[11px] font-mono font-extrabold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-lg';
+          if (badge) {
+            badge.textContent = 'Degraded';
+            badge.className = 'px-3 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 font-bold rounded-xl text-xs';
+          }
+        } else {
+          if (dot) dot.className = 'relative inline-flex rounded-full h-3 w-3 bg-emerald-500';
+          if (ring) ring.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75';
+          if (hbVal) hbVal.className = 'text-[11px] font-mono font-extrabold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-lg';
+          if (badge) {
+            badge.textContent = 'Online';
+            badge.className = 'px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold rounded-xl text-xs';
+          }
+        }
+
+        drawHeartbeat();
+      };
+
+      updatePulsePing();
+      heartbeatInterval = setInterval(updatePulsePing, 1000);
+      window.addEventListener('resize', () => {
+        resizeCanvas();
+        drawHeartbeat();
+      });
+    }
+
+    async function checkSystemHealth() {
+      initLiveHeartbeatGraph();
+    }
+
+    /* CSV EXPORT */
+    function exportLicensesCSV() {
+      if (!globalUserList || globalUserList.length === 0) {
+        return showToast('Tidak ada data lisensi untuk diexport', false);
+      }
+      let csvContent = 'data:text/csv;charset=utf-8,Device ID,Nama SPPG,Status,Exp Date,Last Active\n';
+      globalUserList.forEach(u => {
+        const row = [
+          `"${u.device_id || ''}"`,
+          `"${(u.sppg_name || '').replace(/"/g, '""')}"`,
+          `"${u.status || 'active'}"`,
+          `"${u.exp_date || ''}"`,
+          `"${u.last_active || u.last_seen || u.updated_at || ''}"`
+        ].join(',');
+        csvContent += row + '\n';
+      });
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement('a');
+      link.setAttribute('href', encodedUri);
+      link.setAttribute('download', `mindhub_licenses_${new Date().toISOString().slice(0,10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast('Data lisensi berhasil diexport ke CSV!');
+    }
+
+    /* IMPORT FILE */
+    async function processImportFile(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async (evt) => {
+        try {
+          const content = evt.target.result;
+          let licensesToImport = [];
+          if (file.name.toLowerCase().endsWith('.json')) {
+            const json = JSON.parse(content);
+            licensesToImport = Array.isArray(json) ? json : (json.licenses || json.users || []);
+          } else {
+            const lines = content.split('\n').map(l => l.trim()).filter(l => l);
+            if (lines.length <= 1) return showToast('File CSV kosong atau tidak valid', false);
+            for (let i = 1; i < lines.length; i++) {
+              const cols = lines[i].split(',').map(c => c.replace(/^"|"$/g, '').trim());
+              if (cols[0]) {
+                licensesToImport.push({
+                  device_id: cols[0],
+                  sppg_name: cols[1] || '',
+                  status: cols[2] || 'active',
+                  exp_date: cols[3] || '',
+                  last_active: cols[4] || new Date().toISOString()
+                });
+              }
+            }
+          }
+          if (licensesToImport.length === 0) return showToast('Tidak ada data lisensi valid', false);
+
+          showConfirmModal('Import Data Lisensi', `Ditemukan ${licensesToImport.length} data. Lanjutkan proses import ke server?`, async () => {
+            showToast('Proses impor sedang berjalan...', true);
+            let successCount = 0;
+            for (const lic of licensesToImport) {
+              try {
+                const res = await fetch(VERCEL_API_URL, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    action: 'save_license',
+                    device_id: lic.device_id,
+                    sppg_name: lic.sppg_name || '',
+                    status: lic.status || 'active',
+                    exp_date: lic.exp_date || '',
+                    license_key: buatLicenseKey(lic.exp_date || '2099-12-31', lic.device_id),
+                    admin_secret: adminPasswordSecret
+                  })
+                });
+                if (res.ok) successCount++;
+              } catch (err) {}
+            }
+            showToast(`Import selesai: ${successCount} dari ${licensesToImport.length} berhasil!`);
+            muatDaftarSemuaUser();
+          });
+        } catch (err) {
+          showToast('Gagal membaca atau memproses file import', false);
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    }
+
+    function renderExpiringRadar() {
+      const container = document.getElementById('expiringRadarContainer');
+      if (!container) return;
+      const hariIniDate = new Date();
+      const batasRadarDate = new Date();
+      batasRadarDate.setDate(hariIniDate.getDate() + 7);
+
+      const expiringUsers = globalUserList.filter(u => {
+        if (!u.exp_date || u.exp_date === '-' || u.status === 'revoked' || u.status === 'hold') return false;
+        const d = new Date(u.exp_date);
+        return !isNaN(d.getTime()) && d >= hariIniDate && d <= batasRadarDate;
+      });
+
+      container.innerHTML = '';
+      if (expiringUsers.length === 0) {
+        container.innerHTML = `<div class="text-center py-4 bg-slate-900/50 rounded-xl border border-slate-800/60"><span class="text-xs text-emerald-400 font-bold">✨ Semua Lisensi Aman (> 7 Hari)</span></div>`;
+        return;
+      }
+      expiringUsers.forEach(u => {
+        const div = document.createElement('div');
+        div.className = 'bg-slate-900/80 border border-amber-500/20 p-3 rounded-xl flex items-center justify-between text-xs gap-2';
+        div.innerHTML = `
+          <div class="min-w-0 flex-1">
+            <div class="font-mono text-amber-400 font-bold truncate">${u.device_id}</div>
+            <div class="text-[11px] text-white font-medium truncate">${u.sppg_name || 'Unnamed'}</div>
+          </div>
+          <div class="text-right shrink-0">
+            <div class="text-[10px] text-slate-400">Exp: <b class="text-white">${formatTanggalIndo(u.exp_date)}</b></div>
+            <button onclick="quickRenewDevice('${u.device_id}', 7)" class="mt-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold px-2.5 py-1 rounded-lg text-[10px] transition border border-amber-500/30">+7 Hari</button>
+          </div>`;
+        container.appendChild(div);
+      });
+    }
+
+    async function quickRenewDevice(deviceId, days) {
+      const userObj = globalUserList.find(u => u.device_id === deviceId);
+      if (!userObj) return;
+      let baseDate = new Date();
+      if (userObj.exp_date && userObj.exp_date !== '-') {
+        const parsed = new Date(userObj.exp_date);
+        if (!isNaN(parsed.getTime()) && parsed > baseDate) baseDate = parsed;
+      }
+      baseDate.setDate(baseDate.getDate() + days);
+      const yyyy = baseDate.getFullYear();
+      const mm = String(baseDate.getMonth() + 1).padStart(2, '0');
+      const dd = String(baseDate.getDate()).padStart(2, '0');
+
+      const updatedObj = { ...userObj, exp_date: `${yyyy}-${mm}-${dd}`, status: 'active', license_key: buatLicenseKey(`${yyyy}-${mm}-${dd}`, deviceId) };
+      try {
+        const res = await fetch(VERCEL_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save_license', ...updatedObj })
+        });
+        if (res.ok) {
+          showToast(`Lisensi ${deviceId} diperpanjang +${days} hari!`);
+          muatDaftarSemuaUser();
+        } else showToast('Gagal memperpanjang lisensi', false);
+      } catch (e) { showToast('Network Error', false); }
+    }
+
+    function updateLicenseRatio() {
+      if (!globalUserList || globalUserList.length === 0) return;
+      const total = globalUserList.length;
+      let active = 0, hold = 0, expired = 0;
+      const hariIni = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+
+      globalUserList.forEach(u => {
+        let st = u.status || 'active';
+        if (st === 'active' && u.exp_date && hariIni > u.exp_date) st = 'expired';
+        if (st === 'active') active++;
+        else if (st === 'hold') hold++;
+        else expired++;
+      });
+
+      const activePct = Math.round((active / total) * 100);
+      const holdPct = Math.round((hold / total) * 100);
+      const expPct = Math.round((expired / total) * 100);
+
+      const ratioText = document.getElementById('statActiveRatio');
+      if (ratioText) ratioText.textContent = `${activePct}% Active (${active}/${total})`;
+
+      const bar = document.getElementById('licenseRatioBar');
+      if (bar && bar.children.length >= 3) {
+        bar.children[0].style.width = `${activePct}%`;
+        bar.children[1].style.width = `${holdPct}%`;
+        bar.children[2].style.width = `${expPct}%`;
+      }
+    }
+
+    function handleChangelogAutoBullet(e) {
+      const textarea = e.target;
+      if (e.key === 'Enter') {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const val = textarea.value;
+        const lastLineBreak = val.lastIndexOf('\n', start - 1);
+        const currentLine = val.substring(lastLineBreak + 1, start);
+        const match = currentLine.match(/^(\s*[-•*]\s*)/);
+        if (match) {
+          e.preventDefault();
+          const bullet = match[1];
+          const trimmedLine = currentLine.trim();
+          if (trimmedLine === '-' || trimmedLine === '•' || trimmedLine === '*') {
+            textarea.value = val.substring(0, lastLineBreak < 0 ? 0 : lastLineBreak) + val.substring(end);
+            textarea.selectionStart = textarea.selectionEnd = lastLineBreak < 0 ? 0 : lastLineBreak;
+          } else {
+            const prefix = bullet.endsWith(' ') ? bullet : bullet + ' ';
+            const insertText = '\n' + prefix;
+            textarea.value = val.substring(0, start) + insertText + val.substring(end);
+            textarea.selectionStart = textarea.selectionEnd = start + insertText.length;
+          }
+        }
+      }
+    }
+
+    function toggleSidebarMobile(show) {
+      const sidebar = document.getElementById('sidebar');
+      const backdrop = document.getElementById('sidebarBackdrop');
+      if (show) {
+        sidebar.classList.remove('-translate-x-full');
+        backdrop.classList.remove('hidden');
+        setTimeout(() => backdrop.classList.remove('opacity-0'), 10);
+      } else {
+        sidebar.classList.add('-translate-x-full');
+        backdrop.classList.add('opacity-0');
+        setTimeout(() => backdrop.classList.add('hidden'), 300);
+      }
+    }
+
+    function showConfirmModal(title, message, onConfirm) {
+      document.getElementById('modalConfirmTitle').textContent = title;
+      document.getElementById('modalConfirmMsg').textContent = message;
+      confirmCallbackFn = onConfirm;
+      document.getElementById('customConfirmModal').classList.remove('hidden');
+      document.getElementById('customConfirmModal').classList.add('flex');
+    }
+    
+    document.getElementById('btnModalConfirmYes').onclick = () => {
+      document.getElementById('customConfirmModal').classList.remove('flex');
+      document.getElementById('customConfirmModal').classList.add('hidden');
+      if (confirmCallbackFn) {
+        const fn = confirmCallbackFn;
+        confirmCallbackFn = null;
+        fn();
+      }
+    };
+    
+    document.getElementById('btnModalConfirmNo').onclick = () => {
+      confirmCallbackFn = null;
+      document.getElementById('customConfirmModal').classList.remove('flex');
+      document.getElementById('customConfirmModal').classList.add('hidden');
+    };
+
+    function showToast(msg, isSuccess = true) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = `fixed top-4 left-1/2 -translate-x-1/2 z-[100000] max-w-[90vw] w-auto px-5 py-3 rounded-2xl shadow-2xl border text-white font-bold text-xs sm:text-sm transition-all duration-300 translate-y-0 opacity-100 ${isSuccess ? 'bg-emerald-600 border-emerald-500' : 'bg-red-600 border-red-500'}`;
+      setTimeout(() => {
+        t.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-[100000] max-w-[90vw] w-auto px-5 py-3 rounded-2xl shadow-2xl border text-white font-bold text-xs sm:text-sm transition-all duration-300 -translate-y-20 opacity-0 pointer-events-none';
+      }, 3000);
+    }
+
+    function gantiView(viewId) {
+      document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+      document.getElementById(viewId).classList.add('active');
+    }
+
+    function gantiSubView(subId) {
+      document.querySelectorAll('.subview-section').forEach(el => el.classList.remove('active'));
+      document.getElementById(subId).classList.add('active');
+      toggleSidebarMobile(false);
+    }
+
+    function highlightActiveNav(activeId) {
+      const navIds = ['navOverview', 'navDevice', 'navTransfer', 'navPackages', 'navVouchers', 'navRelease'];
+      navIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (id === activeId) {
+          el.className = 'nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-brand-500/15 text-brand-400 text-xs font-bold transition border border-brand-500/30 shadow-sm';
+        } else {
+          el.className = 'nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent';
+        }
+      });
+    }
+
+    function bukaFitur(fitur) {
+      if (fitur === 'overview') {
+        highlightActiveNav('navOverview');
+        gantiSubView('subViewMainMenu');
+        document.getElementById('appTitle').textContent = 'Hub Overview';
+        muatStatistikDashboard();
+        checkSystemHealth();
+        muatDaftarSemuaUser();
+      } else if (fitur === 'device') {
+        highlightActiveNav('navDevice');
+        document.getElementById('searchUserQuery').value = '';
+        gantiSubView('subViewDeviceCheck');
+        document.getElementById('appTitle').textContent = 'Client Devices';
+        muatDaftarSemuaUser();
+      } else if (fitur === 'transfer') {
+        highlightActiveNav('navTransfer');
+        document.getElementById('inputSourceDevice').value = '';
+        document.getElementById('inputTargetDevice').value = '';
+        gantiSubView('subViewTransferDevice');
+        document.getElementById('appTitle').textContent = 'Migrate Device';
+      } else if (fitur === 'packages') {
+        highlightActiveNav('navPackages');
+        gantiSubView('subViewPackages');
+        document.getElementById('appTitle').textContent = 'Pricing Plans';
+        muatDataPaketServer();
+      } else if (fitur === 'vouchers') {
+        highlightActiveNav('navVouchers');
+        gantiSubView('subViewVouchers');
+        document.getElementById('appTitle').textContent = 'Promo Vouchers';
+        muatDataVoucherServer();
+      } else if (fitur === 'release') {
+        highlightActiveNav('navRelease');
+        gantiSubView('subViewRelease');
+        document.getElementById('appTitle').textContent = 'Cloud Updater';
+        muatDataReleaseServer();
+      }
+    }
+
+    async function verifikasiAdminPassword() {
+      const pass = document.getElementById('inputAdminPassword').value.trim();
+      const btn = document.getElementById('btnLogin');
+      if (!pass) return showToast('Master Password required', false);
+      btn.disabled = true; btn.textContent = 'Verifying...';
+      try {
+        const res = await fetch(VERIFY_PASS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: pass })
+        });
+        const data = await res.json();
+        if (res.ok && data.status) {
+          adminPasswordSecret = pass;
+          gantiView('viewDashboardApp');
+          bukaFitur('overview');
+          showToast('Access Granted');
+        } else {
+          showToast(data.error || 'Access Denied', false);
+        }
+      } catch (e) {
+        showToast('Connection error', false);
+      } finally {
+        btn.disabled = false; btn.textContent = 'Authorize Access';
+      }
+    }
+
+    function logoutAdmin() {
+      adminPasswordSecret = '';
+      document.getElementById('inputAdminPassword').value = '';
+      gantiView('viewLandingPage');
+      showToast('Logged out securely');
+    }
+
+    async function muatStatistikDashboard() {
+      try {
+        const res = await fetch(`${VERCEL_API_URL}?action=get_stats`);
+        const data = await res.json();
+        globalStatsData = data;
+        document.getElementById('statRevHari').textContent = `Rp ${(data.harian || 0).toLocaleString('id-ID')}`;
+        document.getElementById('statRevMinggu').textContent = `Rp ${(data.mingguan || 0).toLocaleString('id-ID')}`;
+        document.getElementById('statRevBulan').textContent = `Rp ${(data.bulanan || 0).toLocaleString('id-ID')}`;
+
+        const totalDl = data.total_downloads !== undefined ? data.total_downloads : (data.download_count || 0);
+        const dlEl = document.getElementById('statTotalDownloads');
+        if (dlEl) dlEl.textContent = Number(totalDl).toLocaleString('id-ID');
+
+        renderRevenueChart();
+      } catch (e) {}
+    }
+
+    function setRevenueTimeframe(timeframe) {
+      activeTimeframe = timeframe;
+      ['7d', '14d', '1m'].forEach(tf => {
+        const btn = document.getElementById(`btnTf${tf}`);
+        if (!btn) return;
+        if (tf === timeframe) {
+          btn.className = 'px-3 py-1 rounded-lg bg-brand-500 text-white transition shadow-md shadow-brand-500/20';
+        } else {
+          btn.className = 'px-3 py-1 rounded-lg text-slate-400 hover:text-white transition';
+        }
+      });
+      renderRevenueChart();
+    }
+
+    function renderRevenueChart() {
+      const chartContainer = document.getElementById('chartBarsContainer');
+      if (!chartContainer) return;
+      chartContainer.innerHTML = '';
+
+      let rawChartData = [];
+      if (globalStatsData) {
+        if (activeTimeframe === '7d') rawChartData = globalStatsData.chart_harian || [];
+        else if (activeTimeframe === '14d') rawChartData = globalStatsData.chart_14d || globalStatsData.chart_harian || [];
+        else if (activeTimeframe === '1m') rawChartData = globalStatsData.chart_30d || globalStatsData.chart_harian || [];
+      }
+
+      let totalDays = 7;
+      if (activeTimeframe === '14d') totalDays = 14;
+      else if (activeTimeframe === '1m') totalDays = 30;
+
+      let chartData = [];
+      if (Array.isArray(rawChartData) && rawChartData.length >= totalDays) {
+        chartData = rawChartData.slice(-totalDays);
+      } else {
+        chartData = new Array(totalDays).fill(0);
+        if (Array.isArray(rawChartData)) {
+          const offset = totalDays - rawChartData.length;
+          rawChartData.forEach((val, i) => {
+            if (i + offset >= 0 && i + offset < totalDays) {
+              chartData[i + offset] = val;
+            }
+          });
+        }
+      }
+
+      const maxVal = Math.max(...chartData, 1000);
+      const now = new Date();
+
+      chartData.forEach((val, idx) => {
+        const daysAgo = totalDays - 1 - idx;
+        const targetDate = new Date(now.getTime() - (daysAgo * 86400000));
+        
+        let dateLabel = daysAgo === 0 ? 'Hari Ini' : targetDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+        const tinggiPersen = Math.round((val / maxVal) * 80);
+        
+        const group = document.createElement('div');
+        // Menggunakan flex-1 dan max-w agar setiap batang fleksibel memenuhi kontainer dengan jarak rapat-rapat
+        group.className = 'flex flex-col items-center shrink-0 flex-1 h-full justify-end group/bar relative min-w-[12px]';
+        
+        const labelHtml = activeTimeframe === '1m' ? '' : `<div class="text-[9px] text-slate-500 mt-2 font-mono whitespace-nowrap">${dateLabel}</div>`;
+
+        group.innerHTML = `
+          <div class="w-full min-w-[10px] bg-gradient-to-t from-brand-600 via-indigo-500 to-purple-400 hover:from-brand-500 hover:via-indigo-400 hover:to-purple-300 rounded-t-xl transition-all duration-300 cursor-pointer shadow-[0_0_15px_rgba(99,102,241,0.25)] hover:shadow-[0_0_20px_rgba(168,85,247,0.4)] relative border-t border-purple-300/40" style="height: ${Math.max(8, tinggiPersen)}px;">
+            <div class="opacity-0 group-hover/bar:opacity-100 pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-900/95 text-slate-100 text-[10px] font-bold px-2.5 py-1 rounded-xl border border-indigo-500/40 shadow-xl whitespace-nowrap z-30 transition-all backdrop-blur-md">
+              ${dateLabel}: Rp ${val.toLocaleString('id-ID')}
+            </div>
+          </div>
+          ${labelHtml}
+        `;
+        chartContainer.appendChild(group);
+      });
+    }
+
+    async function muatDaftarSemuaUser() {
+      const container = document.getElementById('listAllUsersContainer');
+      if (container) container.innerHTML = '<div class="text-center text-slate-500 text-xs py-10">Fetching secure data...</div>';
+      try {
+        const res = await fetch(`${VERCEL_API_URL}?action=get_all_licenses`, { method: 'GET', headers: { 'Accept': 'application/json' } });
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        
+        const textData = await res.text();
+        let data;
+        try {
+          data = JSON.parse(textData);
+        } catch (err) {
+          throw new Error('Invalid JSON response from server');
+        }
+
+        globalUserList = Array.isArray(data) ? data : (data.licenses || data.users || data.data || []);
+        selectedDeviceIds = [];
+        updateBulkToolbarUI();
+        filterUserList();
+        renderExpiringRadar();
+        updateLicenseRatio();
+      } catch (e) { 
+        console.error("Sync error:", e);
+        globalUserList = [];
+        if (container) container.innerHTML = '<div class="text-center text-red-400 text-xs py-10">⚠️ Sync Failed / Server Timeout. Silakan refresh halaman atau periksa koneksi API.</div>'; 
+      }
+    }
+
+    function setFilterTab(status, btn) {
+      document.querySelectorAll('#filterTabsContainer button').forEach(b => {
+        b.className = 'px-3.5 py-2 rounded-xl bg-slate-800/80 text-slate-400 text-xs font-semibold tab-btn whitespace-nowrap';
+      });
+      btn.className = 'px-3.5 py-2 rounded-xl bg-brand-500 text-white text-xs font-bold tab-btn active whitespace-nowrap';
+      currentStatusFilter = status;
+      filterUserList();
+    }
+
+    function toggleSelectDevice(deviceId, checked, event) {
+      if (event) event.stopPropagation();
+      if (checked) {
+        if (!selectedDeviceIds.includes(deviceId)) selectedDeviceIds.push(deviceId);
+      } else {
+        selectedDeviceIds = selectedDeviceIds.filter(id => id !== deviceId);
+      }
+      updateBulkToolbarUI();
+    }
+
+    function toggleSelectAllDevices(checked) {
+      const visibleCheckboxes = document.querySelectorAll('.device-checkbox');
+      selectedDeviceIds = [];
+      visibleCheckboxes.forEach(chk => {
+        chk.checked = checked;
+        if (checked) selectedDeviceIds.push(chk.dataset.deviceId);
+      });
+      updateBulkToolbarUI();
+    }
+
+    function updateBulkToolbarUI() {
+      const toolbar = document.getElementById('bulkActionsToolbar');
+      const countEl = document.getElementById('bulkSelectedCount');
+      if (!toolbar || !countEl) return;
+      if (selectedDeviceIds.length > 0) {
+        countEl.textContent = selectedDeviceIds.length;
+        toolbar.classList.remove('hidden');
+      } else {
+        toolbar.classList.add('hidden');
+        const chkAll = document.getElementById('chkSelectAllDevices');
+        if (chkAll) chkAll.checked = false;
+      }
+    }
+
+    async function bulkExtendDuration(days) {
+      if (selectedDeviceIds.length === 0) return;
+      showToast(`Extending ${selectedDeviceIds.length} licenses (+${days} days)...`, true);
+      let success = 0;
+      for (const id of selectedDeviceIds) {
+        const userObj = globalUserList.find(u => u.device_id === id);
+        if (userObj) {
+          let baseDate = new Date();
+          if (userObj.exp_date && userObj.exp_date !== '-') {
+            const parsed = new Date(userObj.exp_date);
+            if (!isNaN(parsed.getTime()) && parsed > baseDate) baseDate = parsed;
+          }
+          baseDate.setDate(baseDate.getDate() + days);
+          const yyyy = baseDate.getFullYear();
+          const mm = String(baseDate.getMonth() + 1).padStart(2, '0');
+          const dd = String(baseDate.getDate()).padStart(2, '0');
+          const updated = { ...userObj, exp_date: `${yyyy}-${mm}-${dd}`, status: 'active', license_key: buatLicenseKey(`${yyyy}-${mm}-${dd}`, id) };
+          try {
+            const res = await fetch(VERCEL_API_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'save_license', ...updated })
+            });
+            if (res.ok) success++;
+          } catch (e) {}
+        }
+      }
+      showToast(`Batch update finished: ${success} of ${selectedDeviceIds.length} updated.`);
+      muatDaftarSemuaUser();
+    }
+
+    async function bulkUpdateStatus(statusStr) {
+      if (selectedDeviceIds.length === 0) return;
+      showToast(`Updating status to ${statusStr.toUpperCase()} for ${selectedDeviceIds.length} items...`, true);
+      let success = 0;
+      for (const id of selectedDeviceIds) {
+        const userObj = globalUserList.find(u => u.device_id === id);
+        if (userObj) {
+          const updated = { ...userObj, status: statusStr, license_key: buatLicenseKey(userObj.exp_date || '2026-12-31', id) };
+          try {
+            const res = await fetch(VERCEL_API_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'save_license', ...updated })
+            });
+            if (res.ok) success++;
+          } catch (e) {}
+        }
+      }
+      showToast(`Batch status set to ${statusStr}: ${success} licenses updated.`);
+      muatDaftarSemuaUser();
+    }
+
+    function bulkDeleteLicensesWithModal() {
+      if (selectedDeviceIds.length === 0) return;
+      showConfirmModal('🚨 Hapus Batch Lisensi', `Apakah Anda yakin ingin MENGHAPUS ${selectedDeviceIds.length} lisensi terpilih secara permanen?\n\nTindakan ini tidak dapat dibatalkan!`, async () => {
+        showToast(`Deleting ${selectedDeviceIds.length} licenses...`, true);
+        let success = 0;
+        for (const id of selectedDeviceIds) {
+          try {
+            const res = await fetch(VERCEL_API_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'delete_license', device_id: id, admin_secret: adminPasswordSecret })
+            });
+            if (res.ok) success++;
+          } catch (e) {}
+        }
+        showToast(`Bulk delete complete: ${success} licenses removed.`);
+        muatDaftarSemuaUser();
+      });
+    }
+
+    function filterUserList() {
+      const query = document.getElementById('searchUserQuery').value.trim().toLowerCase();
+      const sortOpt = document.getElementById('sortDeviceOption')?.value || 'exp_asc';
+      const hariIni = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+      
+      let filtered = globalUserList.filter(u => {
+        const matchQ = (u.device_id || '').toLowerCase().includes(query) || (u.sppg_name || '').toLowerCase().includes(query);
+        let stat = u.status || 'active';
+        if (stat === 'active' && u.exp_date && hariIni > u.exp_date) stat = 'expired';
+        const matchS = currentStatusFilter === 'all' || stat === currentStatusFilter;
+        return matchQ && matchS;
+      });
+
+      filtered.sort((a, b) => {
+        if (sortOpt === 'exp_asc') return (a.exp_date || '9999').localeCompare(b.exp_date || '9999');
+        else if (sortOpt === 'exp_desc') return (b.exp_date || '0000').localeCompare(a.exp_date || '0000');
+        else if (sortOpt === 'name_asc') return (a.device_id || '').localeCompare(b.device_id || '');
+        else if (sortOpt === 'active_desc') return (b.last_active || b.updated_at || '0').localeCompare(a.last_active || a.updated_at || '0');
+        return 0;
+      });
+
+      const container = document.getElementById('listAllUsersContainer');
+      if (!container) return;
+      container.innerHTML = '';
+      if (filtered.length === 0) return container.innerHTML = '<div class="text-center text-slate-500 text-xs py-10">No records found.</div>';
+
+      filtered.forEach(u => {
+        let stat = u.status || 'active';
+        if (stat === 'active' && u.exp_date && hariIni > u.exp_date) stat = 'expired';
+
+        let badge = '';
+        if (stat === 'active') badge = '<span class="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold uppercase">Active</span>';
+        else if (stat === 'hold') badge = '<span class="px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-bold uppercase">Hold</span>';
+        else if (stat === 'expired') badge = '<span class="px-2.5 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 text-[10px] font-bold uppercase">Expired</span>';
+        else if (stat === 'revoked') badge = '<span class="px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 text-[10px] font-bold uppercase">Revoked</span>';
+
+        const isChecked = selectedDeviceIds.includes(u.device_id);
+        const div = document.createElement('div');
+        div.className = `bg-slate-900/60 hover:bg-slate-800/80 border ${isChecked ? 'border-brand-500/80 bg-brand-500/5' : 'border-slate-800/80'} p-3.5 sm:p-4 rounded-2xl cursor-pointer flex justify-between items-center transition gap-3`;
+        div.innerHTML = `
+          <div class="flex items-center gap-3 min-w-0 flex-1">
+            <input type="checkbox" data-device-id="${u.device_id}" ${isChecked ? 'checked' : ''} onclick="toggleSelectDevice('${u.device_id}', this.checked, event)" class="device-checkbox w-4 h-4 rounded border-slate-700 text-brand-500 focus:ring-0 bg-slate-950 shrink-0">
+            <div class="min-w-0 flex-1">
+              <div class="text-xs text-brand-400 font-mono font-bold truncate">${u.device_id}</div>
+              <div class="text-xs sm:text-sm text-white font-semibold mt-0.5 truncate">${u.sppg_name || 'Unnamed Client'}</div>
+              <div class="text-[10px] text-slate-500 mt-0.5">s/d: ${formatTanggalIndo(u.exp_date)}</div>
+            </div>
+          </div>
+          <div class="shrink-0">${badge}</div>`;
+        div.onclick = (e) => {
+          if (e.target.tagName !== 'INPUT') pilihUser(u, stat);
+        };
+        container.appendChild(div);
+      });
+    }
+
+    function pilihUser(u, stat) {
+      gantiSubView('subViewDeviceDetail');
+      document.getElementById('appTitle').textContent = 'License Detail';
+      document.getElementById('dispGeneratedVoucher').value = '';
+      currentLicenseData = { ...u, status: stat };
+      renderDetail();
+      muatBackupDevice(u.device_id);
+    }
+
+    function renderDetail() {
+      document.getElementById('dispDeviceId').textContent = currentLicenseData.device_id;
+      document.getElementById('dispSppgName').textContent = currentLicenseData.sppg_name || '-';
+      document.getElementById('dispExpDate').textContent = formatTanggalIndo(currentLicenseData.exp_date);
+      document.getElementById('dispLastActive').textContent = formatWaktuRelatif(currentLicenseData.last_active || currentLicenseData.last_seen || currentLicenseData.updated_at);
+      document.getElementById('editSppgName').value = currentLicenseData.sppg_name || '';
+      document.getElementById('editExpDate').value = currentLicenseData.exp_date || '';
+      document.getElementById('editStatus').value = currentLicenseData.status;
+
+      let badge = '';
+      if (currentLicenseData.status === 'active') badge = '<span class="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold uppercase">Active</span>';
+      else if (currentLicenseData.status === 'hold') badge = '<span class="px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-bold uppercase">Hold</span>';
+      else if (currentLicenseData.status === 'expired') badge = '<span class="px-2.5 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 text-[10px] font-bold uppercase">Expired</span>';
+      else if (currentLicenseData.status === 'revoked') badge = '<span class="px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 text-[10px] font-bold uppercase">Revoked</span>';
+      document.getElementById('dispStatus').innerHTML = badge;
+    }
+
+    function ubahStatusDropdown(val) { currentLicenseData.status = val; renderDetail(); }
+    function cekOtomatisStatusTanggal() {
+      const v = document.getElementById('editExpDate').value;
+      if (v) currentLicenseData.exp_date = v;
+      renderDetail();
+    }
+
+    async function generateVoucherDevice(numDays) {
+      if (!currentLicenseData || !currentLicenseData.device_id) return showToast('Pilih Device ID terlebih dahulu', false);
+      const p1 = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const p2 = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const code = `MIND-${p1}-${p2}`;
+      const voucherInput = document.getElementById('dispGeneratedVoucher');
+      voucherInput.value = '⏳ Generating...';
+
+      const voucherExpDate = new Date();
+      voucherExpDate.setDate(voucherExpDate.getDate() + 30);
+      const expDateStr = voucherExpDate.toISOString().slice(0, 10);
+
+      try {
+        const resGet = await fetch(`${VERCEL_API_URL}?action=get_vouchers`);
+        let vouchersList = [];
+        if (resGet.ok) {
+          const dataGet = await resGet.json();
+          vouchersList = dataGet.vouchers || [];
+        }
+        const newVoucher = {
+          code: code,
+          type: 'days',
+          discount_type: 'days',
+          value: numDays,
+          discount_value: numDays,
+          days: numDays,
+          hours: numDays * 24,
+          duration: numDays,
+          quota: 1,
+          used_count: 0,
+          exp_date: expDateStr,
+          device_id: currentLicenseData.device_id,
+          is_single_use: true,
+          is_device_specific: true,
+          created_at: new Date().toISOString()
+        };
+        vouchersList.push(newVoucher);
+        const resSave = await fetch(VERCEL_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save_vouchers', vouchers: vouchersList, admin_secret: adminPasswordSecret })
+        });
+        const resultSave = await resSave.json();
+        if (resSave.ok && (resultSave.success || resultSave.status)) {
+          voucherInput.value = code;
+          showToast(`Voucher ${code} (${numDays} Hari) berhasil dibuat khusus ${currentLicenseData.device_id}!`);
+        } else {
+          voucherInput.value = code;
+          showToast(`Voucher ${code} dibuat di lokal, gagal simpan server.`, false);
+        }
+      } catch (e) {
+        voucherInput.value = code;
+        showToast('Gagal menyimpan voucher ke server.', false);
+      }
+    }
+
+    function salinVoucherDevice() {
+      const val = document.getElementById('dispGeneratedVoucher').value;
+      if (!val || val.includes('Generating')) return;
+      document.execCommand ? (function(){
+        const el = document.createElement('textarea');
+        el.value = val;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+      })() : navigator.clipboard.writeText(val);
+      showToast('Copied to clipboard');
+    }
+
+    function buatLicenseKey(exp, did) {
+      const nonce = Math.floor(Math.random() * 16777215).toString(16).toUpperCase();
+      return `MIND-${btoa(`${exp}|${did}|ADMIN|${SECRET_SALT}|${nonce}`).split('').reverse().join('')}`;
+    }
+
+    function tambahHari(jumlahHari) {
+      let baseDate = new Date();
+      if (currentLicenseData.exp_date && currentLicenseData.exp_date !== '-') {
+        const parts = currentLicenseData.exp_date.split('-');
+        if (parts.length === 3) {
+          const parsed = new Date(parts[0], parts[1] - 1, parts[2]);
+          if (!isNaN(parsed.getTime()) && parsed > baseDate) baseDate = parsed;
+        }
+      }
+      baseDate.setDate(baseDate.getDate() + jumlahHari);
+      const yyyy = baseDate.getFullYear();
+      const mm = String(baseDate.getMonth() + 1).padStart(2, '0');
+      const dd = String(baseDate.getDate()).padStart(2, '0');
+      currentLicenseData.exp_date = `${yyyy}-${mm}-${dd}`;
+      currentLicenseData.status = 'active';
+      renderDetail();
+      showToast(`Duration added (+${jumlahHari} days)`);
+    }
+
+    function setLifetime() {
+      currentLicenseData.exp_date = '2099-12-31';
+      currentLicenseData.status = 'active';
+      renderDetail();
+      showToast('Duration set to Lifetime');
+    }
+
+    async function simpanPerubahanLisensi() {
+      currentLicenseData.exp_date = document.getElementById('editExpDate').value;
+      currentLicenseData.status = document.getElementById('editStatus').value;
+      currentLicenseData.sppg_name = document.getElementById('editSppgName').value.trim();
+      currentLicenseData.license_key = buatLicenseKey(currentLicenseData.exp_date, currentLicenseData.device_id);
+
+      try {
+        const res = await fetch(VERCEL_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save_license', ...currentLicenseData })
+        });
+        if (res.ok) {
+          showToast('License updated!');
+          renderDetail();
+        } else showToast('Update failed', false);
+      } catch (e) { showToast('Network Error', false); }
+    }
+
+    function hapusLisensiWithModal() {
+      if (!currentLicenseData || !currentLicenseData.device_id) return;
+      const deviceId = currentLicenseData.device_id;
+      const sppgName = currentLicenseData.sppg_name || 'Client';
+      showConfirmModal('🚨 Menghapus Lisensi Device', `Apakah Anda yakin ingin MENGHAPUS PERMANEN lisensi ini?\n\n• Device ID: ${deviceId}\n• SPPG: ${sppgName}`, async () => {
+        try {
+          const res = await fetch(VERCEL_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'delete_license', device_id: deviceId, admin_secret: adminPasswordSecret })
+          });
+          if (res.ok) {
+            showToast(`Lisensi ${deviceId} berhasil dihapus!`);
+            bukaFitur('device');
+          } else showToast('Gagal menghapus lisensi dari server.', false);
+        } catch (e) { showToast('Network error', false); }
+      });
+    }
+
+    async function muatBackupDevice(deviceId) {
+      const card = document.getElementById('backupInfoCard');
+      if (!card) return;
+      card.classList.add('hidden');
+      currentBackupPayload = null;
+
+      try {
+        const res = await fetch(`${VERCEL_API_URL}?action=get_backup&device_id=${encodeURIComponent(deviceId)}&_t=${Date.now()}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        let backupData = null;
+        if (data && data.backup_data !== undefined) backupData = data.backup_data;
+        else if (data && data.backup !== undefined) backupData = data.backup;
+        else if (data && data.data !== undefined) backupData = data.data;
+        else backupData = data;
+
+        if (typeof backupData === 'string') {
+          try { backupData = JSON.parse(backupData); } catch (e) {}
+        }
+        const isErrorResponse = data && (data.error || data.status === false || data.found === false);
+        const isValidPayload = backupData && typeof backupData === 'object' && Object.keys(backupData).length > 0 && !isErrorResponse;
+
+        if (isValidPayload) {
+          const timeVal = data.created_at || data.updated_at || data.timestamp;
+          if (timeVal) {
+            const backupDate = new Date(timeVal);
+            const now = new Date();
+            const diffMs = now.getTime() - backupDate.getTime();
+            const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+            if (!isNaN(backupDate.getTime()) && diffMs > THREE_DAYS_MS) {
+              try {
+                await fetch(VERCEL_API_URL, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ action: 'delete_backup', device_id: deviceId, admin_secret: adminPasswordSecret })
+                });
+              } catch (e) {}
+              return;
+            }
+          }
+          currentBackupPayload = backupData;
+          document.getElementById('dispBackupFilename').textContent = `sipgn-backup-${deviceId}.json`;
+          document.getElementById('dispBackupTime').textContent = formatWaktuRelatif(timeVal || new Date().toISOString());
+          card.classList.remove('hidden');
+        }
+      } catch (e) {}
+    }
+
+    function previewBackupCloud() {
+      if (!currentBackupPayload) return showToast('No backup available', false);
+      const deviceId = currentLicenseData ? currentLicenseData.device_id : 'backup';
+      const modal = document.getElementById('jsonViewerModal');
+      document.getElementById('jsonPreviewContainer').textContent = JSON.stringify(currentBackupPayload, null, 2);
+      document.getElementById('jsonModalTitle').textContent = `Backup JSON: ${deviceId}`;
+      document.getElementById('jsonModalSubtitle').textContent = `File: sipgn-backup-${deviceId}.json`;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeJsonPreviewModal() {
+      const modal = document.getElementById('jsonViewerModal');
+      modal.classList.remove('flex');
+      modal.classList.add('hidden');
+    }
+
+    function copyJsonPreview() {
+      if (!currentBackupPayload) return;
+      const val = JSON.stringify(currentBackupPayload, null, 2);
+      document.execCommand ? (function(){
+        const el = document.createElement('textarea');
+        el.value = val;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+      })() : navigator.clipboard.writeText(val);
+      showToast('JSON Backup copied to clipboard!');
+    }
+
+    function downloadBackupCloud() {
+      if (!currentBackupPayload) return showToast('No backup available', false);
+      const deviceId = currentLicenseData ? currentLicenseData.device_id : 'backup';
+      const blob = new Blob([JSON.stringify(currentBackupPayload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sipgn-autofill-backup-${deviceId}.json`;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function hapusBackupCloudWithModal() {
+      if (!currentLicenseData) return;
+      showConfirmModal('Delete Cloud Backup', `Delete backup for device ${currentLicenseData.device_id}?`, async () => {
+        try {
+          const res = await fetch(VERCEL_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'delete_backup', device_id: currentLicenseData.device_id, admin_secret: adminPasswordSecret })
+          });
+          if (res.ok) {
+            showToast('Backup deleted');
+            document.getElementById('backupInfoCard').classList.add('hidden');
+            closeJsonPreviewModal();
+          }
+        } catch (e) {}
+      });
+    }
+
+    function eksekusiOperDeviceWithModal() {
+      const sourceId = document.getElementById('inputSourceDevice').value.trim().toUpperCase();
+      const targetId = document.getElementById('inputTargetDevice').value.trim().toUpperCase();
+      if (!sourceId || !targetId) return showToast('Enter Source & Target Device IDs', false);
+      showConfirmModal('Migrate License', `Transfer license from ${sourceId} to ${targetId}?`, async () => {
+        try {
+          const res = await fetch(VERCEL_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'transfer_device', source_device_id: sourceId, target_device_id: targetId, admin_secret: adminPasswordSecret })
+          });
+          const data = await res.json();
+          if (res.ok && (data.success || data.status)) {
+            showToast('Migration successful!');
+            bukaFitur('device');
+          } else showToast(data.error || 'Migration failed', false);
+        } catch (e) { showToast('Network Error', false); }
+      });
+    }
+
+    async function muatDataPaketServer() {
+      try {
+        const res = await fetch(`${VERCEL_API_URL}?action=get_packages`);
+        const data = await res.json();
+        const list = data.packages || [];
+        const container = document.getElementById('containerListPaket');
+        container.innerHTML = '';
+        if (list.length === 0) tambahBarisPaketForm('Paket 7 Hari', 7, 25000);
+        else list.forEach(p => tambahBarisPaketForm(p.nama, p.hari, p.harga));
+      } catch (err) { showToast('Failed to load packages', false); }
+    }
+
+    function tambahBarisPaketForm(nama = '', hari = '', harga = '') {
+      const container = document.getElementById('containerListPaket');
+      const div = document.createElement('div');
+      div.className = 'p-3.5 sm:p-4 rounded-2xl bg-slate-900/80 border border-slate-800/90 space-y-3 sm:space-y-0 sm:flex sm:items-center sm:gap-3 transition hover:border-slate-700';
+      div.innerHTML = `
+        <div class="grid grid-cols-12 gap-2 sm:flex-1">
+          <div class="col-span-12 sm:col-span-5">
+            <label class="block text-[9px] text-slate-500 font-extrabold uppercase mb-1">Nama Paket</label>
+            <input type="text" class="inp-nama w-full px-3 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-600 font-semibold outline-none focus:border-brand-500 transition" value="${nama}" placeholder="Contoh: Paket VIP">
+          </div>
+          <div class="col-span-5 sm:col-span-3">
+            <label class="block text-[9px] text-slate-500 font-extrabold uppercase mb-1">Durasi (Hari)</label>
+            <input type="number" class="inp-hari w-full px-3 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-600 font-semibold outline-none focus:border-brand-500 transition" value="${hari}" placeholder="30">
+          </div>
+          <div class="col-span-7 sm:col-span-4">
+            <label class="block text-[9px] text-slate-500 font-extrabold uppercase mb-1">Harga (Rp)</label>
+            <input type="number" class="inp-harga w-full px-3 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-brand-400 font-mono font-bold placeholder-slate-600 outline-none focus:border-brand-500 transition" value="${harga}" placeholder="50000">
+          </div>
+        </div>
+        <div class="flex justify-end sm:block shrink-0 pt-1 sm:pt-4">
+          <button onclick="this.closest('.p-3.5, .p-4').remove()" class="w-full sm:w-9 h-9 bg-red-500/15 hover:bg-red-500/25 active:scale-95 text-red-400 border border-red-500/20 rounded-xl font-bold flex items-center justify-center gap-1 text-xs transition">✕</button>
+        </div>`;
+      container.appendChild(div);
+    }
+
+    async function simpanPengaturanPaketServer() {
+      const rows = document.querySelectorAll('#containerListPaket > div');
+      const packages = [];
+      rows.forEach(r => {
+        const nama = r.querySelector('.inp-nama').value.trim();
+        const hari = Number(r.querySelector('.inp-hari').value);
+        const harga = Number(r.querySelector('.inp-harga').value);
+        if (nama) packages.push({ nama, hari, harga });
+      });
+      try {
+        const res = await fetch(VERCEL_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save_packages', packages, admin_secret: adminPasswordSecret })
+        });
+        const result = await res.json();
+        if (res.ok && (result.success || result.status)) { showToast('Packages saved!'); muatDataPaketServer(); }
+        else showToast('Save failed', false);
+      } catch (err) { showToast('Network Error', false); }
+    }
+
+    async function muatDataVoucherServer() {
+      try {
+        const res = await fetch(`${VERCEL_API_URL}?action=get_vouchers`);
+        const data = await res.json();
+        const allVouchers = data.vouchers || [];
+        const list = allVouchers.filter(v => !v.is_device_specific && (!v.device_id || v.device_id === 'ALL' || v.device_id === ''));
+        const container = document.getElementById('containerListVoucher');
+        container.innerHTML = '';
+        if (list.length === 0) {
+          tambahBarisVoucherForm('PROMO50', 'percent', 50, 100, 0, '2026-12-31', 'ALL');
+        } else {
+          const todayStr = new Date().toISOString().slice(0, 10);
+          list.forEach(v => {
+            const isExpired = (v.exp_date && v.exp_date < todayStr) || (v.quota && v.used_count >= v.quota);
+            tambahBarisVoucherForm(v.code, v.type || v.discount_type || 'percent', v.value !== undefined ? v.value : (v.discount_value || 0), v.quota || 100, v.used_count || 0, v.exp_date || '2026-12-31', v.device_id || 'ALL', isExpired);
+          });
+        }
+      } catch (err) { showToast('Failed to load vouchers', false); }
+    }
+
+    function tambahBarisVoucherForm(code = '', type = 'percent', value = '', quota = 100, used_count = 0, exp_date = '', device_id = 'ALL', isExpired = false) {
+      const container = document.getElementById('containerListVoucher');
+      const div = document.createElement('div');
+      div.className = `p-3 rounded-2xl border ${isExpired ? 'bg-red-950/20 border-red-500/30' : 'bg-slate-900/80 border-slate-800'} space-y-2.5 transition`;
+      const defaultExp = exp_date || new Date(Date.now() + 30*24*60*60*1000).toISOString().slice(0, 10);
+      div.innerHTML = `
+        <div class="flex items-center justify-between gap-2 flex-wrap">
+          <div class="flex items-center gap-2 flex-1 min-w-[180px]">
+            <input type="text" class="inp-code px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-brand-400 font-mono font-bold uppercase w-full" value="${code}" placeholder="KODE">
+            ${isExpired ? '<span class="px-2 py-0.5 rounded bg-red-500/20 text-red-400 text-[9px] font-bold uppercase border border-red-500/30">Expired</span>' : ''}
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] text-slate-500 font-mono">Pakai: <b class="text-slate-300">${used_count}</b> /</span>
+            <input type="number" class="inp-quota w-20 px-2 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white text-center" value="${quota}">
+            <button onclick="this.closest('.p-3').remove()" class="w-8 h-8 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 rounded-xl font-bold flex items-center justify-center transition">✕</button>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+          <div>
+            <label class="block text-[9px] text-slate-500 font-extrabold uppercase mb-1">Tipe Promo</label>
+            <select class="inp-type w-full px-2 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white">
+              <option value="percent" ${type==='percent'?'selected':''}>Diskon (%)</option>
+              <option value="fixed" ${type==='fixed'?'selected':''}>Diskon (Rp)</option>
+              <option value="days" ${type==='days'?'selected':''}>Tambah Durasi (Hari)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[9px] text-slate-500 font-extrabold uppercase mb-1">Nilai Promo</label>
+            <input type="number" class="inp-value w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white" value="${value}">
+          </div>
+          <div>
+            <label class="block text-[9px] text-slate-500 font-extrabold uppercase mb-1">Kadaluarsa</label>
+            <input type="date" class="inp-exp w-full px-2 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white" value="${defaultExp}">
+          </div>
+          <div>
+            <label class="block text-[9px] text-slate-500 font-extrabold uppercase mb-1">Target Device ID</label>
+            <input type="text" class="inp-device w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-amber-400 font-mono uppercase" value="${device_id}">
+          </div>
+        </div>
+        <input type="hidden" class="inp-used" value="${used_count}">`;
+      container.appendChild(div);
+    }
+
+    async function simpanPengaturanVoucherServer() {
+      const rows = document.querySelectorAll('#containerListVoucher > div');
+      const newManualVouchers = [];
+      rows.forEach(r => {
+        const code = r.querySelector('.inp-code').value.trim().toUpperCase();
+        const type = r.querySelector('.inp-type').value;
+        const value = Number(r.querySelector('.inp-value').value) || 0;
+        const quota = Number(r.querySelector('.inp-quota').value) || 100;
+        const used_count = Number(r.querySelector('.inp-used').value) || 0;
+        const exp_date = r.querySelector('.inp-exp').value;
+        const device_id = r.querySelector('.inp-device').value.trim().toUpperCase() || 'ALL';
+        if (code) {
+          newManualVouchers.push({ code, type, discount_type: type, value, discount_value: value, quota, used_count, exp_date, device_id, is_device_specific: device_id !== 'ALL' && device_id !== '' });
+        }
+      });
+
+      try {
+        const resGet = await fetch(`${VERCEL_API_URL}?action=get_vouchers`);
+        let existingVouchers = [];
+        if (resGet.ok) {
+          const dataGet = await resGet.json();
+          existingVouchers = dataGet.vouchers || [];
+        }
+        const deviceSpecificVouchers = existingVouchers.filter(v => v.is_device_specific || (v.device_id && v.device_id !== 'ALL' && v.device_id !== ''));
+        const combinedVouchers = [...newManualVouchers, ...deviceSpecificVouchers];
+
+        const res = await fetch(VERCEL_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save_vouchers', vouchers: combinedVouchers, admin_secret: adminPasswordSecret })
+        });
+        const result = await res.json();
+        if (res.ok && (result.success || result.status)) {
+          showToast('Voucher Promo Berhasil Disimpan!');
+          muatDataVoucherServer();
+        } else showToast(result.error || 'Gagal menyimpan voucher', false);
+      } catch (err) { showToast('Network Error', false); }
+    }
+
+    async function muatDataReleaseServer() {
+      try {
+        const res = await fetch(`${VERCEL_API_URL}?action=check_version`);
+        const data = await res.json();
+        if (data && data.version) {
+          document.getElementById('inputReleaseVersion').value = data.version || '';
+          document.getElementById('inputDownloadUrl').value = data.download_url || '';
+          document.getElementById('inputChangelog').value = data.changelog || '';
+        }
+      } catch (err) {}
+    }
+
+    async function simpanUpdateReleaseServer() {
+      const version = document.getElementById('inputReleaseVersion').value.trim();
+      const download_url = document.getElementById('inputDownloadUrl').value.trim();
+      const changelog = document.getElementById('inputChangelog').value.trim();
+      if (!version || !download_url) return showToast('Version & URL required', false);
+      try {
+        const res = await fetch(VERCEL_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save_release', version, download_url, changelog, admin_secret: adminPasswordSecret })
+        });
+        const result = await res.json();
+        if (res.ok && (result.success || result.status)) {
+          showToast(`Release v${version} published!`);
+        } else showToast(result.error || 'Publish failed', false);
+      } catch (err) { showToast('Network Error', false); }
+    }
+
+    function triggerPWAInstall() {
+      showToast('PWA Install Triggered');
+    }
+  </script>
+</body>
+</html>

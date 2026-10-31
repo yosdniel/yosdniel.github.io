@@ -153,29 +153,34 @@ export default async function handler(req, res) {
                     makanan_pokok,
                     lauk_hewani,
                     lauk_nabati,
-                    sayur,
+                    sayur: sayur || null,
                     buah,
-                    pelengkap,
-                    foto,
+                    pelengkap: pelengkap || null,
+                    foto: foto || null,
                     foto_list: foto_list || [],
-                    catatan
+                    catatan: catatan || null
                 }, { onConflict: 'tanggal' })
                 .select()
                 .single();
 
             if (menuError) throw menuError;
 
-            // Simpan seluruh 5 kategori gizi (pk, pb, balita, bumil, busui)
+            // Simpan seluruh 5 kategori gizi (pk, pb, balita, bumil, busui) termasuk data Posyandu ke database
             if (gizi) {
                 const giziRecords = [];
                 const kategoriList = ['pk', 'pb', 'balita', 'bumil', 'busui'];
 
                 kategoriList.forEach(kat => {
                     if (gizi[kat]) {
+                        const itemGizi = gizi[kat];
                         giziRecords.push({
                             menu_id: newMenu.id,
                             porsi_tipe: kat,
-                            ...gizi[kat]
+                            energi: itemGizi.energi !== '' && itemGizi.energi != null ? Number(itemGizi.energi) : null,
+                            protein: itemGizi.protein !== '' && itemGizi.protein != null ? Number(itemGizi.protein) : null,
+                            lemak: itemGizi.lemak !== '' && itemGizi.lemak != null ? Number(itemGizi.lemak) : null,
+                            karbohidrat: itemGizi.karbohidrat !== '' && itemGizi.karbohidrat != null ? Number(itemGizi.karbohidrat) : null,
+                            serat: itemGizi.serat !== '' && itemGizi.serat != null ? Number(itemGizi.serat) : null
                         });
                     }
                 });
@@ -191,7 +196,7 @@ export default async function handler(req, res) {
 
             return res.status(200).json({
                 ok: true,
-                message: 'Data menu berhasil disimpan ke database Supabase!',
+                message: 'Data menu dan gizi Posyandu (Balita, Bumil, Busui) berhasil disimpan ke database Supabase!',
                 data: newMenu
             });
         }

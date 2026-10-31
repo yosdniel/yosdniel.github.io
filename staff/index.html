@@ -74,10 +74,11 @@
             </div>
             
             <div class="flex items-center gap-2">
-                <button onclick="switchTab('input')" id="tab-btn-input" class="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white text-xs font-bold transition">
+                <!-- Tab Input Menu aktif secara default -->
+                <button onclick="switchTab('input')" id="tab-btn-input" class="px-4 py-2 rounded-xl bg-royal-600 text-white text-xs font-bold transition shadow-md shadow-royal-600/20">
                     Input Menu
                 </button>
-                <button onclick="switchTab('feedback')" id="tab-btn-feedback" class="px-4 py-2 rounded-xl bg-royal-600 text-white text-xs font-bold transition shadow-md shadow-royal-600/20">
+                <button onclick="switchTab('feedback')" id="tab-btn-feedback" class="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white text-xs font-bold transition">
                     Feedback Sekolah (<span id="feedback-count">0</span>)
                 </button>
             </div>
@@ -86,8 +87,8 @@
 
     <div class="relative z-10 flex-1 flex flex-col max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
         
-        <!-- Tab 1: Form Input Menu -->
-        <main id="tab-content-input" class="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 hidden">
+        <!-- Tab 1: Form Input Menu (Ditampilkan secara default) -->
+        <main id="tab-content-input" class="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
             <form id="form-menu" class="space-y-6">
                 <!-- Informasi Dasar -->
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -237,8 +238,8 @@
             </form>
         </main>
 
-        <!-- Tab 2: Lihat Feedback Sekolah -->
-        <main id="tab-content-feedback" class="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+        <!-- Tab 2: Lihat Feedback Sekolah (Disembunyikan secara default) -->
+        <main id="tab-content-feedback" class="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 hidden">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
                 <div>
                     <h2 class="text-lg font-bold text-white">Daftar Feedback Berdasarkan Tanggal Menu</h2>
@@ -321,7 +322,20 @@
             document.getElementById('yayasan').value = defaultYayasan;
             document.getElementById('header-sppg-sub').textContent = defaultSppg;
 
-            loadFeedbacks();
+            // Load feedback count in background for badge
+            try {
+                const res = await fetch(`${API}?action=feedback`);
+                const data = await res.json();
+                const list = data.feedbacks || data || [];
+                if (Array.isArray(list)) {
+                    document.getElementById('feedback-count').textContent = list.length;
+                }
+            } catch (e) {
+                try {
+                    const local = JSON.parse(localStorage.getItem('sppg_feedbacks') || '[]');
+                    document.getElementById('feedback-count').textContent = local.length;
+                } catch (ex) {}
+            }
         }
 
         async function loadFeedbacks() {
@@ -468,7 +482,6 @@
                 const ratings = fb.ratings || {};
                 const menuDetail = fb.detail_menu || {};
                 
-                // Menerjemahkan kunci rating_pokok, rating_hewani, dll menjadi nama menu asli
                 const ratingLabelsMap = {
                     rating_pokok: menuDetail.makanan_pokok || 'Makanan Pokok',
                     rating_hewani: menuDetail.lauk_hewani || 'Lauk Hewani',
@@ -477,16 +490,17 @@
                     rating_buah: menuDetail.buah || 'Buah-Buahan'
                 };
 
+                // Perbaikan: Menampilkan jumlah bintang berwarna sesuai nilai rating (misal nilai 3 -> 3 bintang aktif, 2 bintang abu-abu)
                 const ratingsHtml = Object.entries(ratings).map(([key, val]) => {
                     const label = ratingLabelsMap[key] || menuDetail[key.replace('rating_', '')] || key;
-                    const stars = '★'.repeat(val) + '☆'.repeat(5 - val);
+                    const ratingNum = parseInt(val) || 0;
+                    const stars = '★'.repeat(ratingNum) + '☆'.repeat(Math.max(0, 5 - ratingNum));
                     return '<div class="flex items-center justify-between text-xs py-1 border-b border-slate-800/40 last:border-0">'
                         + '<span class="text-slate-300 font-medium">' + label + '</span>'
-                        + '<span class="text-amber-400 font-bold tracking-widest">' + stars + ' (' + val + '/5)</span>'
+                        + '<span class="text-amber-400 font-bold tracking-widest">' + stars + ' (' + ratingNum + '/5)</span>'
                         + '</div>';
                 }).join('');
 
-                // Menerjemahkan kunci detail menu agar tampil elegan sebagai nama menu
                 const detailMenuLabelsMap = {
                     makanan_pokok: 'Pokok',
                     lauk_hewani: 'Hewani',

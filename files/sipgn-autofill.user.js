@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SIPGN Autofill POP - Mindspace Studio
 // @namespace    sipgn-autofill
-// @version      1.5.57
+// @version      1.5.56
 // @description  Isi otomatis form Tugas Pengiriman & Klaim Voucher Durasi Custom Baru (dengan Fake Camera & Adaptif Mobile Bottom Sheet & Floating FAB)
 // @match        https://pop-sipgn.bgn.go.id/distribution*
 // @match        https://pop-sipgn.bgn.go.id/*

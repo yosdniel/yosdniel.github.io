@@ -433,6 +433,7 @@
             });
 
             const payload = {
+                action: 'feedback', // Menandakan request ke endpoint /api/menu untuk penyimpanan feedback
                 tanggal: menuAktif ? menuAktif.tanggal : tanggalHariIni(),
                 nama_sekolah: namaSekolah,
                 ratings: ratings,
@@ -453,8 +454,8 @@
             statusEl.classList.remove('hidden');
             if (submitBtn) submitBtn.disabled = true;
 
-            // Mengirim data ke server API database untuk disimpan secara permanen
-            fetch('https://www.minduniverse.id/api/feedback', {
+            // Mengirim data ke server API utama (api/menu) dengan method POST
+            fetch(API, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -472,7 +473,6 @@
                 if (submitBtn) submitBtn.disabled = false;
             })
             .catch(function(err) {
-                // Simpan juga ke localStorage sebagai backup local database session jika jaringan offline
                 try {
                     let localFeedbacks = JSON.parse(localStorage.getItem('sppg_feedbacks') || '[]');
                     localFeedbacks.push(payload);

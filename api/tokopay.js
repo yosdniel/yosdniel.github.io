@@ -618,4 +618,449 @@ export default async function handler(req, res) {
     const targetId = body.target_device_id;
 
     if (!sourceId || !targetId) {
-      return res.status(40
+      return res.status(400).json({ error: 'Device ID Asal dan Tujuan wajib diisi.' });
+    }
+    if (sourceId === targetId) {
+      return res.status(400).json({ error: 'Device ID Asal dan Tujuan tidak boleh sama.' });
+    }
+
+    try {
+      const srcLicRes = await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(sourceId)}`, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+        cache: 'no-store'
+      });
+      const srcLicData = await srcLicRes.json();
+      if (!Array.isArray(srcLicData) || srcLicData.length === 0) {
+        return res.status(404).json({ error: 'Device ID Asal tidak ditemukan di database.' });
+      }
+      const sourceLicense = srcLicData[0];
+
+      const srcBackupRes = await fetch(`${SUPABASE_URL}/rest/v1/backups?device_id=eq.${encodeURIComponent(sourceId)}&select=*`, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+        cache: 'no-store'
+      });
+      const srcBackupData = await srcBackupRes.json();
+      let backupPayloadToTransfer = null;
+      let expiresAtToTransfer = null;
+      if (Array.isArray(srcBackupData) && srcBackupData.length > 0) {
+        backupPayloadToTransfer = srcBackupData[0].backup_data;
+        expiresAtToTransfer = srcBackupData[0].expires_at;
+      }
+
+      const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
+
+      await fetch(`${SUPABASE_URL}/rest/v1/licenses`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates'
+        },
+        body: JSON.stringify({
+          device_id: targetId,
+          sppg_name: sourceLicense.sppg_name || '',
+          license_key: sourceLicense.license_key,
+          exp_date: sourceLicense.exp_date,
+          status: sourceLicense.status,
+          client_name: sourceLicense.client_name || 'Migrasi Oper Device',
+          updated_at: timestampWIB
+        })
+      });
+
+      if (backupPayloadToTransfer) {
+        await fetch(`${SUPABASE_URL}/rest/v1/backups`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=merge-duplicates'
+          },
+          body: JSON.stringify({
+            device_id: targetId,
+            backup_data: backupPayloadToTransfer,
+            expires_at: expiresAtToTransfer,
+            updated_at: timestampWIB
+          })
+        });
+
+        await fetch(`${SUPABASE_URL}/rest/v1/backups?device_id=eq.${encodeURIComponent(sourceId)}`, {
+          method: 'DELETE',
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+        });
+      }
+
+      await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(sourceId)}`, {
+        method: 'DELETE',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      });
+
+      return res.status(200).json({ success: true, message: `Berhasil mengoper lisensi dari ${sourceId} ke ${targetId}.` });
+    } catch (e) {
+      return res.status(500).json({ error: 'Gagal melakukan proses oper device.' });
+    }
+  }
+
+  // ==========================================
+  // 8. CHECK LICENSE
+  // ==========================================
+  if (action === 'check_license') {
+    if (!device_id) return res.status(200).json({ valid: false, msg: 'Device ID tidak ditemukan.' });
+
+    try {
+      let qrisEnabled = true;
+      try {
+        const setRes = await fetch(`${SUPABASE_URL}/rest/v1/settings?key=eq.qris_enabled&select=*`, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+          cache: 'no-store'
+        });
+        const setData = await setRes.json();
+        if (Array.isArray(setData) && setData.length > 0) {
+          const val = setData[0].value;
+          if (val === false || val === 'false' || val === 0 || val === '0') {
+            qrisEnabled = false;
+          } else if (val === true || val === 'true' || val === 1 || val === '1') {
+            qrisEnabled = true;
+          }
+        }
+      } catch (e) {}
+
+      const getRes = await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(device_id)}`, {
+        method: 'GET',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+        cache: 'no-store'
+      });
+      const licenses = await getRes.json();
+      const lic = Array.isArray(licenses) && licenses.length > 0 ? licenses[0] : null;
+
+      if (!lic) return res.status(200).json({ valid: false, status: 'unregistered', qris_enabled: qrisEnabled, msg: 'Device ID belum terdaftar.' });
+      if (lic.status === 'revoked') return res.status(200).json({ valid: false, status: 'revoked', qris_enabled: qrisEnabled, msg: 'Akses perangkat Anda telah dicabut secara permanen. Perangkat tidak dapat lagi mengakses fitur otomatisasi SIPGN.' });
+      if (lic.status === 'hold') return res.status(200).json({ valid: false, status: 'hold', qris_enabled: qrisEnabled, msg: 'Akses perangkat Anda saat ini sedang ditangguhkan oleh Administrator. Silakan hubungi admin untuk informasi lebih lanjut.' });
+
+      const hariIniWIB = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+      if (lic.exp_date && lic.exp_date < hariIniWIB) {
+        return res.status(200).json({ valid: false, status: 'expired', exp_date: lic.exp_date, qris_enabled: qrisEnabled, sppg_name: lic.sppg_name || '', msg: 'Masa aktif lisensi anda telah habis. Silahkan melakukan perpanjangan masa aktif agar dapat mengakses fitur kembali.' });
+      }
+
+      const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
+      await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(device_id)}`, {
+        method: 'PATCH',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updated_at: timestampWIB })
+      });
+
+      return res.status(200).json({ valid: true, status: 'active', qris_enabled: qrisEnabled, exp_date: lic.exp_date, sppg_name: lic.sppg_name || '' });
+    } catch (e) {
+      return res.status(200).json({ valid: false, qris_enabled: true, msg: 'Gagal verifikasi lisensi.' });
+    }
+  }
+
+  // ==========================================
+  // 9. POST ACTION HANDLERS (LISENSI & PEMBAYARAN)
+  // ==========================================
+  if (req.method === 'POST') {
+
+    if (body.action === 'save_setting') {
+      const settingKey = body.key;
+      const settingValue = typeof body.value === 'boolean' ? String(body.value) : body.value;
+
+      if (!settingKey) {
+        return res.status(400).json({ error: 'Key setting wajib diisi.' });
+      }
+
+      try {
+        const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
+        
+        await fetch(`${SUPABASE_URL}/rest/v1/settings`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=merge-duplicates'
+          },
+          body: JSON.stringify({
+            key: settingKey,
+            value: settingValue,
+            updated_at: timestampWIB
+          })
+        });
+
+        return res.status(200).json({ success: true, message: 'Setting berhasil disimpan.' });
+      } catch (err) {
+        return res.status(500).json({ error: 'Gagal menyimpan setting ke database.' });
+      }
+    }
+
+    if (body.action === 'record_successful_payment') {
+      const devIdTarget = body.device_id || device_id;
+      const paketHariTarget = Number(body.paket_hari || 7);
+      const amountTarget = Number(body.amount || 0);
+      const sppgTarget = body.sppg_name || sppg_name || '';
+
+      if (!devIdTarget) {
+        return res.status(400).json({ error: 'Device ID wajib disertakan.' });
+      }
+
+      try {
+        const savedInfo = await catatTransaksiDanLisensi(
+          SUPABASE_URL,
+          SUPABASE_KEY,
+          devIdTarget,
+          paketHariTarget,
+          amountTarget,
+          'AutoPayment Frontend',
+          sppgTarget
+        );
+        return res.status(200).json({ success: true, exp_date: savedInfo?.exp_date });
+      } catch (err) {
+        return res.status(500).json({ error: 'Gagal mencatat pembayaran.' });
+      }
+    }
+
+    if (body.action === 'claim_trial') {
+      const devIdTarget = body.device_id || device_id;
+      const sppgTarget = body.sppg_name || sppg_name || '';
+
+      if (!devIdTarget) {
+        return res.status(400).json({ error: 'Device ID wajib disertakan.' });
+      }
+
+      try {
+        const licRes = await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(devIdTarget)}`, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+          cache: 'no-store'
+        });
+        const licData = await licRes.json();
+
+        if (Array.isArray(licData) && licData.length > 0 && licData[0].status === 'active') {
+          return res.status(400).json({ error: 'Perangkat Anda sudah pernah terdaftar/mengklaim Free Trial.' });
+        }
+
+        const savedInfo = await catatTransaksiDanLisensi(
+          SUPABASE_URL,
+          SUPABASE_KEY,
+          devIdTarget,
+          1,
+          0,
+          'User Free Trial 24 Jam',
+          sppgTarget
+        );
+
+        return res.status(200).json({
+          success: true,
+          message: 'Free Trial 24 jam berhasil diklaim!',
+          exp_date: savedInfo?.exp_date
+        });
+      } catch (err) {
+        return res.status(500).json({ error: 'Gagal memproses klaim trial.' });
+      }
+    }
+
+    if (body.action === 'claim_voucher') {
+      const { voucher_code, device_id: devIdTarget, sppg_name: sppgTarget } = body;
+      const cleanVoucher = (voucher_code || '').trim().toUpperCase();
+
+      if (!cleanVoucher || !devIdTarget) {
+        return res.status(400).json({ error: 'Kode voucher dan Device ID wajib diisi.' });
+      }
+
+      try {
+        const vRes = await fetch(`${SUPABASE_URL}/rest/v1/vouchers?code=eq.${encodeURIComponent(cleanVoucher)}&select=*`, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+          cache: 'no-store'
+        });
+        const vData = await vRes.json();
+
+        if (!Array.isArray(vData) || vData.length === 0) {
+          return res.status(400).json({ error: 'Kode voucher tidak valid.' });
+        }
+
+        const voucher = vData[0];
+        const usedDevices = Array.isArray(voucher.used_devices) ? voucher.used_devices : [];
+
+        if (usedDevices.includes(devIdTarget)) {
+          return res.status(400).json({ error: 'Device ID Anda sudah pernah menggunakan voucher ini.' });
+        }
+
+        if (voucher.used_count >= voucher.max_uses) {
+          return res.status(400).json({ error: 'Kuota penggunaan voucher ini sudah habis.' });
+        }
+
+        usedDevices.push(devIdTarget);
+        const newUsedCount = voucher.used_count + 1;
+
+        await fetch(`${SUPABASE_URL}/rest/v1/vouchers?id=eq.${voucher.id}`, {
+          method: 'PATCH',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            used_count: newUsedCount,
+            used_devices: usedDevices
+          })
+        });
+
+        const savedInfo = await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, devIdTarget, voucher.days_value, 0, 'Voucher Claim', sppgTarget || '');
+
+        return res.status(200).json({
+          success: true,
+          message: `Voucher berhasil diklaim! Durasi aktif ditambah ${voucher.days_value} hari.`,
+          exp_date: savedInfo?.exp_date
+        });
+
+      } catch (err) {
+        return res.status(500).json({ error: 'Gagal memproses klaim voucher.' });
+      }
+    }
+
+    if (body.action === 'save_license') {
+      const sppgTarget = body.sppg_name || sppg_name || '';
+      await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, body.device_id, body.paket_hari || 7, body.nominal || 0, 'Admin Manual', sppgTarget);
+
+      const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
+      const patchPayload = {
+        exp_date: body.exp_date,
+        status: body.status,
+        license_key: body.license_key,
+        updated_at: timestampWIB
+      };
+
+      if (sppgTarget) patchPayload.sppg_name = sppgTarget;
+
+      await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(body.device_id)}`, {
+        method: 'PATCH',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(patchPayload)
+      });
+      return res.status(200).json({ success: true });
+    }
+
+    if (body.action === 'delete_license') {
+      await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(body.device_id)}`, {
+        method: 'DELETE',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      });
+      return res.status(200).json({ success: true });
+    }
+
+    // WEBHOOK TOKOPAY
+    const merchantId = process.env.TOKOPAY_MERCHANT_ID;
+    const secretKey = process.env.TOKOPAY_SECRET_KEY;
+    const isWebhookTokopay = body && (body.tr_id || (body.status && !body.paket_hari));
+
+    if (isWebhookTokopay) {
+      const statusCallback = String(body.status || body.raw_status || '').toLowerCase();
+      const refIdCallback = body.reff_id || body.ref_id || body.custom_int;
+      const isLunasCallback = statusCallback === 'success' || statusCallback === 'paid' || statusCallback === 'completed';
+
+      if (isLunasCallback && refIdCallback) {
+        const { deviceId: targetDevId, paketHari: targetPaketHari } = parseReffId(refIdCallback);
+        let nominalBayar = Number(body.total_bayar || body.nominal || 0);
+
+        if (targetDevId) {
+          await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, targetDevId, targetPaketHari, nominalBayar);
+          return res.status(200).json({ status: true, message: 'Webhook processed successfully' });
+        }
+      }
+      return res.status(200).json({ status: true, message: 'Callback received' });
+    }
+
+    if (!merchantId || !secretKey) return res.status(500).json({ error: 'Kunci API Tokopay belum diatur.' });
+
+    const cleanDevId = (body.device_id || device_id || 'UNKNOWN').replace(/[^a-zA-Z0-9]/g, '');
+    const paketHariFix = Number(body.paket_hari || paket_hari || 7);
+
+    let nominal = Number(body.nominal || 0);
+    if (!nominal || nominal <= 0) {
+      try {
+        const pkgRes = await fetch(`${SUPABASE_URL}/rest/v1/packages?hari=eq.${paketHariFix}&select=*`, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+          cache: 'no-store'
+        });
+        const pkgData = await pkgRes.json();
+        if (Array.isArray(pkgData) && pkgData.length > 0) {
+          nominal = Number(pkgData[0].harga || 0);
+        }
+      } catch (err) {}
+    }
+
+    if (!nominal || nominal <= 0) {
+      nominal = paketHariFix === 30 ? 50000 : 100;
+    }
+
+    const refIdOrder = reff_id || `SIPGN__${cleanDevId}__${paketHariFix}__${Date.now()}`;
+    const signature = crypto.createHash('md5').update(`${merchantId}${secretKey}${refIdOrder}`).digest('hex');
+    const metodeChannel = body.metode || body.kode_channel || 'QRISREALTIME';
+
+    try {
+      const tokopayRes = await fetch(`https://api.tokopay.id/v1/order?merchant=${merchantId}&secret=${secretKey}&reff_id=${encodeURIComponent(refIdOrder)}&ref_id=${encodeURIComponent(refIdOrder)}&nominal=${nominal}&metode=${encodeURIComponent(metodeChannel)}&kode_channel=${encodeURIComponent(metodeChannel)}&signature=${signature}`, { cache: 'no-store' });
+      const tokopayData = await tokopayRes.json();
+
+      const innerData = tokopayData?.data?.data || tokopayData?.data || tokopayData;
+      const qr_link = innerData?.qr_link || innerData?.qr_url || innerData?.pay_url || null;
+      const qr_string = innerData?.qr_string || innerData?.qr_code || innerData?.qr_content || null;
+      const total_bayar = innerData?.total_bayar || innerData?.nominal || innerData?.total || nominal;
+
+      return res.status(200).json({
+        success: true,
+        reff_id: refIdOrder,
+        ref_id: refIdOrder,
+        qr_link: qr_link,
+        qr_string: qr_string,
+        total_bayar: total_bayar,
+        raw: tokopayData
+      });
+    } catch (err) {
+      return res.status(500).json({ error: 'Gagal membuat order ke Tokopay.' });
+    }
+  }
+
+  // ==========================================
+  // 10. GET: POLLING STATUS PEMBAYARAN
+  // ==========================================
+  if (reff_id) {
+    const merchantId = process.env.TOKOPAY_MERCHANT_ID;
+    const secretKey = process.env.TOKOPAY_SECRET_KEY;
+    if (!merchantId || !secretKey) return res.status(200).json({ is_paid: false, error: 'Kunci Tokopay belum diatur.' });
+
+    const signature = crypto.createHash('md5').update(`${merchantId}${secretKey}${reff_id}`).digest('hex');
+
+    try {
+      const tokopayRes = await fetch(`https://api.tokopay.id/v1/order/status?merchant=${merchantId}&secret=${secretKey}&reff_id=${encodeURIComponent(reff_id)}&ref_id=${encodeURIComponent(reff_id)}&signature=${signature}`, { cache: 'no-store' });
+      const tokopayData = await tokopayRes.json();
+
+      const innerData = tokopayData?.data?.data || tokopayData?.data || tokopayData;
+      const statusTransaksi = String(innerData?.status || innerData?.raw_status || tokopayData?.status || '').toLowerCase();
+
+      const isLunas = statusTransaksi === 'success' || statusTransaksi === 'paid' || statusTransaksi === 'completed' || tokopayData?.is_paid === true;
+
+      if (isLunas) {
+        let { deviceId: targetDevId, paketHari: targetPaketHari } = parseReffId(reff_id);
+        if (!targetDevId) targetDevId = device_id;
+        if (!paket_hari && targetPaketHari) paket_hari = targetPaketHari;
+
+        let nominalBayar = Number(innerData?.total_bayar || innerData?.nominal || 0);
+
+        if (!targetDevId) return res.status(200).json({ is_paid: false, error: 'Device ID tidak terdeteksi.' });
+
+        const savedInfo = await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, targetDevId, targetPaketHari, nominalBayar);
+
+        return res.status(200).json({
+          is_paid: true,
+          status: 'Success',
+          exp_date: savedInfo?.exp_date || null
+        });
+      }
+
+      return res.status(200).json({ is_paid: false, raw_status: innerData?.status || 'Unpaid' });
+    } catch (err) {
+      return res.status(200).json({ is_paid: false, error: 'Gagal mengecek status Tokopay.' });
+    }
+  }
+
+  return res.status(400).json({ error: 'Permintaan tidak valid.' });
+}

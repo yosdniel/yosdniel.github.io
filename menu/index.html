@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#030712">
-    <title>Menu Hari Ini · SPPG Deli Serdang Tanjung Gusta Sunggal</title>
+    <title>Menu Hari Ini · SPPG Menu Dashboard</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon.ico">
@@ -115,7 +115,7 @@
                             <span class="w-1.5 h-1.5 rounded-full bg-royal-400 animate-pulse"></span>
                             Makan Bergizi Gratis
                         </div>
-                        <h1 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight leading-snug" id="nama-sppg">SPPG Deli Serdang Tanjung Gusta Sunggal</h1>
+                        <h1 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight leading-snug" id="nama-sppg">Memuat nama SPPG...</h1>
                         <p class="text-xs sm:text-sm font-medium text-slate-400" id="nama-yayasan">Yayasan Tunas Ilmu Bantaeng · Badan Gizi Nasional</p>
                     </div>
                 </div>
@@ -140,9 +140,20 @@
             </div>
         </main>
 
+        <!-- Modal Popup Fullscreen untuk Foto -->
+        <div id="imageModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md hidden flex items-center justify-center p-4">
+            <div class="relative max-w-6xl w-full max-h-[95vh] flex flex-col items-center justify-center">
+                <button onclick="closeImageModal()" class="absolute top-2 right-2 sm:-top-12 sm:right-0 text-white bg-slate-800/80 hover:bg-slate-700 p-2.5 rounded-full transition shadow-lg z-10">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+                <img id="modalImageSrc" src="" alt="Foto Full" class="w-auto h-auto max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl border border-white/10">
+                <p class="text-slate-400 text-xs mt-4">Klik di luar atau tombol X untuk menutup</p>
+            </div>
+        </div>
+
         <!-- Footer -->
         <footer class="mt-8 pt-6 border-t border-slate-900 text-center sm:flex sm:items-center sm:justify-between text-xs text-slate-500 gap-4">
-            <p>Disiapkan di dapur <b class="text-slate-300 font-semibold" id="footer-nama-sppg">SPPG Deli Serdang Tanjung Gusta Sunggal</b></p>
+            <p>Disiapkan di dapur <b class="text-slate-300 font-semibold" id="footer-nama-sppg">SPPG Menu Dashboard</b></p>
             <p class="mt-2 sm:mt-0 text-slate-500" id="footer-yayasan">Yayasan Tunas Ilmu Bantaeng · Badan Gizi Nasional</p>
         </footer>
     </div>
@@ -152,13 +163,20 @@
         const ZONA = 'Asia/Jakarta';
 
         const PORSI = {
+            pb: { nama: 'Porsi Besar', ket: 'SD Kelas 4–SMA' },
             pk: { nama: 'Porsi Kecil', ket: 'PAUD–SD Kelas 3' },
-            pb: { nama: 'Porsi Besar', ket: 'SD Kelas 4–SMA' }
+            balita: { nama: 'Balita', ket: 'Usia Dini' },
+            bumil: { nama: 'Ibu Hamil', ket: 'Bumil' },
+            busui: { nama: 'Ibu Menyusui', ket: 'Busui' }
         };
 
         let HIMBAUAN = [
-            { ikon: 'jam', judul: 'Segera Dimakan Setelah Diterima', isi: 'Habiskan langsung di tempat. Makanan ini disajikan segar tanpa bahan pengawet sintesis.' },
-            { ikon: 'larang', judul: 'Tidak Boleh Dibawa Pulang', isi: 'Kesegaran, nutrisi, dan keamanan makanan hanya terjaga optimal jika dimakan langsung di sekolah.' }
+            { ikon: 'jam', judul: 'Wajib Dikonsumsi 1 Jam Maksimal', isi: 'Makanan harus segera disantap paling lambat 1 jam setelah diterima untuk menjamin kesegaran dan mutunya.' },
+            { ikon: 'segar', judul: 'Segera Dimakan Setelah Diterima', isi: 'Habiskan langsung di tempat. Makanan ini disajikan segar tanpa bahan pengawet sintesis.' },
+            { ikon: 'larang', judul: 'Tidak Boleh Dibawa Pulang', isi: 'Kesegaran, nutrisi, dan keamanan makanan hanya terjaga optimal jika dimakan langsung di sekolah atau lokasi penyajian.' },
+            { ikon: 'cuci', judul: 'Cuci Tangan Sebelum Makan', isi: 'Selalu biasakan mencuci tangan menggunakan sabun dan air mengalir sebelum menikmati hidangan bergizi ini.' },
+            { ikon: 'cek', judul: 'Periksa Kondisi Kemasan', isi: 'Pastikan kemasan ompreng atau wadah makanan tertutup rapat, bersih, dan tidak ada kerusakan sebelum dibuka.' },
+            { ikon: 'habis', judul: 'Habiskan Porsi Yang Diberikan', isi: 'Dukung pemenuhan gizi optimal dengan menghabiskan seluruh sajian makanan sehat yang telah disediakan.' }
         ];
 
         const HARI = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
@@ -183,7 +201,11 @@
 
         const IKON = {
             jam: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.2v5l3.2 2"/></svg>',
-            larang: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.2 10.6 12 4.2l7.8 6.4V20H4.2z"/><path d="M3 21 21 3"/></svg>'
+            segar: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
+            larang: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.2 10.6 12 4.2l7.8 6.4V20H4.2z"/><path d="M3 21 21 3"/></svg>',
+            cuci: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
+            cek: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+            habis: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>'
         };
         const IKON_AWAS = '<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4"/><path d="M12 17.5v.01"/></svg>';
 
@@ -207,9 +229,19 @@
             });
         }
 
-        function adaIsi(g) {
-            return !!(g && (g.energi || g.protein || g.lemak || g.karbohidrat || g.serat));
+        function openImageModal(src) {
+            el('modalImageSrc').src = src;
+            el('imageModal').classList.remove('hidden');
         }
+
+        function closeImageModal() {
+            el('imageModal').classList.add('hidden');
+        }
+
+        // Tutup modal jika klik di luar gambar
+        document.getElementById('imageModal').addEventListener('click', function(e) {
+            if (e.target === this) closeImageModal();
+        });
 
         function gambarKepala(ymd) {
             const d = keDate(ymd);
@@ -224,21 +256,27 @@
             if (!menu.foto && (!menu.foto_list || menu.foto_list.length === 0)) return '';
             const fotoUtama = menu.foto || menu.foto_list[0];
             const alt = 'Foto menu ' + [menu.makanan_pokok, menu.lauk_hewani].filter(Boolean).join(', ');
+            const namaSppg = menu.nama_sppg || 'SPPG';
             
             return '<div class="glass-panel rounded-3xl overflow-hidden shadow-2xl mb-6 relative group">'
-                + '<img src="' + esc(fotoUtama) + '" alt="' + esc(alt) + '" class="w-full h-64 sm:h-80 object-cover object-center transition duration-500 group-hover:scale-105" onerror="this.closest(\'.glass-panel\').remove()">'
-                + '<div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent opacity-80 pointer-events-none"></div>'
-                + '<div class="absolute bottom-4 left-4 right-4 flex items-center justify-between text-white text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-900/60 backdrop-blur-md border border-white/10">'
+                + '<div class="w-full bg-slate-900/90 flex items-center justify-center p-3 sm:p-6 cursor-pointer" onclick="openImageModal(\'' + esc(fotoUtama) + '\')">'
+                + '<img src="' + esc(fotoUtama) + '" alt="' + esc(alt) + '" class="w-full h-80 sm:h-[420px] object-cover rounded-2xl shadow-lg transition duration-500 group-hover:scale-[1.01]" onerror="this.closest(\'.glass-panel\').remove()">'
+                + '<div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center rounded-2xl">'
+                + '<span class="opacity-0 group-hover:opacity-100 transition bg-slate-900/80 text-white px-4 py-2 rounded-xl text-xs font-bold backdrop-blur-md shadow-xl flex items-center gap-2">'
+                + '<svg class="w-4 h-4 text-royal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg> Klik untuk memperbesar'
+                + '</span></div>'
+                + '</div>'
+                + '<div class="absolute bottom-4 left-4 right-4 flex items-center justify-between text-white text-xs font-semibold px-3.5 py-2 rounded-xl bg-slate-900/80 backdrop-blur-md border border-white/10 pointer-events-none">'
                 + '<span>Dokumentasi Menu Harian</span>'
-                + '<span>SPPG Bantaeng</span>'
+                + '<span>' + esc(namaSppg) + '</span>'
                 + '</div></div>';
         }
 
         function blokGizi(menu) {
             const g = menu.gizi || {};
             const katList = [
-                { k: 'pk', label: 'Porsi Kecil', sub: 'PAUD – SD Kelas 3' },
                 { k: 'pb', label: 'Porsi Besar', sub: 'SD Kelas 4 – SMA' },
+                { k: 'pk', label: 'Porsi Kecil', sub: 'PAUD – SD Kelas 3' },
                 { k: 'balita', label: 'Balita', sub: 'Usia Dini' },
                 { k: 'bumil', label: 'Ibu Hamil', sub: 'Bumil' },
                 { k: 'busui', label: 'Ibu Menyusui', sub: 'Busui' }
@@ -246,18 +284,25 @@
 
             const baris = ZAT.map(function(z) {
                 const tds = katList.map(function(kat) {
-                    const val = g[kat.k] && g[kat.k][z.kunci] != null ? g[kat.k][z.kunci] : '–';
-                    return '<td class="text-center py-3 px-2 text-xs sm:text-sm ' + (z.utama ? 'font-bold text-white' : 'text-slate-300') + '">' + esc(val) + '</td>';
+                    const rawVal = g[kat.k] && g[kat.k][z.kunci] != null ? g[kat.k][z.kunci] : null;
+                    if (rawVal == null || rawVal === '') {
+                        return '<td class="text-center py-3 px-3 text-xs sm:text-sm text-slate-500">—</td>';
+                    }
+                    const formatted = String(rawVal) + ' ' + z.satuan;
+                    if (z.utama) {
+                        return '<td class="text-center py-3 px-3 text-sm sm:text-base font-extrabold text-white bg-royal-500/10">' + esc(formatted) + '</td>';
+                    }
+                    return '<td class="text-center py-3 px-3 text-xs sm:text-sm font-semibold text-slate-200">' + esc(formatted) + '</td>';
                 }).join('');
 
-                return '<tr class="border-b border-slate-800/60 last:border-0 ' + (z.utama ? 'bg-royal-500/10 font-bold' : '') + '">'
-                    + '<td class="py-3 px-3 text-xs sm:text-sm text-slate-300">' + z.label + ' <span class="text-[10px] text-slate-500">(' + z.satuan + ')</span></td>'
+                return '<tr class="border-b border-slate-800/60 last:border-0">'
+                    + '<td class="py-3 px-4 text-xs sm:text-sm font-semibold text-slate-300">' + z.label + '</td>'
                     + tds
                     + '</tr>';
             }).join('');
 
             const headerCols = katList.map(function(kat) {
-                return '<th class="text-center py-2.5 px-2 text-[10px] sm:text-xs font-bold text-royal-400 uppercase tracking-wider">' + kat.label + '<br><span class="text-[9px] font-normal text-slate-400">' + kat.sub + '</span></th>';
+                return '<th class="text-center py-3 px-3 text-xs sm:text-sm font-bold text-royal-400 uppercase tracking-wider">' + kat.label + '<br><span class="text-[10px] font-normal text-slate-400">' + kat.sub + '</span></th>';
             }).join('');
 
             return '<div class="glass-panel rounded-3xl overflow-hidden shadow-xl mb-6">'
@@ -268,7 +313,7 @@
                 + '</h3>'
                 + '</div>'
                 + '<div class="overflow-x-auto"><table class="w-full text-left border-collapse">'
-                + '<thead><tr class="bg-slate-900/85 border-b border-slate-800"><th class="py-2.5 px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Zat Gizi</th>' + headerCols + '</tr></thead>'
+                + '<thead><tr class="bg-slate-900/85 border-b border-slate-800"><th class="py-3 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Zat Gizi</th>' + headerCols + '</tr></thead>'
                 + '<tbody>' + baris + '</tbody>'
                 + '</table></div></div>';
         }
@@ -276,9 +321,9 @@
         function blokHimbauan() {
             return '<div class="glass-panel rounded-3xl p-6 himbauan-glow shadow-xl mb-6 border border-royal-500/30">'
                 + '<div class="flex items-center gap-2 text-royal-400 font-extrabold text-xs uppercase tracking-wider mb-4">'
-                + IKON_AWAS + '<span>Wajib Diperhatikan</span>'
+                + IKON_AWAS + '<span>Wajib Diperhatikan & Kesehatan Pangan</span>'
                 + '</div>'
-                + '<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">'
+                + '<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">'
                 + HIMBAUAN.map(function(h) {
                     return '<div class="flex items-start gap-3.5 p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800/80">'
                         + '<div class="p-2 rounded-xl bg-royal-500/10 text-royal-400 flex-none">' + (IKON[h.ikon] || '') + '</div>'
@@ -314,17 +359,13 @@
         }
 
         function gambarMinggu(aktif) {
-            // Tentukan tanggal aktif atau hari ini sebagai acuan minggu berjalan
             const acuanDate = aktif ? keDate(aktif) : new Date();
-            
-            // Cari hari Senin pada minggu tersebut
             const dayOfWeek = acuanDate.getDay();
             const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
             
             const seninDate = new Date(acuanDate);
             seninDate.setDate(acuanDate.getDate() + diffToMonday);
 
-            // Buat daftar tanggal dari Senin (index 0) sampai Sabtu (index 5)
             const menuSeninSabtu = [];
             for (let i = 0; i < 6; i++) {
                 const d = new Date(seninDate);
@@ -366,7 +407,7 @@
 
             const elIsi = el('isi');
             if (menuAktif && menuAktif.makanan_pokok) {
-                const namaSppgText = menuAktif.nama_sppg || 'SPPG Deli Serdang Tanjung Gusta Sunggal';
+                const namaSppgText = menuAktif.nama_sppg || 'SPPG Menu Dashboard';
                 const yayasanText = menuAktif.yayasan || 'Yayasan Tunas Ilmu Bantaeng';
 
                 el('nama-sppg').textContent = namaSppgText;
@@ -378,7 +419,10 @@
             } else {
                 const fallbackMeta = dataMinggu.length > 0 ? dataMinggu[0] : null;
                 if (fallbackMeta) {
-                    if (fallbackMeta.nama_sppg) el('nama-sppg').textContent = fallbackMeta.nama_sppg;
+                    if (fallbackMeta.nama_sppg) {
+                        el('nama-sppg').textContent = fallbackMeta.nama_sppg;
+                        el('footer-nama-sppg').textContent = fallbackMeta.nama_sppg;
+                    }
                     if (fallbackMeta.yayasan) {
                         el('nama-yayasan').textContent = fallbackMeta.yayasan + ' · Badan Gizi Nasional';
                         el('footer-yayasan').textContent = fallbackMeta.yayasan + ' · Badan Gizi Nasional';
@@ -450,7 +494,7 @@
 
                         if (dataMinggu.length > 0) {
                             if (dataMinggu[0].nama_sppg) {
-                                el('nama-sppg').textContent = dataMinggu[0].nama_sppg;
+                                el('nama-sppg').textContent = dataMingggu[0].nama_sppg;
                                 el('footer-nama-sppg').textContent = dataMinggu[0].nama_sppg;
                             }
                             if (dataMinggu[0].yayasan) {

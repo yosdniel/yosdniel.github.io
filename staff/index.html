@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#030712">
-    <title id="page-title">Admin Panel · SPPG Deli Serdang Tanjung Gusta Sunggal</title>
+    <title id="page-title">Menu Dashboard · SPPG Deli Serdang Tanjung Gusta Sunggal</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon.ico">
@@ -158,7 +158,7 @@
                 <div class="border-t border-slate-800/80 pt-5">
                     <h3 class="text-xs font-bold uppercase tracking-wider text-royal-400 mb-4">Kandungan Nilai Gizi Per Porsi (Semua Wajib Diisi)</h3>
                     
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         <!-- Porsi Kecil (PK) -->
                         <div class="p-4 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-3">
                             <div class="font-bold text-xs text-white uppercase">Porsi Kecil (PAUD - SD Kelas 3)</div>
@@ -212,6 +212,87 @@
                                 <div class="flex items-center gap-1 mt-0.5 w-1/2"><input type="number" step="any" id="pb-serat" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">g</span></div>
                             </div>
                         </div>
+
+                        <!-- Balita -->
+                        <div class="p-4 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-3">
+                            <div class="font-bold text-xs text-emerald-400 uppercase">Balita</div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="text-[10px] text-slate-400">Energi *</label>
+                                    <div class="flex items-center gap-1 mt-0.5"><input type="number" step="any" id="balita-energi" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">kkal</span></div>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-slate-400">Protein *</label>
+                                    <div class="flex items-center gap-1 mt-0.5"><input type="number" step="any" id="balita-protein" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">g</span></div>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-slate-400">Lemak *</label>
+                                    <div class="flex items-center gap-1 mt-0.5"><input type="number" step="any" id="balita-lemak" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">g</span></div>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-slate-400">Karbohidrat *</label>
+                                    <div class="flex items-center gap-1 mt-0.5"><input type="number" step="any" id="balita-karbohidrat" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">g</span></div>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-slate-400">Serat *</label>
+                                <div class="flex items-center gap-1 mt-0.5 w-1/2"><input type="number" step="any" id="balita-serat" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">g</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Ibu Hamil (Bumil) -->
+                        <div class="p-4 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-3">
+                            <div class="font-bold text-xs text-amber-400 uppercase">Ibu Hamil (Bumil)</div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="text-[10px] text-slate-400">Energi *</label>
+                                    <div class="flex items-center gap-1 mt-0.5"><input type="number" step="any" id="bumil-energi" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">kkal</span></div>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-slate-400">Protein *</label>
+                                    <div class="flex items-center gap-1 mt-0.5"><input type="number" step="any" id="bumil-protein" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">g</span></div>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-slate-400">Lemak *</label>
+                                    <div class="flex items-center gap-1 mt-0.5"><input type="number" step="any" id="bumil-lemak" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">g</span></div>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-slate-400">Karbohidrat *</label>
+                                    <div class="flex items-center gap-1 mt-0.5"><input type="number" step="any" id="bumil-karbohidrat" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">g</span></div>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-slate-400">Serat *</label>
+                                <div class="flex items-center gap-1 mt-0.5 w-1/2"><input type="number" step="any" id="bumil-serat" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">g</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Ibu Menyusui (Busui) -->
+                        <div class="p-4 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-3">
+                            <div class="font-bold text-xs text-purple-400 uppercase">Ibu Menyusui (Busui)</div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="text-[10px] text-slate-400">Energi *</label>
+                                    <div class="flex items-center gap-1 mt-0.5"><input type="number" step="any" id="busui-energi" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">kkal</span></div>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-slate-400">Protein *</label>
+                                    <div class="flex items-center gap-1 mt-0.5"><input type="number" step="any" id="busui-protein" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">g</span></div>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-slate-400">Lemak *</label>
+                                    <div class="flex items-center gap-1 mt-0.5"><input type="number" step="any" id="busui-lemak" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">g</span></div>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-slate-400">Karbohidrat *</label>
+                                    <div class="flex items-center gap-1 mt-0.5"><input type="number" step="any" id="busui-karbohidrat" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">g</span></div>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-slate-400">Serat *</label>
+                                <div class="flex items-center gap-1 mt-0.5 w-1/2"><input type="number" step="any" id="busui-serat" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">g</span></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -259,7 +340,7 @@
                 }
             } catch (err) {
                 console.warn('Gagal memuat default SPPG dari server, menggunakan fallback.', err);
-                document.getElementById('nama_sppg').value = 'SPPG Bantaeng Gantarangkeke 1';
+                document.getElementById('nama_sppg').value = 'SPPG Deli Serdang Tanjung Gusta Sunggal';
                 document.getElementById('yayasan').value = 'Yayasan Tunas Ilmu Bantaeng';
             }
         }
@@ -343,6 +424,27 @@
                         lemak: document.getElementById('pb-lemak').value,
                         karbohidrat: document.getElementById('pb-karbohidrat').value,
                         serat: document.getElementById('pb-serat').value
+                    },
+                    balita: {
+                        energi: document.getElementById('balita-energi').value,
+                        protein: document.getElementById('balita-protein').value,
+                        lemak: document.getElementById('balita-lemak').value,
+                        karbohidrat: document.getElementById('balita-karbohidrat').value,
+                        serat: document.getElementById('balita-serat').value
+                    },
+                    bumil: {
+                        energi: document.getElementById('bumil-energi').value,
+                        protein: document.getElementById('bumil-protein').value,
+                        lemak: document.getElementById('bumil-lemak').value,
+                        karbohidrat: document.getElementById('bumil-karbohidrat').value,
+                        serat: document.getElementById('bumil-serat').value
+                    },
+                    busui: {
+                        energi: document.getElementById('busui-energi').value,
+                        protein: document.getElementById('busui-protein').value,
+                        lemak: document.getElementById('busui-lemak').value,
+                        karbohidrat: document.getElementById('busui-karbohidrat').value,
+                        serat: document.getElementById('busui-serat').value
                     }
                 }
             };

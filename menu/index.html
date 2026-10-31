@@ -78,6 +78,11 @@
             100% { border-color: rgba(245, 158, 11, 0.6); box-shadow: 0 0 25px 2px rgba(245, 158, 11, 0.3); }
         }
 
+        /* Hover efek sosial media */
+        .socmed-ig:hover { background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045) !important; border-color: transparent !important; color: #fff !important; }
+        .socmed-fb:hover { background-color: #1877f2 !important; border-color: #1877f2 !important; color: #fff !important; }
+        .socmed-tt:hover { background-color: #000000 !important; border-color: #38bdf8 !important; color: #fff !important; }
+
         /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: rgba(3, 7, 18, 0.8); }
@@ -151,22 +156,22 @@
 
         <!-- Footer & Social Media -->
         <footer class="mt-8 pt-6 border-t border-slate-900">
-            <!-- Social Media Section (Grid 3 Kolom & Posisi di Center) -->
-            <div class="glass-panel rounded-3xl p-6 mb-6 text-center max-w-3xl mx-auto border border-royal-500/20">
-                <div class="text-xs font-bold uppercase tracking-wider text-royal-400 mb-4">Ikuti Sosial Media Kami</div>
+            <!-- Social Media Section (Tanpa Kontainer Background, Grid 3 Kolom Center) -->
+            <div class="mb-8 text-center max-w-3xl mx-auto px-2">
+                <p class="text-xs sm:text-sm font-semibold text-slate-300 mb-3 leading-relaxed">Punya masukan, pertanyaan, atau kendala seputar kualitas makanan dan layanan? Sampaikan langsung melalui kanal resmi kami di bawah ini:</p>
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <!-- Instagram -->
-                    <a href="https://instagram.com/sppg_tanjunggusta" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center gap-2.5 px-4 py-3 rounded-2xl bg-slate-900/60 hover:bg-royal-600/20 text-slate-200 hover:text-royal-400 border border-slate-800 hover:border-royal-500/40 transition text-xs font-semibold shadow-md">
+                    <a href="https://instagram.com/sppg_tanjunggusta" target="_blank" rel="noopener noreferrer" class="socmed-ig flex items-center justify-center gap-2.5 px-4 py-3 rounded-2xl bg-slate-900/80 text-slate-200 border border-slate-800 transition-all duration-300 text-xs font-semibold shadow-md">
                         <svg class="w-4 h-4 text-pink-400 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
                         <span>Instagram</span>
                     </a>
                     <!-- Facebook -->
-                    <div class="flex items-center justify-center gap-2.5 px-4 py-3 rounded-2xl bg-slate-900/60 text-slate-200 border border-slate-800 text-xs font-semibold shadow-md">
+                    <div class="socmed-fb flex items-center justify-center gap-2.5 px-4 py-3 rounded-2xl bg-slate-900/80 text-slate-200 border border-slate-800 transition-all duration-300 text-xs font-semibold shadow-md cursor-pointer">
                         <svg class="w-4 h-4 text-blue-400 flex-none" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
                         <span>SPPG Tanjung Gusta</span>
                     </div>
                     <!-- TikTok -->
-                    <a href="https://www.tiktok.com/@sppg_tanjunggusta" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center gap-2.5 px-4 py-3 rounded-2xl bg-slate-900/60 hover:bg-royal-600/20 text-slate-200 hover:text-royal-400 border border-slate-800 hover:border-royal-500/40 transition text-xs font-semibold shadow-md">
+                    <a href="https://www.tiktok.com/@sppg_tanjunggusta" target="_blank" rel="noopener noreferrer" class="socmed-tt flex items-center justify-center gap-2.5 px-4 py-3 rounded-2xl bg-slate-900/80 text-slate-200 border border-slate-800 transition-all duration-300 text-xs font-semibold shadow-md">
                         <svg class="w-4 h-4 text-cyan-400 flex-none" fill="currentColor" viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/></svg>
                         <span>TikTok</span>
                     </a>

@@ -61,13 +61,13 @@ export default async function handler(req, res) {
                 }
             }
 
-            // 3. Gabungkan data menu dan gizi secara manual di JavaScript
+            // 3. Gabungkan data menu dan gizi secara manual di JavaScript (Mendukung 5 kategori lengkap)
             const formattedMenu = (menuData || []).map(item => {
-                const giziObj = { pk: {}, pb: {} };
+                const giziObj = { pk: {}, pb: {}, balita: {}, bumil: {}, busui: {} };
                 const itemGizi = giziData.filter(g => g.menu_id === item.id);
 
                 itemGizi.forEach(g => {
-                    if (g.porsi_tipe === 'pk' || g.porsi_tipe === 'pb') {
+                    if (giziObj.hasOwnProperty(g.porsi_tipe)) {
                         giziObj[g.porsi_tipe] = {
                             energi: g.energi,
                             protein: g.protein,
@@ -80,7 +80,7 @@ export default async function handler(req, res) {
 
                 return {
                     id: item.id,
-                    nama_sppg: item.nama_sppg || 'SPPG Bantaeng Gantarangkeke 1',
+                    nama_sppg: item.nama_sppg || 'SPPG Menu Dashboard',
                     yayasan: item.yayasan || 'Yayasan Tunas Ilmu Bantaeng',
                     tanggal: item.tanggal,
                     makanan_pokok: item.makanan_pokok,
@@ -147,7 +147,7 @@ export default async function handler(req, res) {
             const { data: newMenu, error: menuError } = await supabase
                 .from('menu')
                 .upsert({
-                    nama_sppg: nama_sppg || 'SPPG Bantaeng Gantarangkeke 1',
+                    nama_sppg: nama_sppg || 'SPPG Menu Dashboard',
                     yayasan: yayasan || 'Yayasan Tunas Ilmu Bantaeng',
                     tanggal,
                     makanan_pokok,
@@ -165,22 +165,20 @@ export default async function handler(req, res) {
 
             if (menuError) throw menuError;
 
+            // Simpan seluruh 5 kategori gizi (pk, pb, balita, bumil, busui)
             if (gizi) {
                 const giziRecords = [];
-                if (gizi.pk) {
-                    giziRecords.push({
-                        menu_id: newMenu.id,
-                        porsi_tipe: 'pk',
-                        ...gizi.pk
-                    });
-                }
-                if (gizi.pb) {
-                    giziRecords.push({
-                        menu_id: newMenu.id,
-                        porsi_tipe: 'pb',
-                        ...gizi.pb
-                    });
-                }
+                const kategoriList = ['pk', 'pb', 'balita', 'bumil', 'busui'];
+
+                kategoriList.forEach(kat => {
+                    if (gizi[kat]) {
+                        giziRecords.push({
+                            menu_id: newMenu.id,
+                            porsi_tipe: kat,
+                            ...gizi[kat]
+                        });
+                    }
+                });
 
                 if (giziRecords.length > 0) {
                     const { error: giziError } = await supabase

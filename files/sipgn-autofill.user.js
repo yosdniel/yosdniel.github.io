@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SIPGN Autofill POP - Mindspace Studio
 // @namespace    sipgn-autofill
-// @version      1.5.56
+// @version      1.5.57
 // @description  Isi otomatis form Tugas Pengiriman & Klaim Voucher Durasi Custom Baru (dengan Fake Camera & Adaptif Mobile Bottom Sheet & Floating FAB)
 // @match        https://pop-sipgn.bgn.go.id/distribution*
 // @match        https://pop-sipgn.bgn.go.id/*
@@ -10,8 +10,6 @@
 // @grant        GM_getValue
 // @grant        GM_xmlhttpRequest
 // @connect      mindspace-id.vercel.app
-// @connect      api.qrserver.com
-// @connect      chart.googleapis.com
 // @updateURL    https://mindspace-id.vercel.app/files/sipgn-autofill.user.js
 // @downloadURL  https://mindspace-id.vercel.app/files/sipgn-autofill.user.js
 // ==/UserScript==
@@ -71,7 +69,7 @@
 
   const CURRENT_VERSION = (typeof GM_info !== 'undefined' && GM_info.script)
     ? GM_info.script.version
-    : '1.5.56';
+    : '1.5.57';
 
   const VERCEL_API_URL = 'https://mindspace-id.vercel.app/api/tokopay';
   const SECRET_SALT = 'MINDSTUDIO2026';
@@ -87,8 +85,6 @@
   let statusLisensiTerakhir = null;
   let cachedServerStatus = null;
   let intervalMonitorLisensi = null;
-  let isPaymentModalOpen = false;
-  let isPaymentSuccess = false;
   let daftarVouchersGlobal = [];
   let kodeVoucherTerpakai = null;
 
@@ -832,110 +828,6 @@ ${escapeHtml(changelog)}
     });
   }
 
-  function buatOrderVercel(paketHari, refId) {
-    return new Promise((resolve, reject) => {
-      GM_xmlhttpRequest({
-        method: 'POST',
-        url: VERCEL_API_URL,
-        headers: { 'Content-Type': 'application/json' },
-        data: JSON.stringify({
-          paket_hari: paketHari,
-          reff_id: refId,
-          ref_id: refId,
-          device_id: dapatkanDeviceID(),
-          metode: 'QRISREALTIME',
-          produk: 'Topup Lisensi SIPGN'
-        }),
-        onload: function (res) {
-          try {
-            const data = JSON.parse(res.responseText);
-            resolve(data);
-          } catch (e) {
-            reject('Respon dari Vercel tidak valid.');
-          }
-        },
-        onerror: function () {
-          reject('Gagal menghubungi server Vercel.');
-        }
-      });
-    });
-  }
-
-  function cekStatusVercel(refId, paketHari = 7) {
-    const devId = dapatkanDeviceID();
-    return new Promise((resolve, reject) => {
-      GM_xmlhttpRequest({
-        method: 'GET',
-        url: `${VERCEL_API_URL}?reff_id=${encodeURIComponent(refId)}&ref_id=${encodeURIComponent(refId)}&device_id=${encodeURIComponent(devId)}&paket_hari=${encodeURIComponent(paketHari)}&metode=QRISREALTIME&_t=${Date.now()}`,
-        headers: { 'Cache-Control': 'no-cache, no-store' },
-        onload: function (res) {
-          try {
-            const data = typeof res.responseText === 'string' ? JSON.parse(res.responseText) : res.responseText;
-            resolve(data);
-          } catch (e) {
-            reject('Gagal cek status dari Vercel.');
-          }
-        },
-        onerror: function (err) {
-          reject(err);
-        }
-      });
-    });
-  }
-
-  let intervalPollingPembayaran = null;
-  let intervalTimerCountdown = null;
-  let intervalCancelCountdown = null;
-
-  function hentikanTimerDanPolling() {
-    if (intervalPollingPembayaran) { clearInterval(intervalPollingPembayaran); intervalPollingPembayaran = null; }
-    if (intervalTimerCountdown) { clearInterval(intervalTimerCountdown); intervalTimerCountdown = null; }
-    if (intervalCancelCountdown) { clearInterval(intervalCancelCountdown); intervalCancelCountdown = null; }
-  }
-
-  function batalkanPembayaranLangsung() {
-    hentikanTimerDanPolling();
-    isPaymentModalOpen = false;
-    isPaymentSuccess = false;
-    const btnBeli = document.getElementById('sipgn-btn-buy-qris');
-    const qrContainer = document.getElementById('sipgn-qris-container');
-    const wrapperPaket = document.getElementById('sipgn-wrapper-paket');
-    const voucherSection = document.getElementById('sipgn-voucher-section');
-    const infoPerangkatSec = document.getElementById('sipgn-info-perangkat-sec');
-    const speedSettingSec = document.getElementById('sipgn-speed-setting-sec');
-    const backupImportSec = document.getElementById('sipgn-backup-import-sec');
-
-    if (qrContainer) { qrContainer.style.display = 'none'; qrContainer.innerHTML = ''; }
-    if (wrapperPaket) wrapperPaket.style.display = 'block';
-    if (voucherSection) voucherSection.style.display = 'block';
-    if (infoPerangkatSec) infoPerangkatSec.style.display = 'block';
-    if (speedSettingSec) speedSettingSec.style.display = 'block';
-    if (backupImportSec) backupImportSec.style.display = 'block';
-    if (btnBeli) { btnBeli.style.display = 'block'; btnBeli.disabled = false; btnBeli.textContent = '💳 Bayar via QRIS'; }
-  }
-
-  function prosesMulaiBatalWithCountdown() {
-    const btnCancel = document.getElementById('sipgn-btn-cancel-qris');
-    if (!btnCancel || intervalCancelCountdown) return;
-
-    let sisaBatal = 3;
-    btnCancel.disabled = true;
-    btnCancel.style.background = '#ea580c';
-    btnCancel.style.color = '#ffffff';
-    btnCancel.textContent = `⏳ Membatalkan dalam (${sisaBatal}s)...`;
-
-    intervalCancelCountdown = setInterval(() => {
-      sisaBatal--;
-      if (sisaBatal > 0) {
-        btnCancel.textContent = `⏳ Membatalkan dalam (${sisaBatal}s)...`;
-      } else {
-        clearInterval(intervalCancelCountdown);
-        intervalCancelCountdown = null;
-        batalkanPembayaranLangsung();
-      }
-    }, 1000);
-  }
-
   function ubahTombolKameraKeGaleri() {
     const inputsFile = document.querySelectorAll('input[type="file"]');
 
@@ -1039,17 +931,12 @@ ${escapeHtml(changelog)}
     bantuAppendKeBody(overlay);
 
     document.getElementById('sipgn-btn-close-success').onclick = () => {
-      isPaymentSuccess = false;
-      isPaymentModalOpen = false;
       overlay.remove();
       mulaiJalankanSkrip();
     };
   }
 
   function eksekusiSuksesPembayaran(jumlahHari, devId, expDateFromBackend = null, nominalBayarTrx = 0) {
-    hentikanTimerDanPolling();
-    isPaymentSuccess = true;
-
     let expDateTarget = expDateFromBackend;
 
     if (!expDateTarget) {
@@ -1073,267 +960,7 @@ ${escapeHtml(changelog)}
     const autoKey = buatLicenseKey(expDateTarget, devId, 'AutoPayment');
     GM_setValue(LICENSE_STORAGE_KEY, autoKey);
 
-    if (nominalBayarTrx > 0) {
-      GM_xmlhttpRequest({
-        method: 'POST',
-        url: VERCEL_API_URL,
-        headers: { 'Content-Type': 'application/json' },
-        data: JSON.stringify({
-          action: 'record_successful_payment',
-          device_id: devId,
-          amount: Number(nominalBayarTrx),
-          paket_hari: jumlahHari
-        }),
-        onload: function() {},
-        onerror: function() {}
-      });
-    }
-
     tampilkanModalSukses(expDateTarget);
-  }
-
-  function cekApakahLunas(obj) {
-    if (!obj) return false;
-    const subData = obj.data || obj.result || obj;
-    const innerSubData = subData?.data || subData;
-    const listStatusSukses = ['success', 'paid', 'completed', 'lunas', 'berhasil', '200', '1'];
-
-    const isPaidFlag =
-      subData.is_paid === true || subData.paid === true ||
-      innerSubData.is_paid === true || innerSubData.paid === true ||
-      obj.is_paid === true || obj.paid === true;
-
-    const statusVal = String(
-      innerSubData.status || innerSubData.raw_status || innerSubData.transaction_status ||
-      subData.status || subData.raw_status || subData.transaction_status ||
-      obj.status || ''
-    ).toLowerCase().trim();
-
-    if (isPaidFlag || listStatusSukses.includes(statusVal)) {
-      return true;
-    }
-    return false;
-  }
-
-  async function prosesPembayaranOtomatis(jumlahHari) {
-    const devId = dapatkanDeviceID();
-    const cleanDevId = devId.replace(/[^a-zA-Z0-9]/g, '');
-    const refIdAwal = `SIPGN__${cleanDevId}__${jumlahHari}__${Date.now()}`;
-
-    const btnBeli = document.getElementById('sipgn-btn-buy-qris');
-    const qrContainer = document.getElementById('sipgn-qris-container');
-    const wrapperPaket = document.getElementById('sipgn-wrapper-paket');
-    const voucherSection = document.getElementById('sipgn-voucher-section');
-    const infoPerangkatSec = document.getElementById('sipgn-info-perangkat-sec');
-    const speedSettingSec = document.getElementById('sipgn-speed-setting-sec');
-    const backupImportSec = document.getElementById('sipgn-backup-import-sec');
-
-    hentikanTimerDanPolling();
-    isPaymentModalOpen = true;
-    isPaymentSuccess = false;
-
-    try {
-      if (btnBeli) {
-        btnBeli.disabled = true;
-        btnBeli.textContent = '⏳ Memproses QRIS...';
-      }
-
-      const resOrder = await buatOrderVercel(jumlahHari, refIdAwal);
-
-      if (resOrder.error) {
-        tampilkanModalAlertModern('Gagal dari Server', resOrder.error, false);
-        isPaymentModalOpen = false;
-        if (btnBeli) { btnBeli.disabled = false; btnBeli.textContent = '💳 Bayar via QRIS'; }
-        return;
-      }
-
-      const refIdFix = resOrder.reff_id || resOrder.ref_id || resOrder.data?.reff_id || resOrder.data?.ref_id || refIdAwal;
-      const orderData = resOrder.data?.data?.data || resOrder.data?.data || resOrder.data || resOrder;
-
-      const qrStringRaw = resOrder.qr_string || orderData.qr_string || orderData.qr_code || orderData.qr_content || null;
-      const qrLinkRaw = resOrder.qr_link || orderData.qr_link || orderData.qr_url || null;
-      const nominalPembayaran = resOrder.total_bayar || orderData.total_bayar || orderData.jumlah_bayar || orderData.nominal || orderData.price || orderData.total || null;
-
-      let finalQrImageUrl = null;
-
-      if (qrStringRaw && typeof qrStringRaw === 'string' && qrStringRaw.trim().length > 10) {
-        finalQrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrStringRaw.trim())}`;
-      } else if (qrLinkRaw && typeof qrLinkRaw === 'string' && (qrLinkRaw.includes('.png') || qrLinkRaw.includes('.jpg') || qrLinkRaw.includes('qr'))) {
-        finalQrImageUrl = qrLinkRaw;
-      } else if (orderData.pay_url) {
-        finalQrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(orderData.pay_url)}`;
-      }
-
-      if (!finalQrImageUrl) {
-        const pesanErrorMsg = resOrder.data?.error_msg || resOrder.data?.message || orderData.error_msg || orderData.message || 'Data QRIS tidak ditemukan dari Tokopay.';
-        tampilkanModalAlertModern('Gagal QRIS', pesanErrorMsg, false);
-        isPaymentModalOpen = false;
-        if (btnBeli) {
-          btnBeli.disabled = false;
-          btnBeli.textContent = '💳 Bayar via QRIS';
-        }
-        return;
-      }
-
-      if (wrapperPaket) wrapperPaket.style.display = 'none';
-      if (voucherSection) voucherSection.style.display = 'none';
-      if (infoPerangkatSec) infoPerangkatSec.style.display = 'none';
-      if (speedSettingSec) speedSettingSec.style.display = 'none';
-      if (backupImportSec) backupImportSec.style.display = 'none';
-      if (btnBeli) btnBeli.style.display = 'none';
-
-      if (qrContainer) {
-        const teksNominal = nominalPembayaran ? `Rp ${Number(nominalPembayaran).toLocaleString('id-ID')}` : '-';
-
-        qrContainer.style.display = 'block';
-        qrContainer.innerHTML = `
-          <div style="background: white; padding: 10px; border-radius: 12px; display: inline-block; margin: 8px 0; border: 2px solid rgba(16, 185, 129, 0.4);">
-            <img id="sipgn-qr-img-element" src="${finalQrImageUrl}" alt="QRIS Tokopay" style="width: 170px; height: 170px; display: block; margin: 0 auto; image-rendering: pixelated;" />
-          </div>
-          <div style="font-size: 11px; color: #94a3b8; margin-bottom: 10px;">
-            Total Pembayaran:<br><b style="color: #4ade80; font-size: 16px; font-weight: 700;">${teksNominal}</b>
-          </div>
-          <div style="font-size: 11px; color: #facc15; font-weight: 600; margin-top: 4px;">
-            Selesaikan pembayaran dalam waktu:
-          </div>
-          <div id="sipgn-timer-display" style="font-size: 18px; font-weight: 700; color: #ef4444; margin-top: 2px; margin-bottom: 10px;">
-            10:00
-          </div>
-          <button id="sipgn-btn-cancel-qris" style="width: 100%; padding: 8px; border: none; border-radius: 10px; background: rgba(153, 27, 27, 0.2); color: #fecaca; border: 1px solid rgba(153, 27, 27, 0.4); font-weight: 600; cursor: pointer; font-size: 11px; transition: 0.2s;">
-            ❌ Batalkan Pembayaran
-          </button>
-        `;
-
-        const imgEl = document.getElementById('sipgn-qr-img-element');
-        if (imgEl && qrStringRaw) {
-          imgEl.onerror = function () {
-            this.src = `https://chart.googleapis.com/chart?cht=qr&chs=250x250&chl=${encodeURIComponent(qrStringRaw.trim())}`;
-          };
-        }
-
-        const btnCancel = document.getElementById('sipgn-btn-cancel-qris');
-        if (btnCancel) btnCancel.onclick = prosesMulaiBatalWithCountdown;
-      }
-
-      let sisaWaktu = 600;
-      const timerDisplay = document.getElementById('sipgn-timer-display');
-
-      intervalTimerCountdown = setInterval(() => {
-        sisaWaktu--;
-        const menit = String(Math.floor(sisaWaktu / 60)).padStart(2, '0');
-        const detik = String(sisaWaktu % 60).padStart(2, '0');
-
-        if (timerDisplay) timerDisplay.textContent = `${menit}:${detik}`;
-
-        if (sisaWaktu <= 0) {
-          hentikanTimerDanPolling();
-          isPaymentModalOpen = false;
-          if (wrapperPaket) wrapperPaket.style.display = 'block';
-          if (voucherSection) voucherSection.style.display = 'block';
-          if (infoPerangkatSec) infoPerangkatSec.style.display = 'block';
-          if (speedSettingSec) speedSettingSec.style.display = 'block';
-          if (backupImportSec) backupImportSec.style.display = 'block';
-          if (qrContainer) {
-            qrContainer.innerHTML = `
-              <div style="background: rgba(127, 29, 29, 0.2); color: #fecaca; padding: 12px; border-radius: 10px; font-size: 12px; margin-top: 10px; border: 1px solid rgba(153, 27, 27, 0.4);">
-                ⏰ <b>WAKTU PEMBAYARAN HABIS!</b><br>Silakan buat tagihan QRIS baru.
-              </div>
-            `;
-          }
-          if (btnBeli) {
-            btnBeli.style.display = 'block';
-            btnBeli.disabled = false;
-            btnBeli.textContent = '💳 Bayar via QRIS';
-          }
-        }
-      }, 1000);
-
-      let isPollingBusy = false;
-      intervalPollingPembayaran = setInterval(async () => {
-        if (isPollingBusy) return;
-        isPollingBusy = true;
-
-        try {
-          const resStatus = await cekStatusVercel(refIdFix, jumlahHari);
-          const isLunas = cekApakahLunas(resStatus);
-
-          if (isLunas) {
-            const innerData = resStatus?.data || resStatus;
-            const expDateFromBackend = innerData?.exp_date || resStatus?.exp_date || null;
-            eksekusiSuksesPembayaran(jumlahHari, devId, expDateFromBackend, Number(nominalPembayaran || 0));
-          }
-        } catch (e) {
-          console.warn('[Autofill] Polling status terganggu:', e);
-        } finally {
-          isPollingBusy = false;
-        }
-      }, 3000);
-
-    } catch (err) {
-      tampilkanModalAlertModern('Error Transaksi', err, false);
-      isPaymentModalOpen = false;
-      if (wrapperPaket) wrapperPaket.style.display = 'block';
-      if (voucherSection) voucherSection.style.display = 'none';
-      if (infoPerangkatSec) infoPerangkatSec.style.display = 'block';
-      if (speedSettingSec) speedSettingSec.style.display = 'block';
-      if (backupImportSec) backupImportSec.style.display = 'block';
-      if (btnBeli) {
-        btnBeli.disabled = false;
-        btnBeli.textContent = '💳 Bayar via QRIS';
-      }
-    }
-  }
-
-  function muatDaftarPaketKeSelect(selectEl, btnBeliEl) {
-    if (!selectEl) return;
-    selectEl.innerHTML = '<option value="">⏳ Memuat paket...</option>';
-    if (btnBeliEl) btnBeliEl.disabled = true;
-
-    ambilDaftarPaketDanVercel()
-      .then((resData) => {
-        let listPaket = [];
-
-        if (resData && Array.isArray(resData.packages)) {
-          listPaket = resData.packages;
-        } else if (Array.isArray(resData)) {
-          listPaket = resData;
-        } else if (resData && Array.isArray(resData.data)) {
-          listPaket = resData.data;
-        }
-
-        if (!listPaket || listPaket.length === 0) {
-          listPaket = [
-            { hari: 7, harga: 100, nama: 'Paket 7 Hari' },
-            { hari: 30, harga: 50000, nama: 'Paket 30 Hari' }
-          ];
-        }
-
-        selectEl.innerHTML = '';
-        listPaket.forEach((p, idx) => {
-          const opt = document.createElement('option');
-          const hari = p.hari ?? p.paket_hari ?? p.days ?? p.value ?? 7;
-          const harga = p.harga ?? p.price ?? p.formatted_price ?? p.nominal ?? p.total ?? 0;
-          const nama = p.nama ?? p.label ?? p.name ?? `Paket ${hari} Hari`;
-
-          opt.value = hari;
-          opt.textContent = Number(harga) > 0
-            ? `${nama} - Rp ${Number(harga).toLocaleString('id-ID')}`
-            : nama;
-
-          if (p.selected || idx === 0) opt.selected = true;
-          selectEl.appendChild(opt);
-        });
-
-        if (btnBeliEl) btnBeliEl.disabled = false;
-      })
-      .catch((err) => {
-        console.warn('[Autofill] Gagal muat paket Vercel, menggunakan opsi bawaan:', err);
-        selectEl.innerHTML = `
-          <option value="7">Paket 7 Hari - Rp 100</option>
-          <option value="30">Paket 30 Hari - Rp 50.000</option>
-        `;
-        if (btnBeliEl) btnBeliEl.disabled = false;
-      });
   }
 
   function formatSpeedText(value) {
@@ -1352,7 +979,7 @@ ${escapeHtml(changelog)}
       const currentDevId = dapatkanDeviceID();
       const currentSpeedLevel = dapatkanTypingSpeedLevel();
 
-      let serverStatusData = cachedServerStatus || { status: 'unregistered', valid: false, exp_date: null, msg: '', qris_enabled: true };
+      let serverStatusData = cachedServerStatus || { status: 'unregistered', valid: false, exp_date: null, msg: '' };
 
       if (!cachedServerStatus) {
         try {
@@ -1362,9 +989,9 @@ ${escapeHtml(changelog)}
               url: `${VERCEL_API_URL}?action=check_license&device_id=${encodeURIComponent(currentDevId)}&_t=${Date.now()}`,
               headers: { 'Cache-Control': 'no-cache, no-store' },
               onload: (res) => {
-                try { resolve(JSON.parse(res.responseText)); } catch(e) { resolve({ valid: false, qris_enabled: true }); }
+                try { resolve(JSON.parse(res.responseText)); } catch(e) { resolve({ valid: false }); }
               },
-              onerror: () => resolve({ valid: false, qris_enabled: true })
+              onerror: () => resolve({ valid: false })
             });
           });
           serverStatusData = checkRes;
@@ -1372,7 +999,6 @@ ${escapeHtml(changelog)}
         } catch(e) {}
       }
 
-      const isQrisEnabled = serverStatusData.qris_enabled !== false;
       const isUserBaru = serverStatusData.status && serverStatusData.status === 'unregistered';
       const rawStatus = serverStatusData.status || (serverStatusData.valid ? 'active' : 'expired');
       let statusLabelFormatted = 'Tidak Aktif';
@@ -1534,22 +1160,11 @@ ${escapeHtml(changelog)}
                    <button id="sipgn-btn-claim-trial" style="width: 100%; padding: 11px; border: none; border-radius: 10px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; font-weight: 700; cursor: pointer; font-size: 12px; transition: 0.2s; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.45);">
                       🎁 Klaim Free Trial (24 Jam)
                    </button>`
-                : `${isQrisEnabled ? `
-                      <div id="sipgn-wrapper-paket" style="text-align: left;">
-                        <label style="display: block; font-size: 10px; font-weight: 600; color: #cbd5e1; margin-bottom: 5px;">Pilih Paket Durasi :</label>
-                        <select id="sipgn-select-paket" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 11px; margin-bottom: 10px; outline: none;">
-                          <option value="">⏳ Memuat paket...</option>
-                        </select>
-                      </div>
-
-                      <button id="sipgn-btn-buy-qris" style="width: 100%; padding: 10px; border: none; border-radius: 8px; background: linear-gradient(135deg, #10b981, #059669); color: white; font-weight: 700; cursor: pointer; font-size: 12px; transition: 0.2s; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);">
-                        💳 Bayar via QRIS
-                      </button>
-                    ` : `
-                      <div style="background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3); color: #fef08a; padding: 10px 12px; border-radius: 10px; font-size: 11px; text-align: center; margin-bottom: 10px; line-height: 1.4;">
-                        ⚠ <b>Pembayaran QRIS Ditutup Sementara.</b><br>Silakan gunakan kode voucher untuk perpanjangan lisensi.
-                      </div>
-                    `}
+                : `
+                    <div style="background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3); color: #fef08a; padding: 12px; border-radius: 10px; font-size: 11px; text-align: center; margin-bottom: 10px; line-height: 1.5;">
+                      Silakan perpanjang lisensi Anda melalui link:<br>
+                      <a href="https://www.minduniverse.id/payment" target="_blank" style="color: #38bdf8; font-weight: 700; text-decoration: underline; word-break: break-all;">https://www.minduniverse.id/payment</a>
+                    </div>
 
                     <div id="sipgn-voucher-section" style="text-align: left; border-top: 1px dashed rgba(51, 65, 85, 0.8); padding-top: 10px;">
                       <label style="display: block; font-size: 10px; font-weight: 700; color: #38bdf8; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;">Klaim Kode Voucher:</label>
@@ -1560,8 +1175,6 @@ ${escapeHtml(changelog)}
                       <div id="sipgn-voucher-feedback" style="font-size: 10px; min-height: 14px; margin-top: 4px;"></div>
                     </div>`
             }
-
-            <div id="sipgn-qris-container" style="display: none; text-align: center;"></div>
           </div>
 
           <div style="font-size: 10px; color: #64748b;">Powered by <b style="color: #94a3b8;">Mindspace Studio</b></div>
@@ -1628,24 +1241,6 @@ ${escapeHtml(changelog)}
           };
         }
 
-        if (isQrisEnabled) {
-          const selectPaket = document.getElementById('sipgn-select-paket');
-          const btnBeli = document.getElementById('sipgn-btn-buy-qris');
-
-          muatDaftarPaketKeSelect(selectPaket, btnBeli);
-
-          if (btnBeli) {
-            btnBeli.onclick = () => {
-              if (!selectPaket || !selectPaket.value) {
-                tampilkanModalAlertModern('Perhatian', 'Silakan pilih paket durasi terlebih dahulu.', false);
-                return;
-              }
-              const hari = Number(selectPaket.value);
-              prosesPembayaranOtomatis(hari);
-            };
-          }
-        }
-
         const inputVoucher = document.getElementById('sipgn-input-voucher');
         const btnApplyVoucher = document.getElementById('sipgn-btn-apply-voucher');
         const voucherFeedback = document.getElementById('sipgn-voucher-feedback');
@@ -1692,9 +1287,6 @@ ${escapeHtml(changelog)}
         const btnCloseX = document.getElementById('sipgn-btn-close-x');
         if (btnCloseX) {
           btnCloseX.onclick = () => {
-            hentikanTimerDanPolling();
-            isPaymentModalOpen = false;
-            isPaymentSuccess = false;
             overlay.remove();
           };
         }
@@ -4020,7 +3612,7 @@ ${escapeHtml(changelog)}
     } else if (status === 'expired') {
       tampilkanModalStatusSitus(
         'Masa Aktif Lisensi Habis',
-        pesanServer || 'Masa aktif lisensi pada perangkat ini telah habis. Silakan masukkan kode voucher perpanjangan atau bayar via QRIS.',
+        pesanServer || 'Masa aktif lisensi pada perangkat ini telah habis. Silakan masukkan kode voucher perpanjangan atau lakukan pembayaran via link resmi.',
         'expired'
       );
     } else {
@@ -4068,11 +3660,9 @@ ${escapeHtml(changelog)}
 
       if (intervalMonitorLisensi) clearInterval(intervalMonitorLisensi);
       intervalMonitorLisensi = setInterval(() => {
-        if (!isPaymentModalOpen && !isPaymentSuccess) {
-          ambilStatusLisensiServer().then((res) => {
-            if (!res.valid && res.status !== 'active') tanganiStatusLisensi(res);
-          });
-        }
+        ambilStatusLisensiServer().then((res) => {
+          if (!res.valid && res.status !== 'active') tanganiStatusLisensi(res);
+        });
       }, 60000);
     } catch (e) {
       tampilkanModalAktivasi('', false);

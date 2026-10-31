@@ -77,9 +77,8 @@
                 <button onclick="switchTab('input')" id="tab-btn-input" class="px-4 py-2 rounded-xl bg-royal-600 text-white text-xs font-bold transition shadow-md shadow-royal-600/20">
                     Input Menu
                 </button>
-                <!-- Tulisan diubah menjadi Feedback Menu -->
                 <button onclick="switchTab('feedback')" id="tab-btn-feedback" class="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white text-xs font-bold transition">
-                    Feedback Menu (<span id="feedback-count">...</span>)
+                    Feedback Menu (<span id="feedback-count">0</span>)
                 </button>
             </div>
         </div>
@@ -322,7 +321,6 @@
             document.getElementById('yayasan').value = defaultYayasan;
             document.getElementById('header-sppg-sub').textContent = defaultSppg;
 
-            // Langsung ambil jumlah feedback dari API dan localStorage saat halaman dimuat
             let apiFeedbacks = [];
             try {
                 const res = await fetch(`${API}?action=feedback`);
@@ -522,6 +520,8 @@
                         + '</div>';
                 }).join('');
 
+                // Urutan kategori menu yang konsisten dan rapi
+                const orderedKeys = ['makanan_pokok', 'lauk_hewani', 'lauk_nabati', 'sayur', 'buah', 'pelengkap'];
                 const detailMenuLabelsMap = {
                     makanan_pokok: 'Pokok',
                     lauk_hewani: 'Hewani',
@@ -531,7 +531,8 @@
                     pelengkap: 'Pelengkap'
                 };
 
-                const menuTagsHtml = Object.entries(menuDetail).map(([k, v]) => {
+                const menuTagsHtml = orderedKeys.map(k => {
+                    const v = menuDetail[k];
                     if (!v) return '';
                     const customLabel = detailMenuLabelsMap[k] || k;
                     return '<span class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-slate-300">' + customLabel + ': <b class="text-white">' + v + '</b></span>';

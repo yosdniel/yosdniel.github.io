@@ -118,8 +118,17 @@ app.get('/api/menu', async (req, res) => {
 
         if (himbauanError) throw himbauanError;
 
+        // Hitung tanggal hari ini dalam zona waktu Asia/Jakarta (WIB)
+        const todayStr = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'Asia/Jakarta',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }).format(new Date());
+
         res.json({
             ok: true,
+            today: todayStr,
             minggu: formattedMenu,
             himbauan: himbauanData || []
         });

@@ -28,7 +28,8 @@ export default async function handler(req, res) {
 
     try {
         const urlPath = req.url || '';
-        const isFeedbackRoute = urlPath.includes('/feedback');
+        const queryAction = req.query?.action || '';
+        const isFeedbackRoute = urlPath.includes('/feedback') || queryAction === 'feedback' || (req.body && req.body.action === 'feedback');
 
         if (isFeedbackRoute) {
             if (req.method === 'GET') {

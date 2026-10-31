@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>MindHUB & SIPGN Autofill &mdash; Professional Script Platform & Licensing</title>
+  <title>Mindspace Universe</title>
   
   <!-- FAVICON & PWA METAS -->
   <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon.ico">
@@ -356,7 +356,6 @@
         const data = await res.json();
         if (data && data.version) {
           const verEl = document.getElementById('landingScriptVersion');
-          const btnDl = document.getElementById('btnDownloadUserscript');
           
           if (verEl) verEl.textContent = `v${data.version}`;
           if (btnDl && data.download_url) btnDl.href = data.download_url;

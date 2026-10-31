@@ -31,6 +31,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
     <style>
+        body {
+            -webkit-user-select: none; /* Safari */
+            -moz-user-select: none;    /* Firefox */
+            -ms-user-select: none;    /* Internet Explorer/Edge */
+            user-select: none;        /* Standar Modern */
+        }
         .glass-panel {
             background: rgba(15, 23, 42, 0.75);
             backdrop-filter: blur(16px);
@@ -89,20 +95,10 @@
         <!-- Tab 1: Form Input Menu (Default) -->
         <main id="tab-content-input" class="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
             <form id="form-menu" class="space-y-6">
-                <!-- Informasi Dasar -->
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1">Tanggal Sajian *</label>
-                        <input type="date" id="tanggal" required class="w-full px-3.5 py-2.5 rounded-xl glass-input text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1">Nama SPPG</label>
-                        <input type="text" id="nama_sppg" placeholder="SPPG Deli Serdang..." class="w-full px-3.5 py-2.5 rounded-xl glass-input text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1">Nama Yayasan</label>
-                        <input type="text" id="yayasan" placeholder="Nama Yayasan..." class="w-full px-3.5 py-2.5 rounded-xl glass-input text-sm">
-                    </div>
+                <!-- Informasi Dasar (Input Nama SPPG & Yayasan disembunyikan/dihapus agar aman) -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Tanggal Sajian *</label>
+                    <input type="date" id="tanggal" required class="w-full sm:w-1/3 px-3.5 py-2.5 rounded-xl glass-input text-sm">
                 </div>
 
                 <!-- Susunan Menu Makanan -->
@@ -272,6 +268,10 @@
         let allMenusCache = [];
         let allFeedbacksCache = [];
 
+        // Identitas Tetap (Terkunci Otomatis agar Tidak Salah Ubah)
+        const DEFAULT_SPPG = 'SPPG Deli Serdang Tanjung Gusta Sunggal';
+        const DEFAULT_YAYASAN = 'Yayasan Tunas Ilmu Bantaeng';
+
         function switchTab(tabName) {
             const tabInput = document.getElementById('tab-content-input');
             const tabFeedback = document.getElementById('tab-content-feedback');
@@ -306,20 +306,7 @@
                 } catch (e) {}
             }
 
-            let defaultSppg = 'SPPG Deli Serdang Tanjung Gusta Sunggal';
-            let defaultYayasan = 'Yayasan Tunas Ilmu Bantaeng';
-
-            if (allMenusCache.length > 0) {
-                const firstWithMeta = allMenusCache.find(m => m.nama_sppg || m.yayasan);
-                if (firstWithMeta) {
-                    if (firstWithMeta.nama_sppg) defaultSppg = firstWithMeta.nama_sppg;
-                    if (firstWithMeta.yayasan) defaultYayasan = firstWithMeta.yayasan;
-                }
-            }
-
-            document.getElementById('nama_sppg').value = defaultSppg;
-            document.getElementById('yayasan').value = defaultYayasan;
-            document.getElementById('header-sppg-sub').textContent = defaultSppg;
+            document.getElementById('header-sppg-sub').textContent = DEFAULT_SPPG;
 
             let apiFeedbacks = [];
             try {
@@ -524,7 +511,6 @@
                         + '</div>';
                 }).filter(Boolean).join('');
 
-                // Urutan kategori menu yang konsisten dan rapi
                 const orderedKeys = ['makanan_pokok', 'lauk_hewani', 'lauk_nabati', 'sayur', 'buah', 'pelengkap'];
                 const detailMenuLabelsMap = {
                     makanan_pokok: 'Pokok',
@@ -605,10 +591,11 @@
             const fotoUrl = document.getElementById('foto').value.trim();
             const tglVal = document.getElementById('tanggal').value;
 
+            // Nama SPPG & Yayasan dikirim secara otomatis tanpa input form
             const payload = {
                 tanggal: tglVal,
-                nama_sppg: document.getElementById('nama_sppg').value,
-                yayasan: document.getElementById('yayasan').value,
+                nama_sppg: DEFAULT_SPPG,
+                yayasan: DEFAULT_YAYASAN,
                 makanan_pokok: document.getElementById('makanan_pokok').value,
                 lauk_hewani: document.getElementById('lauk_hewani').value,
                 lauk_nabati: document.getElementById('lauk_nabati').value,

@@ -447,7 +447,7 @@
                 localFeedbacks = [];
             }
 
-            // Gabungkan data API dan localStorage serta hilangkan duplikat berdasarkan timestamp/pesan
+            // Gabungkan data dari database API dan localStorage serta hilangkan duplikat
             const combinedMap = new Map();
             [...localFeedbacks, ...apiFeedbacks].forEach(fb => {
                 const key = (fb.timestamp || '') + '_' + (fb.nama_sekolah || '') + '_' + (fb.pesan || '');
@@ -458,7 +458,7 @@
             document.getElementById('feedback-count').textContent = allFeedbacksCache.length;
 
             if (allFeedbacksCache.length === 0) {
-                container.innerHTML = '<div class="glass-panel rounded-2xl p-12 text-center text-slate-400 text-sm">Belum ada feedback atau evaluasi menu yang dikirimkan oleh sekolah.</div>';
+                container.innerHTML = '<div class="glass-panel rounded-2xl p-12 text-center text-slate-400 text-sm">Belum ada feedback atau evaluasi menu yang dikirimkan oleh sekolah dari database.</div>';
                 return;
             }
 
@@ -479,7 +479,31 @@
                 const listFb = grouped[tgl];
                 const count = listFb.length;
                 
-                // Format nice date if valid yyyy-mm-dd
+                // Cari info menu dari allMenusCache berdasarkan tanggal
+                const menuInfo = allMenusCache.find(m => m.tanggal === tgl) || {};
+                const menuTitleParts = [
+                    menuInfo.makanan_pokok,
+                    menuInfo.lauk_hewani,
+                    menuInfo.lauk_nabati
+                ].filter(Boolean);
+                const menuTitleSummary = menuTitleParts.length > 0 ? menuTitleParts.join(' • ') : 'Menu Belum Terdata';
+
+                // Hitung Average Rating (rata-rata keseluruhan bintang)
+                let totalStars = 0;
+                let totalRatingsCount = 0;
+                listFb.forEach(fb => {
+                    const ratings = fb.ratings || {};
+                    Object.values(ratings).forEach(val => {
+                        const num = Number(val);
+                        if (!isNaN(num) && num > 0) {
+                            totalStars += num;
+                            totalRatingsCount++;
+                        }
+                    });
+                });
+                const avgRate = totalRatingsCount > 0 ? (totalStars / totalRatingsCount).toFixed(1) : '0.0';
+                const avgStarsDisplay = totalRatingsCount > 0 ? '★'.repeat(Math.round(Number(avgRate))) : 'Belum ada rating';
+
                 let displayDate = tgl;
                 try {
                     const parts = tgl.split('-');
@@ -489,18 +513,27 @@
                     }
                 } catch (e) {}
 
-                return '<div onclick="showFeedbacksForDate(\'' + tgl + '\')" class="glass-panel rounded-2xl p-5 border border-slate-800 hover:border-royal-500/50 cursor-pointer transition shadow-lg flex items-center justify-between group">'
-                    + '<div class="flex items-center gap-4">'
-                    + '<div class="w-12 h-12 rounded-xl bg-royal-500/10 border border-royal-400/20 text-royal-400 font-extrabold flex items-center justify-center text-base group-hover:bg-royal-500 group-hover:text-white transition">'
+                return '<div onclick="showFeedbacksForDate(\'' + tgl + '\')" class="glass-panel rounded-2xl p-5 border border-slate-800 hover:border-royal-500/50 cursor-pointer transition shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4 group">'
+                    + '<div class="flex items-start sm:items-center gap-4">'
+                    + '<div class="w-12 h-12 rounded-xl bg-royal-500/10 border border-royal-400/20 text-royal-400 font-extrabold flex items-center justify-center text-base group-hover:bg-royal-500 group-hover:text-white transition flex-none">'
                     + '📅'
                     + '</div>'
-                    + '<div>'
+                    + '<div class="space-y-1">'
+                    + '<div class="flex flex-wrap items-center gap-2">'
                     + '<h3 class="text-sm sm:text-base font-bold text-white group-hover:text-royal-400 transition">' + displayDate + '</h3>'
-                    + '<p class="text-xs text-slate-400 mt-0.5"><span class="text-royal-400 font-semibold">' + count + '</span> Sekolah telah memberikan feedback / evaluasi</p>'
+                    + '<span class="px-2.5 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-[11px] text-royal-400 font-semibold">' + count + ' Sekolah</span>'
+                    + '</div>'
+                    + '<p class="text-xs text-slate-300 font-medium">🍱 ' + esc(menuTitleSummary) + '</p>'
                     + '</div>'
                     + '</div>'
-                    + '<div class="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-300 group-hover:bg-royal-600 group-hover:text-white transition">'
+                    + '<div class="flex items-center justify-between sm:justify-end gap-3 border-t sm:border-t-0 border-slate-800/80 pt-3 sm:pt-0">'
+                    + '<div class="text-left sm:text-right">'
+                    + '<div class="text-xs font-bold text-amber-400">' + avgStarsDisplay + ' <span class="text-white">(' + avgRate + '/5.0)</span></div>'
+                    + '<div class="text-[10px] text-slate-400 uppercase tracking-wider">Rata-rata Rating</div>'
+                    + '</div>'
+                    + '<div class="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-300 group-hover:bg-royal-600 group-hover:text-white transition flex-none">'
                     + 'Lihat Detail →'
+                    + '</div>'
                     + '</div>'
                     + '</div>';
             }).join('');
@@ -511,6 +544,7 @@
             document.getElementById('feedback-nav-container').classList.remove('hidden');
 
             const filtered = allFeedbacksCache.filter(fb => (fb.tanggal || 'Tanpa Tanggal') === tgl);
+            const menuInfo = allMenusCache.find(m => m.tanggal === tgl) || {};
 
             let displayDate = tgl;
             try {
@@ -521,9 +555,48 @@
                 }
             } catch (e) {}
 
-            let htmlHeader = '<div class="p-4 rounded-2xl bg-royal-500/10 border border-royal-500/20 mb-4">'
-                + '<h3 class="text-sm font-bold text-white">Feedback Tanggal Sajian: <span class="text-royal-400">' + displayDate + '</span></h3>'
-                + '<p class="text-xs text-slate-400">Total ' + filtered.length + ' tanggapan dari sekolah pada tanggal ini.</p>'
+            // Hitung rata-rata rating tanggal ini
+            let totalStars = 0;
+            let totalRatingsCount = 0;
+            filtered.forEach(fb => {
+                const ratings = fb.ratings || {};
+                Object.values(ratings).forEach(val => {
+                    const num = Number(val);
+                    if (!isNaN(num) && num > 0) {
+                        totalStars += num;
+                        totalRatingsCount++;
+                    }
+                });
+            });
+            const avgRate = totalRatingsCount > 0 ? (totalStars / totalRatingsCount).toFixed(1) : '0.0';
+
+            const menuTitleParts = [
+                menuInfo.makanan_pokok,
+                menuInfo.lauk_hewani,
+                menuInfo.lauk_nabati,
+                menuInfo.sayur,
+                menuInfo.buah,
+                menuInfo.pelengkap
+            ].filter(Boolean).join(' • ');
+
+            let htmlHeader = '<div class="p-5 rounded-2xl bg-royal-500/10 border border-royal-500/20 mb-6 space-y-2">'
+                + '<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">'
+                + '<div>'
+                + '<h3 class="text-base font-extrabold text-white">Tanggal Sajian: <span class="text-royal-400">' + displayDate + '</span></h3>'
+                + '<p class="text-xs text-slate-300 mt-1"><b>Menu:</b> ' + esc(menuTitleParts || 'Tidak ada detail menu') + '</p>'
+                + '</div>'
+                + '<div class="flex items-center gap-3 bg-slate-900/80 px-4 py-2.5 rounded-xl border border-slate-800">'
+                + '<div>'
+                + '<div class="text-[10px] text-slate-400 uppercase tracking-wider">Total Respon</div>'
+                + '<div class="text-sm font-bold text-white">' + filtered.length + ' Sekolah</div>'
+                + '</div>'
+                + '<div class="h-8 w-px bg-slate-800"></div>'
+                + '<div>'
+                + '<div class="text-[10px] text-slate-400 uppercase tracking-wider">Avg Rate</div>'
+                + '<div class="text-sm font-bold text-amber-400">★ ' + avgRate + ' / 5.0</div>'
+                + '</div>'
+                + '</div>'
+                + '</div>'
                 + '</div>';
 
             const feedbackCards = filtered.map((fb, idx) => {
@@ -672,7 +745,6 @@
                 const result = await response.json();
                 if (!response.ok || !result.ok) throw new Error(result.message || 'Gagal menyimpan data');
 
-                // Update cache lokal
                 const idx = allMenusCache.findIndex(m => m.tanggal === tglVal);
                 if (idx >= 0) {
                     allMenusCache[idx] = payload;

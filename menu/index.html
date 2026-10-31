@@ -270,24 +270,35 @@
             const g = menu.gizi || {};
             const katList = [
                 { k: 'pb', label: 'Porsi Besar', sub: 'SD Kelas 4 – SMA' },
-                { k: 'pk', label: 'Porsi Kecil', sub: 'PAUD – SD Kelas 3' },
+                { k: 'pk', label: 'Porsi Kecil', sub: 'TK – SD Kelas 3' },
                 { k: 'balita', label: 'Balita', sub: 'Usia Dini' },
                 { k: 'bumil', label: 'Ibu Hamil', sub: 'Bumil' },
                 { k: 'busui', label: 'Ibu Menyusui', sub: 'Busui' }
             ];
 
             const baris = ZAT.map(function(z) {
+                const isUtama = z.utama;
+                const rowLabelClass = isUtama 
+                    ? 'py-3 px-4 text-xs sm:text-sm font-extrabold text-white' 
+                    : 'py-3 px-4 text-xs sm:text-sm font-semibold text-slate-300';
+
                 const tds = katList.map(function(kat) {
                     const rawVal = g[kat.k] && g[kat.k][z.kunci] != null ? g[kat.k][z.kunci] : null;
                     if (rawVal == null || rawVal === '') {
                         return '<td class="text-center py-3 px-3 text-xs sm:text-sm text-slate-500">—</td>';
                     }
                     const formatted = String(rawVal) + ' ' + z.satuan;
-                    return '<td class="text-center py-3 px-3 text-xs sm:text-sm font-semibold text-slate-200">' + esc(formatted) + '</td>';
+                    
+                    // Di-bold dan diperbesar khusus untuk baris energi total
+                    const cellValClass = isUtama 
+                        ? 'text-center py-3 px-3 text-sm sm:text-base font-extrabold text-royal-300' 
+                        : 'text-center py-3 px-3 text-xs sm:text-sm font-semibold text-slate-200';
+
+                    return '<td class="' + cellValClass + '">' + esc(formatted) + '</td>';
                 }).join('');
 
                 return '<tr class="border-b border-slate-800/60 last:border-0">'
-                    + '<td class="py-3 px-4 text-xs sm:text-sm font-semibold text-slate-300">' + z.label + '</td>'
+                    + '<td class="' + rowLabelClass + '">' + z.label + '</td>'
                     + tds
                     + '</tr>';
             }).join('');

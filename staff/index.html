@@ -495,11 +495,11 @@
                 
                 const ratingOrderedKeys = ['rating_pokok', 'rating_hewani', 'rating_nabati', 'rating_sayur', 'rating_buah'];
                 const ratingCustomLabels = {
-                    rating_pokok: 'Pokok',
-                    rating_hewani: 'Lauk Hewani',
-                    rating_nabati: 'Lauk Nabati',
-                    rating_sayur: 'Sayur',
-                    rating_buah: 'Buah'
+                    rating_pokok: menuDetail.makanan_pokok || 'Makanan Pokok',
+                    rating_hewani: menuDetail.lauk_hewani || 'Lauk Hewani',
+                    rating_nabati: menuDetail.lauk_nabati || 'Lauk Nabati',
+                    rating_sayur: menuDetail.sayur || 'Sayur Segar',
+                    rating_buah: menuDetail.buah || 'Buah-Buahan'
                 };
 
                 const ratingsHtml = ratingOrderedKeys.map(ratingKey => {

@@ -46,7 +46,7 @@ export default async function handler(req, res) {
             const { data: menuData, error: menuError } = await query;
             if (menuError) throw menuError;
 
-            // 2. Ambil data gizi secara terpisah untuk menghindari konflik relasi ganda
+            // 2. Ambil data gizi secara terpisah
             const menuIds = (menuData || []).map(m => m.id);
             let giziData = [];
             
@@ -61,7 +61,7 @@ export default async function handler(req, res) {
                 }
             }
 
-            // 3. Gabungkan data menu dan gizi secara manual di JavaScript (Mendukung 5 kategori lengkap)
+            // 3. Gabungkan data menu dan gizi (pk, pb, balita, bumil, busui)
             const formattedMenu = (menuData || []).map(item => {
                 const giziObj = { pk: {}, pb: {}, balita: {}, bumil: {}, busui: {} };
                 const itemGizi = giziData.filter(g => g.menu_id === item.id);
@@ -144,6 +144,7 @@ export default async function handler(req, res) {
                 return res.status(400).json({ ok: false, message: 'Tanggal wajib diisi!' });
             }
 
+            // Simpan / update data ke tabel menu
             const { data: newMenu, error: menuError } = await supabase
                 .from('menu')
                 .upsert({
@@ -163,17 +164,19 @@ export default async function handler(req, res) {
                 .select()
                 .single();
 
-            if (menuError) throw menuError;
+            if (menuError) {
+                console.error('Supabase Menu Error:', menuError);
+                throw new Error(menuError.message);
+            }
 
-            // Simpan seluruh 5 kategori gizi (pk, pb, balita, bumil, busui) termasuk data Posyandu ke database
+            // Simpan data gizi ke tabel gizi untuk 5 kategori
             if (gizi) {
-                const giziRecords = [];
                 const kategoriList = ['pk', 'pb', 'balita', 'bumil', 'busui'];
 
-                kategoriList.forEach(kat => {
+                for (const kat of kategoriList) {
                     if (gizi[kat]) {
                         const itemGizi = gizi[kat];
-                        giziRecords.push({
+                        const giziPayload = {
                             menu_id: newMenu.id,
                             porsi_tipe: kat,
                             energi: itemGizi.energi !== '' && itemGizi.energi != null ? Number(itemGizi.energi) : null,
@@ -181,22 +184,23 @@ export default async function handler(req, res) {
                             lemak: itemGizi.lemak !== '' && itemGizi.lemak != null ? Number(itemGizi.lemak) : null,
                             karbohidrat: itemGizi.karbohidrat !== '' && itemGizi.karbohidrat != null ? Number(itemGizi.karbohidrat) : null,
                             serat: itemGizi.serat !== '' && itemGizi.serat != null ? Number(itemGizi.serat) : null
-                        });
+                        };
+
+                        const { error: giziError } = await supabase
+                            .from('gizi')
+                            .upsert(giziPayload, { onConflict: 'menu_id,porsi_tipe' });
+
+                        if (giziError) {
+                            console.error(`Supabase Gizi Error (${kat}):`, giziError);
+                            throw new Error(`Gagal menyimpan gizi ${kat}: ` + giziError.message);
+                        }
                     }
-                });
-
-                if (giziRecords.length > 0) {
-                    const { error: giziError } = await supabase
-                        .from('gizi')
-                        .upsert(giziRecords, { onConflict: 'menu_id,porsi_tipe' });
-
-                    if (giziError) throw giziError;
                 }
             }
 
             return res.status(200).json({
                 ok: true,
-                message: 'Data menu dan gizi Posyandu (Balita, Bumil, Busui) berhasil disimpan ke database Supabase!',
+                message: 'Data menu dan gizi Posyandu berhasil disimpan ke database Supabase!',
                 data: newMenu
             });
         }
@@ -207,10 +211,10 @@ export default async function handler(req, res) {
         }
 
     } catch (error) {
-        console.error('API Error:', error.message);
+        console.error('API Error Full:', error);
         return res.status(500).json({
             ok: false,
-            message: 'Gagal memproses data dari server',
+            message: 'Gagal memproses data dari server: ' + error.message,
             error: error.message
         });
     }

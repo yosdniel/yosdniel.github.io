@@ -74,8 +74,8 @@
             animation: ambientGlow 3.5s ease-in-out infinite alternate;
         }
         @keyframes ambientGlow {
-            0% { border-color: rgba(2, 132, 199, 0.25); box-shadow: 0 0 20px -5px rgba(2, 132, 199, 0.1); }
-            100% { border-color: rgba(56, 189, 248, 0.45); box-shadow: 0 0 25px 2px rgba(2, 132, 199, 0.2); }
+            0% { border-color: rgba(245, 158, 11, 0.3); box-shadow: 0 0 20px -5px rgba(245, 158, 11, 0.15); }
+            100% { border-color: rgba(245, 158, 11, 0.6); box-shadow: 0 0 25px 2px rgba(245, 158, 11, 0.25); }
         }
 
         /* Custom Scrollbar */
@@ -161,23 +161,23 @@
         const ZONA = 'Asia/Jakarta';
 
         // 3 item himbauan penting saja
-       let HIMBAUAN = [
-    { 
-        ikon: 'jam', 
-        judul: 'Konsumsi Maksimal 1 Jam', 
-        isi: 'Segera santap makanan paling lambat 1 jam setelah kemasan dibuka untuk menjaga kualitas dan mutunya.' 
-    },
-    { 
-        ikon: 'segar', 
-        judul: 'Tanpa Pengawet Sintesis', 
-        isi: 'Disajikan segar hari ini. Habiskan langsung di tempat demi kesehatan dan kelezatan optimal.' 
-    },
-    { 
-        ikon: 'larang', 
-        judul: 'Tidak Boleh Dibawa Pulang', 
-        isi: 'Untuk menghindari risiko kontaminasi dan penurunan mutu, makanan dilarang dibawa keluar dari area penyajian.' 
-    }
-];
+        let HIMBAUAN = [
+            { 
+                ikon: 'jam', 
+                judul: 'Konsumsi Maksimal 1 Jam', 
+                isi: 'Segera santap makanan paling lambat 1 jam setelah kemasan dibuka untuk menjaga kualitas dan mutunya.' 
+            },
+            { 
+                ikon: 'segar', 
+                judul: 'Tanpa Pengawet Sintesis', 
+                isi: 'Disajikan segar hari ini. Habiskan langsung di tempat demi kesehatan dan kelezatan optimal.' 
+            },
+            { 
+                ikon: 'larang', 
+                judul: 'Tidak Boleh Dibawa Pulang', 
+                isi: 'Untuk menghindari risiko kontaminasi dan penurunan mutu, makanan dilarang dibawa keluar dari area penyajian.' 
+            }
+        ];
 
         const HARI = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
         const SINGK = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
@@ -309,16 +309,16 @@
         }
 
         function blokHimbauan() {
-            return '<div class="glass-panel rounded-3xl p-6 himbauan-glow shadow-xl mb-6 border border-royal-500/30">'
-                + '<div class="flex items-center gap-2 text-royal-400 font-extrabold text-xs uppercase tracking-wider mb-4">'
+            return '<div class="rounded-3xl p-6 himbauan-glow shadow-xl mb-6 bg-amber-950/20 border border-amber-500/40">'
+                + '<div class="flex items-center gap-2 text-amber-400 font-extrabold text-xs uppercase tracking-wider mb-4">'
                 + IKON_AWAS + '<span>Wajib Diperhatikan & Kesehatan Pangan</span>'
                 + '</div>'
                 + '<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">'
                 + HIMBAUAN.map(function(h) {
-                    return '<div class="flex items-start gap-3.5 p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800/80">'
-                        + '<div class="p-2 rounded-xl bg-royal-500/10 text-royal-400 flex-none">' + (IKON[h.ikon] || '') + '</div>'
+                    return '<div class="flex items-start gap-3.5 p-3.5 rounded-2xl bg-slate-900/80 border border-amber-500/20 hover:border-amber-500/40 transition">'
+                        + '<div class="p-2 rounded-xl bg-amber-500/10 text-amber-400 flex-none">' + (IKON[h.ikon] || '') + '</div>'
                         + '<div><h4 class="text-sm font-bold text-white mb-0.5">' + esc(h.judul) + '</h4>'
-                        + '<p class="text-xs text-slate-400 leading-relaxed">' + esc(h.isi) + '</p></div>'
+                        + '<p class="text-xs text-slate-300 leading-relaxed">' + esc(h.isi) + '</p></div>'
                         + '</div>';
                 }).join('')
                 + '</div></div>';
@@ -489,7 +489,6 @@
             statusEl.classList.remove('hidden');
             if (submitBtn) submitBtn.disabled = true;
 
-            // Mengirim request ke endpoint API dengan action=feedback atau query parameter
             fetch(API + '?action=feedback', {
                 method: 'POST',
                 headers: {
@@ -531,7 +530,6 @@
         }
 
         function gambarMenu(menu) {
-            // Hanya merender item menu yang datanya tersedia / tidak kosong
             const sekatAktif = SEKAT.filter(s => menu[s.kunci] && menu[s.kunci].trim() !== '');
 
             const sekatHtml = sekatAktif.map(function(s, idx) {
@@ -567,7 +565,6 @@
             const seninDate = new Date(acuanDate);
             seninDate.setDate(acuanDate.getDate() + diffToMonday);
 
-            // Hari sajian menu Senin sampai Jumat (5 hari)
             const menuSeninJumat = [];
             for (let i = 0; i < 5; i++) {
                 const d = new Date(seninDate);
@@ -617,7 +614,6 @@
                 el('footer-nama-sppg').textContent = namaSppgText;
                 el('footer-yayasan').textContent = yayasanText + ' · Badan Gizi Nasional';
                 
-                // Pilihan tanggal diletakkan di atas foto menu
                 elIsi.innerHTML = gambarMinggu(ymd) + gambarMenu(menuAktif);
             } else {
                 const fallbackMeta = dataMinggu.length > 0 ? dataMinggu[0] : null;
@@ -654,7 +650,8 @@
             const d = new Date();
             const elHeaderTanggal = el('hari-tanggal-sekarang');
             if (elHeaderTanggal) {
-                elHeaderTanggal.textContent = `${HARI[d.getDay()]} ${d.getDate()} ${BULAN[d.getMonth()]} ${d.getFullYear()}`;
+                const teksHariTanggal = `${HARI[d.getDay()]}, ${d.getDate()} ${BULAN[d.getMonth()]} ${d.getFullYear()}`;
+                elHeaderTanggal.innerHTML = `<svg class="w-5 h-5 text-royal-400 inline-block flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 002-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg> <span>${teksHariTanggal}</span>`;
             }
             el('isi').innerHTML = '<div class="glass-panel rounded-3xl p-12 text-center my-8 border border-red-500/20 bg-red-500/5">'
                 + '<h3 class="text-lg font-bold text-red-400 mb-2">Gagal Memuat Data Menu</h3>'

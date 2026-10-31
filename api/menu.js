@@ -27,9 +27,54 @@ export default async function handler(req, res) {
     }
 
     try {
-        // ==========================================
-        // METHOD: GET /api/menu
-        // ==========================================
+        const urlPath = req.url || '';
+        const isFeedbackRoute = urlPath.includes('/feedback');
+
+        if (isFeedbackRoute) {
+            if (req.method === 'GET') {
+                const { data: feedbackData, error: feedbackError } = await supabase
+                    .from('feedback')
+                    .select('*')
+                    .order('timestamp', { ascending: false });
+
+                if (feedbackError) throw feedbackError;
+
+                return res.status(200).json({
+                    ok: true,
+                    feedbacks: feedbackData || []
+                });
+            }
+
+            if (req.method === 'POST') {
+                const { tanggal, nama_sekolah, ratings, pesan, detail_menu, timestamp } = req.body || {};
+
+                if (!nama_sekolah || !pesan) {
+                    return res.status(400).json({ ok: false, message: 'Nama sekolah dan pesan wajib diisi!' });
+                }
+
+                const { data: newFeedback, error: fbError } = await supabase
+                    .from('feedback')
+                    .insert([{
+                        tanggal: tanggal || new Date().toISOString().split('T')[0],
+                        nama_sekolah,
+                        ratings: ratings || {},
+                        pesan,
+                        detail_menu: detail_menu || {},
+                        timestamp: timestamp || new Date().toISOString()
+                    }])
+                    .select()
+                    .single();
+
+                if (fbError) throw fbError;
+
+                return res.status(200).json({
+                    ok: true,
+                    message: 'Feedback berhasil disimpan ke database Supabase!',
+                    data: newFeedback
+                });
+            }
+        }
+
         if (req.method === 'GET') {
             const { tanggal } = req.query;
 
@@ -77,7 +122,7 @@ export default async function handler(req, res) {
 
                 return {
                     id: item.id,
-                    nama_sppg: item.nama_sppg || 'SPPG Bantaeng Gantarangkeke 1',
+                    nama_sppg: item.nama_sppg || 'SPPG Deli Serdang Tanjung Gusta Sunggal',
                     yayasan: item.yayasan || 'Yayasan Tunas Ilmu Bantaeng',
                     tanggal: item.tanggal,
                     makanan_pokok: item.makanan_pokok,
@@ -116,10 +161,7 @@ export default async function handler(req, res) {
             });
         }
 
-        // ==========================================
-        // METHOD: POST /api/menu
-        // ==========================================
-        else if (req.method === 'POST') {
+        if (req.method === 'POST') {
             const { 
                 nama_sppg, 
                 yayasan, 
@@ -143,7 +185,7 @@ export default async function handler(req, res) {
             const { data: newMenu, error: menuError } = await supabase
                 .from('menu')
                 .upsert({
-                    nama_sppg: nama_sppg || 'SPPG Bantaeng Gantarangkeke 1',
+                    nama_sppg: nama_sppg || 'SPPG Deli Serdang Tanjung Gusta Sunggal',
                     yayasan: yayasan || 'Yayasan Tunas Ilmu Bantaeng',
                     tanggal,
                     makanan_pokok,
@@ -181,8 +223,6 @@ export default async function handler(req, res) {
                             .upsert(payloadGizi, { onConflict: 'menu_id,porsi_tipe' });
 
                         if (giziErr) {
-                            // Fallback jika database belum mendukung check constraint balita/bumil/busui, simpan sebagai pb/pk atau lewati dengan warning
-                            console.warn(`Peringatan simpan gizi ${tipe}:`, giziErr.message);
                             throw new Error(`Gagal menyimpan gizi ${tipe}: ${giziErr.message}`);
                         }
                     }
@@ -196,13 +236,10 @@ export default async function handler(req, res) {
             });
         }
 
-        else {
-            res.setHeader('Allow', ['GET', 'POST']);
-            return res.status(405).json({ ok: false, message: `Method ${req.method} Not Allowed` });
-        }
+        res.setHeader('Allow', ['GET', 'POST']);
+        return res.status(405).json({ ok: false, message: `Method ${req.method} Not Allowed` });
 
     } catch (error) {
-        console.error('API Error:', error.message);
         return res.status(500).json({
             ok: false,
             message: 'Gagal memproses data dari server',

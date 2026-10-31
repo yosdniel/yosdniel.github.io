@@ -348,12 +348,21 @@
                     + '</div>';
             }).join('');
 
-            return '<div class="glass-panel rounded-3xl p-6 sm:p-7 shadow-xl mb-6 border border-royal-500/30">'
-                + '<div class="flex items-center gap-2 text-royal-400 font-extrabold text-xs uppercase tracking-wider mb-2">'
+            return '<div class="glass-panel rounded-3xl shadow-xl mb-6 border border-royal-500/30 overflow-hidden">'
+                + '<button type="button" onclick="toggleFeedbackDropdown()" class="w-full p-5 sm:p-6 flex items-center justify-between bg-slate-900/40 hover:bg-slate-900/70 transition cursor-pointer text-left">'
+                + '<div class="flex items-center gap-3">'
+                + '<div class="w-10 h-10 rounded-xl bg-royal-500/10 border border-royal-400/20 text-royal-400 flex items-center justify-center font-bold">'
                 + '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>'
-                + '<span>Feedback & Evaluasi Menu (Tersimpan di Database)</span>'
                 + '</div>'
-                + '<p class="text-xs text-slate-400 mb-4">Wajib mengisi Nama Sekolah dan Pesan Masukan. Penilaian dan detail menu akan otomatis terkirim dan disimpan ke database untuk ditinjau oleh staff.</p>'
+                + '<div>'
+                + '<h3 class="text-sm sm:text-base font-bold text-white">Beri Feedback & Evaluasi Menu</h3>'
+                + '<p class="text-xs text-slate-400">Klik untuk membuka formulir penilaian dan masukan sekolah</p>'
+                + '</div>'
+                + '</div>'
+                + '<div id="feedbackChevron" class="text-royal-400 font-bold transition-transform duration-300">▼</div>'
+                + '</button>'
+                + '<div id="feedbackDropdownContent" class="hidden p-6 sm:p-7 border-t border-slate-800/80 space-y-4 bg-slate-950/40">'
+                + '<p class="text-xs text-slate-400 mb-2">Wajib mengisi Nama Sekolah dan Pesan Masukan. Penilaian dan detail menu akan otomatis terkirim dan disimpan ke database untuk ditinjau oleh staff.</p>'
                 + '<form id="formFeedback" onsubmit="kirimFeedback(event)" class="space-y-4">'
                 + '<div>'
                 + '<label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">Nama Sekolah / Instansi <span class="text-red-400">*Wajib</span></label>'
@@ -365,11 +374,25 @@
                 + '<textarea id="inputPesanMasukan" rows="3" required placeholder="Tuliskan catatan, rasa, porsi, atau kondisi menu makanan..." class="w-full px-4 py-3 rounded-xl bg-slate-900/80 border border-slate-800 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-royal-400 transition"></textarea>'
                 + '</div>'
                 + '<button type="submit" id="btnSubmitFeedback" class="w-full py-3 px-6 rounded-xl bg-royal-600 hover:bg-royal-500 text-white font-extrabold text-sm transition shadow-lg shadow-royal-600/30 flex items-center justify-center gap-2">'
-                + '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg> Kirim & Simpan ke Database'
+                + '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg> Kirim Feedback'
                 + '</button>'
                 + '</form>'
                 + '<div id="feedbackStatus" class="mt-3 text-center text-xs hidden"></div>'
+                + '</div>'
                 + '</div>';
+        }
+
+        function toggleFeedbackDropdown() {
+            const content = el('feedbackDropdownContent');
+            const chevron = el('feedbackChevron');
+            if (!content) return;
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                if (chevron) chevron.style.transform = 'rotate(180deg)';
+            } else {
+                content.classList.add('hidden');
+                if (chevron) chevron.style.transform = 'rotate(0deg)';
+            }
         }
 
         function setRating(groupId, val) {
@@ -433,7 +456,7 @@
             });
 
             const payload = {
-                action: 'feedback', // Menandakan request ke endpoint /api/menu untuk penyimpanan feedback
+                action: 'feedback',
                 tanggal: menuAktif ? menuAktif.tanggal : tanggalHariIni(),
                 nama_sekolah: namaSekolah,
                 ratings: ratings,
@@ -454,8 +477,8 @@
             statusEl.classList.remove('hidden');
             if (submitBtn) submitBtn.disabled = true;
 
-            // Mengirim data ke server API utama (api/menu) dengan method POST
-            fetch(API, {
+            // Mengirim request ke endpoint API dengan action=feedback atau query parameter
+            fetch(API + '?action=feedback', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -466,7 +489,15 @@
                 return response.json();
             })
             .then(function(res) {
-                statusEl.textContent = 'Sukses! Data feedback dan rating menu telah tersimpan di database untuk dipantau staff.';
+                if (!res.ok) throw new Error(res.message || 'Gagal menyimpan feedback');
+                
+                try {
+                    let localFeedbacks = JSON.parse(localStorage.getItem('sppg_feedbacks') || '[]');
+                    localFeedbacks.push(payload);
+                    localStorage.setItem('sppg_feedbacks', JSON.stringify(localFeedbacks));
+                } catch (ex) {}
+
+                statusEl.textContent = 'Sukses! Data feedback dan rating menu telah tersimpan di database.';
                 statusEl.className = 'mt-3 text-center text-xs text-emerald-400 font-semibold';
                 el('formFeedback').reset();
                 initRatings();

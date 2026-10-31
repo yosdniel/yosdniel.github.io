@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#030712">
-    <title>Menu Hari Ini · SPPG Bantaeng Gantarangkeke 1</title>
+    <title>Menu Hari Ini · SPPG Deli Serdang Tanjung Gusta</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon.ico">
     
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -103,9 +106,8 @@
                 <!-- Brand Info -->
                 <div class="flex items-center gap-4 sm:gap-5">
                     <div class="relative">
-                        <div class="absolute -inset-1 bg-gradient-to-r from-royal-500 to-sky-400 rounded-2xl blur opacity-30"></div>
-                        <img class="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl object-cover bg-slate-900 border border-royal-500/30" 
-                             src="https://placehold.co/120x120/0f172a/38bdf8?text=SPPG" 
+                        <img class="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl object-contain bg-transparent" 
+                             src="https://upload.wikimedia.org/wikipedia/commons/9/96/Logo_Badan_Gizi_Nasional_%282024%29.png" 
                              alt="Logo Badan Gizi Nasional">
                     </div>
                     <div>
@@ -113,8 +115,8 @@
                             <span class="w-1.5 h-1.5 rounded-full bg-royal-400 animate-pulse"></span>
                             Makan Bergizi Gratis
                         </div>
-                        <h1 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight leading-snug" id="nama-sppg">SPPG Bantaeng Gantarangkeke 1</h1>
-                        <p class="text-xs sm:text-sm font-medium text-slate-400" id="nama-yayasan">Yayasan Tunas Ilmu Bantaeng · Badan Gizi Nasional</p>
+                        <h1 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight leading-snug" id="nama-sppg">SPPG Deli Serdang Tanjung Gusta Sunggal</h1>
+                        <p class="text-xs sm:text-sm font-medium text-slate-400" id="nama-yayasan">Yayasan Pendidikan Supardi Dharma Utama · Badan Gizi Nasional</p>
                     </div>
                 </div>
 
@@ -134,14 +136,14 @@
             <div class="glass-panel rounded-3xl p-12 text-center my-auto flex flex-col items-center justify-center">
                 <div class="w-12 h-12 border-4 border-royal-500/20 border-t-royal-400 rounded-full animate-spin mb-4"></div>
                 <h2 class="text-lg font-bold text-white mb-1">Menyiapkan Menu Bergizi</h2>
-                <p class="text-sm text-slate-400">Sedang mengambil data dari server...</p>
+                <p class="text-sm text-slate-400">Sedang mengambil data dari database Supabase...</p>
             </div>
         </main>
 
         <!-- Footer -->
         <footer class="mt-8 pt-6 border-t border-slate-900 text-center sm:flex sm:items-center sm:justify-between text-xs text-slate-500 gap-4">
-            <p>Disiapkan di dapur <b class="text-slate-300 font-semibold" id="footer-nama-sppg">SPPG Bantaeng Gantarangkeke 1</b></p>
-            <p class="mt-2 sm:mt-0 text-slate-500" id="footer-yayasan">Yayasan Tunas Ilmu Bantaeng · Badan Gizi Nasional</p>
+            <p>Disiapkan di dapur <b class="text-slate-300 font-semibold" id="footer-nama-sppg">SPPG Deli Serdang Tanjung Gusta Sunggal</b></p>
+            <p class="mt-2 sm:mt-0 text-slate-500" id="footer-yayasan">Yayasan Pendidikan Supardi Dharma Utama · Badan Gizi Nasional</p>
         </footer>
     </div>
 
@@ -240,8 +242,8 @@
             const baris = ZAT.map(function(z) {
                 return '<div class="grid grid-cols-3 items-center py-3 px-4 border-b border-slate-800/60 last:border-0 ' + (z.utama ? 'bg-royal-500/10 font-bold' : '') + '">'
                     + '<span class="text-xs sm:text-sm text-slate-300">' + z.label + ' <span class="text-[10px] text-slate-500">(' + z.satuan + ')</span></span>'
-                    + '<span class="text-center text-xs sm:text-sm text-white font-semibold">' + (g.pk && g.pk[z.kunci] ? esc(g.pk[z.kunci]) : '–') + '</span>'
-                    + '<span class="text-center text-xs sm:text-sm text-royal-400 font-bold">' + (g.pb && g.pb[z.kunci] ? esc(g.pb[z.kunci]) : '–') + '</span>'
+                    + '<span class="text-center text-xs sm:text-sm text-white font-semibold">' + (g.pk && g.pk[z.kunci] != null ? esc(g.pk[z.kunci]) : '–') + '</span>'
+                    + '<span class="text-center text-xs sm:text-sm text-royal-400 font-bold">' + (g.pb && g.pb[z.kunci] != null ? esc(g.pb[z.kunci]) : '–') + '</span>'
                     + '</div>';
             }).join('');
 
@@ -299,16 +301,47 @@
         }
 
         function gambarMinggu(aktif) {
-            if (!dataMinggu.length) return '';
+            // Tentukan tanggal aktif atau hari ini sebagai acuan minggu berjalan
+            const acuanDate = aktif ? keDate(aktif) : new Date();
+            
+            // Cari hari Senin pada minggu tersebut
+            const dayOfWeek = acuanDate.getDay();
+            const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+            
+            const seninDate = new Date(acuanDate);
+            seninDate.setDate(acuanDate.getDate() + diffToMonday);
+
+            // Buat daftar tanggal dari Senin (index 0) sampai Sabtu (index 5)
+            const menuSeninSabtu = [];
+            for (let i = 0; i < 6; i++) {
+                const d = new Date(seninDate);
+                d.setDate(seninDate.getDate() + i);
+                
+                const ymd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                const existingMenu = dataMinggu.find(m => m.tanggal === ymd);
+                
+                menuSeninSabtu.push({
+                    tanggal: ymd,
+                    adaData: !!existingMenu
+                });
+            }
+
             return '<div class="glass-panel rounded-3xl p-5 mb-6">'
-                + '<div class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Pilih Tanggal Sajian Menu</div>'
-                + '<div class="flex gap-2.5 overflow-x-auto pb-2 scrollbar-none">'
-                + dataMinggu.map(function(m) {
+                + '<div class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Pilih Tanggal Sajian Menu (Senin - Sabtu)</div>'
+                + '<div class="grid grid-cols-6 gap-2 sm:gap-3">'
+                + menuSeninSabtu.map(function(m) {
                     const d = keDate(m.tanggal);
                     const isAktif = m.tanggal === aktif;
-                    return `<button type="button" data-tgl="${m.tanggal}" class="flex-none px-4 py-2.5 rounded-2xl border transition ${isAktif ? 'bg-royal-600 border-royal-400 text-white shadow-lg shadow-royal-600/30 font-extrabold' : 'bg-slate-900/60 border-slate-800 text-slate-300 hover:border-royal-500/50 font-semibold'}">`
-                        + '<span class="block text-[10px] uppercase tracking-wider opacity-80">' + SINGK[d.getDay()] + '</span>'
-                        + '<span class="block text-base mt-0.5">' + d.getDate() + '</span>'
+                    
+                    let btnClass = isAktif 
+                        ? 'bg-royal-600 border-royal-400 text-white shadow-lg shadow-royal-600/30 font-extrabold' 
+                        : (m.adaData 
+                            ? 'bg-slate-900/60 border-slate-800 text-slate-300 hover:border-royal-500/50 font-semibold' 
+                            : 'bg-slate-900/30 border-slate-900 text-slate-500 hover:border-slate-800 font-medium');
+
+                    return `<button type="button" data-tgl="${m.tanggal}" class="w-full px-1 sm:px-3 py-2.5 rounded-2xl border transition text-center ${btnClass}">`
+                        + '<span class="block text-[9px] sm:text-[10px] uppercase tracking-wider opacity-80">' + SINGK[d.getDay()] + '</span>'
+                        + '<span class="block text-sm sm:text-base mt-0.5">' + d.getDate() + '</span>'
                         + '</button>';
                 }).join('')
                 + '</div></div>';
@@ -320,13 +353,25 @@
 
             const elIsi = el('isi');
             if (menuAktif && menuAktif.makanan_pokok) {
-                el('nama-sppg').textContent = menuAktif.nama_sppg || 'SPPG Bantaeng Gantarangkeke 1';
-                el('nama-yayasan').textContent = (menuAktif.yayasan || 'Yayasan Tunas Ilmu Bantaeng') + ' · Badan Gizi Nasional';
-                el('footer-nama-sppg').textContent = menuAktif.nama_sppg || 'SPPG Bantaeng Gantarangkeke 1';
-                el('footer-yayasan').textContent = (menuAktif.yayasan || 'Yayasan Tunas Ilmu Bantaeng') + ' · Badan Gizi Nasional';
+                const namaSppgText = menuAktif.nama_sppg || 'SPPG Deli Serdang Tanjung Gusta Sunggal';
+                const yayasanText = menuAktif.yayasan || 'Yayasan Pendidikan Supardi Dharma Utama';
+
+                el('nama-sppg').textContent = namaSppgText;
+                el('nama-yayasan').textContent = yayasanText + ' · Badan Gizi Nasional';
+                el('footer-nama-sppg').textContent = namaSppgText;
+                el('footer-yayasan').textContent = yayasanText + ' · Badan Gizi Nasional';
                 
                 elIsi.innerHTML = gambarMenu(menuAktif) + gambarMinggu(ymd);
             } else {
+                const fallbackMeta = dataMinggu.length > 0 ? dataMinggu[0] : null;
+                if (fallbackMeta) {
+                    if (fallbackMeta.nama_sppg) el('nama-sppg').textContent = fallbackMeta.nama_sppg;
+                    if (fallbackMeta.yayasan) {
+                        el('nama-yayasan').textContent = fallbackMeta.yayasan + ' · Badan Gizi Nasional';
+                        el('footer-yayasan').textContent = fallbackMeta.yayasan + ' · Badan Gizi Nasional';
+                    }
+                }
+
                 elIsi.innerHTML = '<div class="glass-panel rounded-3xl p-12 text-center my-6">'
                     + '<div class="text-royal-400 mb-3"><svg class="w-12 h-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg></div>'
                     + '<h3 class="text-lg font-bold text-white mb-1">Menu Belum Diterbitkan</h3>'
@@ -359,12 +404,21 @@
 
         (function() {
             const hariIni = tanggalHariIni();
-            fetch(API + '?tanggal=' + hariIni)
+            fetch(API)
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
                     if (!data.ok) throw new Error('gagal');
                     dataMinggu = data.minggu || [];
                     if (data.himbauan && data.himbauan.length) HIMBAUAN = data.himbauan;
+
+                    if (dataMinggu.length > 0 && dataMinggu[0].nama_sppg) {
+                        el('nama-sppg').textContent = dataMinggu[0].nama_sppg;
+                        el('footer-nama-sppg').textContent = dataMinggu[0].nama_sppg;
+                    }
+                    if (dataMinggu.length > 0 && dataMinggu[0].yayasan) {
+                        el('nama-yayasan').textContent = dataMinggu[0].yayasan + ' · Badan Gizi Nasional';
+                        el('footer-yayasan').textContent = dataMinggu[0].yayasan + ' · Badan Gizi Nasional';
+                    }
                     
                     const targetTanggal = data.today || hariIni;
                     try {
@@ -380,6 +434,18 @@
                         const c = JSON.parse(simpan);
                         dataMinggu = c.minggu || [];
                         if (c.himbauan && c.himbauan.length) HIMBAUAN = c.himbauan;
+
+                        if (dataMinggu.length > 0) {
+                            if (dataMinggu[0].nama_sppg) {
+                                el('nama-sppg').textContent = dataMinggu[0].nama_sppg;
+                                el('footer-nama-sppg').textContent = dataMinggu[0].nama_sppg;
+                            }
+                            if (dataMinggu[0].yayasan) {
+                                el('nama-yayasan').textContent = dataMinggu[0].yayasan + ' · Badan Gizi Nasional';
+                                el('footer-yayasan').textContent = dataMinggu[0].yayasan + ' · Badan Gizi Nasional';
+                            }
+                        }
+
                         const punya = dataMinggu.some(function(m) { return m.tanggal === hariIni; });
                         tampilkan(punya ? hariIni : (c.hariIni || hariIni));
                     } else {

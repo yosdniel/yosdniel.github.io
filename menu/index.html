@@ -118,9 +118,9 @@
                     </div>
                 </div>
 
-                <!-- Date Badge (Dikunci ke Tanggal Hari Ini) -->
+                <!-- Date Badge (Dikunci ke Tanggal Hari Ini & Warna Biru) -->
                 <div class="flex flex-col md:items-end border-t md:border-t-0 border-slate-800 pt-4 md:pt-0">
-                    <div class="text-[10px] uppercase font-bold tracking-widest text-amber-400 mb-0.5">Tanggal Hari Ini</div>
+                    <div class="text-[10px] uppercase font-bold tracking-widest text-royal-400 mb-0.5">Tanggal Hari Ini</div>
                     <div class="text-base sm:text-lg lg:text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-slate-400 tracking-tight flex items-center gap-2" id="tanggal-realtime">
                         <span>Memuat…</span>
                     </div>
@@ -202,7 +202,7 @@
 
         const IKON = {
             jam: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.2v5l3.2 2"/></svg>',
-            segar: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
+            segar: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.4 19 2c0 2 0 4.5-2.2 7.7A7 7 0 0 1 11 20Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.5 12 13 13 11"/></svg>',
             larang: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.2 10.6 12 4.2l7.8 6.4V20H4.2z"/><path d="M3 21 21 3"/></svg>'
         };
         const IKON_AWAS = '<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4"/><path d="M12 17.5v.01"/></svg>';
@@ -240,13 +240,13 @@
             if (e.target === this) closeImageModal();
         });
 
-        // Mengunci tanggal hari ini secara permanen di kanan atas header
+        // Mengunci tanggal hari ini secara permanen di kanan atas header (dengan ikon & teks warna biru)
         function inisialisasiTanggalRealtime() {
             const d = new Date();
             const elRealtime = el('tanggal-realtime');
             if (elRealtime) {
                 const teksHariTanggal = `${HARI[d.getDay()]}, ${d.getDate()} ${BULAN[d.getMonth()]} ${d.getFullYear()}`;
-                elRealtime.innerHTML = `<svg class="w-5 h-5 text-amber-400 inline-block flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 002-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg> <span>${teksHariTanggal}</span>`;
+                elRealtime.innerHTML = `<svg class="w-5 h-5 text-royal-400 inline-block flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 002-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg> <span>${teksHariTanggal}</span>`;
             }
         }
 
@@ -655,7 +655,7 @@
         }
 
         (function() {
-            // Inisialisasi tanggal realtime hari ini di header kanan atas (dikunci permanen)
+            // Inisialisasi tanggal realtime hari ini di header kanan atas (dikunci permanen dengan warna biru)
             inisialisasiTanggalRealtime();
 
             const hariIni = tanggalHariIni();

@@ -2,19 +2,20 @@
  * ============================================================
  * SPPG BANTAENG GANTARANGKEKE 1 - SUPABASE API SERVER
  * ============================================================
- * Dependencies: express, @supabase/supabase-js, cors, dotenv
- * Install: npm install express @supabase/supabase-js cors dotenv
- *
- * Endpoint yang tersedia:
- *   GET    /api/menu          → ambil semua menu + himbauan
+ * Endpoint:
+ *   GET    /api/menu
  *   GET    /api/menu?tanggal=YYYY-MM-DD
- *   POST   /api/menu          → tambah / update menu + gizi
- *   DELETE /api/menu/:id      → hapus menu
+ *   POST   /api/menu
+ *   DELETE /api/menu/:id
  */
 const express = require('express');
 const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
-require('dotenv').config();
+
+// dotenv hanya untuk local development
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -23,28 +24,41 @@ const PORT = process.env.PORT || 3000;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  console.error('CRITICAL ERROR: SUPABASE_URL atau SUPABASE_ANON_KEY belum diatur di file .env!');
-  process.exit(1);
+// Jangan pakai process.exit di Vercel!
+let supabase = null;
+if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+  supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} else {
+  console.error('WARNING: SUPABASE_URL atau SUPABASE_ANON_KEY belum di-set!');
 }
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ===================== MIDDLEWARE =====================
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
+// Middleware cek Supabase
+function checkSupabase(req, res, next) {
+  if (!supabase) {
+    return res.status(500).json({
+      ok: false,
+      message: 'Server belum dikonfigurasi dengan benar. Hubungi administrator.',
+      error: 'SUPABASE_URL atau SUPABASE_ANON_KEY tidak ditemukan di environment variables'
+    });
+  }
+  next();
+}
+
 // Helper format error
 function formatError(error) {
   return {
-    message: error.message || 'Unknown error',
-    code: error.code || null,
-    details: error.details || null,
-    hint: error.hint || null
+    message: error?.message || 'Unknown error',
+    code: error?.code || null,
+    details: error?.details || null,
+    hint: error?.hint || null
   };
 }
 
-// Helper format gizi → { pk: {...}, pb: {...} }
+// Helper format gizi
 function formatGizi(giziData) {
   const result = { pk: {}, pb: {} };
   if (!giziData) return result;
@@ -68,13 +82,11 @@ function formatGizi(giziData) {
 
 /**
  * GET /api/menu
- * Query opsional: ?tanggal=YYYY-MM-DD
  */
-app.get('/api/menu', async (req, res) => {
+app.get('/api/menu', checkSupabase, async (req, res) => {
   try {
     const { tanggal } = req.query;
 
-    // 1. Ambil data menu + relasi gizi
     let query = supabase
       .from('menu')
       .select(`
@@ -124,21 +136,14 @@ app.get('/api/menu', async (req, res) => {
       const { data: menuOnly, error: menuOnlyError } = await fallbackQuery;
       if (menuOnlyError) throw menuOnlyError;
 
-      const { data: allGizi, error: giziError } = await supabase
-        .from('gizi')
-        .select('*');
+      const { data: allGizi } = await supabase.from('gizi').select('*');
 
-      if (giziError) {
-        console.warn('Gagal ambil gizi:', giziError.message);
-      }
-
-      menuData = (menuOnly || []).map((item) => {
-        const relatedGizi = (allGizi || []).filter((g) => g.menu_id === item.id);
-        return { ...item, gizi: relatedGizi };
-      });
+      menuData = (menuOnly || []).map((item) => ({
+        ...item,
+        gizi: (allGizi || []).filter((g) => g.menu_id === item.id)
+      }));
     }
 
-    // 2. Format data menu
     const formattedMenu = (menuData || []).map((item) => ({
       id: item.id,
       nama_sppg: item.nama_sppg || 'SPPG Bantaeng Gantarangkeke 1',
@@ -156,18 +161,13 @@ app.get('/api/menu', async (req, res) => {
       gizi: formatGizi(item.gizi)
     }));
 
-    // 3. Ambil himbauan aktif
-    const { data: himbauanData, error: himbauanError } = await supabase
+    // Ambil himbauan
+    const { data: himbauanData } = await supabase
       .from('himbauan')
       .select('ikon, judul, isi')
       .eq('is_active', true)
       .order('urutan', { ascending: true });
 
-    if (himbauanError) {
-      console.warn('Peringatan himbauan:', himbauanError.message);
-    }
-
-    // Tanggal hari ini (WIB)
     const todayStr = new Intl.DateTimeFormat('en-CA', {
       timeZone: 'Asia/Jakarta',
       year: 'numeric',
@@ -193,9 +193,8 @@ app.get('/api/menu', async (req, res) => {
 
 /**
  * POST /api/menu
- * Tambah atau update menu + data gizi
  */
-app.post('/api/menu', async (req, res) => {
+app.post('/api/menu', checkSupabase, async (req, res) => {
   try {
     const {
       nama_sppg,
@@ -220,7 +219,6 @@ app.post('/api/menu', async (req, res) => {
       });
     }
 
-    // 1. Upsert data menu
     const { data: newMenu, error: menuError } = await supabase
       .from('menu')
       .upsert(
@@ -245,7 +243,7 @@ app.post('/api/menu', async (req, res) => {
 
     if (menuError) throw menuError;
 
-    // 2. Upsert data gizi
+    // Upsert gizi
     if (gizi && newMenu?.id) {
       const giziRecords = [];
 
@@ -276,13 +274,10 @@ app.post('/api/menu', async (req, res) => {
       if (giziRecords.length > 0) {
         const { error: giziError } = await supabase
           .from('gizi')
-          .upsert(giziRecords, {
-            onConflict: 'menu_id,porsi_tipe'
-          });
+          .upsert(giziRecords, { onConflict: 'menu_id,porsi_tipe' });
 
         if (giziError) {
           console.error('Gizi upsert error:', giziError);
-          // Tidak throw agar data menu tetap tersimpan
         }
       }
     }
@@ -304,9 +299,8 @@ app.post('/api/menu', async (req, res) => {
 
 /**
  * DELETE /api/menu/:id
- * Hapus menu berdasarkan ID
  */
-app.delete('/api/menu/:id', async (req, res) => {
+app.delete('/api/menu/:id', checkSupabase, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -331,12 +325,12 @@ app.delete('/api/menu/:id', async (req, res) => {
   }
 });
 
-// ===================== JALANKAN SERVER =====================
+// ===================== JALANKAN SERVER (LOCAL ONLY) =====================
 if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => {
     console.log(`🚀 API Server SPPG berjalan di http://localhost:${PORT}`);
   });
 }
 
-// Untuk Vercel / Serverless
+// Export untuk Vercel
 module.exports = app;

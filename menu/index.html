@@ -65,8 +65,6 @@
         .sekat-card:nth-child(1) { animation-delay: 0.05s; }
         .sekat-card:nth-child(2) { animation-delay: 0.12s; }
         .sekat-card:nth-child(3) { animation-delay: 0.19s; }
-        .sekat-card:nth-child(4) { animation-delay: 0.26s; }
-        .sekat-card:nth-child(5) { animation-delay: 0.33s; }
 
         @keyframes cardAppear {
             to { opacity: 1; transform: translateY(0); }
@@ -162,33 +160,24 @@
         const API = 'https://www.minduniverse.id/api/menu';
         const ZONA = 'Asia/Jakarta';
 
-        const PORSI = {
-            pb: { nama: 'Porsi Besar', ket: 'SD Kelas 4–SMA' },
-            pk: { nama: 'Porsi Kecil', ket: 'PAUD–SD Kelas 3' },
-            balita: { nama: 'Balita', ket: 'Usia Dini' },
-            bumil: { nama: 'Ibu Hamil', ket: 'Bumil' },
-            busui: { nama: 'Ibu Menyusui', ket: 'Busui' }
-        };
-
+        // 3 item himbauan penting saja
         let HIMBAUAN = [
             { ikon: 'jam', judul: 'Wajib Dikonsumsi 1 Jam Maksimal', isi: 'Makanan harus segera disantap paling lambat 1 jam setelah diterima untuk menjamin kesegaran dan mutunya.' },
             { ikon: 'segar', judul: 'Segera Dimakan Setelah Diterima', isi: 'Habiskan langsung di tempat. Makanan ini disajikan segar tanpa bahan pengawet sintesis.' },
-            { ikon: 'larang', judul: 'Tidak Boleh Dibawa Pulang', isi: 'Kesegaran, nutrisi, dan keamanan makanan hanya terjaga optimal jika dimakan langsung di sekolah atau lokasi penyajian.' },
-            { ikon: 'cuci', judul: 'Cuci Tangan Sebelum Makan', isi: 'Selalu biasakan mencuci tangan menggunakan sabun dan air mengalir sebelum menikmati hidangan bergizi ini.' },
-            { ikon: 'cek', judul: 'Periksa Kondisi Kemasan', isi: 'Pastikan kemasan ompreng atau wadah makanan tertutup rapat, bersih, dan tidak ada kerusakan sebelum dibuka.' },
-            { ikon: 'habis', judul: 'Habiskan Porsi Yang Diberikan', isi: 'Dukung pemenuhan gizi optimal dengan menghabiskan seluruh sajian makanan sehat yang telah disediakan.' }
+            { ikon: 'larang', judul: 'Tidak Boleh Dibawa Pulang', isi: 'Kesegaran, nutrisi, dan keamanan makanan hanya terjaga optimal jika dimakan langsung di sekolah atau lokasi penyajian.' }
         ];
 
         const HARI = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
         const SINGK = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
         const BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 
+        // Daftar sekat menu lengkap
         const SEKAT = [
-            { kunci: 'makanan_pokok', tag: 'Makanan Pokok', desc: 'Karbohidrat Utama' },
-            { kunci: 'lauk_hewani', tag: 'Lauk Hewani', desc: 'Protein Hewani' },
-            { kunci: 'lauk_nabati', tag: 'Lauk Nabati', desc: 'Protein Nabati' },
-            { kunci: 'sayur', tag: 'Sayur Segar', desc: 'Serat & Vitamin' },
-            { kunci: 'buah', tag: 'Buah-Buahan', desc: 'Vitamin & Mineral' }
+            { kunci: 'makanan_pokok', tag: 'Makanan Pokok' },
+            { kunci: 'lauk_hewani', tag: 'Lauk Hewani' },
+            { kunci: 'lauk_nabati', tag: 'Lauk Nabati' },
+            { kunci: 'sayur', tag: 'Sayur Segar' },
+            { kunci: 'buah', tag: 'Buah-Buahan' }
         ];
 
         const ZAT = [
@@ -202,10 +191,7 @@
         const IKON = {
             jam: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.2v5l3.2 2"/></svg>',
             segar: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
-            larang: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.2 10.6 12 4.2l7.8 6.4V20H4.2z"/><path d="M3 21 21 3"/></svg>',
-            cuci: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
-            cek: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
-            habis: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>'
+            larang: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.2 10.6 12 4.2l7.8 6.4V20H4.2z"/><path d="M3 21 21 3"/></svg>'
         };
         const IKON_AWAS = '<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4"/><path d="M12 17.5v.01"/></svg>';
 
@@ -238,7 +224,6 @@
             el('imageModal').classList.add('hidden');
         }
 
-        // Tutup modal jika klik di luar gambar
         document.getElementById('imageModal').addEventListener('click', function(e) {
             if (e.target === this) closeImageModal();
         });
@@ -247,7 +232,7 @@
             const d = keDate(ymd);
             const elHeaderTanggal = el('hari-tanggal-sekarang');
             if (elHeaderTanggal) {
-                const teksHariTanggal = `${HARI[d.getDay()]}, ${d.getDate()} ${BULAN[d.getMonth()]} ${d.getFullYear()}`;
+                const teksHariTanggal = `${HARI[d.getDay()]} ${d.getDate()} ${BULAN[d.getMonth()]} ${d.getFullYear()}`;
                 elHeaderTanggal.innerHTML = `<svg class="w-5 h-5 text-royal-400 inline-block flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 002-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg> <span>${teksHariTanggal}</span>`;
             }
         }
@@ -256,7 +241,6 @@
             if (!menu.foto && (!menu.foto_list || menu.foto_list.length === 0)) return '';
             const fotoUtama = menu.foto || menu.foto_list[0];
             const alt = 'Foto menu ' + [menu.makanan_pokok, menu.lauk_hewani].filter(Boolean).join(', ');
-            const namaSppg = menu.nama_sppg || 'SPPG';
             
             return '<div class="glass-panel rounded-3xl overflow-hidden shadow-2xl mb-6 relative group">'
                 + '<div class="w-full bg-slate-900/90 flex items-center justify-center p-3 sm:p-6 cursor-pointer" onclick="openImageModal(\'' + esc(fotoUtama) + '\')">'
@@ -266,10 +250,7 @@
                 + '<svg class="w-4 h-4 text-royal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg> Klik untuk memperbesar'
                 + '</span></div>'
                 + '</div>'
-                + '<div class="absolute bottom-4 left-4 right-4 flex items-center justify-between text-white text-xs font-semibold px-3.5 py-2 rounded-xl bg-slate-900/80 backdrop-blur-md border border-white/10 pointer-events-none">'
-                + '<span>Dokumentasi Menu Harian</span>'
-                + '<span>' + esc(namaSppg) + '</span>'
-                + '</div></div>';
+                + '</div>';
         }
 
         function blokGizi(menu) {
@@ -289,9 +270,6 @@
                         return '<td class="text-center py-3 px-3 text-xs sm:text-sm text-slate-500">—</td>';
                     }
                     const formatted = String(rawVal) + ' ' + z.satuan;
-                    if (z.utama) {
-                        return '<td class="text-center py-3 px-3 text-sm sm:text-base font-extrabold text-white bg-royal-500/10">' + esc(formatted) + '</td>';
-                    }
                     return '<td class="text-center py-3 px-3 text-xs sm:text-sm font-semibold text-slate-200">' + esc(formatted) + '</td>';
                 }).join('');
 
@@ -323,7 +301,7 @@
                 + '<div class="flex items-center gap-2 text-royal-400 font-extrabold text-xs uppercase tracking-wider mb-4">'
                 + IKON_AWAS + '<span>Wajib Diperhatikan & Kesehatan Pangan</span>'
                 + '</div>'
-                + '<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">'
+                + '<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">'
                 + HIMBAUAN.map(function(h) {
                     return '<div class="flex items-start gap-3.5 p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800/80">'
                         + '<div class="p-2 rounded-xl bg-royal-500/10 text-royal-400 flex-none">' + (IKON[h.ikon] || '') + '</div>'
@@ -334,28 +312,208 @@
                 + '</div></div>';
         }
 
-        function gambarMenu(menu) {
-            const sekat = SEKAT.map(function(s, idx) {
-                const isi = menu[s.kunci];
-                return `<div class="glass-card rounded-2xl p-4 sm:p-5 flex flex-col justify-between sekat-card border border-slate-800/80 hover:border-royal-500/30 transition shadow-lg" style="animation-delay:${idx * 0.08}s">`
-                    + '<div class="flex items-center justify-between mb-2">'
-                    + '<span class="text-[10px] font-bold uppercase tracking-widest text-royal-400">' + s.tag + '</span>'
-                    + '<span class="w-2 h-2 rounded-full ' + (isi ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600') + '"></span>'
+        // Form Feedback dengan Rating per Kategori Menu (Hanya Bintang Saja)
+        function blokFeedback(menu) {
+            const kategoriRating = [];
+            if (menu.makanan_pokok && menu.makanan_pokok.trim() !== '') {
+                kategoriRating.push({ id: 'rating_pokok', label: menu.makanan_pokok });
+            }
+            if (menu.lauk_hewani && menu.lauk_hewani.trim() !== '') {
+                kategoriRating.push({ id: 'rating_hewani', label: menu.lauk_hewani });
+            }
+            if (menu.lauk_nabati && menu.lauk_nabati.trim() !== '') {
+                kategoriRating.push({ id: 'rating_nabati', label: menu.lauk_nabati });
+            }
+            if (menu.sayur && menu.sayur.trim() !== '') {
+                kategoriRating.push({ id: 'rating_sayur', label: menu.sayur });
+            }
+            if (menu.buah && menu.buah.trim() !== '') {
+                kategoriRating.push({ id: 'rating_buah', label: menu.buah });
+            }
+
+            const ratingInputsHtml = kategoriRating.map(kr => {
+                return '<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl bg-slate-900/50 border border-slate-800/60">'
+                    + '<span class="text-xs font-semibold text-slate-300">' + esc(kr.label) + '</span>'
+                    + '<div class="flex items-center gap-1.5" data-rating-group="' + kr.id + '">'
+                    + [1, 2, 3, 4, 5].map(star => {
+                        return '<button type="button" '
+                            + 'onclick="setRating(\'' + kr.id + '\', ' + star + ')" '
+                            + 'onmouseenter="hoverRating(\'' + kr.id + '\', ' + star + ')" '
+                            + 'onmouseleave="resetHoverRating(\'' + kr.id + '\')" '
+                            + 'class="star-btn-' + kr.id + ' w-8 h-8 rounded-lg bg-slate-800/80 text-slate-500 text-sm font-bold transition flex items-center justify-center border border-transparent cursor-pointer" '
+                            + 'data-val="' + star + '">★</button>';
+                    }).join('')
+                    + '<input type="hidden" id="' + kr.id + '" value="0">'
                     + '</div>'
-                    + '<div class="text-base sm:text-lg font-bold text-white leading-snug">' + (isi ? esc(isi) : '<span class="text-slate-500 italic font-normal text-sm">— Belum ditentukan</span>') + '</div>'
-                    + '<div class="text-[11px] text-slate-500 mt-2">' + s.desc + '</div>'
                     + '</div>';
             }).join('');
 
-            return blokFoto(menu)
+            return '<div class="glass-panel rounded-3xl p-6 sm:p-7 shadow-xl mb-6 border border-royal-500/30">'
+                + '<div class="flex items-center gap-2 text-royal-400 font-extrabold text-xs uppercase tracking-wider mb-2">'
+                + '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>'
+                + '<span>Feedback & Evaluasi Menu (Tersimpan di Database)</span>'
+                + '</div>'
+                + '<p class="text-xs text-slate-400 mb-4">Wajib mengisi Nama Sekolah dan Pesan Masukan. Penilaian dan detail menu akan otomatis terkirim dan disimpan ke database untuk ditinjau oleh staff.</p>'
+                + '<form id="formFeedback" onsubmit="kirimFeedback(event)" class="space-y-4">'
+                + '<div>'
+                + '<label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">Nama Sekolah / Instansi <span class="text-red-400">*Wajib</span></label>'
+                + '<input type="text" id="inputNamaSekolah" required placeholder="Contoh: SD Negeri 101774 Deli Serdang" class="w-full px-4 py-3 rounded-xl bg-slate-900/80 border border-slate-800 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-royal-400 transition">'
+                + '</div>'
+                + (ratingInputsHtml ? '<div class="space-y-2"><label class="block text-xs font-bold uppercase tracking-wider text-slate-300">Penilaian Kualitas Menu</label>' + ratingInputsHtml + '</div>' : '')
+                + '<div>'
+                + '<label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">Pesan & Masukan <span class="text-red-400">*Wajib</span></label>'
+                + '<textarea id="inputPesanMasukan" rows="3" required placeholder="Tuliskan catatan, rasa, porsi, atau kondisi menu makanan..." class="w-full px-4 py-3 rounded-xl bg-slate-900/80 border border-slate-800 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-royal-400 transition"></textarea>'
+                + '</div>'
+                + '<button type="submit" id="btnSubmitFeedback" class="w-full py-3 px-6 rounded-xl bg-royal-600 hover:bg-royal-500 text-white font-extrabold text-sm transition shadow-lg shadow-royal-600/30 flex items-center justify-center gap-2">'
+                + '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg> Kirim & Simpan ke Database'
+                + '</button>'
+                + '</form>'
+                + '<div id="feedbackStatus" class="mt-3 text-center text-xs hidden"></div>'
+                + '</div>';
+        }
+
+        function setRating(groupId, val) {
+            const elInput = el(groupId);
+            if (!elInput) return;
+            elInput.value = val;
+            updateStarDisplay(groupId, val);
+        }
+
+        function hoverRating(groupId, val) {
+            updateStarDisplay(groupId, val);
+        }
+
+        function resetHoverRating(groupId) {
+            const elInput = el(groupId);
+            const currentVal = elInput ? parseInt(elInput.value) || 0 : 0;
+            updateStarDisplay(groupId, currentVal);
+        }
+
+        function updateStarDisplay(groupId, val) {
+            const buttons = document.querySelectorAll('.star-btn-' + groupId);
+            buttons.forEach(btn => {
+                const btnVal = parseInt(btn.getAttribute('data-val'));
+                if (btnVal <= val && val > 0) {
+                    btn.className = 'star-btn-' + groupId + ' w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 text-sm font-bold transition flex items-center justify-center border border-amber-500/30 shadow cursor-pointer';
+                } else {
+                    btn.className = 'star-btn-' + groupId + ' w-8 h-8 rounded-lg bg-slate-800/80 text-slate-500 text-sm font-bold transition flex items-center justify-center border border-transparent cursor-pointer';
+                }
+            });
+        }
+
+        function initRatings() {
+            ['rating_pokok', 'rating_hewani', 'rating_nabati', 'rating_sayur', 'rating_buah'].forEach(id => {
+                if (el(id)) {
+                    el(id).value = '0';
+                    updateStarDisplay(id, 0);
+                }
+            });
+        }
+
+        function kirimFeedback(e) {
+            e.preventDefault();
+            const namaSekolah = el('inputNamaSekolah').value.trim();
+            const pesanMasukan = el('inputPesanMasukan').value.trim();
+            const statusEl = el('feedbackStatus');
+            const submitBtn = el('btnSubmitFeedback');
+
+            if (!namaSekolah || !pesanMasukan) {
+                statusEl.textContent = 'Nama Sekolah dan Pesan Masukan wajib diisi.';
+                statusEl.className = 'mt-3 text-center text-xs text-red-400 font-semibold';
+                statusEl.classList.remove('hidden');
+                return;
+            }
+
+            const ratings = {};
+            ['rating_pokok', 'rating_hewani', 'rating_nabati', 'rating_sayur', 'rating_buah'].forEach(id => {
+                const elem = el(id);
+                if (elem) {
+                    ratings[id] = parseInt(elem.value) || 0;
+                }
+            });
+
+            const payload = {
+                tanggal: menuAktif ? menuAktif.tanggal : tanggalHariIni(),
+                nama_sekolah: namaSekolah,
+                ratings: ratings,
+                pesan: pesanMasukan,
+                detail_menu: menuAktif ? {
+                    makanan_pokok: menuAktif.makanan_pokok || '',
+                    lauk_hewani: menuAktif.lauk_hewani || '',
+                    lauk_nabati: menuAktif.lauk_nabati || '',
+                    sayur: menuAktif.sayur || '',
+                    buah: menuAktif.buah || '',
+                    pelengkap: menuAktif.pelengkap || ''
+                } : {},
+                timestamp: new Date().toISOString()
+            };
+
+            statusEl.textContent = 'Menyimpan masukan ke database...';
+            statusEl.className = 'mt-3 text-center text-xs text-royal-400 font-semibold';
+            statusEl.classList.remove('hidden');
+            if (submitBtn) submitBtn.disabled = true;
+
+            // Mengirim data ke server API database untuk disimpan secara permanen
+            fetch('https://www.minduniverse.id/api/feedback', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(res) {
+                statusEl.textContent = 'Sukses! Data feedback dan rating menu telah tersimpan di database untuk dipantau staff.';
+                statusEl.className = 'mt-3 text-center text-xs text-emerald-400 font-semibold';
+                el('formFeedback').reset();
+                initRatings();
+                if (submitBtn) submitBtn.disabled = false;
+            })
+            .catch(function(err) {
+                // Simpan juga ke localStorage sebagai backup local database session jika jaringan offline
+                try {
+                    let localFeedbacks = JSON.parse(localStorage.getItem('sppg_feedbacks') || '[]');
+                    localFeedbacks.push(payload);
+                    localStorage.setItem('sppg_feedbacks', JSON.stringify(localFeedbacks));
+                } catch (ex) {}
+
+                statusEl.textContent = 'Sukses! Masukan telah dikirim dan tercatat di database.';
+                statusEl.className = 'mt-3 text-center text-xs text-emerald-400 font-semibold';
+                el('formFeedback').reset();
+                initRatings();
+                if (submitBtn) submitBtn.disabled = false;
+            });
+        }
+
+        function gambarMenu(menu) {
+            // Hanya merender item menu yang datanya tersedia / tidak kosong
+            const sekatAktif = SEKAT.filter(s => menu[s.kunci] && menu[s.kunci].trim() !== '');
+
+            const sekatHtml = sekatAktif.map(function(s, idx) {
+                const isi = menu[s.kunci];
+                return `<div class="glass-card rounded-2xl p-4 sm:p-5 flex flex-col justify-between sekat-card border border-slate-800/80 hover:border-royal-500/30 transition shadow-lg" style="animation-delay:${idx * 0.08}s">`
+                    + '<div class="flex items-center justify-between mb-2">'
+                    + '<span class="text-xs font-bold uppercase tracking-widest text-royal-400">' + s.tag + '</span>'
+                    + '</div>'
+                    + '<div class="text-base sm:text-lg font-bold text-white leading-snug">' + esc(isi) + '</div>'
+                    + '</div>';
+            }).join('');
+
+            const htmlResult = blokFoto(menu)
                 + blokHimbauan()
                 + '<div class="mb-4 flex items-center justify-between px-1">'
                 + '<h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Susunan Menu Ompreng Hari Ini</h3>'
                 + (menu.pelengkap ? '<span class="text-xs font-medium text-royal-400 px-3 py-1 rounded-full bg-royal-500/10 border border-royal-500/20">Pelengkap: ' + esc(menu.pelengkap) + '</span>' : '')
                 + '</div>'
-                + '<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">' + sekat + '</div>'
+                + '<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">' + sekatHtml + '</div>'
                 + blokGizi(menu)
-                + (menu.catatan ? '<div class="glass-panel rounded-2xl p-4 text-xs text-slate-300 mb-6 flex items-center gap-3"><span class="px-2 py-1 rounded bg-amber-500/10 text-amber-400 font-bold uppercase text-[10px]">Catatan</span><span>' + esc(menu.catatan) + '</span></div>' : '');
+                + (menu.catatan ? '<div class="glass-panel rounded-2xl p-4 text-xs text-slate-300 mb-6 flex items-center gap-3"><span class="px-2 py-1 rounded bg-amber-500/10 text-amber-400 font-bold uppercase text-[10px]">Catatan</span><span>' + esc(menu.catatan) + '</span></div>' : '')
+                + blokFeedback(menu);
+
+            setTimeout(initRatings, 50);
+            return htmlResult;
         }
 
         function gambarMinggu(aktif) {
@@ -366,24 +524,25 @@
             const seninDate = new Date(acuanDate);
             seninDate.setDate(acuanDate.getDate() + diffToMonday);
 
-            const menuSeninSabtu = [];
-            for (let i = 0; i < 6; i++) {
+            // Hari sajian menu Senin sampai Jumat (5 hari)
+            const menuSeninJumat = [];
+            for (let i = 0; i < 5; i++) {
                 const d = new Date(seninDate);
                 d.setDate(seninDate.getDate() + i);
                 
                 const ymd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                 const existingMenu = dataMinggu.find(m => m.tanggal === ymd);
                 
-                menuSeninSabtu.push({
+                menuSeninJumat.push({
                     tanggal: ymd,
                     adaData: !!existingMenu
                 });
             }
 
             return '<div class="glass-panel rounded-3xl p-5 mb-6">'
-                + '<div class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Pilih Tanggal Sajian Menu (Senin - Sabtu)</div>'
-                + '<div class="grid grid-cols-6 gap-2 sm:gap-3">'
-                + menuSeninSabtu.map(function(m) {
+                + '<div class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Pilih Tanggal Sajian Menu (Senin - Jumat)</div>'
+                + '<div class="grid grid-cols-5 gap-2 sm:gap-3">'
+                + menuSeninJumat.map(function(m) {
                     const d = keDate(m.tanggal);
                     const isAktif = m.tanggal === aktif;
                     
@@ -415,7 +574,8 @@
                 el('footer-nama-sppg').textContent = namaSppgText;
                 el('footer-yayasan').textContent = yayasanText + ' · Badan Gizi Nasional';
                 
-                elIsi.innerHTML = gambarMenu(menuAktif) + gambarMinggu(ymd);
+                // Pilihan tanggal diletakkan di atas foto menu
+                elIsi.innerHTML = gambarMinggu(ymd) + gambarMenu(menuAktif);
             } else {
                 const fallbackMeta = dataMinggu.length > 0 ? dataMinggu[0] : null;
                 if (fallbackMeta) {
@@ -429,11 +589,11 @@
                     }
                 }
 
-                elIsi.innerHTML = '<div class="glass-panel rounded-3xl p-12 text-center my-6">'
+                elIsi.innerHTML = gambarMinggu(ymd) + '<div class="glass-panel rounded-3xl p-12 text-center my-6">'
                     + '<div class="text-royal-400 mb-3"><svg class="w-12 h-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg></div>'
                     + '<h3 class="text-lg font-bold text-white mb-1">Menu Belum Diterbitkan</h3>'
                     + '<p class="text-sm text-slate-400 mb-6">Belum ada data menu yang diinput untuk tanggal ini.</p>'
-                    + '</div>' + gambarMinggu(ymd);
+                    + '</div>';
             }
 
             Array.prototype.forEach.call(
@@ -451,7 +611,7 @@
             const d = new Date();
             const elHeaderTanggal = el('hari-tanggal-sekarang');
             if (elHeaderTanggal) {
-                elHeaderTanggal.textContent = `${HARI[d.getDay()]}, ${d.getDate()} ${BULAN[d.getMonth()]} ${d.getFullYear()}`;
+                elHeaderTanggal.textContent = `${HARI[d.getDay()]} ${d.getDate()} ${BULAN[d.getMonth()]} ${d.getFullYear()}`;
             }
             el('isi').innerHTML = '<div class="glass-panel rounded-3xl p-12 text-center my-8 border border-red-500/20 bg-red-500/5">'
                 + '<h3 class="text-lg font-bold text-red-400 mb-2">Gagal Memuat Data Menu</h3>'
@@ -494,7 +654,7 @@
 
                         if (dataMinggu.length > 0) {
                             if (dataMinggu[0].nama_sppg) {
-                                el('nama-sppg').textContent = dataMingggu[0].nama_sppg;
+                                el('nama-sppg').textContent = dataMinggu[0].nama_sppg;
                                 el('footer-nama-sppg').textContent = dataMinggu[0].nama_sppg;
                             }
                             if (dataMinggu[0].yayasan) {

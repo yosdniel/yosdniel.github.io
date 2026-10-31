@@ -74,10 +74,10 @@
             </div>
             
             <div class="flex items-center gap-2">
-                <button onclick="switchTab('input')" id="tab-btn-input" class="px-4 py-2 rounded-xl bg-royal-600 text-white text-xs font-bold transition shadow-md shadow-royal-600/20">
+                <button onclick="switchTab('input')" id="tab-btn-input" class="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white text-xs font-bold transition">
                     Input Menu
                 </button>
-                <button onclick="switchTab('feedback')" id="tab-btn-feedback" class="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white text-xs font-bold transition">
+                <button onclick="switchTab('feedback')" id="tab-btn-feedback" class="px-4 py-2 rounded-xl bg-royal-600 text-white text-xs font-bold transition shadow-md shadow-royal-600/20">
                     Feedback Sekolah (<span id="feedback-count">0</span>)
                 </button>
             </div>
@@ -87,7 +87,7 @@
     <div class="relative z-10 flex-1 flex flex-col max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
         
         <!-- Tab 1: Form Input Menu -->
-        <main id="tab-content-input" class="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+        <main id="tab-content-input" class="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 hidden">
             <form id="form-menu" class="space-y-6">
                 
                 <!-- Informasi Dasar -->
@@ -161,12 +161,11 @@
 
                 <!-- Kandungan Nilai Gizi -->
                 <div class="border-t border-slate-800/80 pt-5">
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-royal-400 mb-4">Kandungan Nilai Gizi Per Porsi (Semua Wajib Diisi)</h3>
-                    
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-royal-400 mb-4">Kandungan Nilai Gizi Per Porsi</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <!-- Porsi Besar (PB) -->
                         <div class="p-5 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-5 shadow-lg">
-                            <div class="font-bold text-xs text-royal-400 uppercase tracking-wide border-b border-slate-800 pb-2">Porsi Besar (SD Kelas 4 - SMA)</div>
+                            <div class="font-bold text-xs text-royal-400 uppercase tracking-wide border-b border-slate-800 pb-2">Porsi Besar (SD 4 - SMA)</div>
                             <div class="grid grid-cols-2 gap-3">
                                 <div>
                                     <label class="block text-[11px] font-semibold text-slate-300 mb-1">Energi *</label>
@@ -193,7 +192,7 @@
 
                         <!-- Porsi Kecil (PK) -->
                         <div class="p-5 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-5 shadow-lg">
-                            <div class="font-bold text-xs text-white uppercase tracking-wide border-b border-slate-800 pb-2">Porsi Kecil (PAUD - SD Kelas 3)</div>
+                            <div class="font-bold text-xs text-white uppercase tracking-wide border-b border-slate-800 pb-2">Porsi Kecil (PAUD - SD 3)</div>
                             <div class="grid grid-cols-2 gap-3">
                                 <div>
                                     <label class="block text-[11px] font-semibold text-slate-300 mb-1">Energi *</label>
@@ -319,7 +318,7 @@
         </main>
 
         <!-- Tab 2: Lihat Feedback Sekolah -->
-        <main id="tab-content-feedback" class="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl hidden space-y-6">
+        <main id="tab-content-feedback" class="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
                 <div>
                     <h2 class="text-lg font-bold text-white">Daftar Feedback Berdasarkan Tanggal Menu</h2>
@@ -340,7 +339,7 @@
             </div>
 
             <div id="feedback-list-container" class="space-y-4">
-                <div class="text-center py-12 text-slate-500 text-sm">Memuat data feedback dari database...</div>
+                <div class="text-center py-12 text-slate-400 text-sm">Memuat data feedback dari database...</div>
             </div>
         </main>
     </div>
@@ -377,10 +376,8 @@
             try {
                 const res = await fetch(API);
                 const data = await res.json();
-                if (data.ok) {
-                    if (data.minggu && Array.isArray(data.minggu)) {
-                        allMenusCache = data.minggu;
-                    }
+                if (data.ok && data.minggu && Array.isArray(data.minggu)) {
+                    allMenusCache = data.minggu;
                 }
             } catch (err) {
                 try {
@@ -404,23 +401,7 @@
             document.getElementById('yayasan').value = defaultYayasan;
             document.getElementById('header-sppg-sub').textContent = defaultSppg;
 
-            loadFeedbackCount();
-        }
-
-        async function loadFeedbackCount() {
-            try {
-                const res = await fetch(API + '?action=feedback');
-                const data = await res.json();
-                const list = data.feedbacks || data || [];
-                if (Array.isArray(list)) {
-                    document.getElementById('feedback-count').textContent = list.length;
-                }
-            } catch (e) {
-                try {
-                    const local = JSON.parse(localStorage.getItem('sppg_feedbacks') || '[]');
-                    document.getElementById('feedback-count').textContent = local.length;
-                } catch (ex) {}
-            }
+            loadFeedbacks();
         }
 
         async function loadFeedbacks() {
@@ -430,7 +411,7 @@
 
             let apiFeedbacks = [];
             try {
-                const res = await fetch(API + '?action=feedback');
+                const res = await fetch(`${API}?action=feedback`);
                 const data = await res.json();
                 apiFeedbacks = data.feedbacks || data || [];
                 if (!Array.isArray(apiFeedbacks)) apiFeedbacks = [];
@@ -446,7 +427,7 @@
                 localFeedbacks = [];
             }
 
-            // Gabungkan data dari database API dan localStorage serta hilangkan duplikat
+            // Gabungkan data dari server API dan localStorage, hindari duplikat
             const combinedMap = new Map();
             [...localFeedbacks, ...apiFeedbacks].forEach(fb => {
                 const key = (fb.timestamp || '') + '_' + (fb.nama_sekolah || '') + '_' + (fb.pesan || '');
@@ -457,11 +438,11 @@
             document.getElementById('feedback-count').textContent = allFeedbacksCache.length;
 
             if (allFeedbacksCache.length === 0) {
-                container.innerHTML = '<div class="glass-panel rounded-2xl p-12 text-center text-slate-400 text-sm">Belum ada feedback atau evaluasi menu yang dikirimkan oleh sekolah dari database.</div>';
+                container.innerHTML = '<div class="glass-panel rounded-2xl p-12 text-center text-slate-400 text-sm">Belum ada feedback atau evaluasi menu yang dikirimkan oleh sekolah.</div>';
                 return;
             }
 
-            // Group feedbacks by menu date (tanggal)
+            // Kelompokkan feedback berdasarkan tanggal menu
             const grouped = {};
             allFeedbacksCache.forEach(fb => {
                 const tgl = fb.tanggal || 'Tanpa Tanggal';
@@ -471,37 +452,35 @@
                 grouped[tgl].push(fb);
             });
 
-            // Sort dates descending
             const sortedDates = Object.keys(grouped).sort().reverse();
 
             container.innerHTML = sortedDates.map(tgl => {
                 const listFb = grouped[tgl];
                 const count = listFb.length;
-                
-                // Cari info menu dari allMenusCache berdasarkan tanggal
-                const menuInfo = allMenusCache.find(m => m.tanggal === tgl) || {};
-                const menuTitleParts = [
-                    menuInfo.makanan_pokok,
-                    menuInfo.lauk_hewani,
-                    menuInfo.lauk_nabati
-                ].filter(Boolean);
-                const menuTitleSummary = menuTitleParts.length > 0 ? menuTitleParts.join(' • ') : 'Menu Belum Terdata';
 
-                // Hitung Average Rating (rata-rata keseluruhan bintang)
-                let totalStars = 0;
-                let totalRatingsCount = 0;
+                // Cari nama menu berdasarkan tanggal dari cache menu
+                const menuObj = allMenusCache.find(m => m.tanggal === tgl) || (listFb[0] && listFb[0].detail_menu ? listFb[0].detail_menu : null);
+                let menuTitleLabel = 'Menu tidak tercatat';
+                if (menuObj) {
+                    const pok = menuObj.makanan_pokok || '';
+                    const hew = menuObj.lauk_hewani || '';
+                    menuTitleLabel = [pok, hew].filter(Boolean).join(' + ') || 'Menu Lengkap Ompreng';
+                }
+
+                // Hitung rata-rata rating (avg rate) total untuk tanggal ini
+                let totalScore = 0;
+                let totalRatingItems = 0;
                 listFb.forEach(fb => {
                     const ratings = fb.ratings || {};
                     Object.values(ratings).forEach(val => {
-                        const num = Number(val);
-                        if (!isNaN(num) && num > 0) {
-                            totalStars += num;
-                            totalRatingsCount++;
+                        const num = parseInt(val) || 0;
+                        if (num > 0) {
+                            totalScore += num;
+                            totalRatingItems++;
                         }
                     });
                 });
-                const avgRate = totalRatingsCount > 0 ? (totalStars / totalRatingsCount).toFixed(1) : '0.0';
-                const avgStarsDisplay = totalRatingsCount > 0 ? '★'.repeat(Math.round(Number(avgRate))) : 'Belum ada rating';
+                const avgRate = totalRatingItems > 0 ? (totalScore / totalRatingItems).toFixed(1) : '0.0';
 
                 let displayDate = tgl;
                 try {
@@ -513,26 +492,18 @@
                 } catch (e) {}
 
                 return '<div onclick="showFeedbacksForDate(\'' + tgl + '\')" class="glass-panel rounded-2xl p-5 border border-slate-800 hover:border-royal-500/50 cursor-pointer transition shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4 group">'
-                    + '<div class="flex items-start sm:items-center gap-4">'
+                    + '<div class="flex items-center gap-4">'
                     + '<div class="w-12 h-12 rounded-xl bg-royal-500/10 border border-royal-400/20 text-royal-400 font-extrabold flex items-center justify-center text-base group-hover:bg-royal-500 group-hover:text-white transition flex-none">'
                     + '📅'
                     + '</div>'
-                    + '<div class="space-y-1">'
-                    + '<div class="flex flex-wrap items-center gap-2">'
+                    + '<div>'
                     + '<h3 class="text-sm sm:text-base font-bold text-white group-hover:text-royal-400 transition">' + displayDate + '</h3>'
-                    + '<span class="px-2.5 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-[11px] text-royal-400 font-semibold">' + count + ' Sekolah</span>'
+                    + '<p class="text-xs text-royal-300 font-medium mt-0.5">🍽️ Menu: ' + menuTitleLabel + '</p>'
+                    + '<p class="text-xs text-slate-400 mt-1"><span class="text-royal-400 font-semibold">' + count + '</span> Sekolah memberikan feedback · Avg Rate: <b class="text-amber-400">⭐ ' + avgRate + '/5.0</b></p>'
                     + '</div>'
-                    + '<p class="text-xs text-slate-300 font-medium">🍱 ' + esc(menuTitleSummary) + '</p>'
                     + '</div>'
-                    + '</div>'
-                    + '<div class="flex items-center justify-between sm:justify-end gap-3 border-t sm:border-t-0 border-slate-800/80 pt-3 sm:pt-0">'
-                    + '<div class="text-left sm:text-right">'
-                    + '<div class="text-xs font-bold text-amber-400">' + avgStarsDisplay + ' <span class="text-white">(' + avgRate + '/5.0)</span></div>'
-                    + '<div class="text-[10px] text-slate-400 uppercase tracking-wider">Rata-rata Rating</div>'
-                    + '</div>'
-                    + '<div class="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-300 group-hover:bg-royal-600 group-hover:text-white transition flex-none">'
+                    + '<div class="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-300 group-hover:bg-royal-600 group-hover:text-white transition self-end sm:self-center">'
                     + 'Lihat Detail →'
-                    + '</div>'
                     + '</div>'
                     + '</div>';
             }).join('');
@@ -543,7 +514,6 @@
             document.getElementById('feedback-nav-container').classList.remove('hidden');
 
             const filtered = allFeedbacksCache.filter(fb => (fb.tanggal || 'Tanpa Tanggal') === tgl);
-            const menuInfo = allMenusCache.find(m => m.tanggal === tgl) || {};
 
             let displayDate = tgl;
             try {
@@ -554,48 +524,32 @@
                 }
             } catch (e) {}
 
-            // Hitung rata-rata rating tanggal ini
-            let totalStars = 0;
-            let totalRatingsCount = 0;
+            let totalScore = 0;
+            let totalRatingItems = 0;
             filtered.forEach(fb => {
                 const ratings = fb.ratings || {};
                 Object.values(ratings).forEach(val => {
-                    const num = Number(val);
-                    if (!isNaN(num) && num > 0) {
-                        totalStars += num;
-                        totalRatingsCount++;
+                    const num = parseInt(val) || 0;
+                    if (num > 0) {
+                        totalScore += num;
+                        totalRatingItems++;
                     }
                 });
             });
-            const avgRate = totalRatingsCount > 0 ? (totalStars / totalRatingsCount).toFixed(1) : '0.0';
+            const avgRate = totalRatingItems > 0 ? (totalScore / totalRatingItems).toFixed(1) : '0.0';
 
-            const menuTitleParts = [
-                menuInfo.makanan_pokok,
-                menuInfo.lauk_hewani,
-                menuInfo.lauk_nabati,
-                menuInfo.sayur,
-                menuInfo.buah,
-                menuInfo.pelengkap
-            ].filter(Boolean).join(' • ');
+            const menuObj = allMenusCache.find(m => m.tanggal === tgl) || (filtered[0] && filtered[0].detail_menu ? filtered[0].detail_menu : null);
+            let menuTitleLabel = 'Menu tidak tercatat';
+            if (menuObj) {
+                const pok = menuObj.makanan_pokok || '';
+                const hew = menuObj.lauk_hewani || '';
+                menuTitleLabel = [pok, hew].filter(Boolean).join(' + ') || 'Menu Lengkap Ompreng';
+            }
 
-            let htmlHeader = '<div class="p-5 rounded-2xl bg-royal-500/10 border border-royal-500/20 mb-6 space-y-2">'
-                + '<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">'
-                + '<div>'
-                + '<h3 class="text-base font-extrabold text-white">Tanggal Sajian: <span class="text-royal-400">' + displayDate + '</span></h3>'
-                + '<p class="text-xs text-slate-300 mt-1"><b>Menu:</b> ' + esc(menuTitleParts || 'Tidak ada detail menu') + '</p>'
-                + '</div>'
-                + '<div class="flex items-center gap-3 bg-slate-900/80 px-4 py-2.5 rounded-xl border border-slate-800">'
-                + '<div>'
-                + '<div class="text-[10px] text-slate-400 uppercase tracking-wider">Total Respon</div>'
-                + '<div class="text-sm font-bold text-white">' + filtered.length + ' Sekolah</div>'
-                + '</div>'
-                + '<div class="h-8 w-px bg-slate-800"></div>'
-                + '<div>'
-                + '<div class="text-[10px] text-slate-400 uppercase tracking-wider">Avg Rate</div>'
-                + '<div class="text-sm font-bold text-amber-400">★ ' + avgRate + ' / 5.0</div>'
-                + '</div>'
-                + '</div>'
-                + '</div>'
+            let htmlHeader = '<div class="p-5 rounded-2xl bg-royal-500/10 border border-royal-500/20 mb-4 space-y-1">'
+                + '<h3 class="text-sm sm:text-base font-bold text-white">Tanggal Sajian: <span class="text-royal-400">' + displayDate + '</span></h3>'
+                + '<p class="text-xs text-royal-300 font-medium">🍽️ Menu: ' + menuTitleLabel + '</p>'
+                + '<p class="text-xs text-slate-400">Total ' + filtered.length + ' tanggapan sekolah · Rata-rata Rating: <b class="text-amber-400">⭐ ' + avgRate + '/5.0</b></p>'
                 + '</div>';
 
             const feedbackCards = filtered.map((fb, idx) => {

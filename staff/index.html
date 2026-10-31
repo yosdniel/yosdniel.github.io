@@ -347,7 +347,6 @@
 
     <script>
         const API = 'https://www.minduniverse.id/api/menu';
-        const API_FEEDBACK = 'https://www.minduniverse.id/api/feedback';
         const todayStr = new Date().toISOString().split('T')[0];
         document.getElementById('tanggal').value = todayStr;
 
@@ -410,7 +409,7 @@
 
         async function loadFeedbackCount() {
             try {
-                const res = await fetch(API_FEEDBACK);
+                const res = await fetch(API + '?action=feedback');
                 const data = await res.json();
                 const list = data.feedbacks || data || [];
                 if (Array.isArray(list)) {
@@ -431,7 +430,7 @@
 
             let apiFeedbacks = [];
             try {
-                const res = await fetch(API_FEEDBACK);
+                const res = await fetch(API + '?action=feedback');
                 const data = await res.json();
                 apiFeedbacks = data.feedbacks || data || [];
                 if (!Array.isArray(apiFeedbacks)) apiFeedbacks = [];

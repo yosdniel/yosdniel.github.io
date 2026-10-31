@@ -74,12 +74,12 @@
             </div>
             
             <div class="flex items-center gap-2">
-                <!-- Tab Input Menu aktif secara default -->
                 <button onclick="switchTab('input')" id="tab-btn-input" class="px-4 py-2 rounded-xl bg-royal-600 text-white text-xs font-bold transition shadow-md shadow-royal-600/20">
                     Input Menu
                 </button>
+                <!-- Tulisan diubah menjadi Feedback Menu -->
                 <button onclick="switchTab('feedback')" id="tab-btn-feedback" class="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white text-xs font-bold transition">
-                    Feedback Sekolah (<span id="feedback-count">0</span>)
+                    Feedback Menu (<span id="feedback-count">0</span>)
                 </button>
             </div>
         </div>
@@ -87,7 +87,7 @@
 
     <div class="relative z-10 flex-1 flex flex-col max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
         
-        <!-- Tab 1: Form Input Menu (Ditampilkan secara default) -->
+        <!-- Tab 1: Form Input Menu (Default) -->
         <main id="tab-content-input" class="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
             <form id="form-menu" class="space-y-6">
                 <!-- Informasi Dasar -->
@@ -238,7 +238,7 @@
             </form>
         </main>
 
-        <!-- Tab 2: Lihat Feedback Sekolah (Disembunyikan secara default) -->
+        <!-- Tab 2: Lihat Feedback Menu (Disembunyikan secara default) -->
         <main id="tab-content-feedback" class="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 hidden">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
                 <div>
@@ -322,20 +322,33 @@
             document.getElementById('yayasan').value = defaultYayasan;
             document.getElementById('header-sppg-sub').textContent = defaultSppg;
 
-            // Load feedback count in background for badge
+            // Langsung ambil jumlah feedback dari API dan localStorage saat halaman dimuat
+            let apiFeedbacks = [];
             try {
                 const res = await fetch(`${API}?action=feedback`);
                 const data = await res.json();
-                const list = data.feedbacks || data || [];
-                if (Array.isArray(list)) {
-                    document.getElementById('feedback-count').textContent = list.length;
-                }
+                apiFeedbacks = data.feedbacks || data || [];
+                if (!Array.isArray(apiFeedbacks)) apiFeedbacks = [];
             } catch (e) {
-                try {
-                    const local = JSON.parse(localStorage.getItem('sppg_feedbacks') || '[]');
-                    document.getElementById('feedback-count').textContent = local.length;
-                } catch (ex) {}
+                apiFeedbacks = [];
             }
+
+            let localFeedbacks = [];
+            try {
+                localFeedbacks = JSON.parse(localStorage.getItem('sppg_feedbacks') || '[]');
+                if (!Array.isArray(localFeedbacks)) localFeedbacks = [];
+            } catch (ex) {
+                localFeedbacks = [];
+            }
+
+            const combinedMap = new Map();
+            [...localFeedbacks, ...apiFeedbacks].forEach(fb => {
+                const key = (fb.timestamp || '') + '_' + (fb.nama_sekolah || '') + '_' + (fb.pesan || '');
+                combinedMap.set(key, fb);
+            });
+
+            allFeedbacksCache = Array.from(combinedMap.values());
+            document.getElementById('feedback-count').textContent = allFeedbacksCache.length;
         }
 
         async function loadFeedbacks() {
@@ -490,14 +503,22 @@
                     rating_buah: menuDetail.buah || 'Buah-Buahan'
                 };
 
-                // Perbaikan: Menampilkan jumlah bintang berwarna sesuai nilai rating (misal nilai 3 -> 3 bintang aktif, 2 bintang abu-abu)
                 const ratingsHtml = Object.entries(ratings).map(([key, val]) => {
                     const label = ratingLabelsMap[key] || menuDetail[key.replace('rating_', '')] || key;
                     const ratingNum = parseInt(val) || 0;
-                    const stars = '★'.repeat(ratingNum) + '☆'.repeat(Math.max(0, 5 - ratingNum));
+                    
+                    let starsHtml = '';
+                    for (let i = 1; i <= 5; i++) {
+                        if (i <= ratingNum) {
+                            starsHtml += '<span class="text-amber-400">★</span>';
+                        } else {
+                            starsHtml += '<span class="text-slate-600">★</span>';
+                        }
+                    }
+
                     return '<div class="flex items-center justify-between text-xs py-1 border-b border-slate-800/40 last:border-0">'
                         + '<span class="text-slate-300 font-medium">' + label + '</span>'
-                        + '<span class="text-amber-400 font-bold tracking-widest">' + stars + ' (' + ratingNum + '/5)</span>'
+                        + '<span class="font-bold tracking-widest flex items-center gap-1">' + starsHtml + ' <span class="text-slate-400 ml-1">(' + ratingNum + '/5)</span></span>'
                         + '</div>';
                 }).join('');
 

@@ -98,11 +98,11 @@
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-300 mb-1">Nama SPPG</label>
-                        <input type="text" id="nama_sppg" placeholder="Memuat nama SPPG..." class="w-full px-3.5 py-2.5 rounded-xl glass-input text-sm">
+                        <input type="text" id="nama_sppg" placeholder="SPPG Deli Serdang..." class="w-full px-3.5 py-2.5 rounded-xl glass-input text-sm">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-300 mb-1">Nama Yayasan</label>
-                        <input type="text" id="yayasan" placeholder="Memuan nama Yayasan..." class="w-full px-3.5 py-2.5 rounded-xl glass-input text-sm">
+                        <input type="text" id="yayasan" placeholder="Nama Yayasan..." class="w-full px-3.5 py-2.5 rounded-xl glass-input text-sm">
                     </div>
                 </div>
 
@@ -320,13 +320,22 @@
 
         <!-- Tab 2: Lihat Feedback Sekolah -->
         <main id="tab-content-feedback" class="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl hidden space-y-6">
-            <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
                 <div>
-                    <h2 class="text-lg font-bold text-white">Daftar Feedback & Evaluasi Menu</h2>
-                    <p class="text-xs text-slate-400">Masukan dan penilaian dari sekolah-sekolah yang menerima sajian menu.</p>
+                    <h2 class="text-lg font-bold text-white">Daftar Feedback Berdasarkan Tanggal Menu</h2>
+                    <p class="text-xs text-slate-400">Pilih tanggal sajian untuk melihat seluruh evaluasi dan masukan dari sekolah.</p>
                 </div>
-                <button onclick="loadFeedbacks()" class="px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-royal-400 hover:bg-slate-800 transition">
-                    🔄 Muat Ulang Data
+                <div class="flex items-center gap-2">
+                    <button onclick="loadFeedbacks()" class="px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-royal-400 hover:bg-slate-800 transition">
+                        🔄 Muat Ulang Data
+                    </button>
+                </div>
+            </div>
+
+            <!-- Breadcrumb / Back button when viewing details -->
+            <div id="feedback-nav-container" class="hidden">
+                <button onclick="backToDateList()" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-royal-400 hover:bg-slate-800 transition">
+                    ← Kembali ke Daftar Tanggal
                 </button>
             </div>
 
@@ -343,6 +352,7 @@
         document.getElementById('tanggal').value = todayStr;
 
         let allMenusCache = [];
+        let allFeedbacksCache = [];
 
         function switchTab(tabName) {
             const tabInput = document.getElementById('tab-content-input');
@@ -416,25 +426,107 @@
 
         async function loadFeedbacks() {
             const container = document.getElementById('feedback-list-container');
+            document.getElementById('feedback-nav-container').classList.add('hidden');
             container.innerHTML = '<div class="text-center py-12 text-slate-400 text-sm">Mengambil data feedback terbaru dari database...</div>';
 
-            let feedbacks = [];
+            let apiFeedbacks = [];
             try {
                 const res = await fetch(API_FEEDBACK);
                 const data = await res.json();
-                feedbacks = data.feedbacks || data || [];
+                apiFeedbacks = data.feedbacks || data || [];
+                if (!Array.isArray(apiFeedbacks)) apiFeedbacks = [];
             } catch (err) {
-                try {
-                    feedbacks = JSON.parse(localStorage.getItem('sppg_feedbacks') || '[]');
-                } catch (e) {}
+                apiFeedbacks = [];
             }
 
-            if (!Array.isArray(feedbacks) || feedbacks.length === 0) {
+            let localFeedbacks = [];
+            try {
+                localFeedbacks = JSON.parse(localStorage.getItem('sppg_feedbacks') || '[]');
+                if (!Array.isArray(localFeedbacks)) localFeedbacks = [];
+            } catch (e) {
+                localFeedbacks = [];
+            }
+
+            // Gabungkan data API dan localStorage serta hilangkan duplikat berdasarkan timestamp/pesan
+            const combinedMap = new Map();
+            [...localFeedbacks, ...apiFeedbacks].forEach(fb => {
+                const key = (fb.timestamp || '') + '_' + (fb.nama_sekolah || '') + '_' + (fb.pesan || '');
+                combinedMap.set(key, fb);
+            });
+
+            allFeedbacksCache = Array.from(combinedMap.values());
+            document.getElementById('feedback-count').textContent = allFeedbacksCache.length;
+
+            if (allFeedbacksCache.length === 0) {
                 container.innerHTML = '<div class="glass-panel rounded-2xl p-12 text-center text-slate-400 text-sm">Belum ada feedback atau evaluasi menu yang dikirimkan oleh sekolah.</div>';
                 return;
             }
 
-            container.innerHTML = feedbacks.map((fb, idx) => {
+            // Group feedbacks by menu date (tanggal)
+            const grouped = {};
+            allFeedbacksCache.forEach(fb => {
+                const tgl = fb.tanggal || 'Tanpa Tanggal';
+                if (!grouped[tgl]) {
+                    grouped[tgl] = [];
+                }
+                grouped[tgl].push(fb);
+            });
+
+            // Sort dates descending
+            const sortedDates = Object.keys(grouped).sort().reverse();
+
+            container.innerHTML = sortedDates.map(tgl => {
+                const listFb = grouped[tgl];
+                const count = listFb.length;
+                
+                // Format nice date if valid yyyy-mm-dd
+                let displayDate = tgl;
+                try {
+                    const parts = tgl.split('-');
+                    if (parts.length === 3) {
+                        const dObj = new Date(+parts[0], +parts[1] - 1, +parts[2]);
+                        displayDate = dObj.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                    }
+                } catch (e) {}
+
+                return '<div onclick="showFeedbacksForDate(\'' + tgl + '\')" class="glass-panel rounded-2xl p-5 border border-slate-800 hover:border-royal-500/50 cursor-pointer transition shadow-lg flex items-center justify-between group">'
+                    + '<div class="flex items-center gap-4">'
+                    + '<div class="w-12 h-12 rounded-xl bg-royal-500/10 border border-royal-400/20 text-royal-400 font-extrabold flex items-center justify-center text-base group-hover:bg-royal-500 group-hover:text-white transition">'
+                    + '📅'
+                    + '</div>'
+                    + '<div>'
+                    + '<h3 class="text-sm sm:text-base font-bold text-white group-hover:text-royal-400 transition">' + displayDate + '</h3>'
+                    + '<p class="text-xs text-slate-400 mt-0.5"><span class="text-royal-400 font-semibold">' + count + '</span> Sekolah telah memberikan feedback / evaluasi</p>'
+                    + '</div>'
+                    + '</div>'
+                    + '<div class="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-300 group-hover:bg-royal-600 group-hover:text-white transition">'
+                    + 'Lihat Detail →'
+                    + '</div>'
+                    + '</div>';
+            }).join('');
+        }
+
+        function showFeedbacksForDate(tgl) {
+            const container = document.getElementById('feedback-list-container');
+            document.getElementById('feedback-nav-container').classList.remove('hidden');
+
+            const filtered = allFeedbacksCache.filter(fb => (fb.tanggal || 'Tanpa Tanggal') === tgl);
+
+            let displayDate = tgl;
+            try {
+                const parts = tgl.split('-');
+                if (parts.length === 3) {
+                    const dObj = new Date(+parts[0], +parts[1] - 1, +parts[2]);
+                    displayDate = dObj.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                }
+            } catch (e) {}
+
+            let htmlHeader = '<div class="p-4 rounded-2xl bg-royal-500/10 border border-royal-500/20 mb-4">'
+                + '<h3 class="text-sm font-bold text-white">Feedback Tanggal Sajian: <span class="text-royal-400">' + displayDate + '</span></h3>'
+                + '<p class="text-xs text-slate-400">Total ' + filtered.length + ' tanggapan dari sekolah pada tanggal ini.</p>'
+                + '</div>';
+
+            const feedbackCards = filtered.map((fb, idx) => {
                 const ratings = fb.ratings || {};
                 const menuDetail = fb.detail_menu || {};
                 
@@ -461,7 +553,7 @@
                     + '<div class="w-10 h-10 rounded-xl bg-royal-500/10 text-royal-400 font-extrabold flex items-center justify-center text-sm">' + (idx + 1) + '</div>'
                     + '<div>'
                     + '<h3 class="text-sm font-bold text-white">' + (fb.nama_sekolah || 'Sekolah Tanpa Nama') + '</h3>'
-                    + '<p class="text-[11px] text-slate-400">Tanggal Sajian: <span class="text-royal-400 font-semibold">' + (fb.tanggal || '-') + '</span> · ' + new Date(fb.timestamp || Date.now()).toLocaleString('id-ID') + '</p>'
+                    + '<p class="text-[11px] text-slate-400">Waktu Kirim: ' + new Date(fb.timestamp || Date.now()).toLocaleString('id-ID') + '</p>'
                     + '</div>'
                     + '</div>'
                     + '</div>'
@@ -472,6 +564,12 @@
                     + (menuTagsHtml ? '<div><div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Detail Menu Saat Disajikan:</div><div class="flex flex-wrap gap-1.5">' + menuTagsHtml + '</div></div>' : '')
                     + '</div>';
             }).join('');
+
+            container.innerHTML = htmlHeader + feedbackCards;
+        }
+
+        function backToDateList() {
+            loadFeedbacks();
         }
 
         loadInitialData();

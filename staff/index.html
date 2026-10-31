@@ -128,13 +128,29 @@
                     </div>
                 </div>
 
-                <!-- Input Foto -->
+                <!-- Input & Upload Foto -->
                 <div class="border-t border-slate-800/80 pt-5">
                     <h3 class="text-xs font-bold uppercase tracking-wider text-royal-400 mb-3">Dokumentasi Foto Menu</h3>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1">URL Foto Utama (Masukkan Link Gambar)</label>
-                        <input type="url" id="foto" placeholder="https://images.unsplash.com/... atau link gambar publik lainnya" class="w-full px-3.5 py-2.5 rounded-xl glass-input text-xs">
-                        <p class="text-[11px] text-slate-400 mt-1.5">💡 Tips: Anda bisa mengunggah foto ke <a href="https://imgbb.com" target="_blank" class="text-royal-400 underline">ImgBB</a> atau layanan hosting gambar gratis lainnya, lalu salin tautan langsung (*Direct Link*) gambar ke sini.</p>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Upload Gambar Langsung dari Perangkat</label>
+                            <div class="flex items-center gap-3">
+                                <label class="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-royal-600 hover:bg-royal-500 text-white text-xs font-bold transition shadow-md">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                    <span id="upload-label-text">Pilih File Foto...</span>
+                                    <input type="file" id="file-upload" accept="image/*" class="hidden">
+                                </label>
+                                <span id="upload-status" class="text-xs text-slate-400">Belum ada file dipilih</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Atau Masukkan URL Foto Utama (Otomatis terisi saat upload)</label>
+                            <input type="url" id="foto" placeholder="https://..." class="w-full px-3.5 py-2.5 rounded-xl glass-input text-xs">
+                        </div>
+                        <!-- Preview Gambar -->
+                        <div id="preview-container" class="hidden mt-2">
+                            <img id="image-preview" src="" alt="Preview" class="w-32 h-32 object-cover rounded-xl border border-royal-500/30">
+                        </div>
                     </div>
                 </div>
 
@@ -219,6 +235,46 @@
 
     <script>
         document.getElementById('tanggal').value = new Date().toISOString().split('T')[0];
+
+        // Handler Upload Gambar otomatis via ImgBB API
+        document.getElementById('file-upload').addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const uploadStatus = document.getElementById('upload-status');
+            const uploadLabelText = document.getElementById('upload-label-text');
+            const fotoInput = document.getElementById('foto');
+            const previewContainer = document.getElementById('preview-container');
+            const imagePreview = document.getElementById('image-preview');
+
+            uploadStatus.textContent = 'Mengunggah gambar...';
+            uploadLabelText.textContent = 'Proses...';
+
+            const formData = new FormData();
+            formData.append('image', file);
+
+            try {
+                const res = await fetch('https://api.imgbb.com/1/upload?key=6d207e0bde27a3d240d4f58c70e0de7d', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    const imageUrl = data.data.url;
+                    fotoInput.value = imageUrl;
+                    imagePreview.src = imageUrl;
+                    previewContainer.classList.remove('hidden');
+                    uploadStatus.textContent = '✅ Berhasil diunggah!';
+                    uploadLabelText.textContent = 'Ganti Foto';
+                } else {
+                    throw new Error(data.error?.message || 'Gagal upload');
+                }
+            } catch (err) {
+                uploadStatus.textContent = '❌ Gagal upload: ' + err.message;
+                uploadLabelText.textContent = 'Pilih File Foto...';
+            }
+        });
 
         document.getElementById('form-menu').addEventListener('submit', async function(e) {
             e.preventDefault();

@@ -33,7 +33,6 @@ export default async function handler(req, res) {
         if (req.method === 'GET') {
             const { tanggal } = req.query;
 
-            // 1. Ambil data menu utama
             let query = supabase
                 .from('menu')
                 .select('*')
@@ -46,7 +45,6 @@ export default async function handler(req, res) {
             const { data: menuData, error: menuError } = await query;
             if (menuError) throw menuError;
 
-            // 2. Ambil data gizi secara terpisah
             const menuIds = (menuData || []).map(m => m.id);
             let giziData = [];
             
@@ -61,13 +59,12 @@ export default async function handler(req, res) {
                 }
             }
 
-            // 3. Gabungkan data menu dan gizi (pk, pb, balita, bumil, busui)
             const formattedMenu = (menuData || []).map(item => {
-                const giziObj = { pk: {}, pb: {}, balita: {}, bumil: {}, busui: {} };
+                const giziObj = { pb: {}, pk: {}, balita: {}, bumil: {}, busui: {} };
                 const itemGizi = giziData.filter(g => g.menu_id === item.id);
 
                 itemGizi.forEach(g => {
-                    if (giziObj.hasOwnProperty(g.porsi_tipe)) {
+                    if (giziObj[g.porsi_tipe]) {
                         giziObj[g.porsi_tipe] = {
                             energi: g.energi,
                             protein: g.protein,
@@ -80,7 +77,7 @@ export default async function handler(req, res) {
 
                 return {
                     id: item.id,
-                    nama_sppg: item.nama_sppg || 'SPPG Menu Dashboard',
+                    nama_sppg: item.nama_sppg || 'SPPG Bantaeng Gantarangkeke 1',
                     yayasan: item.yayasan || 'Yayasan Tunas Ilmu Bantaeng',
                     tanggal: item.tanggal,
                     makanan_pokok: item.makanan_pokok,
@@ -96,7 +93,6 @@ export default async function handler(req, res) {
                 };
             });
 
-            // 4. Ambil data himbauan aktif
             const { data: himbauanData, error: himbauanError } = await supabase
                 .from('himbauan')
                 .select('ikon, judul, isi')
@@ -144,55 +140,50 @@ export default async function handler(req, res) {
                 return res.status(400).json({ ok: false, message: 'Tanggal wajib diisi!' });
             }
 
-            // Simpan / update data ke tabel menu
             const { data: newMenu, error: menuError } = await supabase
                 .from('menu')
                 .upsert({
-                    nama_sppg: nama_sppg || 'SPPG Menu Dashboard',
+                    nama_sppg: nama_sppg || 'SPPG Bantaeng Gantarangkeke 1',
                     yayasan: yayasan || 'Yayasan Tunas Ilmu Bantaeng',
                     tanggal,
                     makanan_pokok,
                     lauk_hewani,
                     lauk_nabati,
-                    sayur: sayur || null,
+                    sayur,
                     buah,
-                    pelengkap: pelengkap || null,
-                    foto: foto || null,
+                    pelengkap,
+                    foto,
                     foto_list: foto_list || [],
-                    catatan: catatan || null
+                    catatan
                 }, { onConflict: 'tanggal' })
                 .select()
                 .single();
 
-            if (menuError) {
-                console.error('Supabase Menu Error:', menuError);
-                throw new Error(menuError.message);
-            }
+            if (menuError) throw menuError;
 
-            // Simpan data gizi ke tabel gizi untuk 5 kategori
             if (gizi) {
-                const kategoriList = ['pk', 'pb', 'balita', 'bumil', 'busui'];
-
-                for (const kat of kategoriList) {
-                    if (gizi[kat]) {
-                        const itemGizi = gizi[kat];
-                        const giziPayload = {
+                const allowedTipes = ['pb', 'pk', 'balita', 'bumil', 'busui'];
+                
+                for (const tipe of allowedTipes) {
+                    if (gizi[tipe]) {
+                        const payloadGizi = {
                             menu_id: newMenu.id,
-                            porsi_tipe: kat,
-                            energi: itemGizi.energi !== '' && itemGizi.energi != null ? Number(itemGizi.energi) : null,
-                            protein: itemGizi.protein !== '' && itemGizi.protein != null ? Number(itemGizi.protein) : null,
-                            lemak: itemGizi.lemak !== '' && itemGizi.lemak != null ? Number(itemGizi.lemak) : null,
-                            karbohidrat: itemGizi.karbohidrat !== '' && itemGizi.karbohidrat != null ? Number(itemGizi.karbohidrat) : null,
-                            serat: itemGizi.serat !== '' && itemGizi.serat != null ? Number(itemGizi.serat) : null
+                            porsi_tipe: tipe,
+                            energi: gizi[tipe].energi !== '' ? Number(gizi[tipe].energi) : null,
+                            protein: gizi[tipe].protein !== '' ? Number(gizi[tipe].protein) : null,
+                            lemak: gizi[tipe].lemak !== '' ? Number(gizi[tipe].lemak) : null,
+                            karbohidrat: gizi[tipe].karbohidrat !== '' ? Number(gizi[tipe].karbohidrat) : null,
+                            serat: gizi[tipe].serat !== '' ? Number(gizi[tipe].serat) : null
                         };
 
-                        const { error: giziError } = await supabase
+                        const { error: giziErr } = await supabase
                             .from('gizi')
-                            .upsert(giziPayload, { onConflict: 'menu_id,porsi_tipe' });
+                            .upsert(payloadGizi, { onConflict: 'menu_id,porsi_tipe' });
 
-                        if (giziError) {
-                            console.error(`Supabase Gizi Error (${kat}):`, giziError);
-                            throw new Error(`Gagal menyimpan gizi ${kat}: ` + giziError.message);
+                        if (giziErr) {
+                            // Fallback jika database belum mendukung check constraint balita/bumil/busui, simpan sebagai pb/pk atau lewati dengan warning
+                            console.warn(`Peringatan simpan gizi ${tipe}:`, giziErr.message);
+                            throw new Error(`Gagal menyimpan gizi ${tipe}: ${giziErr.message}`);
                         }
                     }
                 }
@@ -200,7 +191,7 @@ export default async function handler(req, res) {
 
             return res.status(200).json({
                 ok: true,
-                message: 'Data menu dan gizi Posyandu berhasil disimpan ke database Supabase!',
+                message: 'Data menu berhasil disimpan ke database Supabase!',
                 data: newMenu
             });
         }
@@ -211,10 +202,10 @@ export default async function handler(req, res) {
         }
 
     } catch (error) {
-        console.error('API Error Full:', error);
+        console.error('API Error:', error.message);
         return res.status(500).json({
             ok: false,
-            message: 'Gagal memproses data dari server: ' + error.message,
+            message: 'Gagal memproses data dari server',
             error: error.message
         });
     }

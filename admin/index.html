@@ -14,6 +14,52 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="MindHUB">
 
+  <!-- DYNAMIC MANIFEST INJECTION FOR PWA -->
+  <script>
+    const manifestData = {
+      "name": "MindHUB Admin Dashboard",
+      "short_name": "MindHUB",
+      "start_url": "./",
+      "display": "standalone",
+      "background_color": "#020617",
+      "theme_color": "#020617",
+      "icons": [
+        {
+          "src": "https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon.ico",
+          "sizes": "64x64 32x32 24x24 16x16",
+          "type": "image/x-icon"
+        },
+        {
+          "src": "https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon512.png",
+          "sizes": "512x512",
+          "type": "image/png",
+          "purpose": "any maskable"
+        }
+      ]
+    };
+    const stringManifest = JSON.stringify(manifestData);
+    const blob = new Blob([stringManifest], {type: 'application/json'});
+    const manifestURL = URL.createObjectURL(blob);
+    const linkTag = document.createElement('link');
+    linkTag.rel = 'manifest';
+    linkTag.href = manifestURL;
+    document.head.appendChild(linkTag);
+
+    // REGISTER SERVICE WORKER FOR PWA INSTALLABILITY
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        const swCode = `
+          self.addEventListener('install', (e) => { self.skipWaiting(); });
+          self.addEventListener('activate', (e) => { e.waitUntil(clients.claim()); });
+          self.addEventListener('fetch', (e) => { e.respondWith(fetch(e.request).catch(() => caches.match(e.request))); });
+        `;
+        const swBlob = new Blob([swCode], {type: 'text/javascript'});
+        const swUrl = URL.createObjectURL(swBlob);
+        navigator.serviceWorker.register(swUrl).catch(err => console.log('SW registration failed:', err));
+      });
+    }
+  </script>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -177,6 +223,9 @@
         </button>
         <button onclick="bukaFitur('vouchers')" id="navVouchers" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
           <span class="text-base">🎟️</span> Promo Vouchers
+        </button>
+        <button onclick="bukaFitur('maintenance')" id="navMaintenance" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
+          <span class="text-base">🛠️</span> Maintenance Mode
         </button>
         <button onclick="bukaFitur('release')" id="navRelease" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
           <span class="text-base">🚀</span> Cloud Updater
@@ -343,7 +392,7 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
             <div onclick="bukaFitur('device')" class="glass-card p-4 sm:p-5 rounded-2xl hover:border-brand-500/50 cursor-pointer transition group">
               <div class="text-2xl mb-2 group-hover:scale-110 transition-transform">🔍</div>
               <h3 class="font-bold text-white text-xs sm:text-sm">Client Devices</h3>
@@ -364,15 +413,15 @@
               <h3 class="font-bold text-white text-xs sm:text-sm">Promo Vouchers</h3>
               <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5">Manage coupons</p>
             </div>
+            <div onclick="bukaFitur('maintenance')" class="glass-card p-4 sm:p-5 rounded-2xl hover:border-brand-500/50 cursor-pointer transition group border-amber-500/30">
+              <div class="text-2xl mb-2 group-hover:scale-110 transition-transform">🛠️</div>
+              <h3 class="font-bold text-white text-xs sm:text-sm">Maintenance</h3>
+              <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5">Toggle maintenance</p>
+            </div>
             <div onclick="bukaFitur('release')" class="glass-card p-4 sm:p-5 rounded-2xl hover:border-brand-500/50 cursor-pointer transition group">
               <div class="text-2xl mb-2 group-hover:scale-110 transition-transform">🚀</div>
               <h3 class="font-bold text-white text-xs sm:text-sm">Cloud Updater</h3>
               <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5">Publish scripts</p>
-            </div>
-            <div onclick="triggerPWAInstall()" class="glass-card p-4 sm:p-5 rounded-2xl hover:border-brand-500/50 cursor-pointer transition group border-indigo-500/30">
-              <div class="text-2xl mb-2 group-hover:scale-110 transition-transform">📱</div>
-              <h3 class="font-bold text-white text-xs sm:text-sm">Install App</h3>
-              <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5">Android Native PWA</p>
             </div>
           </div>
 
@@ -436,7 +485,7 @@
               </div>
             </div>
 
-            <div class="space-y-2.5 max-h-[420px] overflow-y-auto" id="listAllUsersContainer">
+            <div id="listAllUsersContainer" class="space-y-2.5 max-h-[420px] overflow-y-auto">
               <div class="text-center text-slate-500 text-xs py-10">Memuat data...</div>
             </div>
 
@@ -586,6 +635,47 @@
           </div>
         </div>
 
+        <!-- MAINTENANCE MODE CONFIG -->
+        <div id="subViewMaintenance" class="subview-section max-w-xl mx-auto space-y-4">
+          <div class="glass-card p-5 sm:p-8 rounded-3xl space-y-5 border border-slate-800">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-xl">🛠️</div>
+                <div>
+                  <h3 class="font-bold text-white text-sm sm:text-base">Pengaturan Maintenance Mode</h3>
+                  <p class="text-[11px] text-slate-400">Aktifkan mode pemeliharaan untuk seluruh skrip klien.</p>
+                </div>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="maintActiveToggle" class="sr-only peer">
+                <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+              </label>
+            </div>
+
+            <div class="space-y-4 pt-2 border-t border-slate-800">
+              <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Pesan Pemeliharaan (Maintenance Message)</label>
+                <textarea id="maintMessageInput" rows="3" placeholder="Sistem sedang dalam pemeliharaan berkala..." class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs outline-none focus:border-amber-500 transition"></textarea>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Estimasi Selesai (Opsional / Tanpa Timer)</label>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <input type="datetime-local" id="maintEstimatedTimeInput" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs outline-none focus:border-amber-500 transition">
+                  <button onclick="document.getElementById('maintEstimatedTimeInput').value='';" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-4 py-3 rounded-xl text-xs transition border border-slate-700">Kosongkan (Tanpa Timer)</button>
+                </div>
+                <p class="text-[10px] text-slate-500 mt-1">Jika dikosongkan, modal maintenance klien tidak akan menampilkan hitungan mundur timer.</p>
+              </div>
+            </div>
+
+            <div class="flex gap-3 pt-2 flex-wrap">
+              <button onclick="matikanMaintenanceModeLangsung()" class="bg-red-500/20 hover:bg-red-500/30 text-red-400 font-bold py-3.5 px-5 rounded-2xl text-xs transition border border-red-500/30 flex items-center justify-center gap-1.5">⚡ Matikan Maintenance</button>
+              <button onclick="simpanPengaturanMaintenanceServer()" class="flex-1 bg-amber-500 hover:bg-amber-600 active:scale-[0.99] text-white py-3.5 px-6 rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-amber-500/20 transition flex items-center justify-center gap-2">💾 Simpan & Terapkan</button>
+              <button onclick="bukaFitur('overview')" class="w-32 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 py-3.5 px-5 rounded-2xl text-xs sm:text-sm font-bold transition border border-slate-700 flex items-center justify-center gap-2"><span>🏠</span> Menu</button>
+            </div>
+          </div>
+        </div>
+
         <!-- RELEASE UPDATER -->
         <div id="subViewRelease" class="subview-section max-w-xl mx-auto space-y-4">
           <div class="glass-card p-5 sm:p-8 rounded-3xl space-y-4 border border-slate-800">
@@ -635,6 +725,14 @@
     let heartbeatPoints = new Array(30).fill(40);
     let heartbeatInterval = null;
 
+    /* SECURE CLIENT-SIDE HASHING TO PREVENT PLAINTEXT PASSWORD SNIFFING */
+    async function hashAdminPassword(password) {
+      const msgBuffer = new TextEncoder().encode(password + SECRET_SALT);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
     /* HELPER FORMAT TANGGAL & WAKTU */
     function formatTanggalIndo(dateStr) {
       if (!dateStr || dateStr === '-') return '-';
@@ -676,7 +774,6 @@
         const h = canvas.getBoundingClientRect().height;
         ctx.clearRect(0, 0, w, h);
 
-        // Draw grid lines
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
         ctx.lineWidth = 1;
         for (let y = 0; y < h; y += 12) {
@@ -692,7 +789,6 @@
         const minPing = Math.min(...heartbeatPoints, 10);
         const stepX = w / (heartbeatPoints.length - 1);
 
-        // Gradient fill under line
         const grad = ctx.createLinearGradient(0, 0, 0, h);
         grad.addColorStop(0, 'rgba(16, 185, 129, 0.35)');
         grad.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
@@ -706,14 +802,12 @@
           else ctx.lineTo(x, y);
         });
 
-        // Line styling
         ctx.strokeStyle = '#10b981';
         ctx.lineWidth = 2;
         ctx.shadowColor = '#10b981';
         ctx.shadowBlur = 8;
         ctx.stroke();
 
-        // Fill area below
         ctx.lineTo(w, h);
         ctx.lineTo(0, h);
         ctx.closePath();
@@ -721,7 +815,6 @@
         ctx.shadowBlur = 0;
         ctx.fill();
 
-        // Pulse dot at the latest point
         const lastIndex = heartbeatPoints.length - 1;
         const lastX = lastIndex * stepX;
         const lastNorm = (heartbeatPoints[lastIndex] - Math.min(minPing, 20)) / (maxPing - Math.min(minPing, 20) || 1);
@@ -754,7 +847,6 @@
         heartbeatPoints.shift();
         heartbeatPoints.push(currentLatency);
 
-        // Update Stats UI
         const minVal = Math.min(...heartbeatPoints);
         const maxVal = Math.max(...heartbeatPoints);
         const avgVal = Math.round(heartbeatPoints.reduce((a, b) => a + b, 0) / heartbeatPoints.length);
@@ -947,7 +1039,7 @@
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'save_license', ...updatedObj })
+          body: JSON.stringify({ action: 'save_license', ...updatedObj, admin_secret: adminPasswordSecret })
         });
         if (res.ok) {
           showToast(`Lisensi ${deviceId} diperpanjang +${days} hari!`);
@@ -1070,7 +1162,7 @@
     }
 
     function highlightActiveNav(activeId) {
-      const navIds = ['navOverview', 'navDevice', 'navTransfer', 'navPackages', 'navVouchers', 'navRelease'];
+      const navIds = ['navOverview', 'navDevice', 'navTransfer', 'navPackages', 'navVouchers', 'navMaintenance', 'navRelease'];
       navIds.forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
@@ -1112,6 +1204,11 @@
         gantiSubView('subViewVouchers');
         document.getElementById('appTitle').textContent = 'Promo Vouchers';
         muatDataVoucherServer();
+      } else if (fitur === 'maintenance') {
+        highlightActiveNav('navMaintenance');
+        gantiSubView('subViewMaintenance');
+        document.getElementById('appTitle').textContent = 'Maintenance Mode';
+        muatDataMaintenanceServer();
       } else if (fitur === 'release') {
         highlightActiveNav('navRelease');
         gantiSubView('subViewRelease');
@@ -1124,26 +1221,35 @@
       const pass = document.getElementById('inputAdminPassword').value.trim();
       const btn = document.getElementById('btnLogin');
       if (!pass) return showToast('Master Password required', false);
-      btn.disabled = true; btn.textContent = 'Verifying...';
+      btn.disabled = true; btn.textContent = 'Verifying Securely...';
       try {
-        const res = await fetch(VERIFY_PASS_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: pass })
-        });
-        const data = await res.json();
-        if (res.ok && data.status) {
-          adminPasswordSecret = pass;
+        const hashedPass = await hashAdminPassword(pass);
+        const res = await verifyPasswordWithServer(pass, hashedPass);
+        if (res && res.status) {
+          adminPasswordSecret = hashedPass;
           gantiView('viewDashboardApp');
           bukaFitur('overview');
           showToast('Access Granted');
         } else {
-          showToast(data.error || 'Access Denied', false);
+          showToast(res.error || 'Access Denied', false);
         }
       } catch (e) {
         showToast('Connection error', false);
       } finally {
         btn.disabled = false; btn.textContent = 'Authorize Access';
+      }
+    }
+
+    async function verifyPasswordWithServer(plainPass, hashedPass) {
+      try {
+        const res = await fetch(VERIFY_PASS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: plainPass, password_hash: hashedPass })
+        });
+        return await res.json();
+      } catch (e) {
+        return { status: false, error: 'Network error verifying password' };
       }
     }
 
@@ -1227,7 +1333,6 @@
         const tinggiPersen = Math.round((val / maxVal) * 80);
         
         const group = document.createElement('div');
-        // Menggunakan flex-1 dan max-w agar setiap batang fleksibel memenuhi kontainer dengan jarak rapat-rapat
         group.className = 'flex flex-col items-center shrink-0 flex-1 h-full justify-end group/bar relative min-w-[12px]';
         
         const labelHtml = activeTimeframe === '1m' ? '' : `<div class="text-[9px] text-slate-500 mt-2 font-mono whitespace-nowrap">${dateLabel}</div>`;
@@ -1336,7 +1441,7 @@
             const res = await fetch(VERCEL_API_URL, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ action: 'save_license', ...updated })
+              body: JSON.stringify({ action: 'save_license', ...updated, admin_secret: adminPasswordSecret })
             });
             if (res.ok) success++;
           } catch (e) {}
@@ -1358,7 +1463,7 @@
             const res = await fetch(VERCEL_API_URL, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ action: 'save_license', ...updated })
+              body: JSON.stringify({ action: 'save_license', ...updated, admin_secret: adminPasswordSecret })
             });
             if (res.ok) success++;
           } catch (e) {}
@@ -1588,7 +1693,7 @@
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'save_license', ...currentLicenseData })
+          body: JSON.stringify({ action: 'save_license', ...currentLicenseData, admin_secret: adminPasswordSecret })
         });
         if (res.ok) {
           showToast('License updated!');
@@ -1905,6 +2010,72 @@
       } catch (err) { showToast('Network Error', false); }
     }
 
+    async function muatDataMaintenanceServer() {
+      try {
+        const res = await fetch(`${VERCEL_API_URL}?action=get_maintenance`);
+        const data = await res.json();
+        if (data) {
+          document.getElementById('maintActiveToggle').checked = !!data.maintenance;
+          document.getElementById('maintMessageInput').value = data.message || '';
+          document.getElementById('maintEstimatedTimeInput').value = data.estimated_end || '';
+        }
+      } catch (err) {}
+    }
+
+    async function simpanPengaturanMaintenanceServer() {
+      const isMaintenance = document.getElementById('maintActiveToggle').checked;
+      const message = document.getElementById('maintMessageInput').value.trim();
+      const estimatedEnd = document.getElementById('maintEstimatedTimeInput').value;
+
+      try {
+        const res = await fetch(VERCEL_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'save_maintenance',
+            maintenance: isMaintenance,
+            message: message,
+            estimated_end: estimatedEnd,
+            admin_secret: adminPasswordSecret
+          })
+        });
+        const result = await res.json();
+        if (res.ok && (result.success || result.status)) {
+          showToast('Pengaturan Maintenance Mode berhasil disimpan!');
+        } else {
+          showToast(result.error || 'Gagal menyimpan maintenance mode', false);
+        }
+      } catch (e) {
+        showToast('Network Error', false);
+      }
+    }
+
+    async function matikanMaintenanceModeLangsung() {
+      document.getElementById('maintActiveToggle').checked = false;
+      document.getElementById('maintEstimatedTimeInput').value = '';
+      try {
+        const res = await fetch(VERCEL_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'save_maintenance',
+            maintenance: false,
+            message: '',
+            estimated_end: '',
+            admin_secret: adminPasswordSecret
+          })
+        });
+        const result = await res.json();
+        if (res.ok && (result.success || result.status)) {
+          showToast('Maintenance Mode berhasil dimatikan secara instan!');
+        } else {
+          showToast('Gagal mematikan maintenance mode di server', false);
+        }
+      } catch (e) {
+        showToast('Network Error', false);
+      }
+    }
+
     async function muatDataReleaseServer() {
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=check_version`);
@@ -1936,8 +2107,24 @@
     }
 
     function triggerPWAInstall() {
-      showToast('PWA Install Triggered');
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            showToast('PWA berhasil diinstal ke perangkat Anda!');
+          }
+          deferredPrompt = null;
+        });
+      } else {
+        showToast('PWA siap! Jika prompt tidak muncul, ketik menu browser (⋮) lalu pilih "Instal Aplikasi" atau "Tambahkan ke Layar Utama".', true);
+      }
     }
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      showToast('Aplikasi siap diinstal! Tekan tombol "Install Android App" di sidebar.');
+    });
   </script>
 </body>
 </html>

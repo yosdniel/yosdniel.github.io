@@ -89,7 +89,6 @@
         <!-- Tab 1: Form Input Menu -->
         <main id="tab-content-input" class="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 hidden">
             <form id="form-menu" class="space-y-6">
-                
                 <!-- Informasi Dasar -->
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
@@ -163,138 +162,59 @@
                 <div class="border-t border-slate-800/80 pt-5">
                     <h3 class="text-xs font-bold uppercase tracking-wider text-royal-400 mb-4">Kandungan Nilai Gizi Per Porsi</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <!-- Porsi Besar (PB) -->
+                        <!-- Porsi Besar -->
                         <div class="p-5 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-5 shadow-lg">
                             <div class="font-bold text-xs text-royal-400 uppercase tracking-wide border-b border-slate-800 pb-2">Porsi Besar (SD 4 - SMA)</div>
                             <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Energi *</label>
-                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="pb-energi" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">kkal</span></div>
-                                </div>
-                                <div>
-                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Protein *</label>
-                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="pb-protein" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
-                                </div>
-                                <div>
-                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Lemak *</label>
-                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="pb-lemak" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
-                                </div>
-                                <div>
-                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Karbohidrat *</label>
-                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="pb-karbohidrat" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
-                                </div>
-                                <div>
-                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Serat *</label>
-                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="pb-serat" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
-                                </div>
+                                <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Energi *</label><div class="flex items-center gap-1.5"><input type="number" step="any" id="pb-energi" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">kkal</span></div></div>
+                                <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Protein *</label><div class="flex items-center gap-1.5"><input type="number" step="any" id="pb-protein" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div></div>
+                                <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Lemak *</label><div class="flex items-center gap-1.5"><input type="number" step="any" id="pb-lemak" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div></div>
+                                <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Karbohidrat *</label><div class="flex items-center gap-1.5"><input type="number" step="any" id="pb-karbohidrat" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div></div>
+                                <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Serat *</label><div class="flex items-center gap-1.5"><input type="number" step="any" id="pb-serat" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div></div>
                             </div>
                         </div>
-
-                        <!-- Porsi Kecil (PK) -->
+                        <!-- Porsi Kecil -->
                         <div class="p-5 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-5 shadow-lg">
                             <div class="font-bold text-xs text-white uppercase tracking-wide border-b border-slate-800 pb-2">Porsi Kecil (PAUD - SD 3)</div>
                             <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Energi *</label>
-                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="pk-energi" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">kkal</span></div>
-                                </div>
-                                <div>
-                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Protein *</label>
-                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="pk-protein" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
-                                </div>
-                                <div>
-                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Lemak *</label>
-                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="pk-lemak" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
-                                </div>
-                                <div>
-                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Karbohidrat *</label>
-                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="pk-karbohidrat" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
-                                </div>
-                                <div>
-                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Serat *</label>
-                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="pk-serat" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
-                                </div>
+                                <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Energi *</label><div class="flex items-center gap-1.5"><input type="number" step="any" id="pk-energi" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">kkal</span></div></div>
+                                <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Protein *</label><div class="flex items-center gap-1.5"><input type="number" step="any" id="pk-protein" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div></div>
+                                <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Lemak *</label><div class="flex items-center gap-1.5"><input type="number" step="any" id="pk-lemak" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div></div>
+                                <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Karbohidrat *</label><div class="flex items-center gap-1.5"><input type="number" step="any" id="pk-karbohidrat" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div></div>
+                                <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Serat *</label><div class="flex items-center gap-1.5"><input type="number" step="any" id="pk-serat" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div></div>
                             </div>
                         </div>
-
                         <!-- Balita -->
                         <div class="p-5 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-5 shadow-lg">
                             <div class="font-bold text-xs text-emerald-400 uppercase tracking-wide border-b border-slate-800 pb-2">Balita</div>
                             <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Energi *</label>
-                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="balita-energi" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">kkal</span></div>
-                                </div>
-                                <div>
-                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Protein *</label>
-                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="balita-protein" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
-                                </div>
-                                <div>
-                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Lemak *</label>
-                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="balita-lemak" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
-                                </div>
-                                <div>
-                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Karbohidrat *</label>
-                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="balita-karbohidrat" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
-                                </div>
-                                <div>
-                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Serat *</label>
-                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="balita-serat" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
-                                </div>
+                                <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Energi *</label><div class="flex items-center gap-1.5"><input type="number" step="any" id="balita-energi" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">kkal</span></div></div>
+                                <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Protein *</label><div class="flex items-center gap-1.5"><input type="number" step="any" id="balita-protein" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div></div>
+                                <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Lemak *</label><div class="flex items-center gap-1.5"><input type="number" step="any" id="balita-lemak" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div></div>
+                                <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Karbohidrat *</label><div class="flex items-center gap-1.5"><input type="number" step="any" id="balita-karbohidrat" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div></div>
+                                <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Serat *</label><div class="flex items-center gap-1.5"><input type="number" step="any" id="balita-serat" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div></div>
                             </div>
                         </div>
-
-                        <!-- Ibu Hamil (Bumil) -->
+                        <!-- Ibu Hamil -->
                         <div class="p-5 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-5 shadow-lg">
                             <div class="font-bold text-xs text-amber-400 uppercase tracking-wide border-b border-slate-800 pb-2">Ibu Hamil (Bumil)</div>
                             <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Energi *</label>
-                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="bumil-energi" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">kkal</span></div>
-                                </div>
-                                <div>
-                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Protein *</label>
-                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="bumil-protein" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
-                                </div>
-                                <div>
-                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Lemak *</label>
-                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="bumil-lemak" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
-                                </div>
-                                <div>
-                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Karbohidrat *</label>
-                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="bumil-karbohidrat" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
-                                </div>
-                                <div>
-                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Serat *</label>
-                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="bumil-serat" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
-                                </div>
+                                <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Energi *</label><div class="flex items-center gap-1.5"><input type="number" step="any" id="bumil-energi" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">kkal</span></div></div>
+                                <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Protein *</label><div class="flex items-center gap-1.5"><input type="number" step="any" id="bumil-protein" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div></div>
+                                <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Lemak *</label><div class="flex items-center gap-1.5"><input type="number" step="any" id="bumil-lemak" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div></div>
+                                <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Karbohidrat *</label><div class="flex items-center gap-1.5"><input type="number" step="any" id="bumil-karbohidrat" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div></div>
+                                <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Serat *</label><div class="flex items-center gap-1.5"><input type="number" step="any" id="bumil-serat" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div></div>
                             </div>
                         </div>
-
-                        <!-- Ibu Menyusui (Busui) -->
+                        <!-- Ibu Menyusui -->
                         <div class="p-5 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-5 shadow-lg">
                             <div class="font-bold text-xs text-purple-400 uppercase tracking-wide border-b border-slate-800 pb-2">Ibu Menyusui (Busui)</div>
                             <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Energi *</label>
-                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="busui-energi" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">kkal</span></div>
-                                </div>
-                                <div>
-                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Protein *</label>
-                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="busui-protein" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
-                                </div>
-                                <div>
-                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Lemak *</label>
-                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="busui-lemak" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
-                                </div>
-                                <div>
-                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Karbohidrat *</label>
-                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="busui-karbohidrat" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
-                                </div>
-                                <div>
-                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Serat *</label>
-                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="busui-serat" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
-                                </div>
+                                <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Energi *</label><div class="flex items-center gap-1.5"><input type="number" step="any" id="busui-energi" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">kkal</span></div></div>
+                                <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Protein *</label><div class="flex items-center gap-1.5"><input type="number" step="any" id="busui-protein" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div></div>
+                                <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Lemak *</label><div class="flex items-center gap-1.5"><input type="number" step="any" id="busui-lemak" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div></div>
+                                <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Karbohidrat *</label><div class="flex items-center gap-1.5"><input type="number" step="any" id="busui-karbohidrat" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div></div>
+                                <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Serat *</label><div class="flex items-center gap-1.5"><input type="number" step="any" id="busui-serat" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div></div>
                             </div>
                         </div>
                     </div>
@@ -427,7 +347,6 @@
                 localFeedbacks = [];
             }
 
-            // Gabungkan data dari server API dan localStorage, hindari duplikat
             const combinedMap = new Map();
             [...localFeedbacks, ...apiFeedbacks].forEach(fb => {
                 const key = (fb.timestamp || '') + '_' + (fb.nama_sekolah || '') + '_' + (fb.pesan || '');
@@ -442,7 +361,6 @@
                 return;
             }
 
-            // Kelompokkan feedback berdasarkan tanggal menu
             const grouped = {};
             allFeedbacksCache.forEach(fb => {
                 const tgl = fb.tanggal || 'Tanpa Tanggal';
@@ -458,7 +376,6 @@
                 const listFb = grouped[tgl];
                 const count = listFb.length;
 
-                // Cari nama menu berdasarkan tanggal dari cache menu
                 const menuObj = allMenusCache.find(m => m.tanggal === tgl) || (listFb[0] && listFb[0].detail_menu ? listFb[0].detail_menu : null);
                 let menuTitleLabel = 'Menu tidak tercatat';
                 if (menuObj) {
@@ -467,7 +384,6 @@
                     menuTitleLabel = [pok, hew].filter(Boolean).join(' + ') || 'Menu Lengkap Ompreng';
                 }
 
-                // Hitung rata-rata rating (avg rate) total untuk tanggal ini
                 let totalScore = 0;
                 let totalRatingItems = 0;
                 listFb.forEach(fb => {
@@ -493,18 +409,14 @@
 
                 return '<div onclick="showFeedbacksForDate(\'' + tgl + '\')" class="glass-panel rounded-2xl p-5 border border-slate-800 hover:border-royal-500/50 cursor-pointer transition shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4 group">'
                     + '<div class="flex items-center gap-4">'
-                    + '<div class="w-12 h-12 rounded-xl bg-royal-500/10 border border-royal-400/20 text-royal-400 font-extrabold flex items-center justify-center text-base group-hover:bg-royal-500 group-hover:text-white transition flex-none">'
-                    + '📅'
-                    + '</div>'
+                    + '<div class="w-12 h-12 rounded-xl bg-royal-500/10 border border-royal-400/20 text-royal-400 font-extrabold flex items-center justify-center text-base group-hover:bg-royal-500 group-hover:text-white transition flex-none">📅</div>'
                     + '<div>'
                     + '<h3 class="text-sm sm:text-base font-bold text-white group-hover:text-royal-400 transition">' + displayDate + '</h3>'
                     + '<p class="text-xs text-royal-300 font-medium mt-0.5">🍽️ Menu: ' + menuTitleLabel + '</p>'
                     + '<p class="text-xs text-slate-400 mt-1"><span class="text-royal-400 font-semibold">' + count + '</span> Sekolah memberikan feedback · Avg Rate: <b class="text-amber-400">⭐ ' + avgRate + '/5.0</b></p>'
                     + '</div>'
                     + '</div>'
-                    + '<div class="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-300 group-hover:bg-royal-600 group-hover:text-white transition self-end sm:self-center">'
-                    + 'Lihat Detail →'
-                    + '</div>'
+                    + '<div class="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-300 group-hover:bg-royal-600 group-hover:text-white transition self-end sm:self-center">Lihat Detail →</div>'
                     + '</div>';
             }).join('');
         }
@@ -556,11 +468,17 @@
                 const ratings = fb.ratings || {};
                 const menuDetail = fb.detail_menu || {};
                 
+                // Menerjemahkan kunci rating_pokok, rating_hewani, dll menjadi nama menu asli
+                const ratingLabelsMap = {
+                    rating_pokok: menuDetail.makanan_pokok || 'Makanan Pokok',
+                    rating_hewani: menuDetail.lauk_hewani || 'Lauk Hewani',
+                    rating_nabati: menuDetail.lauk_nabati || 'Lauk Nabati',
+                    rating_sayur: menuDetail.sayur || 'Sayur Segar',
+                    rating_buah: menuDetail.buah || 'Buah-Buahan'
+                };
+
                 const ratingsHtml = Object.entries(ratings).map(([key, val]) => {
-                    let label = key;
-                    if (menuDetail[key.replace('rating_', '')]) {
-                        label = menuDetail[key.replace('rating_', '')];
-                    }
+                    const label = ratingLabelsMap[key] || menuDetail[key.replace('rating_', '')] || key;
                     const stars = '★'.repeat(val) + '☆'.repeat(5 - val);
                     return '<div class="flex items-center justify-between text-xs py-1 border-b border-slate-800/40 last:border-0">'
                         + '<span class="text-slate-300 font-medium">' + label + '</span>'
@@ -568,9 +486,20 @@
                         + '</div>';
                 }).join('');
 
+                // Menerjemahkan kunci detail menu agar tampil elegan sebagai nama menu
+                const detailMenuLabelsMap = {
+                    makanan_pokok: 'Pokok',
+                    lauk_hewani: 'Hewani',
+                    lauk_nabati: 'Nabati',
+                    sayur: 'Sayur',
+                    buah: 'Buah',
+                    pelengkap: 'Pelengkap'
+                };
+
                 const menuTagsHtml = Object.entries(menuDetail).map(([k, v]) => {
                     if (!v) return '';
-                    return '<span class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-slate-300">' + k + ': <b class="text-white">' + v + '</b></span>';
+                    const customLabel = detailMenuLabelsMap[k] || k;
+                    return '<span class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-slate-300">' + customLabel + ': <b class="text-white">' + v + '</b></span>';
                 }).filter(Boolean).join('');
 
                 return '<div class="glass-panel rounded-2xl p-5 border border-slate-800 space-y-4 shadow-lg">'

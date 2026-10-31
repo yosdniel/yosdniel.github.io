@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#030712">
-    <title id="page-title">Menu Dashboard · SPPG Deli Serdang Tanjung Gusta Sunggal</title>
+    <title id="page-title">Admin Panel · SPPG Menu Dashboard</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon.ico">
@@ -69,7 +69,7 @@
                     Admin Dashboard
                 </span>
                 <h1 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight mt-2">Input & Kelola Menu Harian</h1>
-                <p class="text-xs sm:text-sm text-slate-400" id="header-sppg-sub">SPPG Deli Serdang Tanjung Gusta Sunggal</p>
+                <p class="text-xs sm:text-sm text-slate-400" id="header-sppg-sub">Memuat nama SPPG...</p>
             </div>
             <a href="index.html" target="_blank" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-royal-500/40 text-xs font-bold transition">
                 <svg class="w-4 h-4 text-royal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
@@ -114,7 +114,7 @@
                             <input type="text" id="lauk_nabati" required placeholder="Contoh: Tahu & Tempe Goreng" class="w-full px-3.5 py-2.5 rounded-xl glass-input text-sm">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Sayur Segar</label>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Sayur Segar (Opsional)</label>
                             <input type="text" id="sayur" placeholder="Contoh: Sayur Bening Bayam" class="w-full px-3.5 py-2.5 rounded-xl glass-input text-sm">
                         </div>
                         <div>
@@ -133,7 +133,7 @@
                     <h3 class="text-xs font-bold uppercase tracking-wider text-royal-400 mb-3">Dokumentasi Foto Menu</h3>
                     <div class="space-y-3">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Upload Gambar Langsung dari Perangkat</label>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Upload Gambar Menu dari Perangkat</label>
                             <div class="flex items-center gap-3">
                                 <label class="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-royal-600 hover:bg-royal-500 text-white text-xs font-bold transition shadow-md">
                                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
@@ -143,13 +143,12 @@
                                 <span id="upload-status" class="text-xs text-slate-400">Belum ada file dipilih</span>
                             </div>
                         </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Atau Masukkan URL Foto Utama (Otomatis terisi saat upload)</label>
-                            <input type="url" id="foto" placeholder="https://..." class="w-full px-3.5 py-2.5 rounded-xl glass-input text-xs">
-                        </div>
-                        <!-- Preview Gambar -->
+                        <!-- Hidden input untuk menyimpan string foto (Base64) agar tetap terkirim ke database secara otomatis -->
+                        <input type="hidden" id="foto" value="">
+
+                        <!-- Preview Gambar (Mempertahankan ukuran asli tanpa crop/paksa kotak) -->
                         <div id="preview-container" class="hidden mt-2">
-                            <img id="image-preview" src="" alt="Preview" class="w-32 h-32 object-cover rounded-xl border border-royal-500/30">
+                            <img id="image-preview" src="" alt="Preview" class="max-w-xs h-auto object-contain rounded-xl border border-royal-500/30 shadow-md">
                         </div>
                     </div>
                 </div>
@@ -158,139 +157,139 @@
                 <div class="border-t border-slate-800/80 pt-5">
                     <h3 class="text-xs font-bold uppercase tracking-wider text-royal-400 mb-4">Kandungan Nilai Gizi Per Porsi (Semua Wajib Diisi)</h3>
                     
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <!-- Porsi Kecil (PK) -->
-                        <div class="p-4 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-3">
-                            <div class="font-bold text-xs text-white uppercase">Porsi Kecil (PAUD - SD Kelas 3)</div>
-                            <div class="grid grid-cols-2 gap-2">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Porsi Besar (PB) -->
+                        <div class="p-5 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-5 shadow-lg">
+                            <div class="font-bold text-xs text-royal-400 uppercase tracking-wide border-b border-slate-800 pb-2">Porsi Besar (SD Kelas 4 - SMA)</div>
+                            <div class="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label class="text-[10px] text-slate-400">Energi *</label>
-                                    <div class="flex items-center gap-1 mt-0.5"><input type="number" step="any" id="pk-energi" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">kkal</span></div>
+                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Energi *</label>
+                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="pb-energi" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">kkal</span></div>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] text-slate-400">Protein *</label>
-                                    <div class="flex items-center gap-1 mt-0.5"><input type="number" step="any" id="pk-protein" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">g</span></div>
+                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Protein *</label>
+                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="pb-protein" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] text-slate-400">Lemak *</label>
-                                    <div class="flex items-center gap-1 mt-0.5"><input type="number" step="any" id="pk-lemak" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">g</span></div>
+                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Lemak *</label>
+                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="pb-lemak" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] text-slate-400">Karbohidrat *</label>
-                                    <div class="flex items-center gap-1 mt-0.5"><input type="number" step="any" id="pk-karbohidrat" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">g</span></div>
+                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Karbohidrat *</label>
+                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="pb-karbohidrat" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
                                 </div>
-                            </div>
-                            <div>
-                                <label class="text-[10px] text-slate-400">Serat *</label>
-                                <div class="flex items-center gap-1 mt-0.5 w-1/2"><input type="number" step="any" id="pk-serat" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">g</span></div>
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Serat *</label>
+                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="pb-serat" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Porsi Besar (PB) -->
-                        <div class="p-4 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-3">
-                            <div class="font-bold text-xs text-royal-400 uppercase">Porsi Besar (SD Kelas 4 - SMA)</div>
-                            <div class="grid grid-cols-2 gap-2">
+                        <!-- Porsi Kecil (PK) -->
+                        <div class="p-5 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-5 shadow-lg">
+                            <div class="font-bold text-xs text-white uppercase tracking-wide border-b border-slate-800 pb-2">Porsi Kecil (PAUD - SD Kelas 3)</div>
+                            <div class="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label class="text-[10px] text-slate-400">Energi *</label>
-                                    <div class="flex items-center gap-1 mt-0.5"><input type="number" step="any" id="pb-energi" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">kkal</span></div>
+                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Energi *</label>
+                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="pk-energi" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">kkal</span></div>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] text-slate-400">Protein *</label>
-                                    <div class="flex items-center gap-1 mt-0.5"><input type="number" step="any" id="pb-protein" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">g</span></div>
+                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Protein *</label>
+                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="pk-protein" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] text-slate-400">Lemak *</label>
-                                    <div class="flex items-center gap-1 mt-0.5"><input type="number" step="any" id="pb-lemak" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">g</span></div>
+                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Lemak *</label>
+                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="pk-lemak" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] text-slate-400">Karbohidrat *</label>
-                                    <div class="flex items-center gap-1 mt-0.5"><input type="number" step="any" id="pb-karbohidrat" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">g</span></div>
+                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Karbohidrat *</label>
+                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="pk-karbohidrat" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
                                 </div>
-                            </div>
-                            <div>
-                                <label class="text-[10px] text-slate-400">Serat *</label>
-                                <div class="flex items-center gap-1 mt-0.5 w-1/2"><input type="number" step="any" id="pb-serat" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">g</span></div>
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Serat *</label>
+                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="pk-serat" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
+                                </div>
                             </div>
                         </div>
 
                         <!-- Balita -->
-                        <div class="p-4 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-3">
-                            <div class="font-bold text-xs text-emerald-400 uppercase">Balita</div>
-                            <div class="grid grid-cols-2 gap-2">
+                        <div class="p-5 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-5 shadow-lg">
+                            <div class="font-bold text-xs text-emerald-400 uppercase tracking-wide border-b border-slate-800 pb-2">Balita</div>
+                            <div class="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label class="text-[10px] text-slate-400">Energi *</label>
-                                    <div class="flex items-center gap-1 mt-0.5"><input type="number" step="any" id="balita-energi" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">kkal</span></div>
+                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Energi *</label>
+                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="balita-energi" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">kkal</span></div>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] text-slate-400">Protein *</label>
-                                    <div class="flex items-center gap-1 mt-0.5"><input type="number" step="any" id="balita-protein" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">g</span></div>
+                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Protein *</label>
+                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="balita-protein" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] text-slate-400">Lemak *</label>
-                                    <div class="flex items-center gap-1 mt-0.5"><input type="number" step="any" id="balita-lemak" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">g</span></div>
+                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Lemak *</label>
+                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="balita-lemak" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] text-slate-400">Karbohidrat *</label>
-                                    <div class="flex items-center gap-1 mt-0.5"><input type="number" step="any" id="balita-karbohidrat" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">g</span></div>
+                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Karbohidrat *</label>
+                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="balita-karbohidrat" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
                                 </div>
-                            </div>
-                            <div>
-                                <label class="text-[10px] text-slate-400">Serat *</label>
-                                <div class="flex items-center gap-1 mt-0.5 w-1/2"><input type="number" step="any" id="balita-serat" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">g</span></div>
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Serat *</label>
+                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="balita-serat" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
+                                </div>
                             </div>
                         </div>
 
                         <!-- Ibu Hamil (Bumil) -->
-                        <div class="p-4 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-3">
-                            <div class="font-bold text-xs text-amber-400 uppercase">Ibu Hamil (Bumil)</div>
-                            <div class="grid grid-cols-2 gap-2">
+                        <div class="p-5 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-5 shadow-lg">
+                            <div class="font-bold text-xs text-amber-400 uppercase tracking-wide border-b border-slate-800 pb-2">Ibu Hamil (Bumil)</div>
+                            <div class="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label class="text-[10px] text-slate-400">Energi *</label>
-                                    <div class="flex items-center gap-1 mt-0.5"><input type="number" step="any" id="bumil-energi" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">kkal</span></div>
+                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Energi *</label>
+                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="bumil-energi" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">kkal</span></div>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] text-slate-400">Protein *</label>
-                                    <div class="flex items-center gap-1 mt-0.5"><input type="number" step="any" id="bumil-protein" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">g</span></div>
+                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Protein *</label>
+                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="bumil-protein" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] text-slate-400">Lemak *</label>
-                                    <div class="flex items-center gap-1 mt-0.5"><input type="number" step="any" id="bumil-lemak" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">g</span></div>
+                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Lemak *</label>
+                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="bumil-lemak" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] text-slate-400">Karbohidrat *</label>
-                                    <div class="flex items-center gap-1 mt-0.5"><input type="number" step="any" id="bumil-karbohidrat" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">g</span></div>
+                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Karbohidrat *</label>
+                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="bumil-karbohidrat" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
                                 </div>
-                            </div>
-                            <div>
-                                <label class="text-[10px] text-slate-400">Serat *</label>
-                                <div class="flex items-center gap-1 mt-0.5 w-1/2"><input type="number" step="any" id="bumil-serat" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">g</span></div>
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Serat *</label>
+                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="bumil-serat" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
+                                </div>
                             </div>
                         </div>
 
                         <!-- Ibu Menyusui (Busui) -->
-                        <div class="p-4 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-3">
-                            <div class="font-bold text-xs text-purple-400 uppercase">Ibu Menyusui (Busui)</div>
-                            <div class="grid grid-cols-2 gap-2">
+                        <div class="p-5 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-5 shadow-lg">
+                            <div class="font-bold text-xs text-purple-400 uppercase tracking-wide border-b border-slate-800 pb-2">Ibu Menyusui (Busui)</div>
+                            <div class="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label class="text-[10px] text-slate-400">Energi *</label>
-                                    <div class="flex items-center gap-1 mt-0.5"><input type="number" step="any" id="busui-energi" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">kkal</span></div>
+                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Energi *</label>
+                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="busui-energi" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">kkal</span></div>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] text-slate-400">Protein *</label>
-                                    <div class="flex items-center gap-1 mt-0.5"><input type="number" step="any" id="busui-protein" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">g</span></div>
+                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Protein *</label>
+                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="busui-protein" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] text-slate-400">Lemak *</label>
-                                    <div class="flex items-center gap-1 mt-0.5"><input type="number" step="any" id="busui-lemak" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">g</span></div>
+                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Lemak *</label>
+                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="busui-lemak" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] text-slate-400">Karbohidrat *</label>
-                                    <div class="flex items-center gap-1 mt-0.5"><input type="number" step="any" id="busui-karbohidrat" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">g</span></div>
+                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Karbohidrat *</label>
+                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="busui-karbohidrat" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
                                 </div>
-                            </div>
-                            <div>
-                                <label class="text-[10px] text-slate-400">Serat *</label>
-                                <div class="flex items-center gap-1 mt-0.5 w-1/2"><input type="number" step="any" id="busui-serat" required class="w-full px-2 py-1.5 rounded-lg glass-input text-xs"><span class="text-[10px] text-slate-400 flex-none">g</span></div>
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Serat *</label>
+                                    <div class="flex items-center gap-1.5"><input type="number" step="any" id="busui-serat" required class="w-full px-2.5 py-2.5 rounded-xl glass-input text-xs"><span class="text-[11px] text-slate-400 flex-none font-medium">g</span></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -325,7 +324,6 @@
                 const res = await fetch(API + '?tanggal=' + todayStr);
                 const data = await res.json();
                 if (data.ok && data.minggu && data.minggu.length > 0) {
-                    // Cari menu hari ini atau ambil data pertama yang tersedia
                     const currentMenu = data.minggu.find(m => m.tanggal === todayStr) || data.minggu[0];
                     if (currentMenu) {
                         if (currentMenu.nama_sppg) {
@@ -340,15 +338,16 @@
                 }
             } catch (err) {
                 console.warn('Gagal memuat default SPPG dari server, menggunakan fallback.', err);
-                document.getElementById('nama_sppg').value = 'SPPG Deli Serdang Tanjung Gusta Sunggal';
+                document.getElementById('nama_sppg').value = 'SPPG Bantaeng Gantarangkeke 1';
+                document.getElementById('header-sppg-sub').textContent = 'SPPG Bantaeng Gantarangkeke 1';
                 document.getElementById('yayasan').value = 'Yayasan Tunas Ilmu Bantaeng';
             }
         }
 
         loadInitialData();
 
-        // Handler Upload Gambar otomatis via ImgBB API
-        document.getElementById('file-upload').addEventListener('change', async function(e) {
+        // Handler Upload Gambar otomatis (menggunakan FileReader Base64 lokal agar 100% andal)
+        document.getElementById('file-upload').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
 
@@ -358,33 +357,23 @@
             const previewContainer = document.getElementById('preview-container');
             const imagePreview = document.getElementById('image-preview');
 
-            uploadStatus.textContent = 'Mengunggah gambar...';
+            uploadStatus.textContent = 'Memproses gambar...';
             uploadLabelText.textContent = 'Proses...';
 
-            const formData = new FormData();
-            formData.append('image', file);
-
-            try {
-                const res = await fetch('https://api.imgbb.com/1/upload?key=6d207e0bde27a3d240d4f58c70e0de7d', {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await res.json();
-
-                if (data.success) {
-                    const imageUrl = data.data.url;
-                    fotoInput.value = imageUrl;
-                    imagePreview.src = imageUrl;
-                    previewContainer.classList.remove('hidden');
-                    uploadStatus.textContent = '✅ Berhasil diunggah!';
-                    uploadLabelText.textContent = 'Ganti Foto';
-                } else {
-                    throw new Error(data.error?.message || 'Gagal upload');
-                }
-            } catch (err) {
-                uploadStatus.textContent = '❌ Gagal upload: ' + err.message;
+            const reader = new FileReader();
+            reader.onload = function(uploadEvent) {
+                const base64Url = uploadEvent.target.result;
+                fotoInput.value = base64Url;
+                imagePreview.src = base64Url;
+                previewContainer.classList.remove('hidden');
+                uploadStatus.textContent = '✅ Gambar siap disimpan!';
+                uploadLabelText.textContent = 'Ganti Foto';
+            };
+            reader.onerror = function() {
+                uploadStatus.textContent = '❌ Gagal membaca file';
                 uploadLabelText.textContent = 'Pilih File Foto...';
-            }
+            };
+            reader.readAsDataURL(file);
         });
 
         document.getElementById('form-menu').addEventListener('submit', async function(e) {
@@ -450,7 +439,7 @@
             };
 
             try {
-                const response = await fetch('https://www.minduniverse.id/api/menu', {
+                const response = await fetch(API, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -460,7 +449,7 @@
                 if (!response.ok || !result.ok) throw new Error(result.message || 'Gagal menyimpan data');
 
                 statusMsg.className = 'text-xs text-center p-3 rounded-xl bg-emerald-500/10 text-emerald-400 block';
-                statusMsg.textContent = '✅ Data menu berhasil disimpan ke database Supabase!';
+                statusMsg.textContent = '✅ Data menu berhasil disimpan ke database!';
             } catch (err) {
                 statusMsg.className = 'text-xs text-center p-3 rounded-xl bg-red-500/10 text-red-400 block';
                 statusMsg.textContent = '❌ Error: ' + err.message;

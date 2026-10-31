@@ -493,17 +493,20 @@
                 const ratings = fb.ratings || {};
                 const menuDetail = fb.detail_menu || {};
                 
-                const ratingLabelsMap = {
-                    rating_pokok: menuDetail.makanan_pokok || 'Makanan Pokok',
-                    rating_hewani: menuDetail.lauk_hewani || 'Lauk Hewani',
-                    rating_nabati: menuDetail.lauk_nabati || 'Lauk Nabati',
-                    rating_sayur: menuDetail.sayur || 'Sayur Segar',
-                    rating_buah: menuDetail.buah || 'Buah-Buahan'
+                const ratingOrderedKeys = ['rating_pokok', 'rating_hewani', 'rating_nabati', 'rating_sayur', 'rating_buah'];
+                const ratingCustomLabels = {
+                    rating_pokok: 'Pokok',
+                    rating_hewani: 'Lauk Hewani',
+                    rating_nabati: 'Lauk Nabati',
+                    rating_sayur: 'Sayur',
+                    rating_buah: 'Buah'
                 };
 
-                const ratingsHtml = Object.entries(ratings).map(([key, val]) => {
-                    const orderedKeys = ['makanan_pokok', 'lauk_hewani', 'lauk_nabati', 'sayur', 'buah', 'pelengkap'];
-                    const label = ratingLabelsMap[key] || menuDetail[key.replace('rating_', '')] || key;
+                const ratingsHtml = ratingOrderedKeys.map(ratingKey => {
+                    const val = ratings[ratingKey];
+                    if (val === undefined || val === null || val === '') return '';
+
+                    const label = ratingCustomLabels[ratingKey] || ratingKey;
                     const ratingNum = parseInt(val) || 0;
                     
                     let starsHtml = '';
@@ -519,7 +522,7 @@
                         + '<span class="text-slate-300 font-medium">' + label + '</span>'
                         + '<span class="font-bold tracking-widest flex items-center gap-1">' + starsHtml + ' <span class="text-slate-400 ml-1">(' + ratingNum + '/5)</span></span>'
                         + '</div>';
-                }).join('');
+                }).filter(Boolean).join('');
 
                 // Urutan kategori menu yang konsisten dan rapi
                 const orderedKeys = ['makanan_pokok', 'lauk_hewani', 'lauk_nabati', 'sayur', 'buah', 'pelengkap'];

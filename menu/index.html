@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#030712">
-    <title>Menu Hari Ini · SPPG Deli Serdang Tanjung Gusta Sunggal</title>
+    <title>Menu Hari Ini · SPPG Deli Serdang Tanjung Gusta</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon.ico">
@@ -675,7 +675,7 @@
                     }
                     if (fallbackMeta.yayasan) {
                         el('nama-yayasan').textContent = fallbackMeta.yayasan;
-                        el('footer-yayasan').textContent = fallbackMeta.yayasan + ' · Badan Gizi Nasional';
+                        el('footer-yayasan').textContent = fallbackMeta.yayasan;
                     }
                 }
 
@@ -703,7 +703,7 @@
                         el('footer-nama-sppg').textContent = fallbackMeta.nama_sppg;
                     }
                     if (fallbackMeta.yayasan) {
-                        el('nama-yayasan').textContent = fallbackMeta.yayasan + ' · Badan Gizi Nasional';
+                        el('nama-yayasan').textContent = fallbackMeta.yayasan;
                         el('footer-yayasan').textContent = fallbackMeta.yayasan + ' · Badan Gizi Nasional';
                     }
                 }
@@ -749,7 +749,7 @@
                         el('footer-nama-sppg').textContent = dataMinggu[0].nama_sppg;
                     }
                     if (dataMinggu.length > 0 && dataMinggu[0].yayasan) {
-                        el('nama-yayasan').textContent = dataMinggu[0].yayasan + ' · Badan Gizi Nasional';
+                        el('nama-yayasan').textContent = dataMinggu[0].yayasan;
                         el('footer-yayasan').textContent = dataMinggu[0].yayasan + ' · Badan Gizi Nasional';
                     }
                     

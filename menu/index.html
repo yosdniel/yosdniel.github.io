@@ -593,7 +593,7 @@
             const htmlResult = blokFoto(menu)
                 + blokHimbauan()
                 + '<div class="mb-4 flex items-center justify-between px-1">'
-                + '<h3 class="text-lg font-bold uppercase tracking-wider text-slate-400">Isi Ompreng Hari Ini</h3>'
+                + '<h3 class="text-s font-bold uppercase tracking-wider text-slate-400">Isi Ompreng Hari Ini</h3>'
                 + (menu.pelengkap ? '<span class="text-xs font-medium text-royal-400 px-3 py-1 rounded-full bg-royal-500/10 border border-royal-500/20">Pelengkap: ' + esc(menu.pelengkap) + '</span>' : '')
                 + '</div>'
                 + '<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">' + sekatHtml + '</div>'
@@ -658,7 +658,7 @@
                 const yayasanText = menuAktif.yayasan || 'Yayasan Tunas Ilmu Bantaeng';
 
                 el('nama-sppg').textContent = namaSppgText;
-                el('nama-yayasan').textContent = yayasanText + ' · Badan Gizi Nasional';
+                el('nama-yayasan').textContent = yayasanText;
                 el('footer-nama-sppg').textContent = namaSppgText;
                 el('footer-yayasan').textContent = yayasanText + ' · Badan Gizi Nasional';
                 

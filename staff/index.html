@@ -32,10 +32,10 @@
     
     <style>
         body {
-            -webkit-user-select: none; /* Safari */
-            -moz-user-select: none;    /* Firefox */
-            -ms-user-select: none;    /* Internet Explorer/Edge */
-            user-select: none;        /* Standar Modern */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
         .glass-panel {
             background: rgba(15, 23, 42, 0.75);
@@ -81,7 +81,7 @@
             
             <div class="flex items-center gap-2">
                 <button onclick="switchTab('input')" id="tab-btn-input" class="px-4 py-2 rounded-xl bg-royal-600 text-white text-xs font-bold transition shadow-md shadow-royal-600/20">
-                    Input Menu
+                    Input / Edit Menu
                 </button>
                 <button onclick="switchTab('feedback')" id="tab-btn-feedback" class="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white text-xs font-bold transition">
                     Feedback Menu (<span id="feedback-count">0</span>)
@@ -92,13 +92,31 @@
 
     <div class="relative z-10 flex-1 flex flex-col max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
         
-        <!-- Tab 1: Form Input Menu (Default) -->
+        <!-- Tab 1: Form Input & Edit Menu (Default) -->
         <main id="tab-content-input" class="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+            <!-- Alert Modus Edit -->
+            <div id="edit-mode-indicator" class="hidden p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-4">
+                <div class="flex items-center gap-2 text-xs font-bold text-amber-400">
+                    <span>✏️</span>
+                    <span>Anda sedang mengedit menu tanggal: <span id="edit-date-display" class="underline"></span></span>
+                </div>
+                <button onclick="resetFormToNew()" class="text-[11px] px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold transition">
+                    Reset ke Input Baru
+                </button>
+            </div>
+
             <form id="form-menu" class="space-y-6">
-                <!-- Informasi Dasar (Input Nama SPPG & Yayasan disembunyikan/dihapus agar aman) -->
-                <div>
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">Tanggal Sajian *</label>
-                    <input type="date" id="tanggal" required class="w-full sm:w-1/3 px-3.5 py-2.5 rounded-xl glass-input text-sm">
+                <!-- Informasi Dasar -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Tanggal Sajian *</label>
+                        <input type="date" id="tanggal" required onchange="checkMenuForDate(this.value)" class="w-full px-3.5 py-2.5 rounded-xl glass-input text-sm">
+                    </div>
+                    <div>
+                        <button type="button" onclick="loadSelectedDateMenu()" class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 hover:border-royal-400 text-slate-300 hover:text-white text-xs font-bold transition flex items-center justify-center gap-2">
+                            <span>🔍</span> Muat Data Tanggal Ini
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Susunan Menu Makanan -->
@@ -225,7 +243,7 @@
                 <!-- Tombol Submit -->
                 <div class="pt-4 flex items-center justify-end gap-3">
                     <button type="submit" id="btn-submit" class="px-6 py-3 rounded-2xl bg-gradient-to-r from-royal-600 to-sky-500 hover:from-royal-500 hover:to-sky-400 text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-royal-600/30 transition">
-                        Simpan Menu ke Database
+                        Simpan / Update Menu ke Database
                     </button>
                 </div>
 
@@ -247,7 +265,7 @@
                 </div>
             </div>
 
-            <!-- Breadcrumb / Back button when viewing details -->
+            <!-- Breadcrumb / Back button -->
             <div id="feedback-nav-container" class="hidden">
                 <button onclick="backToDateList()" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-royal-400 hover:bg-slate-800 transition">
                     ← Kembali ke Daftar Tanggal
@@ -268,7 +286,6 @@
         let allMenusCache = [];
         let allFeedbacksCache = [];
 
-        // Identitas Tetap (Terkunci Otomatis agar Tidak Salah Ubah)
         const DEFAULT_SPPG = 'SPPG Deli Serdang Tanjung Gusta Sunggal';
         const DEFAULT_YAYASAN = 'Yayasan Tunas Ilmu Bantaeng';
 
@@ -307,7 +324,11 @@
             }
 
             document.getElementById('header-sppg-sub').textContent = DEFAULT_SPPG;
+            checkMenuForDate(document.getElementById('tanggal').value);
+            await fetchFeedbacks();
+        }
 
+        async function fetchFeedbacks() {
             let apiFeedbacks = [];
             try {
                 const res = await fetch(`${API}?action=feedback`);
@@ -326,9 +347,12 @@
                 localFeedbacks = [];
             }
 
+            // Gunakan kunci deduplikasi berbasis unik (ID, nama sekolah, timestamp lengkap, atau index) agar feedback tidak saling menimpa
             const combinedMap = new Map();
-            [...localFeedbacks, ...apiFeedbacks].forEach(fb => {
-                const key = (fb.timestamp || '') + '_' + (fb.nama_sekolah || '') + '_' + (fb.pesan || '');
+            
+            [...localFeedbacks, ...apiFeedbacks].forEach((fb, i) => {
+                const uniqueId = fb.id || fb._id || fb.timestamp || fb.created_at || (Date.now() + '_' + i);
+                const key = `${uniqueId}_${fb.nama_sekolah || 'sekolah'}_${fb.tanggal || 'tgl'}_${i}`;
                 combinedMap.set(key, fb);
             });
 
@@ -336,37 +360,91 @@
             document.getElementById('feedback-count').textContent = allFeedbacksCache.length;
         }
 
+        /* ----- FITUR EDIT MENU BERDASARKAN TANGGAL ----- */
+        function checkMenuForDate(dateStr) {
+            const menu = allMenusCache.find(m => m.tanggal === dateStr);
+            if (menu) {
+                populateFormWithMenu(menu);
+            } else {
+                resetFormToNew(false);
+            }
+        }
+
+        function loadSelectedDateMenu() {
+            const tgl = document.getElementById('tanggal').value;
+            const menu = allMenusCache.find(m => m.tanggal === tgl);
+            if (menu) {
+                populateFormWithMenu(menu);
+                showStatusMsg('✅ Data menu tanggal ' + tgl + ' berhasil dimuat!', 'success');
+            } else {
+                showStatusMsg('ℹ️ Belum ada menu untuk tanggal ' + tgl + '. Silakan isi form baru.', 'info');
+            }
+        }
+
+        function populateFormWithMenu(menu) {
+            document.getElementById('tanggal').value = menu.tanggal || todayStr;
+            document.getElementById('makanan_pokok').value = menu.makanan_pokok || '';
+            document.getElementById('lauk_hewani').value = menu.lauk_hewani || '';
+            document.getElementById('lauk_nabati').value = menu.lauk_nabati || '';
+            document.getElementById('sayur').value = menu.sayur || '';
+            document.getElementById('buah').value = menu.buah || '';
+            document.getElementById('pelengkap').value = menu.pelengkap || '';
+            document.getElementById('catatan').value = menu.catatan || '';
+
+            if (menu.foto) {
+                document.getElementById('foto').value = menu.foto;
+                document.getElementById('image-preview').src = menu.foto;
+                document.getElementById('preview-container').classList.remove('hidden');
+                document.getElementById('upload-status').textContent = '✅ Gambar terpasang';
+            } else {
+                document.getElementById('foto').value = '';
+                document.getElementById('preview-container').classList.add('hidden');
+                document.getElementById('upload-status').textContent = 'Belum ada file dipilih';
+            }
+
+            const gizi = menu.gizi || {};
+            const setGiziGroup = (prefix, groupData) => {
+                groupData = groupData || {};
+                document.getElementById(prefix + '-energi').value = groupData.energi || '';
+                document.getElementById(prefix + '-protein').value = groupData.protein || '';
+                document.getElementById(prefix + '-lemak').value = groupData.lemak || '';
+                document.getElementById(prefix + '-karbohidrat').value = groupData.karbohidrat || '';
+                document.getElementById(prefix + '-serat').value = groupData.serat || '';
+            };
+
+            setGiziGroup('pb', gizi.pb);
+            setGiziGroup('pk', gizi.pk);
+            setGiziGroup('balita', gizi.balita);
+            setGiziGroup('bumil', gizi.bumil);
+            setGiziGroup('busui', gizi.busui);
+
+            document.getElementById('edit-date-display').textContent = menu.tanggal;
+            document.getElementById('edit-mode-indicator').classList.remove('hidden');
+        }
+
+        function resetFormToNew(resetDate = true) {
+            if (resetDate) document.getElementById('tanggal').value = todayStr;
+            document.getElementById('form-menu').reset();
+            document.getElementById('foto').value = '';
+            document.getElementById('preview-container').classList.add('hidden');
+            document.getElementById('upload-status').textContent = 'Belum ada file dipilih';
+            document.getElementById('upload-label-text').textContent = 'Pilih File Foto...';
+            document.getElementById('edit-mode-indicator').classList.add('hidden');
+        }
+
+        function editMenuFromFeedback(tgl) {
+            switchTab('input');
+            document.getElementById('tanggal').value = tgl;
+            checkMenuForDate(tgl);
+        }
+
+        /* ----- HANDLER FEEDBACK & DETAIL ----- */
         async function loadFeedbacks() {
             const container = document.getElementById('feedback-list-container');
             document.getElementById('feedback-nav-container').classList.add('hidden');
             container.innerHTML = '<div class="text-center py-12 text-slate-400 text-sm">Mengambil data feedback terbaru dari database...</div>';
 
-            let apiFeedbacks = [];
-            try {
-                const res = await fetch(`${API}?action=feedback`);
-                const data = await res.json();
-                apiFeedbacks = data.feedbacks || data || [];
-                if (!Array.isArray(apiFeedbacks)) apiFeedbacks = [];
-            } catch (err) {
-                apiFeedbacks = [];
-            }
-
-            let localFeedbacks = [];
-            try {
-                localFeedbacks = JSON.parse(localStorage.getItem('sppg_feedbacks') || '[]');
-                if (!Array.isArray(localFeedbacks)) localFeedbacks = [];
-            } catch (e) {
-                localFeedbacks = [];
-            }
-
-            const combinedMap = new Map();
-            [...localFeedbacks, ...apiFeedbacks].forEach(fb => {
-                const key = (fb.timestamp || '') + '_' + (fb.nama_sekolah || '') + '_' + (fb.pesan || '');
-                combinedMap.set(key, fb);
-            });
-
-            allFeedbacksCache = Array.from(combinedMap.values());
-            document.getElementById('feedback-count').textContent = allFeedbacksCache.length;
+            await fetchFeedbacks();
 
             if (allFeedbacksCache.length === 0) {
                 container.innerHTML = '<div class="glass-panel rounded-2xl p-12 text-center text-slate-400 text-sm">Belum ada feedback atau evaluasi menu yang dikirimkan oleh sekolah.</div>';
@@ -376,9 +454,7 @@
             const grouped = {};
             allFeedbacksCache.forEach(fb => {
                 const tgl = fb.tanggal || 'Tanpa Tanggal';
-                if (!grouped[tgl]) {
-                    grouped[tgl] = [];
-                }
+                if (!grouped[tgl]) grouped[tgl] = [];
                 grouped[tgl].push(fb);
             });
 
@@ -462,7 +538,8 @@
             });
             const avgRate = totalRatingItems > 0 ? (totalScore / totalRatingItems).toFixed(1) : '0.0';
 
-            const menuObj = allMenusCache.find(m => m.tanggal === tgl) || (filtered[0] && filtered[0].detail_menu ? filtered[0].detail_menu : null);
+            const masterMenu = allMenusCache.find(m => m.tanggal === tgl);
+            const menuObj = masterMenu || (filtered[0] && filtered[0].detail_menu ? filtered[0].detail_menu : null);
             let menuTitleLabel = 'Menu tidak tercatat';
             if (menuObj) {
                 const pok = menuObj.makanan_pokok || '';
@@ -470,15 +547,17 @@
                 menuTitleLabel = [pok, hew].filter(Boolean).join(' + ') || 'Menu Lengkap Ompreng';
             }
 
-            let htmlHeader = '<div class="p-5 rounded-2xl bg-royal-500/10 border border-royal-500/20 mb-4 space-y-1">'
+            let htmlHeader = '<div class="p-5 rounded-2xl bg-royal-500/10 border border-royal-500/20 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">'
+                + '<div class="space-y-1">'
                 + '<h3 class="text-sm sm:text-base font-bold text-white">Tanggal Sajian: <span class="text-royal-400">' + displayDate + '</span></h3>'
                 + '<p class="text-xs text-royal-300 font-medium">🍽️ Menu: ' + menuTitleLabel + '</p>'
                 + '<p class="text-xs text-slate-400">Total ' + filtered.length + ' tanggapan sekolah · Rata-rata Rating: <b class="text-amber-400">⭐ ' + avgRate + '/5.0</b></p>'
+                + '</div>'
                 + '</div>';
 
             const feedbackCards = filtered.map((fb, idx) => {
                 const ratings = fb.ratings || {};
-                const menuDetail = fb.detail_menu || {};
+                const menuDetail = fb.detail_menu || masterMenu || {};
                 
                 const ratingOrderedKeys = ['rating_pokok', 'rating_hewani', 'rating_nabati', 'rating_sayur', 'rating_buah'];
                 const ratingCustomLabels = {
@@ -511,27 +590,10 @@
                         + '</div>';
                 }).filter(Boolean).join('');
 
-                const orderedKeys = ['makanan_pokok', 'lauk_hewani', 'lauk_nabati', 'sayur', 'buah', 'pelengkap'];
-                const detailMenuLabelsMap = {
-                    makanan_pokok: 'Pokok',
-                    lauk_hewani: 'Hewani',
-                    lauk_nabati: 'Nabati',
-                    sayur: 'Sayur',
-                    buah: 'Buah',
-                    pelengkap: 'Pelengkap'
-                };
-
-                const menuTagsHtml = orderedKeys.map(k => {
-                    const v = menuDetail[k];
-                    if (!v) return '';
-                    const customLabel = detailMenuLabelsMap[k] || k;
-                    return '<span class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-slate-300">' + customLabel + ': <b class="text-white">' + v + '</b></span>';
-                }).filter(Boolean).join('');
-
                 return '<div class="glass-panel rounded-2xl p-5 border border-slate-800 space-y-4 shadow-lg">'
                     + '<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">'
                     + '<div class="flex items-center gap-3">'
-                    + '<div class="w-10 h-10 rounded-xl bg-royal-500/10 text-royal-400 font-extrabold flex items-center justify-center text-sm">' + (idx + 1) + '</div>'
+                    + '<div class="w-10 h-10 rounded-xl bg-royal-500/10 text-royal-400 font-extrabold flex items-center justify-center text-sm flex-none">' + (idx + 1) + '</div>'
                     + '<div>'
                     + '<h3 class="text-sm font-bold text-white">' + (fb.nama_sekolah || 'Sekolah Tanpa Nama') + '</h3>'
                     + '<p class="text-[11px] text-slate-400">Waktu Kirim: ' + new Date(fb.timestamp || Date.now()).toLocaleString('id-ID') + '</p>'
@@ -542,7 +604,6 @@
                     + '<p class="text-xs text-slate-300 italic">“' + (fb.pesan || '-') + '”</p>'
                     + '</div>'
                     + (ratingsHtml ? '<div class="space-y-1"><div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Penilaian Menu:</div>' + ratingsHtml + '</div>' : '')
-                    + (menuTagsHtml ? '<div><div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Detail Menu Saat Disajikan:</div><div class="flex flex-wrap gap-1.5">' + menuTagsHtml + '</div></div>' : '')
                     + '</div>';
             }).join('');
 
@@ -551,6 +612,19 @@
 
         function backToDateList() {
             loadFeedbacks();
+        }
+
+        function showStatusMsg(msg, type = 'info') {
+            const statusMsg = document.getElementById('status-msg');
+            statusMsg.classList.remove('hidden', 'bg-emerald-500/10', 'text-emerald-400', 'bg-red-500/10', 'text-red-400', 'bg-sky-500/10', 'text-sky-400');
+            if (type === 'success') {
+                statusMsg.className = 'text-xs text-center p-3 rounded-xl bg-emerald-500/10 text-emerald-400 block';
+            } else if (type === 'error') {
+                statusMsg.className = 'text-xs text-center p-3 rounded-xl bg-red-500/10 text-red-400 block';
+            } else {
+                statusMsg.className = 'text-xs text-center p-3 rounded-xl bg-sky-500/10 text-sky-400 block';
+            }
+            statusMsg.textContent = msg;
         }
 
         loadInitialData();
@@ -582,7 +656,6 @@
 
         document.getElementById('form-menu').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const statusMsg = document.getElementById('status-msg');
             const btnSubmit = document.getElementById('btn-submit');
 
             btnSubmit.disabled = true;
@@ -591,7 +664,6 @@
             const fotoUrl = document.getElementById('foto').value.trim();
             const tglVal = document.getElementById('tanggal').value;
 
-            // Nama SPPG & Yayasan dikirim secara otomatis tanpa input form
             const payload = {
                 tanggal: tglVal,
                 nama_sppg: DEFAULT_SPPG,
@@ -661,14 +733,12 @@
                     allMenusCache.push(payload);
                 }
 
-                statusMsg.className = 'text-xs text-center p-3 rounded-xl bg-emerald-500/10 text-emerald-400 block';
-                statusMsg.textContent = '✅ Data menu berhasil disimpan ke database!';
+                showStatusMsg('✅ Data menu berhasil disimpan ke database!', 'success');
             } catch (err) {
-                statusMsg.className = 'text-xs text-center p-3 rounded-xl bg-red-500/10 text-red-400 block';
-                statusMsg.textContent = '❌ Error: ' + err.message;
+                showStatusMsg('❌ Error: ' + err.message, 'error');
             } finally {
                 btnSubmit.disabled = false;
-                btnSubmit.textContent = 'Simpan Menu ke Database';
+                btnSubmit.textContent = 'Simpan / Update Menu ke Database';
             }
         });
     </script>

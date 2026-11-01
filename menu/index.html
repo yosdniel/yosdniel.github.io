@@ -162,7 +162,7 @@
         
         <!-- Sebelah Kanan: SPPG & Yayasan -->
         <p class="text-left sm:text-right text-slate-500 dark:text-slate-400">
-            Disiapkan di dapur <b>Memuat nama SPPG...</b> 
+            Disiapkan di dapur <b id="footer-nama-sppg">Memuat nama SPPG...</b> 
             · <span id="footer-yayasan">Memuat nama Yayasan...</span>
         </p>
     </div>
@@ -773,7 +773,7 @@
                     }
                     if (dataMinggu.length > 0 && dataMinggu[0].yayasan) {
                         el('nama-yayasan').textContent = dataMinggu[0].yayasan;
-                        el('footer-yayasan').textContent = dataMinggu[0].yayasan';
+                        el('footer-yayasan').textContent = dataMinggu[0].yayasan;
                     }
                     
                     const targetTanggal = data.today || hariIni;

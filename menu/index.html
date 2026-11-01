@@ -686,8 +686,8 @@
                     + '<p class="text-xs text-slate-500">Silakan kembali pada hari penyajian untuk melihat rincian menu.</p>'
                     + '</div>';
             } else if (menuAktif && menuAktif.makanan_pokok) {
-                const namaSppgText = menuAktif.nama_sppg || 'SPPG Menu Dashboard';
-                const yayasanText = menuAktif.yayasan || 'Yayasan Tunas Ilmu Bantaeng';
+                const namaSppgText = menuAktif.nama_sppg || 'Memuat nama SPPG...';
+                const yayasanText = menuAktif.yayasan || 'Memuat nama Yayasan...';
 
                 el('nama-sppg').textContent = namaSppgText;
                 el('nama-yayasan').textContent = yayasanText;

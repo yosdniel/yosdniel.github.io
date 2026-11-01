@@ -2,8 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
-const ADMIN_PIN = process.env.ADMIN_PIN || '123456';
-const AUTH_SECRET = process.env.AUTH_SECRET || 'sppg-deli-serdang-secret-key-2026';
+const ADMIN_PIN = process.env.ADMIN_PIN;
+const AUTH_SECRET = process.env.AUTH_SECRET;
 
 const supabase = createClient(SUPABASE_URL || '', SUPABASE_ANON_KEY || '');
 

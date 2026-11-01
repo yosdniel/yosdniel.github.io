@@ -593,7 +593,7 @@
             const htmlResult = blokFoto(menu)
                 + blokHimbauan()
                 + '<div class="mb-4 flex items-center justify-between px-1">'
-                + '<h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Susunan Menu Ompreng Hari Ini</h3>'
+                + '<h3 class="text-lg font-bold uppercase tracking-wider text-slate-400">Isi Ompreng Hari Ini</h3>'
                 + (menu.pelengkap ? '<span class="text-xs font-medium text-royal-400 px-3 py-1 rounded-full bg-royal-500/10 border border-royal-500/20">Pelengkap: ' + esc(menu.pelengkap) + '</span>' : '')
                 + '</div>'
                 + '<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">' + sekatHtml + '</div>'
@@ -671,7 +671,7 @@
                         el('footer-nama-sppg').textContent = fallbackMeta.nama_sppg;
                     }
                     if (fallbackMeta.yayasan) {
-                        el('nama-yayasan').textContent = fallbackMeta.yayasan + ' · Badan Gizi Nasional';
+                        el('nama-yayasan').textContent = fallbackMeta.yayasan;
                         el('footer-yayasan').textContent = fallbackMeta.yayasan + ' · Badan Gizi Nasional';
                     }
                 }

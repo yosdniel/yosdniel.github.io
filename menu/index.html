@@ -141,14 +141,16 @@
             </div>
         </main>
 
-        <!-- Modal Popup Fullscreen untuk Foto -->
-        <div id="imageModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md hidden flex items-center justify-center p-4">
-            <div class="relative max-w-6xl w-full max-h-[95vh] flex flex-col items-center justify-center">
-                <button onclick="closeImageModal()" class="absolute top-2 right-2 sm:-top-12 sm:right-0 text-white bg-slate-800/80 hover:bg-slate-700 p-2.5 rounded-full transition shadow-lg z-10">
+        <!-- Modal Popup Fullscreen untuk Foto (Fit 100% tanpa terpotong saat zoom) -->
+        <div id="imageModal" class="fixed inset-0 z-50 bg-black/95 backdrop-blur-md hidden flex flex-col items-center justify-center p-4">
+            <div class="relative w-full h-full flex flex-col items-center justify-center">
+                <button onclick="closeImageModal()" class="absolute top-4 right-4 text-white bg-slate-800/80 hover:bg-slate-700 p-3 rounded-full transition shadow-lg z-20">
                     <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
-                <img id="modalImageSrc" src="" alt="Foto Full" class="w-auto h-auto max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl border border-white/10">
-                <p class="text-slate-400 text-xs mt-4">Klik di luar atau tombol X untuk menutup</p>
+                <div class="w-full h-full flex items-center justify-center p-2">
+                    <img id="modalImageSrc" src="" alt="Foto Full" class="max-w-full max-h-[90vh] w-auto h-auto object-contain rounded-2xl shadow-2xl border border-white/10">
+                </div>
+                <p class="text-slate-400 text-xs mt-2 text-center">Klik di luar atau tombol X untuk menutup</p>
             </div>
         </div>
 
@@ -240,7 +242,7 @@
         }
 
         document.getElementById('imageModal').addEventListener('click', function(e) {
-            if (e.target === this) closeImageModal();
+            if (e.target === this || e.target.id === 'imageModal') closeImageModal();
         });
 
         function inisialisasiTanggalRealtime() {
@@ -252,16 +254,17 @@
             }
         }
 
+        // FOTO 16:9 FULL WIDTH FIT TERIMA RASIO 1280x720 TANPA TERPOTONG
         function blokFoto(menu) {
             if (!menu.foto && (!menu.foto_list || menu.foto_list.length === 0)) return '';
             const fotoUtama = menu.foto || menu.foto_list[0];
             const alt = 'Foto menu ' + [menu.makanan_pokok, menu.lauk_hewani].filter(Boolean).join(', ');
             
-            return '<div class="glass-panel rounded-3xl overflow-hidden shadow-2xl mb-6 relative group">'
-                + '<div class="w-full bg-slate-900/90 flex items-center justify-center p-3 sm:p-6 cursor-pointer" onclick="openImageModal(\'' + esc(fotoUtama) + '\')">'
-                + '<img src="' + esc(fotoUtama) + '" alt="' + esc(alt) + '" class="w-full h-80 sm:h-[420px] object-cover rounded-2xl shadow-lg transition duration-500 group-hover:scale-[1.01]" onerror="this.closest(\'.glass-panel\').remove()">'
-                + '<div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center rounded-2xl">'
-                + '<span class="opacity-0 group-hover:opacity-100 transition bg-slate-900/80 text-white px-4 py-2 rounded-xl text-xs font-bold backdrop-blur-md shadow-xl flex items-center gap-2">'
+            return '<div class="glass-panel rounded-3xl overflow-hidden shadow-2xl mb-6 relative group border border-slate-800">'
+                + '<div class="w-full aspect-video bg-slate-950 flex items-center justify-center overflow-hidden cursor-pointer relative" onclick="openImageModal(\'' + esc(fotoUtama) + '\')">'
+                + '<img src="' + esc(fotoUtama) + '" alt="' + esc(alt) + '" class="w-full h-full object-contain rounded-2xl transition duration-500 group-hover:scale-[1.01]" onerror="this.closest(\'.glass-panel\').remove()">'
+                + '<div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition flex items-center justify-center">'
+                + '<span class="opacity-0 group-hover:opacity-100 transition bg-slate-900/90 text-white px-4 py-2 rounded-xl text-xs font-bold backdrop-blur-md shadow-xl flex items-center gap-2 border border-slate-700/50">'
                 + '<svg class="w-4 h-4 text-royal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg> Klik untuk memperbesar'
                 + '</span></div>'
                 + '</div>'
@@ -636,7 +639,6 @@
                     let subText = SINGK[d.getDay()];
 
                     if (m.terkunci) {
-                        // Tampilan tombol tanggal yang belum bisa diakses
                         btnClass = 'bg-slate-950/40 border-slate-900 text-slate-600 opacity-60 cursor-not-allowed';
                         subText = '🔒 ' + SINGK[d.getDay()];
                     } else if (isAktif) {
@@ -657,8 +659,6 @@
 
         function tampilkan(ymd) {
             const todayYmd = tanggalHariIni();
-            
-            // Proteksi: Jika mencoba mengakses tanggal besok/masa depan, paksa agar belum bisa dilihat
             const isFuture = ymd > todayYmd;
 
             menuAktif = dataMinggu.filter(function(m) { return m.tanggal === ymd; })[0] || null;
@@ -666,7 +666,6 @@
             const elIsi = el('isi');
 
             if (isFuture) {
-                // Tampilan jika pengguna memilih tanggal di masa depan (misal hari Selasa padahal masih Senin)
                 const fallbackMeta = dataMinggu.length > 0 ? dataMinggu[0] : null;
                 if (fallbackMeta) {
                     if (fallbackMeta.nama_sppg) {

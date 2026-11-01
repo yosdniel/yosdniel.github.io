@@ -92,7 +92,7 @@
 
     <div class="relative z-10 flex-1 flex flex-col max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
         
-        <!-- Tab 1: Form Input & Edit Menu (Default) -->
+        <!-- Tab 1: Form Input & Edit Menu -->
         <main id="tab-content-input" class="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
             <!-- Alert Modus Edit -->
             <div id="edit-mode-indicator" class="hidden p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-4">
@@ -260,7 +260,7 @@
                 </div>
                 <div class="flex items-center gap-2">
                     <button onclick="loadFeedbacks()" class="px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-royal-400 hover:bg-slate-800 transition">
-                        🔄 Muat Ulang Data
+                        🔄 Muat Ulang Data Database
                     </button>
                 </div>
             </div>
@@ -310,6 +310,7 @@
         }
 
         async function loadInitialData() {
+            // Murni dari API Database (tanpa localStorage fallback)
             try {
                 const res = await fetch(API);
                 const data = await res.json();
@@ -317,10 +318,7 @@
                     allMenusCache = data.minggu;
                 }
             } catch (err) {
-                try {
-                    const local = JSON.parse(localStorage.getItem('menu-sppg') || '{}');
-                    allMenusCache = local.minggu || [];
-                } catch (e) {}
+                allMenusCache = [];
             }
 
             document.getElementById('header-sppg-sub').textContent = DEFAULT_SPPG;
@@ -329,6 +327,7 @@
         }
 
         async function fetchFeedbacks() {
+            // Murni mengambil data dari API Database
             let apiFeedbacks = [];
             try {
                 const res = await fetch(`${API}?action=feedback`);
@@ -339,21 +338,11 @@
                 apiFeedbacks = [];
             }
 
-            let localFeedbacks = [];
-            try {
-                localFeedbacks = JSON.parse(localStorage.getItem('sppg_feedbacks') || '[]');
-                if (!Array.isArray(localFeedbacks)) localFeedbacks = [];
-            } catch (ex) {
-                localFeedbacks = [];
-            }
-
-            // Gunakan kunci deduplikasi berbasis unik (ID, nama sekolah, timestamp lengkap, atau index) agar feedback tidak saling menimpa
+            // Memastikan data unik murni dari API
             const combinedMap = new Map();
-            
-            [...localFeedbacks, ...apiFeedbacks].forEach((fb, i) => {
-                const uniqueId = fb.id || fb._id || fb.timestamp || fb.created_at || (Date.now() + '_' + i);
-                const key = `${uniqueId}_${fb.nama_sekolah || 'sekolah'}_${fb.tanggal || 'tgl'}_${i}`;
-                combinedMap.set(key, fb);
+            apiFeedbacks.forEach((fb, idx) => {
+                const uniqueId = fb.id || fb._id || fb.timestamp || fb.created_at || idx;
+                combinedMap.set(uniqueId, fb);
             });
 
             allFeedbacksCache = Array.from(combinedMap.values());
@@ -430,12 +419,6 @@
             document.getElementById('upload-status').textContent = 'Belum ada file dipilih';
             document.getElementById('upload-label-text').textContent = 'Pilih File Foto...';
             document.getElementById('edit-mode-indicator').classList.add('hidden');
-        }
-
-        function editMenuFromFeedback(tgl) {
-            switchTab('input');
-            document.getElementById('tanggal').value = tgl;
-            checkMenuForDate(tgl);
         }
 
         /* ----- HANDLER FEEDBACK & DETAIL ----- */

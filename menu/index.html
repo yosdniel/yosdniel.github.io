@@ -78,12 +78,10 @@
             100% { border-color: rgba(245, 158, 11, 0.6); box-shadow: 0 0 25px 2px rgba(245, 158, 11, 0.3); }
         }
 
-        /* Hover efek sosial media */
         .socmed-ig:hover { background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045) !important; border-color: transparent !important; color: #fff !important; }
         .socmed-fb:hover { background-color: #1877f2 !important; border-color: #1877f2 !important; color: #fff !important; }
         .socmed-tt:hover { background-color: #000000 !important; border-color: #38bdf8 !important; color: #fff !important; }
 
-        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: rgba(3, 7, 18, 0.8); }
         ::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.25); border-radius: 9999px; }
@@ -123,7 +121,7 @@
                     </div>
                 </div>
 
-                <!-- Date Badge (Dikunci ke Tanggal Hari Ini & Warna Biru) -->
+                <!-- Date Badge -->
                 <div class="flex flex-col md:items-end border-t md:border-t-0 border-slate-800 pt-4 md:pt-0">
                     <div class="text-[10px] uppercase font-bold tracking-widest text-royal-400 mb-0.5">Tanggal Hari Ini</div>
                     <div class="text-base sm:text-lg lg:text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-slate-400 tracking-tight flex items-center gap-2" id="tanggal-realtime">
@@ -158,7 +156,7 @@
         <footer class="mt-8 pt-6 border-t border-slate-950">
             <div class="text-center sm:flex sm:items-center sm:justify-between text-xs text-slate-500 gap-4">
                 <p>Disiapkan di dapur <b class="text-slate-300 font-semibold" id="footer-nama-sppg">Memuat nama SPPG...</b></p>
-                <p class="mt-2 sm:mt-0 text-slate-500" id="footer-yayasan">Yayasan Tunas Ilmu Bantaeng · Badan Gizi Nasional</p>
+                <p class="mt-2 sm:mt-0 text-slate-500" id="footer-yayasan">Memuat nama Yayasan..</p>
             </div>
         </footer>
     </div>
@@ -167,7 +165,6 @@
         const API = 'https://www.minduniverse.id/api/menu';
         const ZONA = 'Asia/Jakarta';
 
-        // 3 item himbauan penting saja
         let HIMBAUAN = [
             { 
                 ikon: 'jam', 
@@ -190,7 +187,6 @@
         const SINGK = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
         const BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 
-        // Daftar sekat menu lengkap
         const SEKAT = [
             { kunci: 'makanan_pokok', tag: 'Makanan Pokok' },
             { kunci: 'lauk_hewani', tag: 'Lauk Hewani' },
@@ -247,7 +243,6 @@
             if (e.target === this) closeImageModal();
         });
 
-        // Mengunci tanggal hari ini secara permanen di kanan atas header (dengan ikon & teks warna biru)
         function inisialisasiTanggalRealtime() {
             const d = new Date();
             const elRealtime = el('tanggal-realtime');
@@ -334,7 +329,6 @@
                 + '</table></div></div>';
         }
 
-        // Kotak Himbauan dengan tema warna Oranye (Amber) per item
         function blokHimbauan() {
             return '<div class="glass-panel rounded-3xl p-6 himbauan-glow shadow-xl mb-6 border border-amber-500/30">'
                 + '<div class="flex items-center gap-2 text-amber-400 font-extrabold text-xs uppercase tracking-wider mb-4">'
@@ -351,7 +345,6 @@
                 + '</div></div>';
         }
 
-        // Bagian Sosial Media khusus untuk Detail Menu
         function blokSosmed() {
             return '<div class="my-6 text-center max-w-3xl mx-auto px-2">'
                 + '<p class="text-xs sm:text-sm font-semibold text-slate-300 mb-3 leading-relaxed">Punya kritik, saran, atau pertanyaan seputar makanan hari ini?</br>Yuk, sampaikan lewat kanal resmi berikut:</p>'
@@ -372,7 +365,6 @@
                 + '</div>';
         }
 
-        // Form Feedback dengan Rating per Kategori Menu (Hanya Bintang Saja)
         function blokFeedback(menu) {
             const kategoriRating = [];
             if (menu.makanan_pokok && menu.makanan_pokok.trim() !== '') {
@@ -600,13 +592,14 @@
                 + blokGizi(menu)
                 + (menu.catatan ? '<div class="glass-panel rounded-2xl p-4 text-xs text-slate-300 mb-6 flex items-center gap-3"><span class="px-2 py-1 rounded bg-amber-500/10 text-amber-400 font-bold uppercase text-[10px]">Catatan</span><span>' + esc(menu.catatan) + '</span></div>' : '')
                 + blokFeedback(menu)
-                + blokSosmed(); // Sosial media kini hanya terpanggil di dalam detail menu
+                + blokSosmed();
 
             setTimeout(initRatings, 50);
             return htmlResult;
         }
 
         function gambarMinggu(aktif) {
+            const todayYmd = tanggalHariIni();
             const acuanDate = aktif ? keDate(aktif) : new Date();
             const dayOfWeek = acuanDate.getDay();
             const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
@@ -622,9 +615,13 @@
                 const ymd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                 const existingMenu = dataMinggu.find(m => m.tanggal === ymd);
                 
+                // Cek apakah tanggal ini tergolong masa depan (belum tiba waktunya)
+                const isFuture = ymd > todayYmd;
+
                 menuSeninJumat.push({
                     tanggal: ymd,
-                    adaData: !!existingMenu
+                    adaData: !!existingMenu,
+                    terkunci: isFuture
                 });
             }
 
@@ -635,14 +632,23 @@
                     const d = keDate(m.tanggal);
                     const isAktif = m.tanggal === aktif;
                     
-                    let btnClass = isAktif 
-                        ? 'bg-royal-600 border-royal-400 text-white shadow-lg shadow-royal-600/30 font-extrabold' 
-                        : (m.adaData 
-                            ? 'bg-slate-900/60 border-slate-800 text-slate-300 hover:border-royal-500/50 font-semibold' 
-                            : 'bg-slate-900/30 border-slate-900 text-slate-500 hover:border-slate-800 font-medium');
+                    let btnClass = '';
+                    let subText = SINGK[d.getDay()];
 
-                    return `<button type="button" data-tgl="${m.tanggal}" class="w-full px-1 sm:px-3 py-2.5 rounded-2xl border transition text-center ${btnClass}">`
-                        + '<span class="block text-[9px] sm:text-[10px] uppercase tracking-wider opacity-80">' + SINGK[d.getDay()] + '</span>'
+                    if (m.terkunci) {
+                        // Tampilan tombol tanggal yang belum bisa diakses
+                        btnClass = 'bg-slate-950/40 border-slate-900 text-slate-600 opacity-60 cursor-not-allowed';
+                        subText = '🔒 ' + SINGK[d.getDay()];
+                    } else if (isAktif) {
+                        btnClass = 'bg-royal-600 border-royal-400 text-white shadow-lg shadow-royal-600/30 font-extrabold';
+                    } else if (m.adaData) {
+                        btnClass = 'bg-slate-900/60 border-slate-800 text-slate-300 hover:border-royal-500/50 font-semibold';
+                    } else {
+                        btnClass = 'bg-slate-900/30 border-slate-900 text-slate-500 hover:border-slate-800 font-medium';
+                    }
+
+                    return `<button type="button" data-tgl="${m.tanggal}" ${m.terkunci ? 'data-locked="true"' : ''} class="w-full px-1 sm:px-3 py-2.5 rounded-2xl border transition text-center ${btnClass}">`
+                        + '<span class="block text-[9px] sm:text-[10px] uppercase tracking-wider opacity-80">' + subText + '</span>'
                         + '<span class="block text-sm sm:text-base mt-0.5">' + d.getDate() + '</span>'
                         + '</button>';
                 }).join('')
@@ -650,10 +656,36 @@
         }
 
         function tampilkan(ymd) {
+            const todayYmd = tanggalHariIni();
+            
+            // Proteksi: Jika mencoba mengakses tanggal besok/masa depan, paksa agar belum bisa dilihat
+            const isFuture = ymd > todayYmd;
+
             menuAktif = dataMinggu.filter(function(m) { return m.tanggal === ymd; })[0] || null;
 
             const elIsi = el('isi');
-            if (menuAktif && menuAktif.makanan_pokok) {
+
+            if (isFuture) {
+                // Tampilan jika pengguna memilih tanggal di masa depan (misal hari Selasa padahal masih Senin)
+                const fallbackMeta = dataMinggu.length > 0 ? dataMinggu[0] : null;
+                if (fallbackMeta) {
+                    if (fallbackMeta.nama_sppg) {
+                        el('nama-sppg').textContent = fallbackMeta.nama_sppg;
+                        el('footer-nama-sppg').textContent = fallbackMeta.nama_sppg;
+                    }
+                    if (fallbackMeta.yayasan) {
+                        el('nama-yayasan').textContent = fallbackMeta.yayasan;
+                        el('footer-yayasan').textContent = fallbackMeta.yayasan + ' · Badan Gizi Nasional';
+                    }
+                }
+
+                elIsi.innerHTML = gambarMinggu(ymd) + '<div class="glass-panel rounded-3xl p-12 text-center my-6 border border-amber-500/20 bg-amber-500/5">'
+                    + '<div class="text-amber-400 mb-3"><svg class="w-12 h-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>'
+                    + '<h3 class="text-lg font-bold text-white mb-1">Menu Belum Tersedia</h3>'
+                    + '<p class="text-sm text-slate-400 mb-2">Menu makanan untuk tanggal ini belum diterbitkan karena hari penyajian belum tiba.</p>'
+                    + '<p class="text-xs text-slate-500">Silakan kembali pada hari penyajian untuk melihat rincian menu.</p>'
+                    + '</div>';
+            } else if (menuAktif && menuAktif.makanan_pokok) {
                 const namaSppgText = menuAktif.nama_sppg || 'SPPG Menu Dashboard';
                 const yayasanText = menuAktif.yayasan || 'Yayasan Tunas Ilmu Bantaeng';
 
@@ -671,12 +703,11 @@
                         el('footer-nama-sppg').textContent = fallbackMeta.nama_sppg;
                     }
                     if (fallbackMeta.yayasan) {
-                        el('nama-yayasan').textContent = fallbackMeta.yayasan;
+                        el('nama-yayasan').textContent = fallbackMeta.yayasan + ' · Badan Gizi Nasional';
                         el('footer-yayasan').textContent = fallbackMeta.yayasan + ' · Badan Gizi Nasional';
                     }
                 }
 
-                // Jika menu belum diterbitkan, bagian sosial media tidak akan dirender di sini
                 elIsi.innerHTML = gambarMinggu(ymd) + '<div class="glass-panel rounded-3xl p-12 text-center my-6">'
                     + '<div class="text-royal-400 mb-3"><svg class="w-12 h-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg></div>'
                     + '<h3 class="text-lg font-bold text-white mb-1">Menu Belum Diterbitkan</h3>'
@@ -703,7 +734,6 @@
         }
 
         (function() {
-            // Inisialisasi tanggal realtime hari ini di header kanan atas (dikunci permanen dengan warna biru)
             inisialisasiTanggalRealtime();
 
             const hariIni = tanggalHariIni();
@@ -744,7 +774,7 @@
                                 el('footer-nama-sppg').textContent = dataMinggu[0].nama_sppg;
                             }
                             if (dataMinggu[0].yayasan) {
-                                el('nama-yayasan').textContent = dataMinggu[0].yayasan + ' · Badan Gizi Nasional';
+                                el('nama-yayasan').textContent = dataMinggu[0].yayasan;
                                 el('footer-yayasan').textContent = dataMinggu[0].yayasan + ' · Badan Gizi Nasional';
                             }
                         }

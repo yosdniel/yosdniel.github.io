@@ -141,7 +141,7 @@
             </div>
         </main>
 
-        <!-- Modal Popup Fullscreen untuk Foto (Fit 100% tanpa terpotong saat zoom) -->
+        <!-- Modal Popup Fullscreen untuk Foto -->
         <div id="imageModal" class="fixed inset-0 z-50 bg-black/95 backdrop-blur-md hidden flex flex-col items-center justify-center p-4">
             <div class="relative w-full h-full flex flex-col items-center justify-center">
                 <button onclick="closeImageModal()" class="absolute top-4 right-4 text-white bg-slate-800/80 hover:bg-slate-700 p-3 rounded-full transition shadow-lg z-20">
@@ -254,17 +254,22 @@
             }
         }
 
-        // FOTO 16:9 FULL WIDTH FIT TERIMA RASIO 1280x720 TANPA TERPOTONG
+        // FOTO TANPA FRAME/BORDER DENGAN FADE GRADASI DI BAWAH
         function blokFoto(menu) {
             if (!menu.foto && (!menu.foto_list || menu.foto_list.length === 0)) return '';
             const fotoUtama = menu.foto || menu.foto_list[0];
             const alt = 'Foto menu ' + [menu.makanan_pokok, menu.lauk_hewani].filter(Boolean).join(', ');
             
-            return '<div class="glass-panel rounded-3xl overflow-hidden shadow-2xl mb-6 relative group border border-slate-800">'
-                + '<div class="w-full aspect-video bg-slate-950 flex items-center justify-center overflow-hidden cursor-pointer relative" onclick="openImageModal(\'' + esc(fotoUtama) + '\')">'
-                + '<img src="' + esc(fotoUtama) + '" alt="' + esc(alt) + '" class="w-full h-full object-contain rounded-2xl transition duration-500 group-hover:scale-[1.01]" onerror="this.closest(\'.glass-panel\').remove()">'
-                + '<div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition flex items-center justify-center">'
-                + '<span class="opacity-0 group-hover:opacity-100 transition bg-slate-900/90 text-white px-4 py-2 rounded-xl text-xs font-bold backdrop-blur-md shadow-xl flex items-center gap-2 border border-slate-700/50">'
+            return '<div class="w-full h-full flex flex-col justify-center relative group overflow-hidden rounded-3xl" onclick="openImageModal(\'' + esc(fotoUtama) + '\')">'
+                + '<div class="w-full bg-transparent flex items-center justify-center overflow-hidden cursor-pointer relative h-full rounded-3xl">'
+                + '<img src="' + esc(fotoUtama) + '" alt="' + esc(alt) + '" class="w-full h-auto max-h-[520px] object-contain rounded-3xl transition duration-500 group-hover:scale-[1.01]" onerror="this.closest(\'.grid\').remove()">'
+                
+                <!-- Gradasi Fade Halus di Bagian Bawah Gambar tanpa border/frame -->
+                + '<div class="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-slate-950 via-slate-950/70 to-transparent pointer-events-none rounded-b-3xl"></div>'
+                
+                <!-- Overlay Hover & Petunjuk Klik -->
+                + '<div class="absolute inset-0 bg-royal-950/0 group-hover:bg-royal-950/15 transition duration-300 flex items-center justify-center rounded-3xl">'
+                + '<span class="opacity-0 group-hover:opacity-100 transition duration-300 bg-slate-900/90 text-white px-4 py-2 rounded-xl text-xs font-bold backdrop-blur-md shadow-xl flex items-center gap-2 border border-slate-700/50 relative z-10">'
                 + '<svg class="w-4 h-4 text-royal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg> Klik untuk memperbesar'
                 + '</span></div>'
                 + '</div>'
@@ -333,11 +338,11 @@
         }
 
         function blokHimbauan() {
-            return '<div class="glass-panel rounded-3xl p-6 himbauan-glow shadow-xl mb-6 border border-amber-500/30">'
+            return '<div class="glass-panel rounded-3xl p-6 himbauan-glow shadow-xl border border-amber-500/30 h-full flex flex-col justify-center">'
                 + '<div class="flex items-center gap-2 text-amber-400 font-extrabold text-lg uppercase tracking-wider mb-4">'
                 + IKON_AWAS + '<span>Wajib Diperhatikan</span>'
                 + '</div>'
-                + '<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">'
+                + '<div class="grid grid-cols-1 gap-3.5 flex-1">'
                 + HIMBAUAN.map(function(h) {
                     return '<div class="flex items-start gap-3.5 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25">'
                         + '<div class="p-2 rounded-xl bg-amber-500/20 text-amber-400 flex-none">' + (IKON[h.ikon] || '') + '</div>'
@@ -346,6 +351,20 @@
                         + '</div>';
                 }).join('')
                 + '</div></div>';
+        }
+
+        // Menggabungkan foto dan himbauan berdampingan di desktop (Gambar 60%, Himbauan 40%)
+        function blokFotoDanHimbauan(menu) {
+            const hasFoto = menu.foto || (menu.foto_list && menu.foto_list.length > 0);
+            
+            if (!hasFoto) {
+                return '<div class="mb-6">' + blokHimbauan() + '</div>';
+            }
+
+            return '<div class="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6 items-stretch">'
+                + '<div class="w-full flex flex-col lg:col-span-3">' + blokFoto(menu) + '</div>'
+                + '<div class="w-full flex flex-col lg:col-span-2">' + blokHimbauan() + '</div>'
+                + '</div>';
         }
 
         function blokSosmed() {
@@ -585,8 +604,7 @@
                     + '</div>';
             }).join('');
 
-            const htmlResult = blokFoto(menu)
-                + blokHimbauan()
+            const htmlResult = blokFotoDanHimbauan(menu)
                 + '<div class="mb-4 flex items-center justify-between px-1">'
                 + '<h3 class="text-s font-bold uppercase tracking-wider text-slate-400">Isi Ompreng Hari Ini</h3>'
                 + (menu.pelengkap ? '<span class="text-xs font-medium text-royal-400 px-3 py-1 rounded-full bg-royal-500/10 border border-royal-500/20">Pelengkap: ' + esc(menu.pelengkap) + '</span>' : '')

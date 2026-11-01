@@ -310,7 +310,6 @@
         }
 
         async function loadInitialData() {
-            // Murni dari API Database (tanpa localStorage fallback)
             try {
                 const res = await fetch(API);
                 const data = await res.json();
@@ -327,7 +326,6 @@
         }
 
         async function fetchFeedbacks() {
-            // Murni mengambil data dari API Database
             let apiFeedbacks = [];
             try {
                 const res = await fetch(`${API}?action=feedback`);
@@ -338,10 +336,10 @@
                 apiFeedbacks = [];
             }
 
-            // Memastikan data unik murni dari API
+            // Garansi setiap item feedback mendapatkan key unik (termasuk indeks idx)
             const combinedMap = new Map();
             apiFeedbacks.forEach((fb, idx) => {
-                const uniqueId = fb.id || fb._id || fb.timestamp || fb.created_at || idx;
+                const uniqueId = fb.id || fb._id || (fb.timestamp ? `${fb.timestamp}_${idx}` : `fb_${idx}`);
                 combinedMap.set(uniqueId, fb);
             });
 
@@ -349,7 +347,6 @@
             document.getElementById('feedback-count').textContent = allFeedbacksCache.length;
         }
 
-        /* ----- FITUR EDIT MENU BERDASARKAN TANGGAL ----- */
         function checkMenuForDate(dateStr) {
             const menu = allMenusCache.find(m => m.tanggal === dateStr);
             if (menu) {
@@ -421,7 +418,6 @@
             document.getElementById('edit-mode-indicator').classList.add('hidden');
         }
 
-        /* ----- HANDLER FEEDBACK & DETAIL ----- */
         async function loadFeedbacks() {
             const container = document.getElementById('feedback-list-container');
             document.getElementById('feedback-nav-container').classList.add('hidden');

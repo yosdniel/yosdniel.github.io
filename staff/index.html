@@ -280,7 +280,17 @@
 
     <script>
         const API = 'https://www.minduniverse.id/api/menu';
-        const todayStr = new Date().toISOString().split('T')[0];
+        
+        // Helper untuk mendapatkan format string YYYY-MM-DD lokal
+        function getTodayDateString() {
+            const d = new Date();
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        let todayStr = getTodayDateString();
         document.getElementById('tanggal').value = todayStr;
 
         let allMenusCache = [];
@@ -321,7 +331,14 @@
             }
 
             document.getElementById('header-sppg-sub').textContent = DEFAULT_SPPG;
-            checkMenuForDate(document.getElementById('tanggal').value);
+            
+            // Mengatur nilai awal ke hari ini secara pasti
+            const tglElem = document.getElementById('tanggal');
+            if (!tglElem.value) {
+                tglElem.value = getTodayDateString();
+            }
+            
+            checkMenuForDate(tglElem.value);
             await fetchFeedbacks();
         }
 
@@ -336,7 +353,6 @@
                 apiFeedbacks = [];
             }
 
-            // Garansi setiap item feedback mendapatkan key unik (termasuk indeks idx)
             const combinedMap = new Map();
             apiFeedbacks.forEach((fb, idx) => {
                 const uniqueId = fb.id || fb._id || (fb.timestamp ? `${fb.timestamp}_${idx}` : `fb_${idx}`);
@@ -348,6 +364,7 @@
         }
 
         function checkMenuForDate(dateStr) {
+            if (!dateStr) return;
             const menu = allMenusCache.find(m => m.tanggal === dateStr);
             if (menu) {
                 populateFormWithMenu(menu);
@@ -358,6 +375,10 @@
 
         function loadSelectedDateMenu() {
             const tgl = document.getElementById('tanggal').value;
+            if (!tgl) {
+                showStatusMsg('⚠️ Silakan pilih tanggal terlebih dahulu.', 'error');
+                return;
+            }
             const menu = allMenusCache.find(m => m.tanggal === tgl);
             if (menu) {
                 populateFormWithMenu(menu);
@@ -368,7 +389,7 @@
         }
 
         function populateFormWithMenu(menu) {
-            document.getElementById('tanggal').value = menu.tanggal || todayStr;
+            document.getElementById('tanggal').value = menu.tanggal || getTodayDateString();
             document.getElementById('makanan_pokok').value = menu.makanan_pokok || '';
             document.getElementById('lauk_hewani').value = menu.lauk_hewani || '';
             document.getElementById('lauk_nabati').value = menu.lauk_nabati || '';
@@ -409,8 +430,12 @@
         }
 
         function resetFormToNew(resetDate = true) {
-            if (resetDate) document.getElementById('tanggal').value = todayStr;
+            const currentSelectedDate = document.getElementById('tanggal').value;
             document.getElementById('form-menu').reset();
+            
+            // Pertahankan tanggal yang dipilih atau setel ke hari ini
+            document.getElementById('tanggal').value = resetDate ? getTodayDateString() : (currentSelectedDate || getTodayDateString());
+            
             document.getElementById('foto').value = '';
             document.getElementById('preview-container').classList.add('hidden');
             document.getElementById('upload-status').textContent = 'Belum ada file dipilih';

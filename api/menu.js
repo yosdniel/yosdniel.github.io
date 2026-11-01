@@ -36,7 +36,7 @@ export default async function handler(req, res) {
         if (queryAction === 'login' && req.method === 'POST') {
             const { pin } = req.body || {};
             if (pin && pin === ADMIN_PIN) {
-                const maxAge = 7 * 24 * 60 * 60; // Cookie berlaku selama 7 hari (dalam detik)
+                const maxAge = 1 * 24 * 60 * 60; // Cookie berlaku selama 7 hari (dalam detik)
                 res.setHeader('Set-Cookie', `sppg_admin_session=${AUTH_SECRET}; Path=/; Max-Age=${maxAge}; HttpOnly; Secure; SameSite=None`);
                 return res.status(200).json({ ok: true, message: 'Verifikasi PIN berhasil!' });
             } else {

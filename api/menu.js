@@ -2,12 +2,14 @@ import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+const ADMIN_PIN = process.env.ADMIN_PIN || '123456';
+const AUTH_SECRET = process.env.AUTH_SECRET || 'sppg-deli-serdang-secret-key-2026';
 
 const supabase = createClient(SUPABASE_URL || '', SUPABASE_ANON_KEY || '');
 
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Credentials', true);
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
     res.setHeader(
         'Access-Control-Allow-Headers',
@@ -29,6 +31,36 @@ export default async function handler(req, res) {
     try {
         const urlPath = req.url || '';
         const queryAction = req.query?.action || '';
+        
+        // --- 1. FITUR AKSI AUTENTIKASI (LOGIN, CHECK-AUTH, LOGOUT) ---
+        if (queryAction === 'login' && req.method === 'POST') {
+            const { pin } = req.body || {};
+            if (pin && pin === ADMIN_PIN) {
+                const maxAge = 7 * 24 * 60 * 60; // Cookie berlaku selama 7 hari (dalam detik)
+                res.setHeader('Set-Cookie', `sppg_admin_session=${AUTH_SECRET}; Path=/; Max-Age=${maxAge}; HttpOnly; Secure; SameSite=None`);
+                return res.status(200).json({ ok: true, message: 'Verifikasi PIN berhasil!' });
+            } else {
+                return res.status(401).json({ ok: false, message: 'PIN yang Anda masukkan salah!' });
+            }
+        }
+
+        if (queryAction === 'check-auth' || (req.method === 'POST' && queryAction === 'check-auth')) {
+            const cookies = req.headers.cookie || '';
+            const isAuthenticated = cookies.includes(`sppg_admin_session=${AUTH_SECRET}`);
+
+            if (isAuthenticated) {
+                return res.status(200).json({ ok: true, authenticated: true });
+            } else {
+                return res.status(401).json({ ok: false, authenticated: false, message: 'Sesi habis atau belum terautentikasi.' });
+            }
+        }
+
+        if (queryAction === 'logout') {
+            res.setHeader('Set-Cookie', `sppg_admin_session=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=None`);
+            return res.status(200).json({ ok: true, message: 'Logout berhasil' });
+        }
+
+        // --- 2. JALUR FEEDBACK SEKOALH ---
         const isFeedbackRoute = urlPath.includes('/feedback') || queryAction === 'feedback' || (req.body && req.body.action === 'feedback');
 
         if (isFeedbackRoute) {
@@ -76,6 +108,7 @@ export default async function handler(req, res) {
             }
         }
 
+        // --- 3. JALUR GET MENU & HIMBAUAN (PUBLIC ACCESSIBLE) ---
         if (req.method === 'GET') {
             const { tanggal } = req.query;
 
@@ -162,7 +195,18 @@ export default async function handler(req, res) {
             });
         }
 
+        // --- 4. JALUR POST SIMPAN MENU (DIPROTEKSI COOKIE SESSION ADMIN) ---
         if (req.method === 'POST') {
+            const cookies = req.headers.cookie || '';
+            const isAuthenticated = cookies.includes(`sppg_admin_session=${AUTH_SECRET}`);
+
+            if (!isAuthenticated) {
+                return res.status(401).json({ 
+                    ok: false, 
+                    message: 'Akses ditolak! Anda harus memverifikasi PIN sebelum menyimpan data.' 
+                });
+            }
+
             const { 
                 nama_sppg, 
                 yayasan, 

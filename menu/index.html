@@ -202,7 +202,7 @@
             { kunci: 'protein', satuan: 'gram', label: 'Protein' },
             { kunci: 'lemak', satuan: 'gram', label: 'Lemak' },
             { kunci: 'karbohidrat', satuan: 'gram', label: 'Karbohidrat' },
-            { kunci: 'serat', satuan: 'gram', label: 'Serat Pangan' }
+            { kunci: 'serat', satuan: 'gram', label: 'Serat' }
         ];
 
         const IKON = {
@@ -440,7 +440,7 @@
                 + '<form id="formFeedback" onsubmit="kirimFeedback(event)" class="space-y-4">'
                 + '<div>'
                 + '<label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">Nama Sekolah / Instansi <span class="text-red-400">*Wajib</span></label>'
-                + '<input type="text" id="inputNamaSekolah" required placeholder="Contoh: SD Negeri 101774 Deli Serdang" class="w-full px-4 py-3 rounded-xl bg-slate-900/80 border border-slate-800 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-royal-400 transition">'
+                + '<input type="text" id="inputNamaSekolah" required placeholder="Contoh: SDN 106789 Tanjung Gusta" class="w-full px-4 py-3 rounded-xl bg-slate-900/80 border border-slate-800 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-royal-400 transition">'
                 + '</div>'
                 + (ratingInputsHtml ? '<div class="space-y-2"><label class="block text-xs font-bold uppercase tracking-wider text-slate-300">Penilaian Kualitas Menu</label>' + ratingInputsHtml + '</div>' : '')
                 + '<div>'

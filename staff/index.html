@@ -733,11 +733,22 @@
         async function fetchFeedbacks() {
             let apiFeedbacks = [];
             try {
-                const res = await fetch(`${API}?action=feedback`, { credentials: 'include' });
+                const res = await fetch(`${API}?action=feedback&_t=${Date.now()}`, { credentials: 'include', cache: 'no-store' });
                 const data = await res.json();
-                apiFeedbacks = data.feedbacks || data || [];
-                if (!Array.isArray(apiFeedbacks)) apiFeedbacks = [];
+                
+                if (Array.isArray(data)) {
+                    apiFeedbacks = data;
+                } else if (data && Array.isArray(data.feedbacks)) {
+                    apiFeedbacks = data.feedbacks;
+                } else if (data && Array.isArray(data.data)) {
+                    apiFeedbacks = data.data;
+                } else if (data && Array.isArray(data.items)) {
+                    apiFeedbacks = data.items;
+                } else {
+                    apiFeedbacks = [];
+                }
             } catch (e) {
+                console.error("Gagal mengambil data feedback:", e);
                 apiFeedbacks = [];
             }
 
@@ -748,7 +759,11 @@
             });
 
             allFeedbacksCache = Array.from(combinedMap.values());
-            document.getElementById('feedback-count').textContent = allFeedbacksCache.length;
+            
+            const countElem = document.getElementById('feedback-count');
+            if (countElem) {
+                countElem.textContent = allFeedbacksCache.length;
+            }
         }
 
         async function loadFeedbacks() {

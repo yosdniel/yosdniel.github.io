@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,95 +11,63 @@
     <!-- Google Font: Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800;900&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
 
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        /* Proteksi anti-select/copas & drag gambar */
-        body {
-            background-color: #030712;
-            color: #ffffff;
-            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
-        }
-
-        img {
-            -webkit-user-drag: none;
-            user-drag: none;
-            pointer-events: none;
-        }
-
-        .container {
-            padding: 24px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .logo {
-            width: 96px;
-            height: 96px;
-            margin-bottom: 24px;
-            object-fit: contain;
-        }
-
-        h1 {
-            font-size: 3.25rem;
-            font-weight: 800;
-            letter-spacing: -0.03em;
-            margin-bottom: 12px;
-            color: #ffffff;
-        }
-
-        p {
-            font-size: 1.125rem;
-            font-weight: 600;
-            color: #94a3b8;
-            letter-spacing: 0.05em;
-        }
-
-        /* Responsif untuk layar HP */
-        @media (max-width: 640px) {
-            .logo {
-                width: 72px;
-                height: 72px;
-                margin-bottom: 20px;
-            }
-            h1 {
-                font-size: 2.25rem;
-            }
-            p {
-                font-size: 1rem;
-            }
+        .glass-card {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         }
     </style>
 </head>
-<body oncontextmenu="return false;">
+<body class="bg-slate-950 font-sans text-white min-h-full flex items-center justify-center p-4 selection:bg-sky-500 selection:text-white relative overflow-hidden" 
+      style="-webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;"
+      oncontextmenu="return false;">
 
-    <div class="container">
-        <!-- Logo -->
-        <img class="logo" src="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/9a9fb66d9306be7be63bd1fec355ae5bccd21e60/assets/favicon512.png" alt="Mindspace Universe Logo">
-        
-        <!-- Teks Utama -->
-        <h1>Mindspace Universe</h1>
-        <p>www.mindspace.id</p>
+    <!-- Ambient Dark Blue Background Glows (Glassmorphism Effect) -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div class="absolute -top-32 -left-32 w-[500px] h-[500px] bg-sky-600/20 rounded-full blur-[120px]"></div>
+        <div class="absolute top-1/2 -right-32 w-[500px] h-[500px] bg-indigo-600/15 rounded-full blur-[120px]"></div>
+        <div class="absolute -bottom-32 left-1/3 w-[500px] h-[500px] bg-blue-700/20 rounded-full blur-[120px]"></div>
     </div>
 
-    <!-- Script tambahan untuk mencegah shortcut keyboard select all (Ctrl+A) & copy (Ctrl+C) -->
+    <!-- Main Glass Container -->
+    <main class="relative z-10 glass-card rounded-3xl p-10 sm:p-16 lg:p-20 max-w-4xl w-full text-center flex flex-col items-center justify-center">
+        <!-- Logo -->
+        <img class="w-36 h-36 sm:w-48 sm:h-48 md:w-56 md:h-56 mb-8 sm:mb-10 object-contain pointer-events-none select-none drop-shadow-2xl" 
+             src="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/9a9fb66d9306be7be63bd1fec355ae5bccd21e60/assets/favicon512.png" 
+             alt="Mindspace Universe Logo"
+             draggable="false">
+        
+        <!-- Judul Utama -->
+        <h1 class="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight leading-none mb-4 sm:mb-6 text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-slate-400">
+            Mindspace Universe
+        </h1>
+
+        <!-- Subtitle / URL -->
+        <p class="text-lg sm:text-2xl md:text-3xl font-semibold text-slate-400 tracking-wider">
+            www.mindspace.id
+        </p>
+    </main>
+
+    <!-- Script Proteksi Anti-Shortcut Keyboard -->
     <script>
         document.addEventListener('keydown', function(e) {
             if ((e.ctrlKey || e.metaKey) && (e.key === 'a' || e.key === 'c' || e.key === 'u' || e.key === 's')) {

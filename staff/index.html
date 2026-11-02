@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#030712">
-    <title id="page-title">Admin Panel · SPPG Menu Dashboard</title>
+    <title id="page-title">Menu Panel · SPPG Menu Dashboard</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon.ico">
@@ -31,28 +31,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
     <style>
-        body {
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
-        }
-        .glass-panel {
-            background: rgba(15, 23, 42, 0.75);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(56, 189, 248, 0.12);
-        }
-        .glass-input {
-            background: rgba(3, 7, 18, 0.6);
-            border: 1px solid rgba(56, 189, 248, 0.2);
-            color: white;
-        }
-        .glass-input:focus {
-            outline: none;
-            border-color: #38bdf8;
-            box-shadow: 0 0 15px rgba(56, 189, 248, 0.15);
-        }
+        body { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }
+        .glass-panel { background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(56, 189, 248, 0.12); }
+        .glass-input { background: rgba(3, 7, 18, 0.6); border: 1px solid rgba(56, 189, 248, 0.2); color: white; }
+        .glass-input:focus { outline: none; border-color: #38bdf8; box-shadow: 0 0 15px rgba(56, 189, 248, 0.15); }
+        .glass-input:disabled { background: rgba(15, 23, 42, 0.4); border-color: rgba(255, 255, 255, 0.05); color: #64748b; cursor: not-allowed; }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: rgba(3, 7, 18, 0.8); }
         ::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.25); border-radius: 9999px; }
@@ -73,14 +56,14 @@
                 🔒
             </div>
             <div>
-                <h2 class="text-lg font-bold text-white">Verifikasi Akses Staff</h2>
-                <p class="text-xs text-slate-400 mt-1">Masukkan PIN keamanan untuk mengakses Panel Menu.</p>
+                <h2 class="text-lg font-bold text-white">Login Multi-Akses SPPG</h2>
+                <p class="text-xs text-slate-400 mt-1">Masukkan PIN 6 Digit.</p>
             </div>
 
             <form id="form-pin" onsubmit="verifyPin(event)" class="space-y-4">
                 <input type="password" id="input-pin" maxlength="6" pattern="[0-9]*" inputmode="numeric" required placeholder="Masukkan PIN" class="w-full px-4 py-3 rounded-xl glass-input text-center text-lg font-bold tracking-widest">
                 <button type="submit" id="btn-pin-submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-royal-600 to-sky-500 hover:from-royal-500 hover:to-sky-400 text-white font-extrabold text-xs uppercase tracking-wider transition shadow-lg shadow-royal-600/30">
-                    Verifikasi
+                    Masuk Panel
                 </button>
                 <div id="pin-error-msg" class="hidden text-xs text-red-400 bg-red-500/10 p-2.5 rounded-xl"></div>
             </form>
@@ -95,19 +78,26 @@
                     SP
                 </div>
                 <div>
-                    <h1 class="text-sm sm:text-base font-extrabold text-white tracking-tight">Admin & Staff Panel</h1>
-                    <p class="text-[11px] text-slate-400" id="header-sppg-sub">SPPG Deli Serdang Tanjung Gusta Sunggal</p>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-sm sm:text-base font-extrabold text-white tracking-tight">Admin & Staff Panel</h1>
+                        <span id="role-badge" class="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-slate-800 text-slate-400">Guest</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400" id="header-sppg-sub">Memuat Informasi SPPG...</p>
                 </div>
             </div>
             
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
                 <button onclick="switchTab('input')" id="tab-btn-input" class="px-4 py-2 rounded-xl bg-royal-600 text-white text-xs font-bold transition shadow-md shadow-royal-600/20">
                     Input / Edit Menu
                 </button>
                 <button onclick="switchTab('feedback')" id="tab-btn-feedback" class="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white text-xs font-bold transition">
-                    Feedback Menu (<span id="feedback-count">0</span>)
+                    Feedback (<span id="feedback-count">0</span>)
                 </button>
-                <button onclick="logoutAdmin()" title="Keluar / Kunci Panel" class="px-3 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-xs font-bold transition ml-2 flex items-center gap-1">
+                <!-- Tombol Kelola User (Hanya Tampil untuk Role Administrator) -->
+                <button id="btn-admin-manage-users" onclick="openUsersModal()" class="hidden px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 text-xs font-bold transition">
+                    👥 Kelola User
+                </button>
+                <button onclick="logoutAdmin()" title="Keluar / Kunci Panel" class="px-3 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-xs font-bold transition flex items-center gap-1">
                     <span>🚪</span> Logout
                 </button>
             </div>
@@ -118,6 +108,25 @@
         
         <!-- Tab 1: Form Input & Edit Menu -->
         <main id="tab-content-input" class="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+            
+            <!-- Pengaturan Header Identitas SPPG & Yayasan (Khusus Admin Bisa Edit) -->
+            <div class="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-royal-400">Identitas Satuan Pelayanan (SPPG)</h3>
+                    <span id="identity-lock-status" class="text-[11px] text-slate-500">🔒 Terkunci (Akses Staff)</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Nama SPPG</label>
+                        <input type="text" id="input-nama-sppg" disabled class="w-full px-3.5 py-2 rounded-xl glass-input text-xs font-semibold">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Nama Yayasan</label>
+                        <input type="text" id="input-nama-yayasan" disabled class="w-full px-3.5 py-2 rounded-xl glass-input text-xs font-semibold">
+                    </div>
+                </div>
+            </div>
+
             <!-- Alert Modus Edit -->
             <div id="edit-mode-indicator" class="hidden p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-4">
                 <div class="flex items-center gap-2 text-xs font-bold text-amber-400">
@@ -130,7 +139,7 @@
             </div>
 
             <form id="form-menu" class="space-y-6">
-                <!-- Informasi Dasar -->
+                <!-- Informasi Dasar Tanggal -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
                     <div>
                         <label class="block text-xs font-semibold text-slate-300 mb-1">Tanggal Sajian *</label>
@@ -280,7 +289,7 @@
             </form>
         </main>
 
-        <!-- Tab 2: Lihat Feedback Menu (Disembunyikan secara default) -->
+        <!-- Tab 2: Feedback Menu -->
         <main id="tab-content-feedback" class="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 hidden">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
                 <div>
@@ -294,7 +303,6 @@
                 </div>
             </div>
 
-            <!-- Breadcrumb / Back button -->
             <div id="feedback-nav-container" class="hidden">
                 <button onclick="backToDateList()" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-royal-400 hover:bg-slate-800 transition">
                     ← Kembali ke Daftar Tanggal
@@ -307,9 +315,63 @@
         </main>
     </div>
 
+    <!-- Modal Admin Manajemen User (Tambah, Ubah PIN, Dropdown Role, Hapus User) -->
+    <div id="users-modal" class="hidden fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-xl flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-xl rounded-3xl p-6 sm:p-8 space-y-6 border border-royal-500/20 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div>
+                    <h3 class="text-sm font-bold text-white">👥 Manajemen User & Akses</h3>
+                    <p class="text-[11px] text-slate-400">Tambah akun baru, set/ubah PIN, atau hapus user dari sistem.</p>
+                </div>
+                <button onclick="closeUsersModal()" class="text-slate-400 hover:text-white text-xs font-bold">✕ Tutup</button>
+            </div>
+
+            <!-- Form Tambah User Baru -->
+            <form onsubmit="saveNewUser(event)" class="space-y-4 bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-amber-400">Tambah User Baru</h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-300 mb-1">Nama User *</label>
+                        <input type="text" id="new-user-name" required placeholder="Contoh: Andi Staff Dapur" class="w-full px-3 py-2 rounded-xl glass-input text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-300 mb-1">Tingkatan Role *</label>
+                        <select id="new-user-role" required class="w-full px-3 py-2 rounded-xl glass-input text-xs bg-slate-900">
+                            <option value="staff">Staff (Akses Terbatas)</option>
+                            <option value="admin">Administrator (Full Akses)</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">PIN Akses (6 Digit Numeric) *</label>
+                    <input type="password" id="new-user-pin" maxlength="6" pattern="[0-9]*" inputmode="numeric" required placeholder="123456" class="w-full px-3 py-2 rounded-xl glass-input text-xs tracking-widest text-center">
+                </div>
+                <button type="submit" class="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase transition shadow-lg shadow-amber-500/20">
+                    + Simpan User Baru
+                </button>
+            </form>
+
+            <!-- Tabel Daftar User Terdaftar -->
+            <div class="space-y-3">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-royal-400">Daftar Akun Terdaftar</h4>
+                <div id="users-table-container" class="space-y-2">
+                    <div class="text-center py-4 text-xs text-slate-400">Memuat daftar user...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         const API = 'https://www.minduniverse.id/api/menu';
         
+        let currentUser = null; // Object session: { id, username, role }
+        let allMenusCache = [];
+        let allFeedbacksCache = [];
+        let allUsersCache = [];
+
+        const DEFAULT_SPPG = 'SPPG Deli Serdang Tanjung Gusta Sunggal';
+        const DEFAULT_YAYASAN = 'Yayasan Pendidikan Supardi Dharma Utama';
+
         function getTodayDateString() {
             const d = new Date();
             const year = d.getFullYear();
@@ -327,28 +389,21 @@
             return `${year}-${month}-${day}`;
         }
 
-        let todayStr = getTodayDateString();
-        document.getElementById('tanggal').value = todayStr;
+        document.getElementById('tanggal').value = getTodayDateString();
 
-        let allMenusCache = [];
-        let allFeedbacksCache = [];
-
-        const DEFAULT_SPPG = 'SPPG Deli Serdang Tanjung Gusta';
-        const DEFAULT_YAYASAN = 'Yayasan Pendidikan Supardi Dharma Utama';
-
-        // --- SISTEM VERIFIKASI PIN & SESSION COOKIE ---
+        // --- 1. AUTENTIKASI & CHECK SESSION ---
 
         async function checkAuthSession() {
             try {
                 const res = await fetch(`${API}?action=check-auth`, {
                     method: 'POST',
-                    credentials: 'include' // Mengirimkan Cookie HttpOnly ke server
+                    credentials: 'include' // Mengirim cookie HttpOnly ke server
                 });
                 const data = await res.json();
 
-                if (res.ok && data.authenticated) {
-                    document.getElementById('pin-modal').classList.add('hidden');
-                    loadInitialData();
+                if (res.ok && data.authenticated && data.user) {
+                    currentUser = data.user;
+                    onAuthSuccess();
                 } else {
                     document.getElementById('pin-modal').classList.remove('hidden');
                 }
@@ -377,10 +432,10 @@
 
                 const data = await res.json();
 
-                if (res.ok && data.ok) {
-                    document.getElementById('pin-modal').classList.add('hidden');
+                if (res.ok && data.ok && data.user) {
+                    currentUser = data.user;
                     document.getElementById('input-pin').value = '';
-                    loadInitialData();
+                    onAuthSuccess();
                 } else {
                     throw new Error(data.message || 'PIN yang Anda masukkan salah!');
                 }
@@ -389,8 +444,43 @@
                 errorMsg.classList.remove('hidden');
             } finally {
                 btnSubmit.disabled = false;
-                btnSubmit.textContent = 'Buka Kunci Panel';
+                btnSubmit.textContent = 'Masuk Panel';
             }
+        }
+
+        function onAuthSuccess() {
+            document.getElementById('pin-modal').classList.add('hidden');
+            
+            const roleBadge = document.getElementById('role-badge');
+            const sppgInput = document.getElementById('input-nama-sppg');
+            const yayasanInput = document.getElementById('input-nama-yayasan');
+            const lockStatus = document.getElementById('identity-lock-status');
+            const manageUsersBtn = document.getElementById('btn-admin-manage-users');
+
+            sppgInput.value = DEFAULT_SPPG;
+            yayasanInput.value = DEFAULT_YAYASAN;
+
+            if (currentUser.role === 'admin') {
+                roleBadge.textContent = `Administrator (${currentUser.username || 'Admin'})`;
+                roleBadge.className = 'px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30';
+                
+                sppgInput.disabled = false;
+                yayasanInput.disabled = false;
+                lockStatus.textContent = '🔓 Akses Edit Terbuka (Admin)';
+                lockStatus.className = 'text-[11px] text-amber-400 font-bold';
+                manageUsersBtn.classList.remove('hidden');
+            } else {
+                roleBadge.textContent = `Staff (${currentUser.username || 'Staff'})`;
+                roleBadge.className = 'px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-royal-500/20 text-royal-300 border border-royal-500/30';
+                
+                sppgInput.disabled = true;
+                yayasanInput.disabled = true;
+                lockStatus.textContent = '🔒 Terkunci (Staff)';
+                lockStatus.className = 'text-[11px] text-slate-500';
+                manageUsersBtn.classList.add('hidden');
+            }
+
+            loadInitialData();
         }
 
         async function logoutAdmin() {
@@ -401,58 +491,165 @@
                     credentials: 'include'
                 });
             } catch (e) {}
+            currentUser = null;
             document.getElementById('pin-modal').classList.remove('hidden');
         }
 
-        // --- MANAJEMEN TAMPILAN TAB DAN FORM ---
+        // --- 2. MANAJEMEN USER (KHUSUS ADMINISTRATOR) ---
 
-        function switchTab(tabName) {
-            const tabInput = document.getElementById('tab-content-input');
-            const tabFeedback = document.getElementById('tab-content-feedback');
-            const btnInput = document.getElementById('tab-btn-input');
-            const btnFeedback = document.getElementById('tab-btn-feedback');
-
-            if (tabName === 'input') {
-                tabInput.classList.remove('hidden');
-                tabFeedback.classList.add('hidden');
-                btnInput.className = 'px-4 py-2 rounded-xl bg-royal-600 text-white text-xs font-bold transition shadow-md shadow-royal-600/20';
-                btnFeedback.className = 'px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white text-xs font-bold transition';
-            } else {
-                tabInput.classList.add('hidden');
-                tabFeedback.classList.remove('hidden');
-                btnFeedback.className = 'px-4 py-2 rounded-xl bg-royal-600 text-white text-xs font-bold transition shadow-md shadow-royal-600/20';
-                btnInput.className = 'px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white text-xs font-bold transition';
-                loadFeedbacks();
-            }
+        function openUsersModal() {
+            document.getElementById('users-modal').classList.remove('hidden');
+            loadAllUsersList();
         }
 
-        async function loadInitialData() {
+        function closeUsersModal() {
+            document.getElementById('users-modal').classList.add('hidden');
+        }
+
+        async function loadAllUsersList() {
+            const container = document.getElementById('users-table-container');
+            container.innerHTML = '<div class="text-center py-4 text-xs text-slate-400">Memuat daftar user...</div>';
+
             try {
-                const res = await fetch(API, { credentials: 'include' });
+                const res = await fetch(`${API}?action=get-users`, { credentials: 'include' });
                 const data = await res.json();
-                if (data.ok && data.minggu && Array.isArray(data.minggu)) {
-                    allMenusCache = data.minggu;
-                }
-            } catch (err) {
-                allMenusCache = [];
-            }
 
-            document.getElementById('header-sppg-sub').textContent = DEFAULT_SPPG;
-            
-            const tglElem = document.getElementById('tanggal');
-            if (!tglElem.value) {
-                tglElem.value = getTodayDateString();
+                if (!res.ok || !data.ok) throw new Error(data.message || 'Gagal mengambil data user');
+                allUsersCache = data.users || [];
+
+                if (allUsersCache.length === 0) {
+                    container.innerHTML = '<div class="text-center py-4 text-xs text-slate-500">Belum ada user terdaftar.</div>';
+                    return;
+                }
+
+                container.innerHTML = allUsersCache.map(u => {
+                    const isSelf = currentUser && currentUser.id === u.id;
+                    const roleTag = u.role === 'admin' 
+                        ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">ADMIN</span>' 
+                        : '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-royal-500/20 text-royal-300 border border-royal-500/30">STAFF</span>';
+
+                    return `<div class="p-3 rounded-xl bg-slate-900 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-slate-800 text-slate-300 flex items-center justify-center font-bold text-xs flex-none">👤</div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h5 class="text-xs font-bold text-white">${u.username}</h5>
+                                    ${roleTag}
+                                </div>
+                                <p class="text-[10px] text-slate-500 mt-0.5">PIN: ••••••</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 self-end sm:self-center">
+                            <button onclick="changeUserPin('${u.id}', '${u.username}')" class="px-2.5 py-1 rounded-lg bg-royal-600/20 hover:bg-royal-600/30 text-royal-300 text-[11px] font-bold transition">
+                                🔑 Ubah PIN
+                            </button>
+                            ${!isSelf ? `<button onclick="deleteUser('${u.id}', '${u.username}')" class="px-2.5 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 text-[11px] font-bold transition">
+                                🗑️ Hapus
+                            </button>` : '<span class="text-[10px] text-slate-600 italic px-2">Akun Anda</span>'}
+                        </div>
+                    </div>`;
+                }).join('');
+
+            } catch (e) {
+                container.innerHTML = '<div class="text-center py-4 text-xs text-red-400">Gagal mengambil daftar user.</div>';
             }
-            
-            checkMenuForDate(tglElem.value);
-            await fetchFeedbacks();
         }
 
-        function setTomorrowDate() {
-            const tomorrowStr = getTomorrowDateString();
-            document.getElementById('tanggal').value = tomorrowStr;
-            checkMenuForDate(tomorrowStr);
-            showStatusMsg('📅 Tanggal diset ke besok (' + tomorrowStr + ')', 'info');
+        async function saveNewUser(e) {
+            e.preventDefault();
+            const username = document.getElementById('new-user-name').value;
+            const role = document.getElementById('new-user-role').value;
+            const pin = document.getElementById('new-user-pin').value;
+
+            try {
+                const res = await fetch(`${API}?action=create-user`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ username, role, pin })
+                });
+                const data = await res.json();
+                if (!res.ok || !data.ok) throw new Error(data.message || 'Gagal membuat akun user');
+
+                alert(`✅ User "${username}" (${role.toUpperCase()}) berhasil ditambahkan!`);
+                document.getElementById('new-user-name').value = '';
+                document.getElementById('new-user-pin').value = '';
+                loadAllUsersList();
+            } catch (err) {
+                alert('❌ Error: ' + err.message);
+            }
+        }
+
+        async function changeUserPin(userId, username) {
+            const newPin = prompt(`Masukkan PIN 6 Digit baru untuk user "${username}":`);
+            if (!newPin) return;
+            if (!/^\d{6}$/.test(newPin)) {
+                alert('⚠️ PIN harus berupa 6 digit angka!');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API}?action=update-user-pin`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ userId, newPin })
+                });
+                const data = await res.json();
+                if (!res.ok || !data.ok) throw new Error(data.message || 'Gagal mengubah PIN');
+
+                alert(`✅ PIN user "${username}" berhasil diperbarui!`);
+                loadAllUsersList();
+            } catch (err) {
+                alert('❌ Error: ' + err.message);
+            }
+        }
+
+        async function deleteUser(userId, username) {
+            if (!confirm(`Apakah Anda yakin ingin menghapus user "${username}"?`)) return;
+
+            try {
+                const res = await fetch(`${API}?action=delete-user`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ userId })
+                });
+                const data = await res.json();
+                if (!res.ok || !data.ok) throw new Error(data.message || 'Gagal menghapus user');
+
+                alert(`✅ User "${username}" berhasil dihapus.`);
+                loadAllUsersList();
+            } catch (err) {
+                alert('❌ Error: ' + err.message);
+            }
+        }
+
+        // --- 3. FEEDBACK & FITUR HAPUS FEEDBACK (KHUSUS ADMIN) ---
+
+        async function deleteFeedback(feedbackId) {
+            if (currentUser.role !== 'admin') {
+                alert('❌ Akses Ditolak: Hanya Administrator yang berhak menghapus feedback!');
+                return;
+            }
+
+            if (!confirm('Apakah Anda yakin ingin menghapus feedback dari sekolah ini?')) return;
+
+            try {
+                const res = await fetch(`${API}?action=delete-feedback`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ feedbackId })
+                });
+                const data = await res.json();
+                if (!res.ok || !data.ok) throw new Error(data.message || 'Gagal menghapus feedback');
+
+                alert('✅ Feedback berhasil dihapus!');
+                loadFeedbacks();
+            } catch (err) {
+                alert('❌ Error: ' + err.message);
+            }
         }
 
         async function fetchFeedbacks() {
@@ -474,85 +671,6 @@
 
             allFeedbacksCache = Array.from(combinedMap.values());
             document.getElementById('feedback-count').textContent = allFeedbacksCache.length;
-        }
-
-        function checkMenuForDate(dateStr) {
-            if (!dateStr) return;
-            const menu = allMenusCache.find(m => m.tanggal === dateStr);
-            if (menu) {
-                populateFormWithMenu(menu);
-            } else {
-                resetFormToNew(false);
-            }
-        }
-
-        function loadSelectedDateMenu() {
-            const tgl = document.getElementById('tanggal').value;
-            if (!tgl) {
-                showStatusMsg('⚠️ Silakan pilih tanggal terlebih dahulu.', 'error');
-                return;
-            }
-            const menu = allMenusCache.find(m => m.tanggal === tgl);
-            if (menu) {
-                populateFormWithMenu(menu);
-                showStatusMsg('✅ Data menu tanggal ' + tgl + ' berhasil dimuat!', 'success');
-            } else {
-                showStatusMsg('ℹ️ Belum ada menu untuk tanggal ' + tgl + '. Silakan isi form baru.', 'info');
-            }
-        }
-
-        function populateFormWithMenu(menu) {
-            document.getElementById('tanggal').value = menu.tanggal || getTodayDateString();
-            document.getElementById('makanan_pokok').value = menu.makanan_pokok || '';
-            document.getElementById('lauk_hewani').value = menu.lauk_hewani || '';
-            document.getElementById('lauk_nabati').value = menu.lauk_nabati || '';
-            document.getElementById('sayur').value = menu.sayur || '';
-            document.getElementById('buah').value = menu.buah || '';
-            document.getElementById('pelengkap').value = menu.pelengkap || '';
-            document.getElementById('catatan').value = menu.catatan || '';
-
-            if (menu.foto) {
-                document.getElementById('foto').value = menu.foto;
-                document.getElementById('image-preview').src = menu.foto;
-                document.getElementById('preview-container').classList.remove('hidden');
-                document.getElementById('upload-status').textContent = '✅ Gambar terpasang';
-            } else {
-                document.getElementById('foto').value = '';
-                document.getElementById('preview-container').classList.add('hidden');
-                document.getElementById('upload-status').textContent = 'Belum ada file dipilih';
-            }
-
-            const gizi = menu.gizi || {};
-            const setGiziGroup = (prefix, groupData) => {
-                groupData = groupData || {};
-                document.getElementById(prefix + '-energi').value = groupData.energi || '';
-                document.getElementById(prefix + '-protein').value = groupData.protein || '';
-                document.getElementById(prefix + '-lemak').value = groupData.lemak || '';
-                document.getElementById(prefix + '-karbohidrat').value = groupData.karbohidrat || '';
-                document.getElementById(prefix + '-serat').value = groupData.serat || '';
-            };
-
-            setGiziGroup('pb', gizi.pb);
-            setGiziGroup('pk', gizi.pk);
-            setGiziGroup('balita', gizi.balita);
-            setGiziGroup('bumil', gizi.bumil);
-            setGiziGroup('busui', gizi.busui);
-
-            document.getElementById('edit-date-display').textContent = menu.tanggal;
-            document.getElementById('edit-mode-indicator').classList.remove('hidden');
-        }
-
-        function resetFormToNew(resetDate = true) {
-            const currentSelectedDate = document.getElementById('tanggal').value;
-            document.getElementById('form-menu').reset();
-            
-            document.getElementById('tanggal').value = resetDate ? getTodayDateString() : (currentSelectedDate || getTodayDateString());
-            
-            document.getElementById('foto').value = '';
-            document.getElementById('preview-container').classList.add('hidden');
-            document.getElementById('upload-status').textContent = 'Belum ada file dipilih';
-            document.getElementById('upload-label-text').textContent = 'Pilih File Foto...';
-            document.getElementById('edit-mode-indicator').classList.add('hidden');
         }
 
         async function loadFeedbacks() {
@@ -672,6 +790,13 @@
                 + '</div>';
 
             const feedbackCards = filtered.map((fb, idx) => {
+                const fbId = fb.id || fb._id;
+                const deleteBtnHtml = (currentUser && currentUser.role === 'admin')
+                    ? `<button onclick="deleteFeedback('${fbId}')" class="px-3 py-1 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-bold transition flex items-center gap-1">
+                        🗑️ Hapus Feedback
+                    </button>`
+                    : '';
+
                 const ratings = fb.ratings || {};
                 const menuDetail = fb.detail_menu || masterMenu || {};
                 
@@ -715,6 +840,7 @@
                     + '<p class="text-[11px] text-slate-400">Waktu Kirim: ' + new Date(fb.timestamp || Date.now()).toLocaleString('id-ID') + '</p>'
                     + '</div>'
                     + '</div>'
+                    + deleteBtnHtml
                     + '</div>'
                     + '<div class="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800/80">'
                     + '<p class="text-xs text-slate-300 italic">“' + (fb.pesan || '-') + '”</p>'
@@ -730,22 +856,154 @@
             loadFeedbacks();
         }
 
+        // --- 4. MANAJEMEN TAMPILAN TAB & DATA FORM ---
+
+        function switchTab(tabName) {
+            const tabInput = document.getElementById('tab-content-input');
+            const tabFeedback = document.getElementById('tab-content-feedback');
+            const btnInput = document.getElementById('tab-btn-input');
+            const btnFeedback = document.getElementById('tab-btn-feedback');
+
+            if (tabName === 'input') {
+                tabInput.classList.remove('hidden');
+                tabFeedback.classList.add('hidden');
+                btnInput.className = 'px-4 py-2 rounded-xl bg-royal-600 text-white text-xs font-bold transition shadow-md shadow-royal-600/20';
+                btnFeedback.className = 'px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white text-xs font-bold transition';
+            } else {
+                tabInput.classList.add('hidden');
+                tabFeedback.classList.remove('hidden');
+                btnFeedback.className = 'px-4 py-2 rounded-xl bg-royal-600 text-white text-xs font-bold transition shadow-md shadow-royal-600/20';
+                btnInput.className = 'px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white text-xs font-bold transition';
+                loadFeedbacks();
+            }
+        }
+
+        async function loadInitialData() {
+            try {
+                const res = await fetch(API, { credentials: 'include' });
+                const data = await res.json();
+                if (data.ok && data.minggu && Array.isArray(data.minggu)) {
+                    allMenusCache = data.minggu;
+                }
+            } catch (err) {
+                allMenusCache = [];
+            }
+
+            document.getElementById('header-sppg-sub').textContent = DEFAULT_SPPG;
+            const tglElem = document.getElementById('tanggal');
+            if (!tglElem.value) {
+                tglElem.value = getTodayDateString();
+            }
+            
+            checkMenuForDate(tglElem.value);
+            await fetchFeedbacks();
+        }
+
+        function setTomorrowDate() {
+            const tomorrowStr = getTomorrowDateString();
+            document.getElementById('tanggal').value = tomorrowStr;
+            checkMenuForDate(tomorrowStr);
+            showStatusMsg('📅 Tanggal diset ke besok (' + tomorrowStr + ')', 'info');
+        }
+
+        function checkMenuForDate(dateStr) {
+            if (!dateStr) return;
+            const menu = allMenusCache.find(m => m.tanggal === dateStr);
+            if (menu) {
+                populateFormWithMenu(menu);
+            } else {
+                resetFormToNew(false);
+            }
+        }
+
+        function loadSelectedDateMenu() {
+            const tgl = document.getElementById('tanggal').value;
+            if (!tgl) {
+                showStatusMsg('⚠️ Silakan pilih tanggal terlebih dahulu.', 'error');
+                return;
+            }
+            const menu = allMenusCache.find(m => m.tanggal === tgl);
+            if (menu) {
+                populateFormWithMenu(menu);
+                showStatusMsg('✅ Data menu tanggal ' + tgl + ' berhasil dimuat!', 'success');
+            } else {
+                showStatusMsg('ℹ️ Belum ada menu untuk tanggal ' + tgl + '. Silakan isi form baru.', 'info');
+            }
+        }
+
+        function populateFormWithMenu(menu) {
+            const today = getTodayDateString();
+            const btnSubmit = document.getElementById('btn-submit');
+
+            // Restriksi frontend untuk role Staff
+            if (currentUser.role === 'staff' && menu.tanggal < today) {
+                showStatusMsg('🔒 Akses Terbatas: Staff tidak diizinkan mengubah menu yang sudah lewat.', 'error');
+                btnSubmit.disabled = true;
+            } else {
+                btnSubmit.disabled = false;
+            }
+
+            document.getElementById('tanggal').value = menu.tanggal || getTodayDateString();
+            document.getElementById('makanan_pokok').value = menu.makanan_pokok || '';
+            document.getElementById('lauk_hewani').value = menu.lauk_hewani || '';
+            document.getElementById('lauk_nabati').value = menu.lauk_nabati || '';
+            document.getElementById('sayur').value = menu.sayur || '';
+            document.getElementById('buah').value = menu.buah || '';
+            document.getElementById('pelengkap').value = menu.pelengkap || '';
+            document.getElementById('catatan').value = menu.catatan || '';
+
+            if (menu.foto) {
+                document.getElementById('foto').value = menu.foto;
+                document.getElementById('image-preview').src = menu.foto;
+                document.getElementById('preview-container').classList.remove('hidden');
+                document.getElementById('upload-status').textContent = '✅ Gambar terpasang';
+            } else {
+                document.getElementById('foto').value = '';
+                document.getElementById('preview-container').classList.add('hidden');
+                document.getElementById('upload-status').textContent = 'Belum ada file dipilih';
+            }
+
+            const gizi = menu.gizi || {};
+            const setGiziGroup = (prefix, groupData) => {
+                groupData = groupData || {};
+                document.getElementById(prefix + '-energi').value = groupData.energi || '';
+                document.getElementById(prefix + '-protein').value = groupData.protein || '';
+                document.getElementById(prefix + '-lemak').value = groupData.lemak || '';
+                document.getElementById(prefix + '-karbohidrat').value = groupData.karbohidrat || '';
+                document.getElementById(prefix + '-serat').value = groupData.serat || '';
+            };
+
+            setGiziGroup('pb', gizi.pb);
+            setGiziGroup('pk', gizi.pk);
+            setGiziGroup('balita', gizi.balita);
+            setGiziGroup('bumil', gizi.bumil);
+            setGiziGroup('busui', gizi.busui);
+
+            document.getElementById('edit-date-display').textContent = menu.tanggal;
+            document.getElementById('edit-mode-indicator').classList.remove('hidden');
+        }
+
+        function resetFormToNew(resetDate = true) {
+            const currentSelectedDate = document.getElementById('tanggal').value;
+            document.getElementById('form-menu').reset();
+            document.getElementById('btn-submit').disabled = false;
+            
+            document.getElementById('tanggal').value = resetDate ? getTodayDateString() : (currentSelectedDate || getTodayDateString());
+            
+            document.getElementById('foto').value = '';
+            document.getElementById('preview-container').classList.add('hidden');
+            document.getElementById('upload-status').textContent = 'Belum ada file dipilih';
+            document.getElementById('upload-label-text').textContent = 'Pilih File Foto...';
+            document.getElementById('edit-mode-indicator').classList.add('hidden');
+        }
+
         function showStatusMsg(msg, type = 'info') {
             const statusMsg = document.getElementById('status-msg');
-            statusMsg.classList.remove('hidden', 'bg-emerald-500/10', 'text-emerald-400', 'bg-red-500/10', 'text-red-400', 'bg-sky-500/10', 'text-sky-400');
-            if (type === 'success') {
-                statusMsg.className = 'text-xs text-center p-3 rounded-xl bg-emerald-500/10 text-emerald-400 block';
-            } else if (type === 'error') {
-                statusMsg.className = 'text-xs text-center p-3 rounded-xl bg-red-500/10 text-red-400 block';
-            } else {
-                statusMsg.className = 'text-xs text-center p-3 rounded-xl bg-sky-500/10 text-sky-400 block';
-            }
+            statusMsg.className = `text-xs text-center p-3 rounded-xl block ${type === 'success' ? 'bg-emerald-500/10 text-emerald-400' : type === 'error' ? 'bg-red-500/10 text-red-400' : 'bg-sky-500/10 text-sky-400'}`;
             statusMsg.textContent = msg;
         }
 
-        // Eksekusi pemeriksaan sesi autentikasi awal
-        checkAuthSession();
-
+        // Event Upload Gambar Base64
         document.getElementById('file-upload').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -771,20 +1029,27 @@
             reader.readAsDataURL(file);
         });
 
+        // Event Submit Form Menu
         document.getElementById('form-menu').addEventListener('submit', async function(e) {
             e.preventDefault();
             const btnSubmit = document.getElementById('btn-submit');
+            const tglVal = document.getElementById('tanggal').value;
+            const today = getTodayDateString();
+
+            if (currentUser.role === 'staff' && tglVal < today) {
+                showStatusMsg('❌ Ditolak: Staff tidak dapat menyimpan perubahan pada menu lampau.', 'error');
+                return;
+            }
 
             btnSubmit.disabled = true;
             btnSubmit.textContent = 'Menyimpan...';
 
             const fotoUrl = document.getElementById('foto').value.trim();
-            const tglVal = document.getElementById('tanggal').value;
 
             const payload = {
                 tanggal: tglVal,
-                nama_sppg: DEFAULT_SPPG,
-                yayasan: DEFAULT_YAYASAN,
+                nama_sppg: document.getElementById('input-nama-sppg').value,
+                yayasan: document.getElementById('input-nama-yayasan').value,
                 makanan_pokok: document.getElementById('makanan_pokok').value,
                 lauk_hewani: document.getElementById('lauk_hewani').value,
                 lauk_nabati: document.getElementById('lauk_nabati').value,
@@ -852,7 +1117,6 @@
                 }
 
                 showStatusMsg('✅ Data menu berhasil disimpan ke database!', 'success');
-
                 resetFormToNew(true);
 
             } catch (err) {
@@ -862,6 +1126,9 @@
                 btnSubmit.textContent = 'Simpan / Update Menu ke Database';
             }
         });
+
+        // Eksekusi pemeriksaan sesi autentikasi saat aplikasi dimuat
+        checkAuthSession();
     </script>
 </body>
 </html>

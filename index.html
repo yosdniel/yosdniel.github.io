@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mindspace Universe</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/9a9fb66d9306be7be63bd1fec355ae5bccd21e60/assets/favicon.ico">
+
+    <!-- Google Font: Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Proteksi anti-select/copas & drag gambar */
+        body {
+            background-color: #030712;
+            color: #ffffff;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        img {
+            -webkit-user-drag: none;
+            user-drag: none;
+            pointer-events: none;
+        }
+
+        .container {
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo {
+            width: 96px;
+            height: 96px;
+            margin-bottom: 24px;
+            object-fit: contain;
+        }
+
+        h1 {
+            font-size: 3.25rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            margin-bottom: 12px;
+            color: #ffffff;
+        }
+
+        p {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #94a3b8;
+            letter-spacing: 0.05em;
+        }
+
+        /* Responsif untuk layar HP */
+        @media (max-width: 640px) {
+            .logo {
+                width: 72px;
+                height: 72px;
+                margin-bottom: 20px;
+            }
+            h1 {
+                font-size: 2.25rem;
+            }
+            p {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body oncontextmenu="return false;">
+
+    <div class="container">
+        <!-- Logo -->
+        <img class="logo" src="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/9a9fb66d9306be7be63bd1fec355ae5bccd21e60/assets/favicon512.png" alt="Mindspace Universe Logo">
+        
+        <!-- Teks Utama -->
+        <h1>Mindspace Universe</h1>
+        <p>www.mindspace.id</p>
+    </div>
+
+    <!-- Script tambahan untuk mencegah shortcut keyboard select all (Ctrl+A) & copy (Ctrl+C) -->
+    <script>
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'a' || e.key === 'c' || e.key === 'u' || e.key === 's')) {
+                e.preventDefault();
+            }
+        });
+    </script>
+</body>
+</html>

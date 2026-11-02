@@ -57,7 +57,7 @@
             </div>
             <div>
                 <h2 class="text-lg font-bold text-white">Login Multi-Akses SPPG</h2>
-                <p class="text-xs text-slate-400 mt-1">Masukkan PIN 6 Digit.</p>
+                <p class="text-xs text-slate-400 mt-1">Masukkan PIN 6 Digit (Admin / Staff).</p>
             </div>
 
             <form id="form-pin" onsubmit="verifyPin(event)" class="space-y-4">
@@ -281,7 +281,7 @@
                 <!-- Tombol Submit -->
                 <div class="pt-4 flex items-center justify-end gap-3">
                     <button type="submit" id="btn-submit" class="px-6 py-3 rounded-2xl bg-gradient-to-r from-royal-600 to-sky-500 hover:from-royal-500 hover:to-sky-400 text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-royal-600/30 transition">
-                        Simpan / Update Menu ke Database
+                        Simpan Menu
                     </button>
                 </div>
 
@@ -337,8 +337,8 @@
                     <div>
                         <label class="block text-[11px] font-semibold text-slate-300 mb-1">Tingkatan Role *</label>
                         <select id="new-user-role" required class="w-full px-3 py-2 rounded-xl glass-input text-xs bg-slate-900">
-                            <option value="staff">Staff (Akses Terbatas)</option>
                             <option value="admin">Administrator (Full Akses)</option>
+                            <option value="staff">Staff (Akses Terbatas)</option>
                         </select>
                     </div>
                 </div>

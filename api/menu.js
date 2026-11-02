@@ -200,7 +200,44 @@ export default async function handler(req, res) {
         }
 
         // ==========================================
-        // 3. JALUR PUBLIC: GET MENU & HIMBAUAN
+        // 3. MANAJEMEN FEEDBACK (GET & DELETE FEEDBACK)
+        // ==========================================
+
+        if (queryAction === 'feedback' && req.method === 'GET') {
+            const { data: feedbacks, error } = await supabase
+                .from('feedback')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            return res.status(200).json({
+                ok: true,
+                feedbacks: feedbacks || []
+            });
+        }
+
+        if (queryAction === 'delete-feedback' && req.method === 'POST') {
+            if (!currentUser || currentUser.role !== 'admin') {
+                return res.status(403).json({ ok: false, message: 'Akses ditolak: Hanya Administrator yang berhak menghapus feedback!' });
+            }
+            const { feedbackId } = req.body || {};
+
+            if (!feedbackId) {
+                return res.status(400).json({ ok: false, message: 'ID feedback wajib diisi!' });
+            }
+
+            const { error } = await supabase
+                .from('feedback')
+                .delete()
+                .eq('id', feedbackId);
+
+            if (error) throw error;
+            return res.status(200).json({ ok: true, message: 'Feedback berhasil dihapus dari database!' });
+        }
+
+        // ==========================================
+        // 4. JALUR PUBLIC: GET MENU & HIMBAUAN
         // ==========================================
 
         if (req.method === 'GET') {
@@ -281,7 +318,7 @@ export default async function handler(req, res) {
         }
 
         // ==========================================
-        // 4. JALUR PROTEKSI POST MENU (SIMPAN MENU BARU / UPDATE)
+        // 5. JALUR PROTEKSI POST MENU (SIMPAN MENU BARU / UPDATE)
         // ==========================================
 
         if (req.method === 'POST') {

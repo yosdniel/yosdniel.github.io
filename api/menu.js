@@ -270,16 +270,19 @@ export default async function handler(req, res) {
             if (!currentUser || currentUser.role !== 'admin') {
                 return res.status(403).json({ ok: false, message: 'Akses ditolak: Hanya Administrator yang berhak menghapus feedback!' });
             }
-            const { feedbackId } = req.body || {};
+            
+            // Mendukung parameter `feedbackId` maupun `id`
+            const { feedbackId, id } = req.body || {};
+            const targetId = feedbackId || id;
 
-            if (!feedbackId) {
+            if (!targetId) {
                 return res.status(400).json({ ok: false, message: 'ID feedback wajib diisi!' });
             }
 
             const { error } = await supabase
                 .from('feedback')
                 .delete()
-                .eq('id', feedbackId);
+                .eq('id', targetId);
 
             if (error) throw error;
             return res.status(200).json({ ok: true, message: 'Feedback berhasil dihapus dari database!' });

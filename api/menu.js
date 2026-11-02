@@ -51,7 +51,6 @@ export default async function handler(req, res) {
     }
 
     try {
-        const urlPath = req.url || '';
         const queryAction = req.query?.action || req.body?.action || '';
         const currentUser = parseSessionCookie(req.headers.cookie);
 
@@ -200,21 +199,71 @@ export default async function handler(req, res) {
         }
 
         // ==========================================
-        // 3. MANAJEMEN FEEDBACK (GET & DELETE FEEDBACK)
+        // 3. MANAJEMEN FEEDBACK (SIMPAN, AMBIL & HAPUS FEEDBACK)
         // ==========================================
 
-        if (queryAction === 'feedback' && req.method === 'GET') {
-            const { data: feedbacks, error } = await supabase
-                .from('feedback')
-                .select('*')
-                .order('created_at', { ascending: false });
+        if (queryAction === 'feedback') {
+            // A. SIMPAN FEEDBACK DARI USER PUBLIK (POST)
+            if (req.method === 'POST') {
+                const body = req.body || {};
+                const { nama_sekolah, pesan, tanggal, ratings, detail_menu, timestamp } = body;
 
-            if (error) throw error;
+                if (!nama_sekolah || !pesan) {
+                    return res.status(400).json({ ok: false, message: 'Nama Sekolah dan Pesan Masukan wajib diisi!' });
+                }
 
-            return res.status(200).json({
-                ok: true,
-                feedbacks: feedbacks || []
-            });
+                // Payload disatukan & dibersihkan dari atribut non-kolom (seperti action)
+                const payloadFeedback = {
+                    tanggal: tanggal || new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date()),
+                    nama_sekolah,
+                    ratings: ratings || {},
+                    pesan,
+                    detail_menu: detail_menu || {},
+                    timestamp: timestamp || new Date().toISOString()
+                };
+
+                const { data: newFeedback, error: insertError } = await supabase
+                    .from('feedback')
+                    .insert([payloadFeedback])
+                    .select()
+                    .single();
+
+                if (insertError) throw insertError;
+
+                return res.status(200).json({
+                    ok: true,
+                    message: 'Feedback berhasil disimpan!',
+                    data: newFeedback
+                });
+            }
+
+            // B. AMBIL DAFTAR FEEDBACK UNTUK STAFF PANEL (GET)
+            if (req.method === 'GET') {
+                // Perbaikan: Gunakan 'timestamp' menggantikan 'created_at'
+                const { data: feedbacks, error } = await supabase
+                    .from('feedback')
+                    .select('*')
+                    .order('timestamp', { ascending: false });
+
+                if (error) {
+                    // Fallback jika order by timestamp berkendala
+                    const { data: fallbackFeedbacks, error: fallbackError } = await supabase
+                        .from('feedback')
+                        .select('*');
+
+                    if (fallbackError) throw fallbackError;
+
+                    return res.status(200).json({
+                        ok: true,
+                        feedbacks: fallbackFeedbacks || []
+                    });
+                }
+
+                return res.status(200).json({
+                    ok: true,
+                    feedbacks: feedbacks || []
+                });
+            }
         }
 
         if (queryAction === 'delete-feedback' && req.method === 'POST') {

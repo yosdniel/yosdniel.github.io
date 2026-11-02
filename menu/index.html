@@ -155,19 +155,19 @@
         </div>
 
         <!-- Footer Standar -->
-<footer class="mt-8 pt-4">
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between text-xs text-slate-500 gap-3 sm:gap-4 text-center sm:text-left">
-        <p class="font-medium">© 2026 <b>Mindspace Universe</b></p>
-        <div class="flex flex-col sm:text-right gap-0.5 text-xs">
-            <p class="text-slate-400">
-                Diproduksi oleh <b class="text-slate-200 font-semibold" id="footer-nama-sppg">Memuat nama SPPG...</b>
-            </p>
-            <p class="text-slate-400 font-medium" id="footer-yayasan">
-                Memuat nama Yayasan...
-            </p>
-        </div>
-    </div>
-</footer>
+        <footer class="mt-8 pt-4">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between text-xs text-slate-500 gap-3 sm:gap-4 text-center sm:text-left">
+                <p class="font-medium">© 2026 <b>Mindspace Universe</b></p>
+                <div class="flex flex-col sm:text-right gap-0.5 text-xs">
+                    <p class="text-slate-400">
+                        Diproduksi oleh <b class="text-slate-200 font-semibold" id="footer-nama-sppg">Memuat nama SPPG...</b>
+                    </p>
+                    <p class="text-slate-400 font-medium" id="footer-yayasan">
+                        Memuat nama Yayasan...
+                    </p>
+                </div>
+            </div>
+        </footer>
     </div>
 
     <script>
@@ -221,6 +221,7 @@
 
         let dataMinggu = [];
         let menuAktif = null;
+        let serverToday = ''; // Menampung tanggal resmi dari server/online
 
         const el = (id) => document.getElementById(id);
 
@@ -261,7 +262,6 @@
             }
         }
 
-        // FOTO TANPA FRAME/BORDER DENGAN FADE GRADASI DI BAWAH
         function blokFoto(menu) {
             if (!menu.foto && (!menu.foto_list || menu.foto_list.length === 0)) return '';
             const fotoUtama = menu.foto || menu.foto_list[0];
@@ -270,11 +270,7 @@
             return '<div class="w-full h-full flex flex-col justify-center relative group overflow-hidden rounded-3xl" onclick="openImageModal(\'' + esc(fotoUtama) + '\')">'
                 + '<div class="w-full bg-transparent flex items-center justify-center overflow-hidden cursor-pointer relative h-full rounded-3xl">'
                 + '<img src="' + esc(fotoUtama) + '" alt="' + esc(alt) + '" class="w-full h-auto max-h-[520px] object-contain rounded-3xl transition duration-500 group-hover:scale-[1.01]" onerror="this.closest(\'.grid\').remove()">'
-                
-                <!-- Gradasi Fade Halus di Bagian Bawah Gambar tanpa border/frame -->
                 + '<div class="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-slate-950 via-slate-950/70 to-transparent pointer-events-none rounded-b-3xl"></div>'
-                
-                <!-- Overlay Hover & Petunjuk Klik -->
                 + '<div class="absolute inset-0 bg-royal-950/0 group-hover:bg-royal-950/15 transition duration-300 flex items-center justify-center rounded-3xl">'
                 + '<span class="opacity-0 group-hover:opacity-100 transition duration-300 bg-slate-900/90 text-white px-4 py-2 rounded-xl text-xs font-bold backdrop-blur-md shadow-xl flex items-center gap-2 border border-slate-700/50 relative z-10">'
                 + '<svg class="w-4 h-4 text-royal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg> Klik untuk memperbesar'
@@ -304,9 +300,7 @@
 
             const barisTabel = zatGiziRowsWithSatuan.map(function(z) {
                 const isUtama = z.utama;
-                const rowLabelClass = isUtama 
-                    ? 'py-3 px-4 text-xs sm:text-sm font-extrabold text-slate-300' 
-                    : 'py-3 px-4 text-xs sm:text-sm font-extrabold text-slate-300';
+                const rowLabelClass = 'py-3 px-4 text-xs sm:text-sm font-extrabold text-slate-300';
 
                 const tds = katList.map(function(kat) {
                     const rawVal = g[kat.k] && g[kat.k][z.kunci] != null ? g[kat.k][z.kunci] : null;
@@ -362,7 +356,6 @@
                 + '</div></div>';
         }
 
-        // Menggabungkan foto dan himbauan berdampingan di desktop (Gambar 60%, Himbauan 40%)
         function blokFotoDanHimbauan(menu) {
             const hasFoto = menu.foto || (menu.foto_list && menu.foto_list.length > 0);
             
@@ -540,7 +533,7 @@
 
             const payload = {
                 action: 'feedback',
-                tanggal: menuAktif ? menuAktif.tanggal : tanggalHariIni(),
+                tanggal: menuAktif ? menuAktif.tanggal : (serverToday || tanggalHariIni()),
                 nama_sekolah: namaSekolah,
                 ratings: ratings,
                 pesan: pesanMasukan,
@@ -629,7 +622,7 @@
         }
 
         function gambarMinggu(aktif) {
-            const todayYmd = tanggalHariIni();
+            const todayYmd = serverToday || tanggalHariIni();
             const acuanDate = aktif ? keDate(aktif) : new Date();
             const dayOfWeek = acuanDate.getDay();
             const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
@@ -645,7 +638,6 @@
                 const ymd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                 const existingMenu = dataMinggu.find(m => m.tanggal === ymd);
                 
-                // Cek apakah tanggal ini tergolong masa depan (belum tiba waktunya)
                 const isFuture = ymd > todayYmd;
 
                 menuSeninJumat.push({
@@ -685,7 +677,7 @@
         }
 
         function tampilkan(ymd) {
-            const todayYmd = tanggalHariIni();
+            const todayYmd = serverToday || tanggalHariIni();
             const isFuture = ymd > todayYmd;
 
             menuAktif = dataMinggu.filter(function(m) { return m.tanggal === ymd; })[0] || null;
@@ -762,13 +754,16 @@
         (function() {
             inisialisasiTanggalRealtime();
 
-            const hariIni = tanggalHariIni();
+            const hariIniLokal = tanggalHariIni();
             fetch(API)
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
                     if (!data.ok) throw new Error('gagal');
                     dataMinggu = data.minggu || [];
                     if (data.himbauan && data.himbauan.length) HIMBAUAN = data.himbauan;
+
+                    // Ambil tanggal resmi dari server
+                    serverToday = data.today || hariIniLokal;
 
                     if (dataMinggu.length > 0 && dataMinggu[0].nama_sppg) {
                         el('nama-sppg').textContent = dataMinggu[0].nama_sppg;
@@ -779,7 +774,7 @@
                         el('footer-yayasan').textContent = dataMinggu[0].yayasan;
                     }
                     
-                    const targetTanggal = data.today || hariIni;
+                    const targetTanggal = serverToday;
                     try {
                         localStorage.setItem('menu-sppg', JSON.stringify({ hariIni: targetTanggal, minggu: dataMinggu, himbauan: HIMBAUAN }));
                     } catch (e) {}
@@ -793,6 +788,7 @@
                         const c = JSON.parse(simpan);
                         dataMinggu = c.minggu || [];
                         if (c.himbauan && c.himbauan.length) HIMBAUAN = c.himbauan;
+                        serverToday = c.hariIni || hariIniLokal;
 
                         if (dataMinggu.length > 0) {
                             if (dataMinggu[0].nama_sppg) {
@@ -805,8 +801,8 @@
                             }
                         }
 
-                        const punya = dataMinggu.some(function(m) { return m.tanggal === hariIni; });
-                        tampilkan(punya ? hariIni : (c.hariIni || hariIni));
+                        const punya = dataMinggu.some(function(m) { return m.tanggal === serverToday; });
+                        tampilkan(punya ? serverToday : (c.hariIni || hariIniLokal));
                     } else {
                         gagal();
                     }

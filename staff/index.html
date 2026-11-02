@@ -140,7 +140,7 @@
                 </div>
             </div>
 
-            <!-- Peringatan Form Terkunci Khusus Staff / Modus Edit -->
+            <!-- Peringatan Modus Edit -->
             <div id="edit-mode-indicator" class="hidden p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-4">
                 <div class="flex items-center gap-2 text-xs font-bold text-amber-400">
                     <span>Anda sedang melihat menu tanggal: <span id="edit-date-display" class="underline"></span></span>
@@ -477,7 +477,7 @@
                 errorMsg.classList.remove('hidden');
             } finally {
                 btnSubmit.disabled = false;
-                btnSubmit.textContent = 'Masuk Panel';
+                btnSubmit.textContent = 'Login Panel';
             }
         }
 
@@ -1043,11 +1043,21 @@
 
         function checkMenuForDate(dateStr) {
             if (!dateStr) return;
+            const today = getTodayDateString();
+            const isPastDate = dateStr < today;
+            const isStaff = currentUser && currentUser.role === 'staff';
+
             const menu = allMenusCache.find(m => m.tanggal === dateStr);
             if (menu) {
                 populateFormWithMenu(menu);
             } else {
                 resetFormToNew(false);
+            }
+
+            if (isPastDate && isStaff) {
+                setFormDisabledState(true);
+                clearPlaceholders();
+                showStatusMsg('🔒 Form Terkunci: Staff tidak diizinkan menginput menu pada tanggal yang sudah lewat.', 'error');
             }
         }
 
@@ -1072,13 +1082,13 @@
             const isPastDate = menu.tanggal < today;
             const isStaff = currentUser && currentUser.role === 'staff';
 
-            clearPlaceholders();
-
-            if (isStaff && isPastDate) {
+            if (isPastDate && isStaff) {
                 setFormDisabledState(true);
+                clearPlaceholders();
                 showStatusMsg('Staff hanya dapat melihat menu yang sudah lewat dan tidak diizinkan mengubahnya.', 'error');
             } else {
                 setFormDisabledState(false);
+                restorePlaceholders();
             }
 
             document.getElementById('tanggal').value = menu.tanggal || getTodayDateString();
@@ -1131,17 +1141,13 @@
             const isPastDate = selectedDate < today;
             const isStaff = currentUser && currentUser.role === 'staff';
 
-            if (isPastDate) {
-                clearPlaceholders();
-            } else {
-                restorePlaceholders();
-            }
-
-            if (isStaff && isPastDate) {
+            if (isPastDate && isStaff) {
                 setFormDisabledState(true);
+                clearPlaceholders();
                 showStatusMsg('🔒 Form Terkunci: Staff tidak diizinkan menginput menu pada tanggal yang sudah lewat.', 'error');
             } else {
                 setFormDisabledState(false);
+                restorePlaceholders();
             }
             
             document.getElementById('foto').value = '';

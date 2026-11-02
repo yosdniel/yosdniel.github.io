@@ -143,8 +143,8 @@
             <!-- Peringatan Form Terkunci Khusus Staff / Modus Edit -->
             <div id="edit-mode-indicator" class="hidden p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-4">
                 <div class="flex items-center gap-2 text-xs font-bold text-amber-400">
-                    <span>✏️</span>
-                    <span>Anda sedang melihat/mengedit menu tanggal: <span id="edit-date-display" class="underline"></span></span>
+                    <span>👁️</span>
+                    <span>Anda sedang melihat menu tanggal: <span id="edit-date-display" class="underline"></span></span>
                 </div>
                 <button onclick="resetFormToNew()" class="text-[11px] px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold transition">
                     Reset ke Input Baru
@@ -158,7 +158,7 @@
                         <label class="block text-xs font-semibold text-slate-300 mb-1">Tanggal Sajian *</label>
                         <div class="flex items-center gap-2">
                             <input type="date" id="tanggal" required onchange="checkMenuForDate(this.value)" class="w-full px-3.5 py-2.5 rounded-xl glass-input text-sm">
-                            <button type="button" onclick="setTomorrowDate()" class="flex-none px-3 py-2.5 rounded-xl bg-royal-600/20 hover:bg-royal-600/40 border border-royal-500/30 text-royal-300 hover:text-white text-xs font-bold transition flex items-center gap-1">
+                            <button type="button" id="btn-tomorrow" onclick="setTomorrowDate()" class="flex-none px-3 py-2.5 rounded-xl bg-royal-600/20 hover:bg-royal-600/40 border border-royal-500/30 text-royal-300 hover:text-white text-xs font-bold transition flex items-center gap-1">
                                 <span>⏩</span> Besok (+1)
                             </button>
                         </div>
@@ -170,29 +170,29 @@
                     </div>
                 </div>
 
-                <!-- Susunan Menu Makanan (FORM PELENGKAP SUDAH DIHAPUS) -->
+                <!-- Susunan Menu Makanan -->
                 <div class="border-t border-slate-800/80 pt-5">
                     <h3 class="text-xs font-bold uppercase tracking-wider text-royal-400 mb-4">Susunan Menu Ompreng</h3>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs font-semibold text-slate-300 mb-1">Makanan Pokok *</label>
-                            <input type="text" id="makanan_pokok" required placeholder="Contoh: Nasi Putih" class="w-full px-3.5 py-2.5 rounded-xl glass-input text-sm">
+                            <input type="text" id="makanan_pokok" required data-default-placeholder="Contoh: Nasi Putih" placeholder="Contoh: Nasi Putih" class="w-full px-3.5 py-2.5 rounded-xl glass-input text-sm">
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-300 mb-1">Lauk Hewani *</label>
-                            <input type="text" id="lauk_hewani" required placeholder="Contoh: Ayam Goreng Lengkuas" class="w-full px-3.5 py-2.5 rounded-xl glass-input text-sm">
+                            <input type="text" id="lauk_hewani" required data-default-placeholder="Contoh: Ayam Goreng Lengkuas" placeholder="Contoh: Ayam Goreng Lengkuas" class="w-full px-3.5 py-2.5 rounded-xl glass-input text-sm">
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-300 mb-1">Lauk Nabati *</label>
-                            <input type="text" id="lauk_nabati" required placeholder="Contoh: Tahu & Tempe Goreng" class="w-full px-3.5 py-2.5 rounded-xl glass-input text-sm">
+                            <input type="text" id="lauk_nabati" required data-default-placeholder="Contoh: Tahu & Tempe Goreng" placeholder="Contoh: Tahu & Tempe Goreng" class="w-full px-3.5 py-2.5 rounded-xl glass-input text-sm">
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-300 mb-1">Sayur Segar (Opsional)</label>
-                            <input type="text" id="sayur" placeholder="Contoh: Sayur Bening Bayam" class="w-full px-3.5 py-2.5 rounded-xl glass-input text-sm">
+                            <input type="text" id="sayur" data-default-placeholder="Contoh: Sayur Bening Bayam" placeholder="Contoh: Sayur Bening Bayam" class="w-full px-3.5 py-2.5 rounded-xl glass-input text-sm">
                         </div>
                         <div class="sm:col-span-2">
                             <label class="block text-xs font-semibold text-slate-300 mb-1">Buah-Buahan *</label>
-                            <input type="text" id="buah" required placeholder="Contoh: Pisang / Jeruk" class="w-full px-3.5 py-2.5 rounded-xl glass-input text-sm">
+                            <input type="text" id="buah" required data-default-placeholder="Contoh: Pisang / Jeruk" placeholder="Contoh: Pisang / Jeruk" class="w-full px-3.5 py-2.5 rounded-xl glass-input text-sm">
                         </div>
                     </div>
                 </div>
@@ -284,7 +284,7 @@
                 <!-- Catatan Tambahan -->
                 <div>
                     <label class="block text-xs font-semibold text-slate-300 mb-1">Catatan Tambahan (Opsional)</label>
-                    <textarea id="catatan" rows="2" placeholder="Catatan khusus untuk menu hari ini..." class="w-full px-3.5 py-2.5 rounded-xl glass-input text-sm"></textarea>
+                    <textarea id="catatan" rows="2" data-default-placeholder="Catatan khusus untuk menu hari ini..." placeholder="Catatan khusus untuk menu hari ini..." class="w-full px-3.5 py-2.5 rounded-xl glass-input text-sm"></textarea>
                 </div>
 
                 <!-- Tombol Submit -->
@@ -950,15 +950,42 @@
 
             const fileUploadLabel = document.getElementById('btn-upload-label');
             const fileUploadInput = document.getElementById('file-upload');
+            const btnTomorrow = document.getElementById('btn-tomorrow');
             fileUploadInput.disabled = disabled;
             
+            if (btnTomorrow) btnTomorrow.disabled = disabled;
+
             if (disabled) {
                 fileUploadLabel.classList.add('opacity-50', 'cursor-not-allowed');
+                if (btnTomorrow) btnTomorrow.classList.add('opacity-50', 'cursor-not-allowed');
             } else {
                 fileUploadLabel.classList.remove('opacity-50', 'cursor-not-allowed');
+                if (btnTomorrow) btnTomorrow.classList.remove('opacity-50', 'cursor-not-allowed');
             }
 
-            document.getElementById('btn-submit').disabled = disabled;
+            const btnSubmit = document.getElementById('btn-submit');
+            btnSubmit.disabled = disabled;
+            if (disabled) {
+                btnSubmit.classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                btnSubmit.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        function clearPlaceholders() {
+            const formInputs = document.querySelectorAll('#form-menu input[type="text"], #form-menu textarea');
+            formInputs.forEach(input => {
+                input.placeholder = '';
+            });
+        }
+
+        function restorePlaceholders() {
+            const formInputs = document.querySelectorAll('#form-menu input[type="text"], #form-menu textarea');
+            formInputs.forEach(input => {
+                if (input.dataset.defaultPlaceholder) {
+                    input.placeholder = input.dataset.defaultPlaceholder;
+                }
+            });
         }
 
         function switchTab(tabName) {
@@ -1030,7 +1057,8 @@
                 populateFormWithMenu(menu);
                 showStatusMsg('✅ Data menu tanggal ' + tgl + ' berhasil dimuat!', 'success');
             } else {
-                showStatusMsg('ℹ️ Belum ada menu untuk tanggal ' + tgl + '. Silakan isi form baru.', 'info');
+                resetFormToNew(false);
+                showStatusMsg('ℹ️ Belum ada menu untuk tanggal ' + tgl + '.', 'info');
             }
         }
 
@@ -1038,6 +1066,8 @@
             const today = getTodayDateString();
             const isPastDate = menu.tanggal < today;
             const isStaff = currentUser && currentUser.role === 'staff';
+
+            restorePlaceholders();
 
             // RESTRIKSI FORM JIKA STAFF MEMILIH TANGGAL LEWAT
             if (isStaff && isPastDate) {
@@ -1082,6 +1112,7 @@
             setGiziGroup('bumil', gizi.bumil);
             setGiziGroup('busui', gizi.busui);
 
+            // TEKS SESUAI INSTRUKSI: Anda sedang melihat menu tanggal [tanggal]
             document.getElementById('edit-date-display').textContent = menu.tanggal;
             document.getElementById('edit-mode-indicator').classList.remove('hidden');
         }
@@ -1096,6 +1127,13 @@
             const today = getTodayDateString();
             const isPastDate = selectedDate < today;
             const isStaff = currentUser && currentUser.role === 'staff';
+
+            // HAPUS PLACEHOLDER JIKA MEMILIH TANGGAL LEWAT YANG TIDAK ADA DATANYA
+            if (isPastDate) {
+                clearPlaceholders();
+            } else {
+                restorePlaceholders();
+            }
 
             if (isStaff && isPastDate) {
                 setFormDisabledState(true);

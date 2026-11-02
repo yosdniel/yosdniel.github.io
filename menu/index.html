@@ -344,14 +344,16 @@
                 + '</table></div></div>';
         }
 
-        function blokHimbauan() {
+        function blokHimbauan(hasFoto) {
+            const gridColClass = hasFoto ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-3';
+
             return '<div class="glass-panel rounded-3xl p-6 himbauan-glow shadow-xl border border-amber-500/30 h-full flex flex-col justify-center">'
-                + '<div class="flex items-center gap-2 text-amber-400 font-extrabold text-lg uppercase tracking-wider mb-4">'
+                + '<div class="flex items-center justify-center gap-2 text-amber-400 font-extrabold text-lg uppercase tracking-wider mb-4 text-center">'
                 + IKON_AWAS + '<span>Wajib Diperhatikan</span>'
                 + '</div>'
-                + '<div class="grid grid-cols-1 gap-3.5 flex-1">'
+                + '<div class="grid ' + gridColClass + ' gap-3.5 flex-1 items-center">'
                 + HIMBAUAN.map(function(h) {
-                    return '<div class="flex items-start gap-3.5 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25">'
+                    return '<div class="flex items-start gap-3.5 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 h-full items-center">'
                         + '<div class="p-2 rounded-xl bg-amber-500/20 text-amber-400 flex-none">' + (IKON[h.ikon] || '') + '</div>'
                         + '<div><h4 class="text-sm font-bold text-white mb-0.5">' + esc(h.judul) + '</h4>'
                         + '<p class="text-xs text-amber-200/80 leading-relaxed">' + esc(h.isi) + '</p></div>'
@@ -365,12 +367,12 @@
             const hasFoto = menu.foto || (menu.foto_list && menu.foto_list.length > 0);
             
             if (!hasFoto) {
-                return '<div class="mb-6">' + blokHimbauan() + '</div>';
+                return '<div class="mb-6">' + blokHimbauan(false) + '</div>';
             }
 
             return '<div class="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6 items-stretch">'
                 + '<div class="w-full flex flex-col lg:col-span-3">' + blokFoto(menu) + '</div>'
-                + '<div class="w-full flex flex-col lg:col-span-2">' + blokHimbauan() + '</div>'
+                + '<div class="w-full flex flex-col lg:col-span-2">' + blokHimbauan(true) + '</div>'
                 + '</div>';
         }
 
@@ -603,7 +605,7 @@
 
             const sekatHtml = sekatAktif.map(function(s, idx) {
                 const isi = menu[s.kunci];
-                return `<div class="glass-card rounded-2xl p-4 sm:p-5 flex flex-col justify-between sekat-card border border-slate-800/80 hover:border-royal-500/30 transition shadow-lg" style="animation-delay:${idx * 0.08}s">`
+                return `<div class="w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.67rem)] glass-card rounded-2xl p-4 sm:p-5 flex flex-col justify-between sekat-card border border-slate-800/80 hover:border-royal-500/30 transition shadow-lg" style="animation-delay:${idx * 0.08}s">`
                     + '<div class="flex items-center justify-between mb-2">'
                     + '<span class="text-xs font-bold uppercase tracking-widest text-royal-400">' + s.tag + '</span>'
                     + '</div>'
@@ -616,7 +618,7 @@
                 + '<h3 class="text-s font-bold uppercase tracking-wider text-slate-400">Isi Ompreng Hari Ini</h3>'
                 + (menu.pelengkap ? '<span class="text-xs font-medium text-royal-400 px-3 py-1 rounded-full bg-royal-500/10 border border-royal-500/20">Pelengkap: ' + esc(menu.pelengkap) + '</span>' : '')
                 + '</div>'
-                + '<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">' + sekatHtml + '</div>'
+                + '<div class="flex flex-wrap justify-center gap-4 mb-6">' + sekatHtml + '</div>'
                 + blokGizi(menu)
                 + (menu.catatan ? '<div class="glass-panel rounded-2xl p-4 text-xs text-slate-300 mb-6 flex items-center gap-3"><span class="px-2 py-1 rounded bg-amber-500/10 text-amber-400 font-bold uppercase text-[10px]">Catatan</span><span>' + esc(menu.catatan) + '</span></div>' : '')
                 + blokFeedback(menu)

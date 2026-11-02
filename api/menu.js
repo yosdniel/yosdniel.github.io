@@ -2,9 +2,15 @@ import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+// Opsional: Gunakan Service Role Key untuk bypass RLS Supabase pada operasi Admin (Hapus/Edit User/Feedback)
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const AUTH_SECRET = process.env.AUTH_SECRET || 'sppg-default-secret-key';
 
 const supabase = createClient(SUPABASE_URL || '', SUPABASE_ANON_KEY || '');
+// Buat admin client jika Service Role Key tersedia, fallback ke anon client jika tidak ada
+const supabaseAdmin = SUPABASE_SERVICE_ROLE_KEY 
+    ? createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } }) 
+    : supabase;
 
 // --- HELPER FUNCTION: TOKEN/SESSION ENCODING & PARSING ---
 function parseSessionCookie(cookies) {
@@ -125,7 +131,7 @@ export default async function handler(req, res) {
                 return res.status(400).json({ ok: false, message: 'Nama, Role, dan PIN 6 Digit wajib diisi dengan benar!' });
             }
 
-            const { data: newUser, error } = await supabase
+            const { data: newUser, error } = await supabaseAdmin
                 .from('users')
                 .insert([{ username, role, pin: String(pin) }])
                 .select()
@@ -151,7 +157,7 @@ export default async function handler(req, res) {
                 return res.status(400).json({ ok: false, message: 'User ID dan nama baru wajib diisi!' });
             }
 
-            const { error } = await supabase
+            const { error } = await supabaseAdmin
                 .from('users')
                 .update({ username: newUsername.trim() })
                 .eq('id', userId);
@@ -170,7 +176,7 @@ export default async function handler(req, res) {
                 return res.status(400).json({ ok: false, message: 'User ID dan PIN 6 Digit baru wajib diisi!' });
             }
 
-            const { error } = await supabase
+            const { error } = await supabaseAdmin
                 .from('users')
                 .update({ pin: String(newPin) })
                 .eq('id', userId);
@@ -189,7 +195,7 @@ export default async function handler(req, res) {
                 return res.status(400).json({ ok: false, message: 'Anda tidak dapat menghapus akun Anda sendiri yang sedang aktif login!' });
             }
 
-            const { error } = await supabase
+            const { error } = await supabaseAdmin
                 .from('users')
                 .delete()
                 .eq('id', userId);
@@ -212,7 +218,6 @@ export default async function handler(req, res) {
                     return res.status(400).json({ ok: false, message: 'Nama Sekolah dan Pesan Masukan wajib diisi!' });
                 }
 
-                // Payload disatukan & dibersihkan dari atribut non-kolom (seperti action)
                 const payloadFeedback = {
                     tanggal: tanggal || new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date()),
                     nama_sekolah,
@@ -237,16 +242,14 @@ export default async function handler(req, res) {
                 });
             }
 
-            // B. AMBIL DAFTAR FEEDBACK UNTUK STAFF PANEL (GET)
+            // B. AMBIL DAFTAR FEEDBACK UNTUK STAFF/ADMIN PANEL (GET)
             if (req.method === 'GET') {
-                // Perbaikan: Gunakan 'timestamp' menggantikan 'created_at'
                 const { data: feedbacks, error } = await supabase
                     .from('feedback')
                     .select('*')
                     .order('timestamp', { ascending: false });
 
                 if (error) {
-                    // Fallback jika order by timestamp berkendala
                     const { data: fallbackFeedbacks, error: fallbackError } = await supabase
                         .from('feedback')
                         .select('*');
@@ -271,7 +274,6 @@ export default async function handler(req, res) {
                 return res.status(403).json({ ok: false, message: 'Akses ditolak: Hanya Administrator yang berhak menghapus feedback!' });
             }
             
-            // Mendukung parameter `feedbackId` maupun `id`
             const { feedbackId, id } = req.body || {};
             const targetId = feedbackId || id;
 
@@ -279,7 +281,8 @@ export default async function handler(req, res) {
                 return res.status(400).json({ ok: false, message: 'ID feedback wajib diisi!' });
             }
 
-            const { error } = await supabase
+            // Gunakan supabaseAdmin agar operasi delete bypass RLS Supabase
+            const { error } = await supabaseAdmin
                 .from('feedback')
                 .delete()
                 .eq('id', targetId);
@@ -397,13 +400,12 @@ export default async function handler(req, res) {
                 return res.status(400).json({ ok: false, message: 'Tanggal wajib diisi!' });
             }
 
-            // Proteksi backend: Staff tidak diizinkan edit menu tanggal lampau
             const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
             if (currentUser.role === 'staff' && tanggal < todayStr) {
                 return res.status(403).json({ ok: false, message: 'Akses ditolak: Staff tidak diizinkan mengubah menu pada tanggal yang sudah lewat!' });
             }
 
-            const { data: newMenu, error: menuError } = await supabase
+            const { data: newMenu, error: menuError } = await supabaseAdmin
                 .from('menu')
                 .upsert({
                     nama_sppg: nama_sppg || 'SPPG Deli Serdang Tanjung Gusta',
@@ -438,7 +440,7 @@ export default async function handler(req, res) {
                             serat: gizi[tipe].serat !== '' ? Number(gizi[tipe].serat) : null
                         };
 
-                        const { error: giziErr } = await supabase
+                        const { error: giziErr } = await supabaseAdmin
                             .from('gizi')
                             .upsert(payloadGizi, { onConflict: 'menu_id,porsi_tipe' });
 
@@ -460,6 +462,7 @@ export default async function handler(req, res) {
         return res.status(405).json({ ok: false, message: `Method ${req.method} Not Allowed` });
 
     } catch (error) {
+        console.error('API Error:', error);
         return res.status(500).json({
             ok: false,
             message: 'Gagal memproses data dari server',

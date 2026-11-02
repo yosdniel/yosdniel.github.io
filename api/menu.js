@@ -2,12 +2,36 @@ import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
-const ADMIN_PIN = process.env.ADMIN_PIN;
-const AUTH_SECRET = process.env.AUTH_SECRET;
+const ADMIN_PIN = process.env.ADMIN_PIN; // Fallback jika DB kosong
+const AUTH_SECRET = process.env.AUTH_SECRET || 'sppg-default-secret-key';
 
 const supabase = createClient(SUPABASE_URL || '', SUPABASE_ANON_KEY || '');
 
+// --- HELPER FUNCTION: TOKEN/SESSION ENCODING & PARSING ---
+function parseSessionCookie(cookies) {
+    if (!cookies) return null;
+    const match = cookies.match(/sppg_user_session=([^;]+)/);
+    if (!match) return null;
+
+    try {
+        const decoded = Buffer.from(match[1], 'base64').toString('utf-8');
+        const [secret, id, username, role] = decoded.split('::');
+        if (secret !== AUTH_SECRET) return null;
+        return { id, username, role };
+    } catch (e) {
+        return null;
+    }
+}
+
+function createSessionCookie(user) {
+    const rawToken = `${AUTH_SECRET}::${user.id || 'admin-id'}::${user.username}::${user.role}`;
+    const token = Buffer.from(rawToken).toString('base64');
+    const maxAge = 7 * 24 * 60 * 60; // 7 hari
+    return `sppg_user_session=${token}; Path=/; Max-Age=${maxAge}; HttpOnly; Secure; SameSite=None`;
+}
+
 export default async function handler(req, res) {
+    // CORS Headers
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -30,38 +54,163 @@ export default async function handler(req, res) {
 
     try {
         const urlPath = req.url || '';
-        const queryAction = req.query?.action || '';
-        
-        // --- 1. FITUR AKSI AUTENTIKASI (LOGIN, CHECK-AUTH, LOGOUT) ---
+        const queryAction = req.query?.action || req.body?.action || '';
+        const currentUser = parseSessionCookie(req.headers.cookie);
+
+        // ==========================================
+        // 1. MANAJEMEN AUTENTIKASI (LOGIN, CHECK-AUTH, LOGOUT)
+        // ==========================================
+
         if (queryAction === 'login' && req.method === 'POST') {
             const { pin } = req.body || {};
-            if (pin && pin === ADMIN_PIN) {
-                const maxAge = 1 * 24 * 60 * 60; // Cookie berlaku selama 7 hari (dalam detik)
-                res.setHeader('Set-Cookie', `sppg_admin_session=${AUTH_SECRET}; Path=/; Max-Age=${maxAge}; HttpOnly; Secure; SameSite=None`);
-                return res.status(200).json({ ok: true, message: 'Verifikasi PIN berhasil!' });
+            if (!pin) {
+                return res.status(400).json({ ok: false, message: 'PIN wajib diisi!' });
+            }
+
+            // A. Cari User di Database Supabase
+            const { data: dbUser, error: userError } = await supabase
+                .from('users')
+                .select('id, username, pin, role')
+                .eq('pin', pin)
+                .maybeSingle();
+
+            let activeUser = dbUser;
+
+            // B. Fallback ke Environment ADMIN_PIN jika DB belum disetup
+            if (!activeUser && ADMIN_PIN && pin === ADMIN_PIN) {
+                activeUser = { id: 'admin-fallback', username: 'Administrator', role: 'admin' };
+            }
+
+            if (activeUser) {
+                const cookieHeader = createSessionCookie(activeUser);
+                res.setHeader('Set-Cookie', cookieHeader);
+                return res.status(200).json({
+                    ok: true,
+                    message: 'Verifikasi PIN berhasil!',
+                    user: { id: activeUser.id, username: activeUser.username, role: activeUser.role }
+                });
             } else {
-                return res.status(401).json({ ok: false, message: 'PIN yang Anda masukkan salah!' });
+                return res.status(401).json({ ok: false, message: 'PIN yang Anda masukkan tidak terdaftar!' });
             }
         }
 
-        if (queryAction === 'check-auth' || (req.method === 'POST' && queryAction === 'check-auth')) {
-            const cookies = req.headers.cookie || '';
-            const isAuthenticated = cookies.includes(`sppg_admin_session=${AUTH_SECRET}`);
-
-            if (isAuthenticated) {
-                return res.status(200).json({ ok: true, authenticated: true });
+        if (queryAction === 'check-auth') {
+            if (currentUser) {
+                return res.status(200).json({ ok: true, authenticated: true, user: currentUser });
             } else {
                 return res.status(401).json({ ok: false, authenticated: false, message: 'Sesi habis atau belum terautentikasi.' });
             }
         }
 
         if (queryAction === 'logout') {
-            res.setHeader('Set-Cookie', `sppg_admin_session=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=None`);
+            res.setHeader('Set-Cookie', `sppg_user_session=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=None`);
             return res.status(200).json({ ok: true, message: 'Logout berhasil' });
         }
 
-        // --- 2. JALUR FEEDBACK SEKOALH ---
-        const isFeedbackRoute = urlPath.includes('/feedback') || queryAction === 'feedback' || (req.body && req.body.action === 'feedback');
+        // ==========================================
+        // 2. MANAJEMEN AKUN USER (KHUSUS ADMINISTRATOR)
+        // ==========================================
+
+        if (queryAction === 'get-users' && req.method === 'GET') {
+            if (!currentUser || currentUser.role !== 'admin') {
+                return res.status(403).json({ ok: false, message: 'Akses ditolak: Hanya Administrator yang berhak melihat daftar user.' });
+            }
+            const { data: users, error } = await supabase
+                .from('users')
+                .select('id, username, role, created_at')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            return res.status(200).json({ ok: true, users: users || [] });
+        }
+
+        if (queryAction === 'create-user' && req.method === 'POST') {
+            if (!currentUser || currentUser.role !== 'admin') {
+                return res.status(403).json({ ok: false, message: 'Akses ditolak: Hanya Administrator yang berhak menambah user baru.' });
+            }
+            const { username, role, pin } = req.body || {};
+
+            if (!username || !role || !pin || !/^\d{6}$/.test(pin)) {
+                return res.status(400).json({ ok: false, message: 'Nama, Role, dan PIN 6 Digit wajib diisi dengan benar!' });
+            }
+
+            const { data: newUser, error } = await supabase
+                .from('users')
+                .insert([{ username, role, pin }])
+                .select()
+                .single();
+
+            if (error) {
+                if (error.code === '23505') {
+                    return res.status(400).json({ ok: false, message: 'PIN ini sudah digunakan oleh user lain! Gunakan PIN unik.' });
+                }
+                throw error;
+            }
+
+            return res.status(200).json({ ok: true, message: 'User baru berhasil ditambahkan!', user: newUser });
+        }
+
+        if (queryAction === 'update-user-pin' && req.method === 'POST') {
+            if (!currentUser || currentUser.role !== 'admin') {
+                return res.status(403).json({ ok: false, message: 'Akses ditolak: Hanya Administrator yang berhak mengubah PIN user.' });
+            }
+            const { userId, newPin } = req.body || {};
+
+            if (!userId || !newPin || !/^\d{6}$/.test(newPin)) {
+                return res.status(400).json({ ok: false, message: 'User ID dan PIN 6 Digit baru wajib diisi!' });
+            }
+
+            const { error } = await supabase
+                .from('users')
+                .update({ pin: newPin })
+                .eq('id', userId);
+
+            if (error) throw error;
+            return res.status(200).json({ ok: true, message: 'PIN user berhasil diperbarui!' });
+        }
+
+        if (queryAction === 'delete-user' && req.method === 'POST') {
+            if (!currentUser || currentUser.role !== 'admin') {
+                return res.status(403).json({ ok: false, message: 'Akses ditolak: Hanya Administrator yang berhak menghapus user.' });
+            }
+            const { userId } = req.body || {};
+
+            if (userId === currentUser.id) {
+                return res.status(400).json({ ok: false, message: 'Anda tidak dapat menghapus akun Anda sendiri yang sedang aktif login!' });
+            }
+
+            const { error } = await supabase
+                .from('users')
+                .delete()
+                .eq('id', userId);
+
+            if (error) throw error;
+            return res.status(200).json({ ok: true, message: 'User berhasil dihapus dari sistem.' });
+        }
+
+        // ==========================================
+        // 3. JALUR FEEDBACK SEKOALH & DELETE FEEDBACK
+        // ==========================================
+
+        const isFeedbackRoute = urlPath.includes('/feedback') || queryAction === 'feedback';
+
+        if (queryAction === 'delete-feedback' && req.method === 'POST') {
+            if (!currentUser || currentUser.role !== 'admin') {
+                return res.status(403).json({ ok: false, message: 'Akses ditolak: Hanya Administrator yang dapat menghapus feedback!' });
+            }
+            const { feedbackId } = req.body || {};
+            if (!feedbackId) {
+                return res.status(400).json({ ok: false, message: 'Feedback ID wajib disertakan!' });
+            }
+
+            const { error: delErr } = await supabase
+                .from('feedback')
+                .delete()
+                .eq('id', feedbackId);
+
+            if (delErr) throw delErr;
+            return res.status(200).json({ ok: true, message: 'Feedback berhasil dihapus.' });
+        }
 
         if (isFeedbackRoute) {
             if (req.method === 'GET') {
@@ -71,11 +220,7 @@ export default async function handler(req, res) {
                     .order('timestamp', { ascending: false });
 
                 if (feedbackError) throw feedbackError;
-
-                return res.status(200).json({
-                    ok: true,
-                    feedbacks: feedbackData || []
-                });
+                return res.status(200).json({ ok: true, feedbacks: feedbackData || [] });
             }
 
             if (req.method === 'POST') {
@@ -99,43 +244,33 @@ export default async function handler(req, res) {
                     .single();
 
                 if (fbError) throw fbError;
-
-                return res.status(200).json({
-                    ok: true,
-                    message: 'Feedback berhasil disimpan ke database Supabase!',
-                    data: newFeedback
-                });
+                return res.status(200).json({ ok: true, message: 'Feedback berhasil disimpan!', data: newFeedback });
             }
         }
 
-        // --- 3. JALUR GET MENU & HIMBAUAN (PUBLIC ACCESSIBLE) ---
+        // ==========================================
+        // 4. JALUR PUBLIC: GET MENU & HIMBAUAN
+        // ==========================================
+
         if (req.method === 'GET') {
             const { tanggal } = req.query;
 
-            let query = supabase
-                .from('menu')
-                .select('*')
-                .order('tanggal', { ascending: true });
-
-            if (tanggal) {
-                query = query.eq('tanggal', tanggal);
-            }
+            let query = supabase.from('menu').select('*').order('tanggal', { ascending: true });
+            if (tanggal) query = query.eq('tanggal', tanggal);
 
             const { data: menuData, error: menuError } = await query;
             if (menuError) throw menuError;
 
             const menuIds = (menuData || []).map(m => m.id);
             let giziData = [];
-            
+
             if (menuIds.length > 0) {
                 const { data: giziRes, error: giziError } = await supabase
                     .from('gizi')
                     .select('*')
                     .in('menu_id', menuIds);
 
-                if (!giziError) {
-                    giziData = giziRes || [];
-                }
+                if (!giziError) giziData = giziRes || [];
             }
 
             const formattedMenu = (menuData || []).map(item => {
@@ -156,8 +291,8 @@ export default async function handler(req, res) {
 
                 return {
                     id: item.id,
-                    nama_sppg: item.nama_sppg || 'SPPG Deli Serdang Tanjung Gusta Sunggal',
-                    yayasan: item.yayasan || 'Yayasan Tunas Ilmu Bantaeng',
+                    nama_sppg: item.nama_sppg || 'SPPG Deli Serdang Tanjung Gusta',
+                    yayasan: item.yayasan || 'Yayasan Pendidikan Supardi Dharma Utama',
                     tanggal: item.tanggal,
                     makanan_pokok: item.makanan_pokok,
                     lauk_hewani: item.lauk_hewani,
@@ -195,43 +330,46 @@ export default async function handler(req, res) {
             });
         }
 
-        // --- 4. JALUR POST SIMPAN MENU (DIPROTEKSI COOKIE SESSION ADMIN) ---
-        if (req.method === 'POST') {
-            const cookies = req.headers.cookie || '';
-            const isAuthenticated = cookies.includes(`sppg_admin_session=${AUTH_SECRET}`);
+        // ==========================================
+        // 5. JALUR PROTEKSI POST MENU (SIMPAN MENU BARU / UPDATE)
+        // ==========================================
 
-            if (!isAuthenticated) {
-                return res.status(401).json({ 
-                    ok: false, 
-                    message: 'Akses ditolak! Anda harus memverifikasi PIN sebelum menyimpan data.' 
-                });
+        if (req.method === 'POST') {
+            if (!currentUser) {
+                return res.status(401).json({ ok: false, message: 'Akses ditolak! Anda harus memverifikasi PIN sebelum menyimpan data.' });
             }
 
-            const { 
-                nama_sppg, 
-                yayasan, 
-                tanggal, 
-                makanan_pokok, 
-                lauk_hewani, 
-                lauk_nabati, 
-                sayur, 
-                buah, 
-                pelengkap, 
-                foto, 
-                foto_list, 
-                catatan, 
-                gizi 
+            const {
+                nama_sppg,
+                yayasan,
+                tanggal,
+                makanan_pokok,
+                lauk_hewani,
+                lauk_nabati,
+                sayur,
+                buah,
+                pelengkap,
+                foto,
+                foto_list,
+                catatan,
+                gizi
             } = req.body || {};
 
             if (!tanggal) {
                 return res.status(400).json({ ok: false, message: 'Tanggal wajib diisi!' });
             }
 
+            // Proteksi backend: Staff tidak diizinkan edit menu tanggal lampau
+            const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
+            if (currentUser.role === 'staff' && tanggal < todayStr) {
+                return res.status(403).json({ ok: false, message: 'Akses ditolak: Staff tidak diizinkan mengubah menu pada tanggal yang sudah lewat!' });
+            }
+
             const { data: newMenu, error: menuError } = await supabase
                 .from('menu')
                 .upsert({
-                    nama_sppg: nama_sppg || 'SPPG Deli Serdang Tanjung Gusta Sunggal',
-                    yayasan: yayasan || 'Yayasan Tunas Ilmu Bantaeng',
+                    nama_sppg: nama_sppg || 'SPPG Deli Serdang Tanjung Gusta',
+                    yayasan: yayasan || 'Yayasan Pendidikan Supardi Dharma Utama',
                     tanggal,
                     makanan_pokok,
                     lauk_hewani,
@@ -250,7 +388,7 @@ export default async function handler(req, res) {
 
             if (gizi) {
                 const allowedTipes = ['pb', 'pk', 'balita', 'bumil', 'busui'];
-                
+
                 for (const tipe of allowedTipes) {
                     if (gizi[tipe]) {
                         const payloadGizi = {

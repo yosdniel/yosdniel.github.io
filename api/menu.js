@@ -25,12 +25,11 @@ function parseSessionCookie(cookies) {
 function createSessionCookie(user) {
     const rawToken = `${AUTH_SECRET}::${user.id}::${user.username}::${user.role}`;
     const token = Buffer.from(rawToken).toString('base64');
-    const maxAge = 1 * 24 * 60 * 60; // 7 hari
+    const maxAge = 1 * 24 * 60 * 60;
     return `sppg_user_session=${token}; Path=/; Max-Age=${maxAge}; HttpOnly; Secure; SameSite=None`;
 }
 
 export default async function handler(req, res) {
-    // CORS Headers
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -66,7 +65,6 @@ export default async function handler(req, res) {
                 return res.status(400).json({ ok: false, message: 'PIN wajib diisi!' });
             }
 
-            // Cari User di Database Supabase berdasarkan PIN
             const { data: dbUser, error: userError } = await supabase
                 .from('users')
                 .select('id, username, pin, role')
@@ -144,6 +142,25 @@ export default async function handler(req, res) {
             return res.status(200).json({ ok: true, message: 'User baru berhasil ditambahkan!', user: newUser });
         }
 
+        if (queryAction === 'update-username' && req.method === 'POST') {
+            if (!currentUser || currentUser.role !== 'admin') {
+                return res.status(403).json({ ok: false, message: 'Akses ditolak: Hanya Administrator yang berhak mengubah nama user.' });
+            }
+            const { userId, newUsername } = req.body || {};
+
+            if (!userId || !newUsername || newUsername.trim() === '') {
+                return res.status(400).json({ ok: false, message: 'User ID dan nama baru wajib diisi!' });
+            }
+
+            const { error } = await supabase
+                .from('users')
+                .update({ username: newUsername.trim() })
+                .eq('id', userId);
+
+            if (error) throw error;
+            return res.status(200).json({ ok: true, message: 'Nama user berhasil diperbarui!' });
+        }
+
         if (queryAction === 'update-user-pin' && req.method === 'POST') {
             if (!currentUser || currentUser.role !== 'admin') {
                 return res.status(403).json({ ok: false, message: 'Akses ditolak: Hanya Administrator yang berhak mengubah PIN user.' });
@@ -183,67 +200,7 @@ export default async function handler(req, res) {
         }
 
         // ==========================================
-        // 3. JALUR FEEDBACK SEKOLAH & DELETE FEEDBACK
-        // ==========================================
-
-        const isFeedbackRoute = urlPath.includes('/feedback') || queryAction === 'feedback';
-
-        if (queryAction === 'delete-feedback' && req.method === 'POST') {
-            if (!currentUser || currentUser.role !== 'admin') {
-                return res.status(403).json({ ok: false, message: 'Akses ditolak: Hanya Administrator yang dapat menghapus feedback!' });
-            }
-            const { feedbackId } = req.body || {};
-            if (!feedbackId) {
-                return res.status(400).json({ ok: false, message: 'Feedback ID wajib disertakan!' });
-            }
-
-            const { error: delErr } = await supabase
-                .from('feedback')
-                .delete()
-                .eq('id', feedbackId);
-
-            if (delErr) throw delErr;
-            return res.status(200).json({ ok: true, message: 'Feedback berhasil dihapus.' });
-        }
-
-        if (isFeedbackRoute) {
-            if (req.method === 'GET') {
-                const { data: feedbackData, error: feedbackError } = await supabase
-                    .from('feedback')
-                    .select('*')
-                    .order('timestamp', { ascending: false });
-
-                if (feedbackError) throw feedbackError;
-                return res.status(200).json({ ok: true, feedbacks: feedbackData || [] });
-            }
-
-            if (req.method === 'POST') {
-                const { tanggal, nama_sekolah, ratings, pesan, detail_menu, timestamp } = req.body || {};
-
-                if (!nama_sekolah || !pesan) {
-                    return res.status(400).json({ ok: false, message: 'Nama sekolah dan pesan wajib diisi!' });
-                }
-
-                const { data: newFeedback, error: fbError } = await supabase
-                    .from('feedback')
-                    .insert([{
-                        tanggal: tanggal || new Date().toISOString().split('T')[0],
-                        nama_sekolah,
-                        ratings: ratings || {},
-                        pesan,
-                        detail_menu: detail_menu || {},
-                        timestamp: timestamp || new Date().toISOString()
-                    }])
-                    .select()
-                    .single();
-
-                if (fbError) throw fbError;
-                return res.status(200).json({ ok: true, message: 'Feedback berhasil disimpan!', data: newFeedback });
-            }
-        }
-
-        // ==========================================
-        // 4. JALUR PUBLIC: GET MENU & HIMBAUAN
+        // 3. JALUR PUBLIC: GET MENU & HIMBAUAN
         // ==========================================
 
         if (req.method === 'GET') {
@@ -293,7 +250,6 @@ export default async function handler(req, res) {
                     lauk_nabati: item.lauk_nabati,
                     sayur: item.sayur,
                     buah: item.buah,
-                    pelengkap: item.pelengkap,
                     foto: item.foto,
                     foto_list: item.foto_list || [],
                     catatan: item.catatan,
@@ -325,7 +281,7 @@ export default async function handler(req, res) {
         }
 
         // ==========================================
-        // 5. JALUR PROTEKSI POST MENU (SIMPAN MENU BARU / UPDATE)
+        // 4. JALUR PROTEKSI POST MENU (SIMPAN MENU BARU / UPDATE)
         // ==========================================
 
         if (req.method === 'POST') {
@@ -342,7 +298,6 @@ export default async function handler(req, res) {
                 lauk_nabati,
                 sayur,
                 buah,
-                pelengkap,
                 foto,
                 foto_list,
                 catatan,
@@ -370,7 +325,6 @@ export default async function handler(req, res) {
                     lauk_nabati,
                     sayur,
                     buah,
-                    pelengkap,
                     foto,
                     foto_list: foto_list || [],
                     catatan

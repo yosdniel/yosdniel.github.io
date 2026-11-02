@@ -372,7 +372,7 @@
     <script>
         const API = 'https://www.minduniverse.id/api/menu';
         
-        let currentUser = null; // Object session: { id, username, role }
+        let currentUser = null;
         let allMenusCache = [];
         let allFeedbacksCache = [];
         let allUsersCache = [];
@@ -380,7 +380,6 @@
         const DEFAULT_SPPG = 'SPPG Deli Serdang Tanjung Gusta';
         const DEFAULT_YAYASAN = 'Yayasan Pendidikan Supardi Dharma Utama';
 
-        // --- HELPER MODAL NOTIFIKASI ---
         function showModalNotification(title, message, type = 'success') {
             const modal = document.getElementById('notification-modal');
             const notifTitle = document.getElementById('notif-title');
@@ -426,8 +425,6 @@
         }
 
         document.getElementById('tanggal').value = getTodayDateString();
-
-        // --- 1. AUTENTIKASI & CHECK SESSION ---
 
         async function checkAuthSession() {
             try {
@@ -530,8 +527,6 @@
             currentUser = null;
             document.getElementById('pin-modal').classList.remove('hidden');
         }
-
-        // --- 2. MANAJEMEN USER (KHUSUS ADMINISTRATOR) ---
 
         function openUsersModal() {
             document.getElementById('users-modal').classList.remove('hidden');
@@ -709,8 +704,6 @@
                 showModalNotification('Gagal Menghapus User', err.message, 'error');
             }
         }
-
-        // --- 3. FEEDBACK & FITUR HAPUS FEEDBACK (KHUSUS ADMIN) ---
 
         async function deleteFeedback(feedbackId) {
             if (currentUser.role !== 'admin') {
@@ -941,8 +934,6 @@
             loadFeedbacks();
         }
 
-        // --- 4. MANAJEMEN TAMPILAN TAB & DATA FORM ---
-
         function setFormDisabledState(disabled) {
             const formInputs = document.querySelectorAll('#form-menu input:not(#tanggal), #form-menu textarea');
             formInputs.forEach(input => input.disabled = disabled);
@@ -1003,7 +994,7 @@
                 tabFeedback.classList.remove('hidden');
                 btnFeedback.className = 'px-4 py-2 rounded-xl bg-royal-600 text-white text-xs font-bold transition shadow-md shadow-royal-600/20';
                 btnInput.className = 'px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white text-xs font-bold transition';
-                loadFeedbacks(); // Sinkronisasi otomatis memuat feedback saat diklik
+                loadFeedbacks();
             }
         }
 
@@ -1024,7 +1015,6 @@
                 tglElem.value = getTodayDateString();
             }
             
-            // Muat data feedback lebih dahulu agar counter dan list siap dari awal
             await fetchFeedbacks();
             checkMenuForDate(tglElem.value);
         }
@@ -1067,10 +1057,8 @@
             const isPastDate = menu.tanggal < today;
             const isStaff = currentUser && currentUser.role === 'staff';
 
-            // Hapus semua placeholder agar field yang tidak ada datanya (seperti sayur) benar-benar kosong
             clearPlaceholders();
 
-            // RESTRIKSI FORM JIKA STAFF MEMILIH TANGGAL LEWAT
             if (isStaff && isPastDate) {
                 setFormDisabledState(true);
                 showStatusMsg('Staff hanya dapat melihat menu yang sudah lewat dan tidak diizinkan mengubahnya.', 'error');
@@ -1128,7 +1116,6 @@
             const isPastDate = selectedDate < today;
             const isStaff = currentUser && currentUser.role === 'staff';
 
-            // HAPUS PLACEHOLDER JIKA MEMILIH TANGGAL LEWAT YANG TIDAK ADA DATANYA
             if (isPastDate) {
                 clearPlaceholders();
             } else {
@@ -1155,7 +1142,6 @@
             statusMsg.textContent = msg;
         }
 
-        // Event Upload Gambar Base64
         document.getElementById('file-upload').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -1181,7 +1167,6 @@
             reader.readAsDataURL(file);
         });
 
-        // Event Submit Form Menu
         document.getElementById('form-menu').addEventListener('submit', async function(e) {
             e.preventDefault();
             const btnSubmit = document.getElementById('btn-submit');

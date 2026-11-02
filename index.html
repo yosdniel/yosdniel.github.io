@@ -26,30 +26,20 @@
             }
         }
     </script>
-
-    <style>
-        .glass-card {
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-        }
-    </style>
 </head>
 <body class="bg-slate-950 font-sans text-white min-h-full flex items-center justify-center p-4 selection:bg-sky-500 selection:text-white relative overflow-hidden" 
       style="-webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;"
       oncontextmenu="return false;">
 
-    <!-- Ambient Dark Blue Background Glows (Glassmorphism Effect) -->
+    <!-- Ambient Dark Blue & Sky Glassmorphism Glows -->
     <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div class="absolute -top-32 -left-32 w-[500px] h-[500px] bg-sky-600/20 rounded-full blur-[120px]"></div>
-        <div class="absolute top-1/2 -right-32 w-[500px] h-[500px] bg-indigo-600/15 rounded-full blur-[120px]"></div>
-        <div class="absolute -bottom-32 left-1/3 w-[500px] h-[500px] bg-blue-700/20 rounded-full blur-[120px]"></div>
+        <div class="absolute -top-32 -left-32 w-[600px] h-[600px] bg-sky-600/20 rounded-full blur-[140px]"></div>
+        <div class="absolute top-1/2 -right-32 w-[600px] h-[600px] bg-indigo-600/15 rounded-full blur-[140px]"></div>
+        <div class="absolute -bottom-32 left-1/3 w-[600px] h-[600px] bg-blue-700/20 rounded-full blur-[140px]"></div>
     </div>
 
-    <!-- Main Glass Container -->
-    <main class="relative z-10 glass-card rounded-3xl p-10 sm:p-16 lg:p-20 max-w-4xl w-full text-center flex flex-col items-center justify-center">
+    <!-- Main Content Container (Tanpa Frame) -->
+    <main class="relative z-10 max-w-5xl w-full text-center flex flex-col items-center justify-center">
         <!-- Logo -->
         <img class="w-36 h-36 sm:w-48 sm:h-48 md:w-56 md:h-56 mb-8 sm:mb-10 object-contain pointer-events-none select-none drop-shadow-2xl" 
              src="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/9a9fb66d9306be7be63bd1fec355ae5bccd21e60/assets/favicon512.png" 

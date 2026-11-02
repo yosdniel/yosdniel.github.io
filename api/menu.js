@@ -2,15 +2,38 @@ import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
-// Opsional: Gunakan Service Role Key untuk bypass RLS Supabase pada operasi Admin (Hapus/Edit User/Feedback)
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const AUTH_SECRET = process.env.AUTH_SECRET || 'sppg-default-secret-key';
 
 const supabase = createClient(SUPABASE_URL || '', SUPABASE_ANON_KEY || '');
-// Buat admin client jika Service Role Key tersedia, fallback ke anon client jika tidak ada
 const supabaseAdmin = SUPABASE_SERVICE_ROLE_KEY 
     ? createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } }) 
     : supabase;
+
+// --- HELPER: AMBIL TANGGAL ONLINE / SERVER RESMI ---
+async function getOnlineDate() {
+    try {
+        // Mengambil waktu akurat secara online dari World Time API zona Asia/Jakarta
+        const response = await fetch('https://worldtimeapi.org/api/timezone/Asia/Jakarta', { 
+            signal: AbortSignal.timeout(3000) 
+        });
+        if (response.ok) {
+            const data = await response.json();
+            if (data && data.datetime) {
+                return data.datetime.split('T')[0]; // Format YYYY-MM-DD
+            }
+        }
+    } catch (e) {
+        // Fallback otomatis ke waktu server dengan zona waktu Asia/Jakarta jika offline
+    }
+    
+    return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Jakarta',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).format(new Date());
+}
 
 // --- HELPER FUNCTION: TOKEN/SESSION ENCODING & PARSING ---
 function parseSessionCookie(cookies) {
@@ -59,6 +82,7 @@ export default async function handler(req, res) {
     try {
         const queryAction = req.query?.action || req.body?.action || '';
         const currentUser = parseSessionCookie(req.headers.cookie);
+        const currentOnlineDate = await getOnlineDate();
 
         // ==========================================
         // 1. MANAJEMEN AUTENTIKASI (LOGIN, CHECK-AUTH, LOGOUT)
@@ -209,7 +233,6 @@ export default async function handler(req, res) {
         // ==========================================
 
         if (queryAction === 'feedback') {
-            // A. SIMPAN FEEDBACK DARI USER PUBLIK (POST)
             if (req.method === 'POST') {
                 const body = req.body || {};
                 const { nama_sekolah, pesan, tanggal, ratings, detail_menu, timestamp } = body;
@@ -219,7 +242,7 @@ export default async function handler(req, res) {
                 }
 
                 const payloadFeedback = {
-                    tanggal: tanggal || new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date()),
+                    tanggal: tanggal || currentOnlineDate,
                     nama_sekolah,
                     ratings: ratings || {},
                     pesan,
@@ -242,7 +265,6 @@ export default async function handler(req, res) {
                 });
             }
 
-            // B. AMBIL DAFTAR FEEDBACK UNTUK STAFF/ADMIN PANEL (GET)
             if (req.method === 'GET') {
                 const { data: feedbacks, error } = await supabase
                     .from('feedback')
@@ -281,7 +303,6 @@ export default async function handler(req, res) {
                 return res.status(400).json({ ok: false, message: 'ID feedback wajib diisi!' });
             }
 
-            // Gunakan supabaseAdmin agar operasi delete bypass RLS Supabase
             const { error } = await supabaseAdmin
                 .from('feedback')
                 .delete()
@@ -357,16 +378,9 @@ export default async function handler(req, res) {
 
             if (himbauanError) throw himbauanError;
 
-            const todayStr = new Intl.DateTimeFormat('en-CA', {
-                timeZone: 'Asia/Jakarta',
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit'
-            }).format(new Date());
-
             return res.status(200).json({
                 ok: true,
-                today: todayStr,
+                today: currentOnlineDate,
                 minggu: formattedMenu,
                 himbauan: himbauanData || []
             });
@@ -400,8 +414,7 @@ export default async function handler(req, res) {
                 return res.status(400).json({ ok: false, message: 'Tanggal wajib diisi!' });
             }
 
-            const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
-            if (currentUser.role === 'staff' && tanggal < todayStr) {
+            if (currentUser.role === 'staff' && tanggal < currentOnlineDate) {
                 return res.status(403).json({ ok: false, message: 'Akses ditolak: Staff tidak diizinkan mengubah menu pada tanggal yang sudah lewat!' });
             }
 

@@ -2,7 +2,6 @@ import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
-const ADMIN_PIN = process.env.ADMIN_PIN; // Fallback jika DB kosong
 const AUTH_SECRET = process.env.AUTH_SECRET || 'sppg-default-secret-key';
 
 const supabase = createClient(SUPABASE_URL || '', SUPABASE_ANON_KEY || '');
@@ -24,9 +23,9 @@ function parseSessionCookie(cookies) {
 }
 
 function createSessionCookie(user) {
-    const rawToken = `${AUTH_SECRET}::${user.id || 'admin-id'}::${user.username}::${user.role}`;
+    const rawToken = `${AUTH_SECRET}::${user.id}::${user.username}::${user.role}`;
     const token = Buffer.from(rawToken).toString('base64');
-    const maxAge = 7 * 24 * 60 * 60; // 7 hari
+    const maxAge = 1 * 24 * 60 * 60; // 7 hari
     return `sppg_user_session=${token}; Path=/; Max-Age=${maxAge}; HttpOnly; Secure; SameSite=None`;
 }
 
@@ -67,27 +66,22 @@ export default async function handler(req, res) {
                 return res.status(400).json({ ok: false, message: 'PIN wajib diisi!' });
             }
 
-            // A. Cari User di Database Supabase
+            // Cari User di Database Supabase berdasarkan PIN
             const { data: dbUser, error: userError } = await supabase
                 .from('users')
                 .select('id, username, pin, role')
-                .eq('pin', pin)
+                .eq('pin', String(pin))
                 .maybeSingle();
 
-            let activeUser = dbUser;
+            if (userError) throw userError;
 
-            // B. Fallback ke Environment ADMIN_PIN jika DB belum disetup
-            if (!activeUser && ADMIN_PIN && pin === ADMIN_PIN) {
-                activeUser = { id: 'admin-fallback', username: 'Administrator', role: 'admin' };
-            }
-
-            if (activeUser) {
-                const cookieHeader = createSessionCookie(activeUser);
+            if (dbUser) {
+                const cookieHeader = createSessionCookie(dbUser);
                 res.setHeader('Set-Cookie', cookieHeader);
                 return res.status(200).json({
                     ok: true,
                     message: 'Verifikasi PIN berhasil!',
-                    user: { id: activeUser.id, username: activeUser.username, role: activeUser.role }
+                    user: { id: dbUser.id, username: dbUser.username, role: dbUser.role }
                 });
             } else {
                 return res.status(401).json({ ok: false, message: 'PIN yang Anda masukkan tidak terdaftar!' });
@@ -136,7 +130,7 @@ export default async function handler(req, res) {
 
             const { data: newUser, error } = await supabase
                 .from('users')
-                .insert([{ username, role, pin }])
+                .insert([{ username, role, pin: String(pin) }])
                 .select()
                 .single();
 
@@ -162,7 +156,7 @@ export default async function handler(req, res) {
 
             const { error } = await supabase
                 .from('users')
-                .update({ pin: newPin })
+                .update({ pin: String(newPin) })
                 .eq('id', userId);
 
             if (error) throw error;
@@ -189,7 +183,7 @@ export default async function handler(req, res) {
         }
 
         // ==========================================
-        // 3. JALUR FEEDBACK SEKOALH & DELETE FEEDBACK
+        // 3. JALUR FEEDBACK SEKOLAH & DELETE FEEDBACK
         // ==========================================
 
         const isFeedbackRoute = urlPath.includes('/feedback') || queryAction === 'feedback';

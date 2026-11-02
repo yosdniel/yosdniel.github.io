@@ -49,7 +49,7 @@
         <div class="absolute top-1/3 -right-40 w-96 h-96 bg-sky-600/10 rounded-full blur-3xl"></div>
     </div>
 
-    <!-- Lockscreen Modal Verification (Diverifikasi via Cookie Backend API) -->
+    <!-- Lockscreen Modal Verification -->
     <div id="pin-modal" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-xl flex items-center justify-center p-4">
         <div class="glass-panel w-full max-w-sm rounded-3xl p-6 sm:p-8 space-y-6 text-center border border-royal-500/20 shadow-2xl">
             <div class="w-16 h-16 rounded-2xl bg-royal-500/10 border border-royal-400/20 text-royal-400 flex items-center justify-center mx-auto text-2xl font-black">
@@ -63,10 +63,26 @@
             <form id="form-pin" onsubmit="verifyPin(event)" class="space-y-4">
                 <input type="password" id="input-pin" maxlength="6" pattern="[0-9]*" inputmode="numeric" required placeholder="Masukkan PIN" class="w-full px-4 py-3 rounded-xl glass-input text-center text-lg font-bold tracking-widest">
                 <button type="submit" id="btn-pin-submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-royal-600 to-sky-500 hover:from-royal-500 hover:to-sky-400 text-white font-extrabold text-xs uppercase tracking-wider transition shadow-lg shadow-royal-600/30">
-                    LOGIN PANEL
+                    Login Panel
                 </button>
                 <div id="pin-error-msg" class="hidden text-xs text-red-400 bg-red-500/10 p-2.5 rounded-xl"></div>
             </form>
+        </div>
+    </div>
+
+    <!-- Modal Form Notification -->
+    <div id="notification-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 transition-all">
+        <div class="glass-panel w-full max-w-sm rounded-3xl p-6 space-y-4 text-center border border-royal-500/30 shadow-2xl">
+            <div id="notif-icon" class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto text-3xl font-black">
+                ✨
+            </div>
+            <div>
+                <h3 id="notif-title" class="text-base font-extrabold text-white">Notifikasi</h3>
+                <p id="notif-message" class="text-xs text-slate-300 mt-1.5 leading-relaxed"></p>
+            </div>
+            <button onclick="closeNotificationModal()" class="w-full py-2.5 rounded-xl bg-royal-600 hover:bg-royal-500 text-white font-bold text-xs uppercase tracking-wider transition shadow-md">
+                Tutup
+            </button>
         </div>
     </div>
 
@@ -93,7 +109,6 @@
                 <button onclick="switchTab('feedback')" id="tab-btn-feedback" class="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white text-xs font-bold transition">
                     Feedback (<span id="feedback-count">0</span>)
                 </button>
-                <!-- Tombol Kelola User (Hanya Tampil untuk Role Administrator) -->
                 <button id="btn-admin-manage-users" onclick="openUsersModal()" class="hidden px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 text-xs font-bold transition">
                     👥 Kelola User
                 </button>
@@ -108,8 +123,6 @@
         
         <!-- Tab 1: Form Input & Edit Menu -->
         <main id="tab-content-input" class="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
-            
-            <!-- Pengaturan Header Identitas SPPG & Yayasan (Khusus Admin Bisa Edit) -->
             <div class="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4">
                 <div class="flex items-center justify-between border-b border-slate-800 pb-2">
                     <h3 class="text-xs font-bold uppercase tracking-wider text-royal-400">Identitas Satuan Pelayanan (SPPG)</h3>
@@ -127,11 +140,11 @@
                 </div>
             </div>
 
-            <!-- Alert Modus Edit -->
+            <!-- Peringatan Form Terkunci Khusus Staff / Modus Edit -->
             <div id="edit-mode-indicator" class="hidden p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-4">
                 <div class="flex items-center gap-2 text-xs font-bold text-amber-400">
                     <span>✏️</span>
-                    <span>Anda sedang mengedit menu tanggal: <span id="edit-date-display" class="underline"></span></span>
+                    <span>Anda sedang melihat/mengedit menu tanggal: <span id="edit-date-display" class="underline"></span></span>
                 </div>
                 <button onclick="resetFormToNew()" class="text-[11px] px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold transition">
                     Reset ke Input Baru
@@ -157,7 +170,7 @@
                     </div>
                 </div>
 
-                <!-- Susunan Menu Makanan -->
+                <!-- Susunan Menu Makanan (FORM PELENGKAP SUDAH DIHAPUS) -->
                 <div class="border-t border-slate-800/80 pt-5">
                     <h3 class="text-xs font-bold uppercase tracking-wider text-royal-400 mb-4">Susunan Menu Ompreng</h3>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -177,13 +190,9 @@
                             <label class="block text-xs font-semibold text-slate-300 mb-1">Sayur Segar (Opsional)</label>
                             <input type="text" id="sayur" placeholder="Contoh: Sayur Bening Bayam" class="w-full px-3.5 py-2.5 rounded-xl glass-input text-sm">
                         </div>
-                        <div>
+                        <div class="sm:col-span-2">
                             <label class="block text-xs font-semibold text-slate-300 mb-1">Buah-Buahan *</label>
                             <input type="text" id="buah" required placeholder="Contoh: Pisang / Jeruk" class="w-full px-3.5 py-2.5 rounded-xl glass-input text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Pelengkap (Opsional)</label>
-                            <input type="text" id="pelengkap" placeholder="Contoh: Kerupuk & Air Mineral" class="w-full px-3.5 py-2.5 rounded-xl glass-input text-sm">
                         </div>
                     </div>
                 </div>
@@ -195,7 +204,7 @@
                         <div>
                             <label class="block text-xs font-semibold text-slate-300 mb-1">Upload Gambar Menu dari Perangkat</label>
                             <div class="flex items-center gap-3">
-                                <label class="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-royal-600 hover:bg-royal-500 text-white text-xs font-bold transition shadow-md">
+                                <label id="btn-upload-label" class="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-royal-600 hover:bg-royal-500 text-white text-xs font-bold transition shadow-md">
                                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                                     <span id="upload-label-text">Pilih File Foto...</span>
                                     <input type="file" id="file-upload" accept="image/*" class="hidden">
@@ -315,13 +324,13 @@
         </main>
     </div>
 
-    <!-- Modal Admin Manajemen User (Tambah, Ubah PIN, Dropdown Role, Hapus User) -->
+    <!-- Modal Admin Manajemen User -->
     <div id="users-modal" class="hidden fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-xl flex items-center justify-center p-4">
         <div class="glass-panel w-full max-w-xl rounded-3xl p-6 sm:p-8 space-y-6 border border-royal-500/20 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between border-b border-slate-800 pb-3">
                 <div>
                     <h3 class="text-sm font-bold text-white">👥 Manajemen User & Akses</h3>
-                    <p class="text-[11px] text-slate-400">Tambah akun baru, set/ubah PIN, atau hapus user dari sistem.</p>
+                    <p class="text-[11px] text-slate-400">Tambah akun baru, ubah nama, set/ubah PIN, atau hapus user dari sistem.</p>
                 </div>
                 <button onclick="closeUsersModal()" class="text-slate-400 hover:text-white text-xs font-bold">✕ Tutup</button>
             </div>
@@ -372,6 +381,34 @@
         const DEFAULT_SPPG = 'SPPG Deli Serdang Tanjung Gusta';
         const DEFAULT_YAYASAN = 'Yayasan Pendidikan Supardi Dharma Utama';
 
+        // --- HELPER MODAL NOTIFIKASI ---
+        function showModalNotification(title, message, type = 'success') {
+            const modal = document.getElementById('notification-modal');
+            const notifTitle = document.getElementById('notif-title');
+            const notifMessage = document.getElementById('notif-message');
+            const notifIcon = document.getElementById('notif-icon');
+
+            notifTitle.textContent = title;
+            notifMessage.textContent = message;
+
+            if (type === 'success') {
+                notifIcon.textContent = '✅';
+                notifIcon.className = 'w-14 h-14 rounded-2xl flex items-center justify-center mx-auto text-3xl font-black bg-emerald-500/10 border border-emerald-500/20 text-emerald-400';
+            } else if (type === 'error') {
+                notifIcon.textContent = '❌';
+                notifIcon.className = 'w-14 h-14 rounded-2xl flex items-center justify-center mx-auto text-3xl font-black bg-red-500/10 border border-red-500/20 text-red-400';
+            } else {
+                notifIcon.textContent = 'ℹ️';
+                notifIcon.className = 'w-14 h-14 rounded-2xl flex items-center justify-center mx-auto text-3xl font-black bg-sky-500/10 border border-sky-500/20 text-sky-400';
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeNotificationModal() {
+            document.getElementById('notification-modal').classList.add('hidden');
+        }
+
         function getTodayDateString() {
             const d = new Date();
             const year = d.getFullYear();
@@ -397,7 +434,7 @@
             try {
                 const res = await fetch(`${API}?action=check-auth`, {
                     method: 'POST',
-                    credentials: 'include' // Mengirim cookie HttpOnly ke server
+                    credentials: 'include'
                 });
                 const data = await res.json();
 
@@ -461,7 +498,7 @@
             yayasanInput.value = DEFAULT_YAYASAN;
 
             if (currentUser.role === 'admin') {
-                roleBadge.textContent = `Administrator (${currentUser.username || 'Admin'})`;
+                roleBadge.textContent = `${currentUser.username || 'Admin'} (Administrator)`;
                 roleBadge.className = 'px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30';
                 
                 sppgInput.disabled = false;
@@ -470,7 +507,7 @@
                 lockStatus.className = 'text-[11px] text-amber-400 font-bold';
                 manageUsersBtn.classList.remove('hidden');
             } else {
-                roleBadge.textContent = `Staff (${currentUser.username || 'Staff'})`;
+                roleBadge.textContent = `${currentUser.username || 'Staff'} (Staff)`;
                 roleBadge.className = 'px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-royal-500/20 text-royal-300 border border-royal-500/30';
                 
                 sppgInput.disabled = true;
@@ -539,7 +576,10 @@
                                 <p class="text-[10px] text-slate-500 mt-0.5">PIN: ••••••</p>
                             </div>
                         </div>
-                        <div class="flex items-center gap-2 self-end sm:self-center">
+                        <div class="flex items-center gap-1.5 self-end sm:self-center flex-wrap">
+                            <button onclick="changeUsername('${u.id}', '${u.username}')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-bold transition">
+                                ✏️ Edit Nama
+                            </button>
                             <button onclick="changeUserPin('${u.id}', '${u.username}')" class="px-2.5 py-1 rounded-lg bg-royal-600/20 hover:bg-royal-600/30 text-royal-300 text-[11px] font-bold transition">
                                 🔑 Ubah PIN
                             </button>
@@ -571,12 +611,48 @@
                 const data = await res.json();
                 if (!res.ok || !data.ok) throw new Error(data.message || 'Gagal membuat akun user');
 
-                alert(`✅ User "${username}" (${role.toUpperCase()}) berhasil ditambahkan!`);
+                showModalNotification(
+                    'User Berhasil Ditambahkan!',
+                    `Akun "${username}" dengan peran ${role.toUpperCase()} telah terdaftar di sistem.`,
+                    'success'
+                );
+
                 document.getElementById('new-user-name').value = '';
                 document.getElementById('new-user-pin').value = '';
                 loadAllUsersList();
             } catch (err) {
-                alert('❌ Error: ' + err.message);
+                showModalNotification('Gagal Menambah User', err.message, 'error');
+            }
+        }
+
+        async function changeUsername(userId, currentUsername) {
+            const newUsername = prompt(`Masukkan Nama baru untuk user "${currentUsername}":`, currentUsername);
+            if (!newUsername || newUsername.trim() === '' || newUsername === currentUsername) return;
+
+            try {
+                const res = await fetch(`${API}?action=update-username`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ userId, newUsername: newUsername.trim() })
+                });
+                const data = await res.json();
+                if (!res.ok || !data.ok) throw new Error(data.message || 'Gagal mengubah nama user');
+
+                showModalNotification(
+                    'Nama User Diperbarui',
+                    `Nama pengguna berhasil diubah dari "${currentUsername}" menjadi "${newUsername.trim()}".`,
+                    'success'
+                );
+
+                if (currentUser && currentUser.id === userId) {
+                    currentUser.username = newUsername.trim();
+                    onAuthSuccess();
+                }
+
+                loadAllUsersList();
+            } catch (err) {
+                showModalNotification('Gagal Mengubah Nama', err.message, 'error');
             }
         }
 
@@ -584,7 +660,7 @@
             const newPin = prompt(`Masukkan PIN 6 Digit baru untuk user "${username}":`);
             if (!newPin) return;
             if (!/^\d{6}$/.test(newPin)) {
-                alert('⚠️ PIN harus berupa 6 digit angka!');
+                showModalNotification('Format PIN Salah', 'PIN harus berupa 6 digit angka!', 'error');
                 return;
             }
 
@@ -598,10 +674,15 @@
                 const data = await res.json();
                 if (!res.ok || !data.ok) throw new Error(data.message || 'Gagal mengubah PIN');
 
-                alert(`✅ PIN user "${username}" berhasil diperbarui!`);
+                showModalNotification(
+                    'PIN User Diperbarui',
+                    `PIN untuk user "${username}" berhasil diperbarui!`,
+                    'success'
+                );
+
                 loadAllUsersList();
             } catch (err) {
-                alert('❌ Error: ' + err.message);
+                showModalNotification('Gagal Mengubah PIN', err.message, 'error');
             }
         }
 
@@ -618,10 +699,15 @@
                 const data = await res.json();
                 if (!res.ok || !data.ok) throw new Error(data.message || 'Gagal menghapus user');
 
-                alert(`✅ User "${username}" berhasil dihapus.`);
+                showModalNotification(
+                    'User Dihapus',
+                    `User "${username}" berhasil dihapus dari sistem.`,
+                    'success'
+                );
+
                 loadAllUsersList();
             } catch (err) {
-                alert('❌ Error: ' + err.message);
+                showModalNotification('Gagal Menghapus User', err.message, 'error');
             }
         }
 
@@ -629,7 +715,7 @@
 
         async function deleteFeedback(feedbackId) {
             if (currentUser.role !== 'admin') {
-                alert('❌ Akses Ditolak: Hanya Administrator yang berhak menghapus feedback!');
+                showModalNotification('Akses Ditolak', 'Hanya Administrator yang berhak menghapus feedback!', 'error');
                 return;
             }
 
@@ -645,10 +731,10 @@
                 const data = await res.json();
                 if (!res.ok || !data.ok) throw new Error(data.message || 'Gagal menghapus feedback');
 
-                alert('✅ Feedback berhasil dihapus!');
+                showModalNotification('Feedback Dihapus', 'Feedback sekolah berhasil dihapus dari database.', 'success');
                 loadFeedbacks();
             } catch (err) {
-                alert('❌ Error: ' + err.message);
+                showModalNotification('Gagal Menghapus Feedback', err.message, 'error');
             }
         }
 
@@ -858,6 +944,23 @@
 
         // --- 4. MANAJEMEN TAMPILAN TAB & DATA FORM ---
 
+        function setFormDisabledState(disabled) {
+            const formInputs = document.querySelectorAll('#form-menu input:not(#tanggal), #form-menu textarea');
+            formInputs.forEach(input => input.disabled = disabled);
+
+            const fileUploadLabel = document.getElementById('btn-upload-label');
+            const fileUploadInput = document.getElementById('file-upload');
+            fileUploadInput.disabled = disabled;
+            
+            if (disabled) {
+                fileUploadLabel.classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                fileUploadLabel.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+
+            document.getElementById('btn-submit').disabled = disabled;
+        }
+
         function switchTab(tabName) {
             const tabInput = document.getElementById('tab-content-input');
             const tabFeedback = document.getElementById('tab-content-feedback');
@@ -933,14 +1036,15 @@
 
         function populateFormWithMenu(menu) {
             const today = getTodayDateString();
-            const btnSubmit = document.getElementById('btn-submit');
+            const isPastDate = menu.tanggal < today;
+            const isStaff = currentUser && currentUser.role === 'staff';
 
-            // Restriksi frontend untuk role Staff
-            if (currentUser.role === 'staff' && menu.tanggal < today) {
-                showStatusMsg('🔒 Akses Terbatas: Staff tidak diizinkan mengubah menu yang sudah lewat.', 'error');
-                btnSubmit.disabled = true;
+            // RESTRIKSI FORM JIKA STAFF MEMILIH TANGGAL LEWAT
+            if (isStaff && isPastDate) {
+                setFormDisabledState(true);
+                showStatusMsg('🔒 Form Terkunci: Staff hanya dapat melihat menu tanggal lampau dan tidak diizinkan mengubahnya.', 'error');
             } else {
-                btnSubmit.disabled = false;
+                setFormDisabledState(false);
             }
 
             document.getElementById('tanggal').value = menu.tanggal || getTodayDateString();
@@ -949,7 +1053,6 @@
             document.getElementById('lauk_nabati').value = menu.lauk_nabati || '';
             document.getElementById('sayur').value = menu.sayur || '';
             document.getElementById('buah').value = menu.buah || '';
-            document.getElementById('pelengkap').value = menu.pelengkap || '';
             document.getElementById('catatan').value = menu.catatan || '';
 
             if (menu.foto) {
@@ -986,9 +1089,20 @@
         function resetFormToNew(resetDate = true) {
             const currentSelectedDate = document.getElementById('tanggal').value;
             document.getElementById('form-menu').reset();
-            document.getElementById('btn-submit').disabled = false;
             
-            document.getElementById('tanggal').value = resetDate ? getTodayDateString() : (currentSelectedDate || getTodayDateString());
+            const selectedDate = resetDate ? getTodayDateString() : (currentSelectedDate || getTodayDateString());
+            document.getElementById('tanggal').value = selectedDate;
+
+            const today = getTodayDateString();
+            const isPastDate = selectedDate < today;
+            const isStaff = currentUser && currentUser.role === 'staff';
+
+            if (isStaff && isPastDate) {
+                setFormDisabledState(true);
+                showStatusMsg('🔒 Form Terkunci: Staff tidak diizinkan menginput menu pada tanggal yang sudah lewat.', 'error');
+            } else {
+                setFormDisabledState(false);
+            }
             
             document.getElementById('foto').value = '';
             document.getElementById('preview-container').classList.add('hidden');
@@ -1037,7 +1151,7 @@
             const today = getTodayDateString();
 
             if (currentUser.role === 'staff' && tglVal < today) {
-                showStatusMsg('❌ Ditolak: Staff tidak dapat menyimpan perubahan pada menu lampau.', 'error');
+                showModalNotification('Akses Ditolak', 'Staff tidak diizinkan menyimpan/mengubah menu pada tanggal yang sudah lewat!', 'error');
                 return;
             }
 
@@ -1055,7 +1169,6 @@
                 lauk_nabati: document.getElementById('lauk_nabati').value,
                 sayur: document.getElementById('sayur').value,
                 buah: document.getElementById('buah').value,
-                pelengkap: document.getElementById('pelengkap').value,
                 foto: fotoUrl,
                 foto_list: fotoUrl ? [fotoUrl] : [],
                 catatan: document.getElementById('catatan').value,
@@ -1116,18 +1229,17 @@
                     allMenusCache.push(payload);
                 }
 
-                showStatusMsg('✅ Data menu berhasil disimpan ke database!', 'success');
+                showModalNotification('Menu Disimpan!', 'Data menu sajian berhasil disimpan ke database Supabase.', 'success');
                 resetFormToNew(true);
 
             } catch (err) {
-                showStatusMsg('❌ Error: ' + err.message, 'error');
+                showModalNotification('Gagal Menyimpan Menu', err.message, 'error');
             } finally {
                 btnSubmit.disabled = false;
-                btnSubmit.textContent = 'Simpan / Update Menu ke Database';
+                btnSubmit.textContent = 'Simpan Menu';
             }
         });
 
-        // Eksekusi pemeriksaan sesi autentikasi saat aplikasi dimuat
         checkAuthSession();
     </script>
 </body>

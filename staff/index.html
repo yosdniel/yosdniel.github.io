@@ -706,7 +706,7 @@
         }
 
         async function deleteFeedback(feedbackId) {
-            if (currentUser.role !== 'admin') {
+            if (!currentUser || currentUser.role !== 'admin') {
                 showModalNotification('Akses Ditolak', 'Hanya Administrator yang berhak menghapus feedback!', 'error');
                 return;
             }
@@ -884,6 +884,8 @@
 
             const feedbackCards = filtered.map((fb, idx) => {
                 const fbId = fb.id || fb._id;
+                
+                // Tombol hapus hanya muncul jika user adalah admin
                 const deleteBtnHtml = (currentUser && currentUser.role === 'admin')
                     ? `<button onclick="deleteFeedback('${fbId}')" class="px-3 py-1 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-bold transition flex items-center gap-1">
                         🗑️ Hapus Feedback

@@ -225,6 +225,9 @@
         <button onclick="bukaFitur('device')" id="navDevice" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
           <span class="text-base">👥</span> Client Devices
         </button>
+        <button onclick="bukaFitur('generate')" id="navGenerate" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
+          <span class="text-base">🎟️</span> Generate Voucher
+        </button>
         <button onclick="bukaFitur('transfer')" id="navTransfer" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
           <span class="text-base">🔄</span> Migrate Data
         </button>
@@ -232,9 +235,6 @@
         <div class="text-[10px] font-extrabold text-slate-500 uppercase px-3 mt-6 mb-2 tracking-wider">System Config</div>
         <button onclick="bukaFitur('packages')" id="navPackages" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
           <span class="text-base">📦</span> Pricing Plans
-        </button>
-        <button onclick="bukaFitur('vouchers')" id="navVouchers" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
-          <span class="text-base">🎟️</span> Promo Vouchers
         </button>
         <button onclick="bukaFitur('release')" id="navRelease" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
           <span class="text-base">🚀</span> Cloud Updater
@@ -401,26 +401,21 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
             <div onclick="bukaFitur('device')" class="glass-card p-4 sm:p-5 rounded-2xl hover:border-brand-500/50 cursor-pointer transition group">
               <div class="text-2xl mb-2 group-hover:scale-110 transition-transform">🔍</div>
               <h3 class="font-bold text-white text-xs sm:text-sm">Client Devices</h3>
               <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5">Manage licenses</p>
             </div>
-            <div onclick="bukaFitur('transfer')" class="glass-card p-4 sm:p-5 rounded-2xl hover:border-brand-500/50 cursor-pointer transition group">
-              <div class="text-2xl mb-2 group-hover:scale-110 transition-transform">🔄</div>
-              <h3 class="font-bold text-white text-xs sm:text-sm">Migrate Device</h3>
-              <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5">Transfer data</p>
+            <div onclick="bukaFitur('generate')" class="glass-card p-4 sm:p-5 rounded-2xl hover:border-brand-500/50 cursor-pointer transition group">
+              <div class="text-2xl mb-2 group-hover:scale-110 transition-transform">🎟️</div>
+              <h3 class="font-bold text-white text-xs sm:text-sm">Generate Voucher</h3>
+              <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5">Create activation key</p>
             </div>
             <div onclick="bukaFitur('packages')" class="glass-card p-4 sm:p-5 rounded-2xl hover:border-brand-500/50 cursor-pointer transition group">
               <div class="text-2xl mb-2 group-hover:scale-110 transition-transform">📦</div>
               <h3 class="font-bold text-white text-xs sm:text-sm">Pricing Plans</h3>
               <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5">Subscription rates</p>
-            </div>
-            <div onclick="bukaFitur('vouchers')" class="glass-card p-4 sm:p-5 rounded-2xl hover:border-brand-500/50 cursor-pointer transition group">
-              <div class="text-2xl mb-2 group-hover:scale-110 transition-transform">🎟️</div>
-              <h3 class="font-bold text-white text-xs sm:text-sm">Promo Vouchers</h3>
-              <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5">Manage coupons</p>
             </div>
             <div onclick="bukaFitur('release')" class="glass-card p-4 sm:p-5 rounded-2xl hover:border-brand-500/50 cursor-pointer transition group">
               <div class="text-2xl mb-2 group-hover:scale-110 transition-transform">🚀</div>
@@ -494,6 +489,38 @@
             </div>
 
             <button onclick="bukaFitur('overview')" class="w-full bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-2xl text-xs font-bold transition border border-slate-700">🔙 Kembali ke Menu</button>
+          </div>
+        </div>
+
+        <!-- GENERATE VOUCHER / LICENSE -->
+        <div id="subViewGenerateVoucher" class="subview-section max-w-xl mx-auto space-y-4">
+          <div class="glass-card p-5 sm:p-8 rounded-3xl space-y-4 border border-slate-800">
+            <div>
+              <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Device ID Klien</label>
+              <input type="text" id="genVoucherDeviceId" placeholder="DEV-XXXX" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs font-mono uppercase">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Nama SPPG / Klien</label>
+              <input type="text" id="genVoucherSppgName" placeholder="Contoh: SPPG Wilayah 1" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Pilih Durasi Paket</label>
+              <select id="genVoucherDuration" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs outline-none focus:border-brand-500 transition">
+                <option value="7">7 Hari (1 Minggu)</option>
+                <option value="30" selected>30 Hari (1 Bulan)</option>
+                <option value="90">90 Hari (3 Bulan)</option>
+                <option value="365">365 Hari (1 Tahun)</option>
+                <option value="9999">Lifetime (Selamanya)</option>
+              </select>
+            </div>
+            <button onclick="executeGenerateVoucher()" class="w-full bg-brand-500 hover:bg-brand-600 active:scale-[0.99] text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-brand-500/25 transition">🎟️ Generate & Aktifkan Lisensi</button>
+            
+            <div id="generatedVoucherResultBox" class="hidden mt-4 p-4 rounded-2xl bg-slate-900/90 border border-brand-500/30 space-y-2 text-xs">
+              <span class="text-[10px] text-brand-400 font-extrabold uppercase tracking-wider block">Hasil Kode Lisensi Voucher:</span>
+              <div id="generatedVoucherKeyText" class="font-mono text-emerald-400 font-bold bg-slate-950 p-3 rounded-xl border border-slate-800 break-all select-all">--</div>
+              <button onclick="copyGeneratedVoucherKey()" class="w-full bg-slate-800 hover:bg-slate-700 text-white py-2.5 rounded-xl font-bold transition text-xs">📋 Salin Kode Lisensi</button>
+            </div>
+            <button onclick="bukaFitur('overview')" class="w-full bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 py-3 rounded-2xl text-xs font-bold transition border border-slate-700 mt-2">🏠 Kembali ke Menu</button>
           </div>
         </div>
 
@@ -597,24 +624,6 @@
             <div id="containerListPaket" class="space-y-3 max-h-[450px] overflow-y-auto pr-1"></div>
             <div class="flex gap-3 pt-2">
               <button onclick="simpanPengaturanPaketServer()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white py-3.5 px-6 rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2">💾 Simpan Paket</button>
-              <button onclick="bukaFitur('overview')" class="w-32 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 py-3.5 px-5 rounded-2xl text-xs sm:text-sm font-bold transition border border-slate-700 flex items-center justify-center gap-2"><span>🏠</span> Menu</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- VOUCHERS -->
-        <div id="subViewVouchers" class="subview-section max-w-3xl mx-auto space-y-4">
-          <div class="glass-card p-5 sm:p-8 rounded-3xl space-y-4 border border-slate-800">
-            <div class="flex items-center justify-between flex-wrap gap-2">
-              <div>
-                <label class="font-bold text-xs uppercase text-slate-300">Kode Kupon & Voucher Promo Pembayaran</label>
-                <p class="text-[11px] text-slate-400">Atur diskon persentase, nominal tetap (Rp), atau bonus hari yang otomatis terhubung ke sistem pembayaran <b>payment.html</b> klien.</p>
-              </div>
-              <button onclick="tambahBarisVoucherForm()" class="bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-bold px-4 py-3.5 rounded-2xl text-xs sm:text-sm transition shadow-lg shadow-brand-500/20 flex items-center justify-center gap-1.5">+ Tambah Voucher</button>
-            </div>
-            <div id="containerListVoucher" class="space-y-3 max-h-[450px] overflow-y-auto pr-1"></div>
-            <div class="flex gap-3 pt-2">
-              <button onclick="simpanPengaturanVoucherServer()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white py-3.5 px-6 rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2">💾 Simpan Semua Voucher</button>
               <button onclick="bukaFitur('overview')" class="w-32 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 py-3.5 px-5 rounded-2xl text-xs sm:text-sm font-bold transition border border-slate-700 flex items-center justify-center gap-2"><span>🏠</span> Menu</button>
             </div>
           </div>
@@ -1114,7 +1123,7 @@
     }
 
     function highlightActiveNav(activeId) {
-      const navIds = ['navOverview', 'navDevice', 'navTransfer', 'navPackages', 'navVouchers', 'navRelease'];
+      const navIds = ['navOverview', 'navDevice', 'navGenerate', 'navTransfer', 'navPackages', 'navRelease'];
       navIds.forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
@@ -1140,6 +1149,13 @@
         gantiSubView('subViewDeviceCheck');
         document.getElementById('appTitle').textContent = 'Client Devices';
         muatDaftarSemuaUser();
+      } else if (fitur === 'generate') {
+        highlightActiveNav('navGenerate');
+        document.getElementById('genVoucherDeviceId').value = '';
+        document.getElementById('genVoucherSppgName').value = '';
+        document.getElementById('generatedVoucherResultBox').classList.add('hidden');
+        gantiSubView('subViewGenerateVoucher');
+        document.getElementById('appTitle').textContent = 'Generate Voucher';
       } else if (fitur === 'transfer') {
         highlightActiveNav('navTransfer');
         document.getElementById('inputSourceDevice').value = '';
@@ -1151,11 +1167,6 @@
         gantiSubView('subViewPackages');
         document.getElementById('appTitle').textContent = 'Pricing Plans';
         muatDataPaketServer();
-      } else if (fitur === 'vouchers') {
-        highlightActiveNav('navVouchers');
-        gantiSubView('subViewVouchers');
-        document.getElementById('appTitle').textContent = 'Promo Vouchers';
-        muatDataVoucherServer();
       } else if (fitur === 'release') {
         highlightActiveNav('navRelease');
         gantiSubView('subViewRelease');
@@ -1496,6 +1507,69 @@
       });
     }
 
+    /* GENERATE VOUCHER / LICENSE LOGIC */
+    async function executeGenerateVoucher() {
+      const deviceId = document.getElementById('genVoucherDeviceId').value.trim().toUpperCase();
+      const sppgName = document.getElementById('genVoucherSppgName').value.trim();
+      const durationDays = parseInt(document.getElementById('genVoucherDuration').value);
+
+      if (!deviceId) return showToast('Device ID Klien wajib diisi!', false);
+
+      let targetDate = new Date();
+      if (durationDays >= 9999) {
+        targetDate = new Date('2099-12-31');
+      } else {
+        targetDate.setDate(targetDate.getDate() + durationDays);
+      }
+
+      const yyyy = targetDate.getFullYear();
+      const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
+      const dd = String(targetDate.getDate()).padStart(2, '0');
+      const expDateStr = `${yyyy}-${mm}-${dd}`;
+
+      const licenseKey = buatLicenseKey(expDateStr, deviceId);
+
+      const payload = {
+        action: 'save_license',
+        device_id: deviceId,
+        sppg_name: sppgName || 'Generated Client',
+        status: 'active',
+        exp_date: expDateStr,
+        license_key: licenseKey,
+        admin_secret: adminPasswordSecret
+      };
+
+      try {
+        showToast('Membuat & menyimpan lisensi voucher...', true);
+        const res = await fetch(VERCEL_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const result = await res.json();
+        if (res.ok && (result.success || result.status !== false)) {
+          document.getElementById('generatedVoucherKeyText').textContent = licenseKey;
+          document.getElementById('generatedVoucherResultBox').classList.remove('hidden');
+          showToast('Voucher/Lisensi berhasil digenerate & diaktifkan!');
+          muatDaftarSemuaUser();
+        } else {
+          showToast(result.error || 'Gagal menyimpan lisensi ke server', false);
+        }
+      } catch (e) {
+        showToast('Network error saat generate voucher', false);
+      }
+    }
+
+    function copyGeneratedVoucherKey() {
+      const keyText = document.getElementById('generatedVoucherKeyText').textContent;
+      if (!keyText || keyText === '--') return;
+      navigator.clipboard.writeText(keyText).then(() => {
+        showToast('Kode lisensi berhasil disalin!');
+      }).catch(() => {
+        showToast('Gagal menyalin kode', false);
+      });
+    }
+
     function pilihUser(u, stat) {
       gantiSubView('subViewDeviceDetail');
       document.getElementById('appTitle').textContent = 'License Detail';
@@ -1801,110 +1875,6 @@
         const result = await res.json();
         if (res.ok && (result.success || result.status)) { showToast('Packages saved!'); muatDataPaketServer(); }
         else showToast('Save failed', false);
-      } catch (err) { showToast('Network Error', false); }
-    }
-
-    async function muatDataVoucherServer() {
-      try {
-        const res = await fetch(`${VERCEL_API_URL}?action=get_vouchers`);
-        const data = await res.json();
-        // Hanya memuat voucher promo pembayaran yang valid dan bersih dari logika device
-        const list = data.vouchers || [];
-
-        const container = document.getElementById('containerListVoucher');
-        container.innerHTML = '';
-        if (list.length === 0) {
-          tambahBarisVoucherForm('PROMO50', 'percent', 50, 100, 0, '2026-12-31', 'ALL');
-        } else {
-          const todayStr = new Date().toISOString().slice(0, 10);
-          list.forEach(v => {
-            const isExpired = (v.exp_date && v.exp_date < todayStr) || (v.quota && v.used_count >= v.quota);
-            tambahBarisVoucherForm(v.code, v.type || v.discount_type || 'percent', v.value !== undefined ? v.value : (v.discount_value || 0), v.quota || 100, v.used_count || 0, v.exp_date || '2026-12-31', v.device_id || 'ALL', isExpired);
-          });
-        }
-      } catch (err) { showToast('Gagal memuat data voucher', false); }
-    }
-
-    function tambahBarisVoucherForm(code = '', type = 'percent', value = '', quota = 100, used_count = 0, exp_date = '', device_id = 'ALL', isExpired = false) {
-      const container = document.getElementById('containerListVoucher');
-      const div = document.createElement('div');
-      div.className = `p-3 rounded-2xl border ${isExpired ? 'bg-red-950/20 border-red-500/30' : 'bg-slate-900/80 border-slate-800'} space-y-2.5 transition`;
-      const defaultExp = exp_date || new Date(Date.now() + 30*24*60*60*1000).toISOString().slice(0, 10);
-      div.innerHTML = `
-        <div class="flex items-center justify-between gap-2 flex-wrap">
-          <div class="flex items-center gap-2 flex-1 min-w-[180px]">
-            <input type="text" class="inp-code px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-brand-400 font-mono font-bold uppercase w-full" value="${code}" placeholder="KODE PROMO">
-            ${isExpired ? '<span class="px-2 py-0.5 rounded bg-red-500/20 text-red-400 text-[9px] font-bold uppercase border border-red-500/30">Expired</span>' : ''}
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="text-[10px] text-slate-500 font-mono">Pakai: <b class="text-slate-300">${used_count}</b> /</span>
-            <input type="number" class="inp-quota w-20 px-2 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white text-center" value="${quota}">
-            <button onclick="this.closest('.p-3').remove()" class="w-8 h-8 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 rounded-xl font-bold flex items-center justify-center transition">✕</button>
-          </div>
-        </div>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-          <div>
-            <label class="block text-[9px] text-slate-500 font-extrabold uppercase mb-1">Tipe Promo</label>
-            <select class="inp-type w-full px-2 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white">
-              <option value="percent" ${type==='percent'?'selected':''}>Diskon (%)</option>
-              <option value="fixed" ${type==='fixed'?'selected':''}>Diskon (Rp)</option>
-              <option value="days" ${type==='days'?'selected':''}>Bonus Durasi (Hari)</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-[9px] text-slate-500 font-extrabold uppercase mb-1">Nilai Promo</label>
-            <input type="number" class="inp-value w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white" value="${value}">
-          </div>
-          <div>
-            <label class="block text-[9px] text-slate-500 font-extrabold uppercase mb-1">Kadaluarsa</label>
-            <input type="date" class="inp-exp w-full px-2 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white" value="${defaultExp}">
-          </div>
-          <div>
-            <label class="block text-[9px] text-slate-500 font-extrabold uppercase mb-1">Target Device ID / ALL</label>
-            <input type="text" class="inp-device w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-amber-400 font-mono uppercase" value="${device_id}">
-          </div>
-        </div>
-        <input type="hidden" class="inp-used" value="${used_count}">`;
-      container.appendChild(div);
-    }
-
-    async function simpanPengaturanVoucherServer() {
-      const rows = document.querySelectorAll('#containerListVoucher > div');
-      const vouchers = [];
-      rows.forEach(r => {
-        const code = r.querySelector('.inp-code').value.trim().toUpperCase();
-        const type = r.querySelector('.inp-type').value;
-        const value = Number(r.querySelector('.inp-value').value) || 0;
-        const quota = Number(r.querySelector('.inp-quota').value) || 100;
-        const used_count = Number(r.querySelector('.inp-used').value) || 0;
-        const exp_date = r.querySelector('.inp-exp').value;
-        const device_id = r.querySelector('.inp-device').value.trim().toUpperCase() || 'ALL';
-        if (code) {
-          vouchers.push({ 
-            code, 
-            type, 
-            discount_type: type, 
-            value, 
-            discount_value: value, 
-            quota, 
-            used_count, 
-            exp_date, 
-            device_id 
-          });
-        }
-      });
-
-      try {
-        const res = await fetch(VERCEL_API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'save_vouchers', vouchers, admin_secret: adminPasswordSecret })
-        });
-        const result = await res.json();
-        if (res.ok && (result.success || result.status)) {
-          showToast('Voucher Promo Pembayaran Berhasil Disimpan!');
-          muatDataVoucherServer();
-        } else showToast(result.error || 'Gagal menyimpan voucher', false);
       } catch (err) { showToast('Network Error', false); }
     }
 

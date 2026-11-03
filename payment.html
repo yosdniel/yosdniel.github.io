@@ -71,7 +71,7 @@ function getTanggalIndoGMT7(){
   const now=new Date();
   const utc=now.getTime()+(now.getTimezoneOffset()*60000);
   const gmt7=new Date(utc+(7*3600000));
-  return `${days[gmt7.getDay()], gmt7.getDate()} ${months[gmt7.getMonth()]} ${gmt7.getFullYear()}`;
+  return `${days[gmt7.getDay()]}, ${gmt7.getDate()} ${months[gmt7.getMonth()]} ${gmt7.getFullYear()}`;
 }
 
 window.addEventListener('DOMContentLoaded',()=>{
@@ -81,7 +81,6 @@ window.addEventListener('DOMContentLoaded',()=>{
   if(d){
     const cleanId = d.trim().toUpperCase();
     document.getElementById('input-device-id').value = cleanId;
-    // Beri sedikit jeda agar DOM ter-load sempurna sebelum auto-check
     setTimeout(() => { _x.chk(); }, 300);
   }
 });
@@ -113,15 +112,17 @@ chk:async()=>{
     const rc=await fetch(`${U}?action=check_license&device_id=${encodeURIComponent(id)}`,{method:'GET',cache:'no-store'});
     if(rc.ok){
       const j=await rc.json();
-      // Handle jika response dibungkus object bersarang (misal: j.data atau langsung j)
       lc = j.data || j;
     }
   }catch(e){
     console.error('Check license error:', e);
   }
 
-  // Validasi kondisi device tidak terdaftar / error
-  const un = !lc || lc.status==='unregistered' || lc.valid===false || lc.error || lc.found===false || (lc.sppg_name && lc.sppg_name.toLowerCase().includes('belum terdaftar'));
+  // Ambil status string dari database (lower-cased agar mudah dicek)
+  const rawStatus = (lc?.status || '').toString().toLowerCase();
+  
+  // Kondisi tidak valid: tidak ada data, unregistered, error, ATAU jika status hold / revoke
+  const un = !lc || rawStatus==='unregistered' || lc.valid===false || lc.error || lc.found===false || rawStatus==='hold' || rawStatus==='revoke' || (lc.sppg_name && lc.sppg_name.toLowerCase().includes('belum terdaftar'));
   
   if(un){
     document.getElementById('device-info-box').classList.add('hidden');
@@ -132,12 +133,21 @@ chk:async()=>{
     _chk=false;
     bc.disabled=false;
     bc.textContent='🔍 Cek Device';
-    toast('Device ID tidak ditemukan atau belum terdaftar!',false);
+    
+    // Berikan pesan khusus jika statusnya hold atau revoke
+    if(rawStatus==='hold'){
+      toast('Device ID sedang ditahan (Hold). Tidak dapat diperpanjang.', false);
+    } else if(rawStatus==='revoke'){
+      toast('Device ID telah dicabut (Revoke). Tidak dapat diperpanjang.', false);
+    } else {
+      toast('Device ID tidak ditemukan atau belum terdaftar!', false);
+    }
+    
     el.focus();
     return;
   }
 
-  // Jika ditemukan, tampilkan informasi device
+  // Tampilkan informasi SPPG & masa aktif
   document.getElementById('info-sppg-name').textContent = lc.sppg_name || lc.nama || 'Terdaftar';
   let ef='-';
   const rawExp = lc.exp_date || lc.expired_date || lc.expired;
@@ -147,14 +157,15 @@ chk:async()=>{
   }
   document.getElementById('info-exp-date').textContent=ef;
   
+  // Tampilkan badge status
   let sb='<span class="text-amber-400 font-bold">Terdaftar</span>';
-  if(lc.status==='active'||lc.valid===true||lc.status==='AKTIF') sb='<span class="text-emerald-400 font-bold">Aktif</span>';
-  else if(lc.status==='expired'||lc.status==='KADALUARSA') sb='<span class="text-red-400 font-bold">Kadaluarsa</span>';
+  if(rawStatus==='active'||lc.valid===true||rawStatus==='aktif') sb='<span class="text-emerald-400 font-bold">Aktif</span>';
+  else if(rawStatus==='expired'||rawStatus==='kadaluarsa') sb='<span class="text-red-400 font-bold">Kadaluarsa</span>';
   document.getElementById('info-status').innerHTML=sb;
   
   document.getElementById('device-info-box').classList.remove('hidden');
   
-  // Ambil daftar paket (fallback default jika gagal fetch paket)
+  // Ambil daftar paket
   let pk=[{hari:7,harga:25000,nama:'Paket 7 Hari'},{hari:14,harga:40000,nama:'Paket 14 Hari'},{hari:30,harga:70000,nama:'Paket 30 Hari'},{hari:60,harga:100000,nama:'Paket 60 Hari'}];
   try{
     const rp=await fetch(`${U}?action=get_packages`,{cache:'no-store'});

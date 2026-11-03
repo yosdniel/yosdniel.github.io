@@ -402,7 +402,8 @@
   <script>
     const VERCEL_API_URL = 'https://mindspace-id.vercel.app/api/tokopay';
     let repoContext = "";
-    const API_URL = "https://api-faa.my.id/faa/bard-google?query=";
+    // Menggunakan endpoint dasar API Anda
+    const API_URL = "https://api-faa.my.id/faa/bard-google";
 
     // Toast Notification Utility
     function showToast(message, isPersistent = false) {
@@ -436,11 +437,10 @@
       }
     }
 
-    // Membaca isi file repository secara otomatis untuk dijadikan pengetahuan FAQ AI
+    // Membaca isi file repository secara otomatis (dibatasi agar aman & tidak overload)
     async function initRepo() {
       let targetRepo = "";
 
-      // Deteksi otomatis jika diakses via GitHub Pages (username.github.io/nama-repo)
       if (window.location.hostname.includes('github.io')) {
         const pathSegments = window.location.pathname.split('/').filter(Boolean);
         if (pathSegments.length > 0) {
@@ -450,9 +450,8 @@
         }
       }
 
-      // Fallback manual repository utama Anda jika dijalankan lokal
       if (!targetRepo) {
-        targetRepo = "yosdniel/yosdniel.github.io"; // Ganti/sesuaikan jika perlu
+        targetRepo = "yosdniel/yosdniel.github.io"; // Sesuaikan default repo Anda
       }
 
       const statusSubtitle = document.getElementById('statusSubtitle');
@@ -467,15 +466,17 @@
 
         let loadedCount = 0;
         repoContext = "";
-        // Ambil file penting (html, js, md, json, dll) untuk dibaca sebagai database FAQ/knowledge base
-        const textFiles = files.filter(f => /\.(js|ts|html|css|json|md|php)$/i.test(f.path)).slice(0, 20);
+        
+        // Ambil file utama website saja (misal index.html atau file config penting) maksimal 5 file agar ringkas & tidak error
+        const textFiles = files.filter(f => /\.(html|js|json|md)$/i.test(f.path)).slice(0, 5);
 
         for (const file of textFiles) {
           try {
             const fileRes = await fetch(`https://raw.githubusercontent.com/${targetRepo}/HEAD/${file.path}`);
             if (fileRes.ok) {
               const content = await fileRes.text();
-              repoContext += `\n\n--- FILE: ${file.path} ---\n${content.slice(0, 2500)}`;
+              // Batasi maksimal 1500 karakter per file agar payload tetap ringan
+              repoContext += `\n\n--- FILE: ${file.path} ---\n${content.slice(0, 1500)}`;
               loadedCount++;
             }
           } catch (err) {
@@ -489,7 +490,7 @@
       }
     }
 
-    // Kirim pertanyaan pengunjung dan cocokan dengan isi file repo website
+    // Kirim pertanyaan pengunjung dengan metode URL query yang diringkas dan aman
     async function handleSendMessage(e) {
       e.preventDefault();
       const inputField = document.getElementById('userInput');
@@ -513,24 +514,22 @@
       chatContainer.appendChild(messageDiv);
       chatContainer.scrollTop = chatContainer.scrollHeight;
 
-      // Susun prompt agar AI bertindak sebagai CS/FAQ yang mencari jawaban dari isi repository website
-      let fullQuery = `Anda adalah Customer Support / AI FAQ Assistant yang ramah untuk website ini. Pengunjung bertanya mengenai isi atau informasi yang ada di website. 
-Berikut adalah isi source code / file dari repository website ini sebagai referensi data/pengetahuan Anda:
-${repoContext}
-
-Pertanyaan Pengunjung: ${prompt}
-Jawablah pertanyaan tersebut dengan ramah, jelas, dan akurat berdasarkan data file website di atas.`;
+      // Susun ringkasan konteks website agar tidak terlalu panjang
+      let fullQuery = `Jawab sebagai CS FAQ website MindHUB SIPGN berdasarkan data ini: ${repoContext.slice(0, 3000)}. Pertanyaan pengunjung: ${prompt}`;
 
       try {
-        const response = await fetch(`${API_URL}${encodeURIComponent(fullQuery)}`);
-        if (!response.ok) throw new Error('Gagal merespons dari server AI.');
+        // Menggunakan URLSearchParams agar parameter URL di-encode dengan aman tanpa error karakter spesial
+        const targetApiUrl = `${API_URL}?query=` + encodeURIComponent(fullQuery);
+        
+        const response = await fetch(targetApiUrl);
+        if (!response.ok) throw new Error('Server AI sibuk.');
         
         const data = await response.json();
         const aiReply = data.result || data.message || data.text || JSON.stringify(data);
 
         document.getElementById(aiMessageId).innerHTML = marked.parse(aiReply);
       } catch (error) {
-        document.getElementById(aiMessageId).innerHTML = `<span class="text-red-400">Maaf, terjadi kendala saat memproses pertanyaan Anda.</span>`;
+        document.getElementById(aiMessageId).innerHTML = `<span class="text-red-400">Maaf, terjadi kendala saat memproses pertanyaan Anda. Silakan coba tanyakan kembali.</span>`;
       }
 
       chatContainer.scrollTop = chatContainer.scrollHeight;
@@ -557,7 +556,6 @@ Jawablah pertanyaan tersebut dengan ramah, jelas, dan akurat berdasarkan data fi
       return text.replace(/[&<>"']/g, m => map[m]);
     }
 
-    // Fetch script metadata on load for landing page download
     async function muatMetadataLanding() {
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=check_version`);
@@ -576,7 +574,7 @@ Jawablah pertanyaan tersebut dengan ramah, jelas, dan akurat berdasarkan data fi
 
     window.addEventListener('DOMContentLoaded', () => {
       muatMetadataLanding();
-      initRepo(); // Mulai membaca file repo di latar belakang sebagai database FAQ
+      initRepo();
     });
 
     async function incrementDownloadCounter() {
@@ -589,7 +587,6 @@ Jawablah pertanyaan tersebut dengan ramah, jelas, dan akurat berdasarkan data fi
       } catch (e) {}
     }
 
-    // Interactive FAQ Accordion Dropdown Function
     function toggleFaq(button) {
       const content = button.nextElementSibling;
       const icon = button.querySelector('.faq-icon');

@@ -704,6 +704,14 @@
       return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
     }
 
+    function getTodayLocalISO() {
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
     function formatWaktuRelatif(dateStr) {
       if (!dateStr) return '-';
       const d = new Date(dateStr);
@@ -1533,7 +1541,16 @@
       document.getElementById('dispStatus').innerHTML = badge;
     }
 
-    function ubahStatusDropdown(val) { currentLicenseData.status = val; renderDetail(); }
+    function ubahStatusDropdown(val) { 
+      currentLicenseData.status = val; 
+      if (val === 'expired') {
+        const todayStr = getTodayLocalISO();
+        currentLicenseData.exp_date = todayStr;
+        showToast('Status diubah ke Expired. Exp date otomatis diset ke hari ini.');
+      }
+      renderDetail(); 
+    }
+
     function cekOtomatisStatusTanggal() {
       const v = document.getElementById('editExpDate').value;
       if (v) currentLicenseData.exp_date = v;
@@ -1559,6 +1576,7 @@
           const dataGet = await resGet.json();
           vouchersList = dataGet.vouchers || [];
         }
+        
         const newVoucher = {
           code: code,
           type: 'days',
@@ -1573,10 +1591,12 @@
           exp_date: expDateStr,
           device_id: currentLicenseData.device_id,
           is_single_use: true,
-          is_device_specific: true,
+          is_device_specific: true, // FLAG PENANDA AGAR TIDAK TAMPIL DI PROMO UMUM
           created_at: new Date().toISOString()
         };
+        
         vouchersList.push(newVoucher);
+        
         const resSave = await fetch(VERCEL_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1588,7 +1608,7 @@
           showToast(`Voucher ${code} (${numDays} Hari) berhasil dibuat khusus ${currentLicenseData.device_id}!`);
         } else {
           voucherInput.value = code;
-          showToast(`Voucher ${code} dibuat di lokal, gagal simpan server.`, false);
+          showToast(`Voucher ${code} dibuat, gagal sinkronisasi server.`, false);
         }
       } catch (e) {
         voucherInput.value = code;
@@ -1871,7 +1891,14 @@
         const res = await fetch(`${VERCEL_API_URL}?action=get_vouchers`);
         const data = await res.json();
         const allVouchers = data.vouchers || [];
-        const list = allVouchers.filter(v => !v.is_device_specific && (!v.device_id || v.device_id === 'ALL' || v.device_id === ''));
+        
+        // FILTER KETAT: Hanya tampilkan voucher umum/promo yang target device-nya ALL atau kosong,
+        // sehingga voucher khusus device (generate dari detail device) tidak akan muncul di menu ini.
+        const list = allVouchers.filter(v => {
+          const isDeviceSpecific = v.is_device_specific === true || (v.device_id && v.device_id !== 'ALL' && v.device_id !== '');
+          return !isDeviceSpecific;
+        });
+
         const container = document.getElementById('containerListVoucher');
         container.innerHTML = '';
         if (list.length === 0) {
@@ -1883,7 +1910,7 @@
             tambahBarisVoucherForm(v.code, v.type || v.discount_type || 'percent', v.value !== undefined ? v.value : (v.discount_value || 0), v.quota || 100, v.used_count || 0, v.exp_date || '2026-12-31', v.device_id || 'ALL', isExpired);
           });
         }
-      } catch (err) { showToast('Failed to load vouchers', false); }
+      } catch (err) { showToast('Gagal memuat data voucher', false); }
     }
 
     function tambahBarisVoucherForm(code = '', type = 'percent', value = '', quota = 100, used_count = 0, exp_date = '', device_id = 'ALL', isExpired = false) {
@@ -1941,7 +1968,18 @@
         const exp_date = r.querySelector('.inp-exp').value;
         const device_id = r.querySelector('.inp-device').value.trim().toUpperCase() || 'ALL';
         if (code) {
-          newManualVouchers.push({ code, type, discount_type: type, value, discount_value: value, quota, used_count, exp_date, device_id, is_device_specific: device_id !== 'ALL' && device_id !== '' });
+          newManualVouchers.push({ 
+            code, 
+            type, 
+            discount_type: type, 
+            value, 
+            discount_value: value, 
+            quota, 
+            used_count, 
+            exp_date, 
+            device_id, 
+            is_device_specific: device_id !== 'ALL' && device_id !== '' 
+          });
         }
       });
 
@@ -1952,7 +1990,9 @@
           const dataGet = await resGet.json();
           existingVouchers = dataGet.vouchers || [];
         }
-        const deviceSpecificVouchers = existingVouchers.filter(v => v.is_device_specific || (v.device_id && v.device_id !== 'ALL' && v.device_id !== ''));
+        
+        // Ambil kembali voucher khusus device yang sudah ada di server agar tidak ikut terhapus saat simpan
+        const deviceSpecificVouchers = existingVouchers.filter(v => v.is_device_specific === true || (v.device_id && v.device_id !== 'ALL' && v.device_id !== ''));
         const combinedVouchers = [...newManualVouchers, ...deviceSpecificVouchers];
 
         const res = await fetch(VERCEL_API_URL, {

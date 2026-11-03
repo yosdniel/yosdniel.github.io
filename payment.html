@@ -71,14 +71,19 @@ function getTanggalIndoGMT7(){
   const now=new Date();
   const utc=now.getTime()+(now.getTimezoneOffset()*60000);
   const gmt7=new Date(utc+(7*3600000));
-  return `${days[gmt7.getDay()]}, ${gmt7.getDate()} ${months[gmt7.getMonth()]} ${gmt7.getFullYear()}`;
+  return `${days[gmt7.getDay()], gmt7.getDate()} ${months[gmt7.getMonth()]} ${gmt7.getFullYear()}`;
 }
 
 window.addEventListener('DOMContentLoaded',()=>{
   gStat();
   _gi=setInterval(gStat,15000);
   const q=new URLSearchParams(window.location.search),d=q.get('device_id')||q.get('did');
-  if(d){document.getElementById('input-device-id').value=d.toUpperCase();_x.chk()}
+  if(d){
+    const cleanId = d.trim().toUpperCase();
+    document.getElementById('input-device-id').value = cleanId;
+    // Beri sedikit jeda agar DOM ter-load sempurna sebelum auto-check
+    setTimeout(() => { _x.chk(); }, 300);
+  }
 });
 
 async function gStat(){
@@ -87,7 +92,7 @@ async function gStat(){
   bc.disabled=false;
   b.className='inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold shadow-sm transition-all duration-300';
   dt.className='w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
-  tx.textContent=`${getTanggalIndoGMT7()}`;
+  tx.textContent=`Gateway Online`;
   if(_chk){
     bq.classList.remove('opacity-50','pointer-events-none');
     bq.disabled=false;
@@ -96,19 +101,28 @@ async function gStat(){
 
 window._x={
 chk:async()=>{
-  _go=true;
   const el=document.getElementById('input-device-id'),id=el.value.trim().toUpperCase();
   if(!id){toast('Masukkan Device ID terlebih dahulu!',false);el.focus();return}
   el.value=id;
   const bc=document.getElementById('btn-check-device');
   bc.disabled=true;
   bc.textContent='Memeriksa...';
+  
   let lc=null;
   try{
-    const rc=await fetch(`${U}?action=check_license&device_id=${encodeURIComponent(id)}`,{cache:'no-store'});
-    if(rc.ok){const j=await rc.json();if(j&&typeof j==='object')lc=j}
-  }catch(e){}
-  const un=!lc||lc.status==='unregistered'||lc.valid===false||lc.error||lc.found===false||(lc.sppg_name&&lc.sppg_name.toLowerCase().includes('belum terdaftar'));
+    const rc=await fetch(`${U}?action=check_license&device_id=${encodeURIComponent(id)}`,{method:'GET',cache:'no-store'});
+    if(rc.ok){
+      const j=await rc.json();
+      // Handle jika response dibungkus object bersarang (misal: j.data atau langsung j)
+      lc = j.data || j;
+    }
+  }catch(e){
+    console.error('Check license error:', e);
+  }
+
+  // Validasi kondisi device tidak terdaftar / error
+  const un = !lc || lc.status==='unregistered' || lc.valid===false || lc.error || lc.found===false || (lc.sppg_name && lc.sppg_name.toLowerCase().includes('belum terdaftar'));
+  
   if(un){
     document.getElementById('device-info-box').classList.add('hidden');
     document.getElementById('packages-section').classList.add('hidden');
@@ -122,25 +136,38 @@ chk:async()=>{
     el.focus();
     return;
   }
-  document.getElementById('info-sppg-name').textContent=lc.sppg_name||'Terdaftar';
+
+  // Jika ditemukan, tampilkan informasi device
+  document.getElementById('info-sppg-name').textContent = lc.sppg_name || lc.nama || 'Terdaftar';
   let ef='-';
-  if(lc.exp_date&&lc.exp_date!=='-'){
-    const de=new Date(lc.exp_date);
-    ef=!isNaN(de.getTime())?de.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}):lc.exp_date;
+  const rawExp = lc.exp_date || lc.expired_date || lc.expired;
+  if(rawExp && rawExp!=='-'){
+    const de=new Date(rawExp);
+    ef=!isNaN(de.getTime())?de.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}):rawExp;
   }
   document.getElementById('info-exp-date').textContent=ef;
+  
   let sb='<span class="text-amber-400 font-bold">Terdaftar</span>';
-  if(lc.status==='active'||lc.valid===true)sb='<span class="text-emerald-400 font-bold">Aktif</span>';
-  else if(lc.status==='expired')sb='<span class="text-red-400 font-bold">Kadaluarsa</span>';
+  if(lc.status==='active'||lc.valid===true||lc.status==='AKTIF') sb='<span class="text-emerald-400 font-bold">Aktif</span>';
+  else if(lc.status==='expired'||lc.status==='KADALUARSA') sb='<span class="text-red-400 font-bold">Kadaluarsa</span>';
   document.getElementById('info-status').innerHTML=sb;
+  
   document.getElementById('device-info-box').classList.remove('hidden');
+  
+  // Ambil daftar paket (fallback default jika gagal fetch paket)
   let pk=[{hari:7,harga:25000,nama:'Paket 7 Hari'},{hari:14,harga:40000,nama:'Paket 14 Hari'},{hari:30,harga:70000,nama:'Paket 30 Hari'},{hari:60,harga:100000,nama:'Paket 60 Hari'}];
   try{
     const rp=await fetch(`${U}?action=get_packages`,{cache:'no-store'});
-    if(rp.ok){const pj=await rp.json();if(pj&&Array.isArray(pj.packages)&&pj.packages.length>0)pk=pj.packages}
+    if(rp.ok){
+      const pj=await rp.json();
+      const listPk = pj.packages || pj.data || pj;
+      if(Array.isArray(listPk) && listPk.length>0) pk=listPk;
+    }
   }catch(e){}
+  
   renderPk(pk);
   document.getElementById('packages-section').classList.remove('hidden');
+  
   const bq=document.getElementById('btn-create-qr');
   bq.classList.remove('opacity-50','pointer-events-none');
   bq.disabled=false;
@@ -149,6 +176,7 @@ chk:async()=>{
   bc.textContent='🔍 Cek Device';
   toast('Device ID berhasil diverifikasi!');
 },
+
 promo:async()=>{
   const pi=document.getElementById('input-promo-code'),pm=document.getElementById('promo-msg'),c=pi.value.trim().toUpperCase();
   if(!c){toast('Masukkan kode promo!',false);return}
@@ -159,15 +187,16 @@ promo:async()=>{
     const r=await fetch(`${U}?action=check_promo&code=${encodeURIComponent(c)}`,{cache:'no-store'});
     if(r.ok){
       const d=await r.json();
-      if(d&&d.valid){
+      const resD = d.data || d;
+      if(resD && (resD.valid===true || resD.success===true)){
         _ap=c;
-        _disc=d.type==='percent'?Math.round(_bn*(Number(d.value)/100)):(Number(d.value)||5000);
+        _disc=resD.type==='percent'?Math.round(_bn*(Number(resD.value)/100)):(Number(resD.value)||5000);
         _n=Math.max(0,_bn-_disc);
         pm.className='text-[11px] font-semibold text-emerald-400';
         pm.textContent=`✔ Promo "${c}" aktif! Diskon ${fmt(_disc)}`;
         toast(`Promo berhasil! Diskon ${fmt(_disc)}`);
         return;
-      }else{throw new Error(d.message||'Promo tidak valid')}
+      }else{throw new Error(resD.message||'Promo tidak valid')}
     }
   }catch(e){
     if(c==='MINDSPACE20'||c==='SIPGN'){
@@ -183,6 +212,7 @@ promo:async()=>{
     toast('Kode promo tidak valid',false);
   }
 },
+
 qr:async()=>{
   const ie=document.getElementById('input-device-id'),id=ie.value.trim().toUpperCase();
   if(!id){toast('Device ID wajib diisi!',false);ie.focus();return}
@@ -191,16 +221,29 @@ qr:async()=>{
   btn.disabled=true;
   btn.textContent='⏳ Menghubungkan Gateway...';
   try{
-    const r=await fetch(U,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({device_id:id,paket_hari:_p,nominal:_n,base_nominal:_bn,discount:_disc,promo_code:_ap,metode:'QRISREALTIME'})}),d=await r.json(),qs=d.qr_string||d.qrCode||d.data?.qr_string||d.data?.qrCode||d.data?.qr_code,ql=d.qr_link||d.qr_url||d.data?.qr_link||d.data?.qr_url||d.data?.qrCodeUrl,rf=d.reff_id||d.ref_id||d.trx_id||d.data?.ref_id||d.data?.trx_id||d.data?.reff_id,err=d.success===false||d.status==='Error'||d.status===false||d.status===0,msg=d.error||d.message||d.data?.error||d.data?.message||d.msg;
+    const r=await fetch(U,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({device_id:id,paket_hari:_p,nominal:_n,base_nominal:_bn,discount:_disc,promo_code:_ap,metode:'QRISREALTIME'})});
+    const res = await r.json();
+    const d = res.data || res;
+    
+    const qs=d.qr_string||d.qrCode||d.qr_code;
+    const ql=d.qr_link||d.qr_url||d.qrCodeUrl;
+    const rf=d.reff_id||d.ref_id||d.trx_id;
+    const err=res.success===false||d.status==='Error'||d.status===false||d.status===0;
+    const msg=d.error||d.message||res.message||res.error;
+    
     if(err||(!qs&&!ql))throw new Error(msg||'Gateway menolak QRIS.');
-    const fe=Math.ceil(_n*0.017),tot=d.total_bayar||d.total||d.data?.total_bayar||(_n+fe);
+    
+    const fe=Math.ceil(_n*0.017);
+    const tot=d.total_bayar||d.total||(_n+fe);
     _ref=rf;
+    
     document.getElementById('qris-subtitle').textContent=`Device: ${id} • ${_p} Hari`;
     document.getElementById('qris-total-amount').textContent=fmt(tot);
     let fi=`(Harga: ${fmt(_bn)}`;
     if(_disc>0)fi+=` - Diskon: ${fmt(_disc)}`;
     fi+=` + Fee 1.7%: ${fmt(fe)})`;
     document.getElementById('qris-fee-info').textContent=fi;
+    
     const qb=document.getElementById('qrcode-box');
     qb.innerHTML='';
     if(qs){
@@ -228,6 +271,7 @@ qr:async()=>{
     btn.textContent='🚀 Buat QRIS Pembayaran';
   }
 },
+
 back:()=>{
   if(_pi)clearInterval(_pi);
   if(_ci)clearInterval(_ci);
@@ -277,14 +321,16 @@ function pollSt(){
   _pi=setInterval(async()=>{
     if(!_ref)return;
     try{
-      const r=await fetch(`${U}?reff_id=${encodeURIComponent(_ref)}`,{cache:'no-store'}),d=await r.json(),sv=d.status||d.data?.status,paid=d.is_paid||sv==='Success'||sv==='SUCCESS'||sv==='paid';
+      const r=await fetch(`${U}?reff_id=${encodeURIComponent(_ref)}`,{cache:'no-store'}),res=await r.json(),d=res.data||res;
+      const sv=d.status;
+      const paid=d.is_paid===true||sv==='Success'||sv==='SUCCESS'||sv==='paid'||sv==='PAID';
       if(paid){
         clearInterval(_pi);
         if(_ci)clearInterval(_ci);
         document.getElementById('step-qris').classList.add('hidden');
         document.getElementById('step-success').classList.remove('hidden');
         document.getElementById('success-device-id').textContent=document.getElementById('input-device-id').value.trim().toUpperCase();
-        let es='Berhasil Diperpanjang',ev=d.exp_date||d.data?.exp_date;
+        let es='Berhasil Diperpanjang',ev=d.exp_date||d.expired_date;
         if(ev){
           const de=new Date(ev);
           es=!isNaN(de.getTime())?de.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}):ev;

@@ -225,9 +225,6 @@
         <button onclick="bukaFitur('device')" id="navDevice" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
           <span class="text-base">👥</span> Client Devices
         </button>
-        <button onclick="bukaFitur('generate')" id="navGenerate" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
-          <span class="text-base">🎟️</span> Generate Voucher
-        </button>
         <button onclick="bukaFitur('transfer')" id="navTransfer" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
           <span class="text-base">🔄</span> Migrate Data
         </button>
@@ -401,26 +398,21 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
             <div onclick="bukaFitur('device')" class="glass-card p-4 sm:p-5 rounded-2xl hover:border-brand-500/50 cursor-pointer transition group">
               <div class="text-2xl mb-2 group-hover:scale-110 transition-transform">🔍</div>
               <h3 class="font-bold text-white text-xs sm:text-sm">Client Devices</h3>
               <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5">Manage licenses</p>
             </div>
-            <div onclick="bukaFitur('generate')" class="glass-card p-4 sm:p-5 rounded-2xl hover:border-brand-500/50 cursor-pointer transition group">
-              <div class="text-2xl mb-2 group-hover:scale-110 transition-transform">🎟️</div>
-              <h3 class="font-bold text-white text-xs sm:text-sm">Generate Voucher</h3>
-              <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5">Create activation key</p>
+            <div onclick="bukaFitur('transfer')" class="glass-card p-4 sm:p-5 rounded-2xl hover:border-brand-500/50 cursor-pointer transition group">
+              <div class="text-2xl mb-2 group-hover:scale-110 transition-transform">🔄</div>
+              <h3 class="font-bold text-white text-xs sm:text-sm">Migrate Device</h3>
+              <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5">Transfer data</p>
             </div>
             <div onclick="bukaFitur('packages')" class="glass-card p-4 sm:p-5 rounded-2xl hover:border-brand-500/50 cursor-pointer transition group">
               <div class="text-2xl mb-2 group-hover:scale-110 transition-transform">📦</div>
               <h3 class="font-bold text-white text-xs sm:text-sm">Pricing Plans</h3>
               <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5">Subscription rates</p>
-            </div>
-            <div onclick="bukaFitur('release')" class="glass-card p-4 sm:p-5 rounded-2xl hover:border-brand-500/50 cursor-pointer transition group">
-              <div class="text-2xl mb-2 group-hover:scale-110 transition-transform">🚀</div>
-              <h3 class="font-bold text-white text-xs sm:text-sm">Cloud Updater</h3>
-              <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5">Publish scripts</p>
             </div>
           </div>
 
@@ -492,39 +484,7 @@
           </div>
         </div>
 
-        <!-- GENERATE VOUCHER / LICENSE -->
-        <div id="subViewGenerateVoucher" class="subview-section max-w-xl mx-auto space-y-4">
-          <div class="glass-card p-5 sm:p-8 rounded-3xl space-y-4 border border-slate-800">
-            <div>
-              <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Device ID Klien</label>
-              <input type="text" id="genVoucherDeviceId" placeholder="DEV-XXXX" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs font-mono uppercase">
-            </div>
-            <div>
-              <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Nama SPPG / Klien</label>
-              <input type="text" id="genVoucherSppgName" placeholder="Contoh: SPPG Wilayah 1" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs">
-            </div>
-            <div>
-              <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Pilih Durasi Paket</label>
-              <select id="genVoucherDuration" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs outline-none focus:border-brand-500 transition">
-                <option value="7">7 Hari (1 Minggu)</option>
-                <option value="30" selected>30 Hari (1 Bulan)</option>
-                <option value="90">90 Hari (3 Bulan)</option>
-                <option value="365">365 Hari (1 Tahun)</option>
-                <option value="9999">Lifetime (Selamanya)</option>
-              </select>
-            </div>
-            <button onclick="executeGenerateVoucher()" class="w-full bg-brand-500 hover:bg-brand-600 active:scale-[0.99] text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-brand-500/25 transition">🎟️ Generate & Aktifkan Lisensi</button>
-            
-            <div id="generatedVoucherResultBox" class="hidden mt-4 p-4 rounded-2xl bg-slate-900/90 border border-brand-500/30 space-y-2 text-xs">
-              <span class="text-[10px] text-brand-400 font-extrabold uppercase tracking-wider block">Hasil Kode Lisensi Voucher:</span>
-              <div id="generatedVoucherKeyText" class="font-mono text-emerald-400 font-bold bg-slate-950 p-3 rounded-xl border border-slate-800 break-all select-all">--</div>
-              <button onclick="copyGeneratedVoucherKey()" class="w-full bg-slate-800 hover:bg-slate-700 text-white py-2.5 rounded-xl font-bold transition text-xs">📋 Salin Kode Lisensi</button>
-            </div>
-            <button onclick="bukaFitur('overview')" class="w-full bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 py-3 rounded-2xl text-xs font-bold transition border border-slate-700 mt-2">🏠 Kembali ke Menu</button>
-          </div>
-        </div>
-
-        <!-- DEVICE DETAIL -->
+        <!-- DEVICE DETAIL & GENERATE VOUCHER DEVICE INI -->
         <div id="subViewDeviceDetail" class="subview-section space-y-4 sm:space-y-6 max-w-2xl mx-auto">
           <div class="glass-card p-5 sm:p-8 rounded-3xl space-y-5 border border-slate-800">
             <div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-2 text-xs sm:text-sm">
@@ -533,6 +493,26 @@
               <div class="flex justify-between items-center gap-2"><span>Status</span> <span id="dispStatus">-</span></div>
               <div class="flex justify-between items-center gap-2"><span>Exp Date</span> <span id="dispExpDate" class="text-white font-bold">-</span></div>
               <div class="flex justify-between items-center gap-2"><span>Last Active</span> <span id="dispLastActive" class="text-slate-400">-</span></div>
+            </div>
+
+            <!-- GENERATE VOUCHER DEVICE INI CARD -->
+            <div class="bg-slate-900/90 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-amber-400 flex items-center gap-1.5">🎟️ GENERATE VOUCHER DEVICE INI</span>
+                <span class="text-[10px] text-slate-400 font-mono">(SINGLE-USE PER DEVICE ID)</span>
+              </div>
+              <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                <button onclick="generateVoucherForDevice(1)" class="bg-slate-800 hover:bg-brand-500/20 hover:border-brand-500/40 text-white border border-slate-700 py-2.5 rounded-xl text-xs font-bold transition">1 Hari</button>
+                <button onclick="generateVoucherForDevice(3)" class="bg-slate-800 hover:bg-brand-500/20 hover:border-brand-500/40 text-white border border-slate-700 py-2.5 rounded-xl text-xs font-bold transition">3 Hari</button>
+                <button onclick="generateVoucherForDevice(7)" class="bg-slate-800 hover:bg-brand-500/20 hover:border-brand-500/40 text-white border border-slate-700 py-2.5 rounded-xl text-xs font-bold transition">7 Hari</button>
+                <button onclick="generateVoucherForDevice(14)" class="bg-slate-800 hover:bg-brand-500/20 hover:border-brand-500/40 text-white border border-slate-700 py-2.5 rounded-xl text-xs font-bold transition">14 Hari</button>
+                <button onclick="generateVoucherForDevice(30)" class="bg-slate-800 hover:bg-brand-500/20 hover:border-brand-500/40 text-white border border-slate-700 py-2.5 rounded-xl text-xs font-bold transition">30 Hari</button>
+                <button onclick="generateVoucherForDevice(60)" class="bg-slate-800 hover:bg-brand-500/20 hover:border-brand-500/40 text-white border border-slate-700 py-2.5 rounded-xl text-xs font-bold transition">60 Hari</button>
+              </div>
+              <div class="flex gap-2 pt-1 items-center">
+                <input type="text" id="dispGeneratedVoucherCode" readonly placeholder="MIND-XXXXXX-XXXXXX" class="w-full bg-slate-950 px-3.5 py-2.5 rounded-xl border border-slate-800 text-xs font-mono text-emerald-400 font-bold select-all outline-none">
+                <button onclick="copyDeviceVoucherKey()" class="bg-brand-500 hover:bg-brand-600 active:scale-95 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition shrink-0 shadow-lg shadow-brand-500/20">Salin</button>
+              </div>
             </div>
 
             <div id="backupInfoCard" class="hidden bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-2 text-xs">
@@ -1123,7 +1103,7 @@
     }
 
     function highlightActiveNav(activeId) {
-      const navIds = ['navOverview', 'navDevice', 'navGenerate', 'navTransfer', 'navPackages', 'navRelease'];
+      const navIds = ['navOverview', 'navDevice', 'navTransfer', 'navPackages', 'navRelease'];
       navIds.forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
@@ -1149,13 +1129,6 @@
         gantiSubView('subViewDeviceCheck');
         document.getElementById('appTitle').textContent = 'Client Devices';
         muatDaftarSemuaUser();
-      } else if (fitur === 'generate') {
-        highlightActiveNav('navGenerate');
-        document.getElementById('genVoucherDeviceId').value = '';
-        document.getElementById('genVoucherSppgName').value = '';
-        document.getElementById('generatedVoucherResultBox').classList.add('hidden');
-        gantiSubView('subViewGenerateVoucher');
-        document.getElementById('appTitle').textContent = 'Generate Voucher';
       } else if (fitur === 'transfer') {
         highlightActiveNav('navTransfer');
         document.getElementById('inputSourceDevice').value = '';
@@ -1507,19 +1480,16 @@
       });
     }
 
-    /* GENERATE VOUCHER / LICENSE LOGIC */
-    async function executeGenerateVoucher() {
-      const deviceId = document.getElementById('genVoucherDeviceId').value.trim().toUpperCase();
-      const sppgName = document.getElementById('genVoucherSppgName').value.trim();
-      const durationDays = parseInt(document.getElementById('genVoucherDuration').value);
-
-      if (!deviceId) return showToast('Device ID Klien wajib diisi!', false);
-
+    /* GENERATE VOUCHER UNTUK DEVICE INI (LANGSUNG DARI HALAMAN DETAIL) */
+    async function generateVoucherForDevice(days) {
+      if (!currentLicenseData || !currentLicenseData.device_id) return showToast('Pilih device terlebih dahulu!', false);
+      
+      const deviceId = currentLicenseData.device_id;
       let targetDate = new Date();
-      if (durationDays >= 9999) {
+      if (days >= 9999) {
         targetDate = new Date('2099-12-31');
       } else {
-        targetDate.setDate(targetDate.getDate() + durationDays);
+        targetDate.setDate(targetDate.getDate() + days);
       }
 
       const yyyy = targetDate.getFullYear();
@@ -1532,7 +1502,7 @@
       const payload = {
         action: 'save_license',
         device_id: deviceId,
-        sppg_name: sppgName || 'Generated Client',
+        sppg_name: currentLicenseData.sppg_name || 'Client',
         status: 'active',
         exp_date: expDateStr,
         license_key: licenseKey,
@@ -1540,7 +1510,7 @@
       };
 
       try {
-        showToast('Membuat & menyimpan lisensi voucher...', true);
+        showToast('Membuat & mengupdate lisensi voucher device...', true);
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1548,23 +1518,26 @@
         });
         const result = await res.json();
         if (res.ok && (result.success || result.status !== false)) {
-          document.getElementById('generatedVoucherKeyText').textContent = licenseKey;
-          document.getElementById('generatedVoucherResultBox').classList.remove('hidden');
-          showToast('Voucher/Lisensi berhasil digenerate & diaktifkan!');
+          currentLicenseData.exp_date = expDateStr;
+          currentLicenseData.status = 'active';
+          renderDetail();
+          document.getElementById('dispGeneratedVoucherCode').value = licenseKey;
+          showToast(`Voucher ${days} Hari berhasil digenerate untuk device ini!`);
           muatDaftarSemuaUser();
         } else {
-          showToast(result.error || 'Gagal menyimpan lisensi ke server', false);
+          showToast(result.error || 'Gagal generate voucher device', false);
         }
       } catch (e) {
         showToast('Network error saat generate voucher', false);
       }
     }
 
-    function copyGeneratedVoucherKey() {
-      const keyText = document.getElementById('generatedVoucherKeyText').textContent;
-      if (!keyText || keyText === '--') return;
-      navigator.clipboard.writeText(keyText).then(() => {
-        showToast('Kode lisensi berhasil disalin!');
+    function copyDeviceVoucherKey() {
+      const codeInput = document.getElementById('dispGeneratedVoucherCode');
+      if (!codeInput.value) return showToast('Belum ada kode voucher yang digenerate!', false);
+      codeInput.select();
+      navigator.clipboard.writeText(codeInput.value).then(() => {
+        showToast('Kode voucher berhasil disalin!');
       }).catch(() => {
         showToast('Gagal menyalin kode', false);
       });
@@ -1574,6 +1547,7 @@
       gantiSubView('subViewDeviceDetail');
       document.getElementById('appTitle').textContent = 'License Detail';
       currentLicenseData = { ...u, status: stat };
+      document.getElementById('dispGeneratedVoucherCode').value = u.license_key || '';
       renderDetail();
       muatBackupDevice(u.device_id);
     }
@@ -1905,7 +1879,7 @@
         if (res.ok && (result.success || result.status)) {
           showToast(`Release v${version} published!`);
         } else showToast(result.error || 'Publish failed', false);
-      } catch (err) { showToast('Network Error', false); }
+      } catch (err) { src => console.log(err); }
     }
 
     function triggerPWAInstall() {

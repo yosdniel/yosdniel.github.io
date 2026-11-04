@@ -178,7 +178,9 @@
       statusEl.classList.add(isError ? 'text-rose-400' : 'text-emerald-400');
       statusEl.innerText = msg;
     }
-      
+
+    // Callback saat Cloudflare Turnstile berhasil diselesaikan di browser
+    window.onCaptchaSuccess = async function(token) {
       try {
         // Kirim token ke Serverless Vercel API untuk verifikasi dengan Secret Key
         const res = await fetch(VERIFY_CAPTCHA_URL, {
@@ -191,6 +193,7 @@
         
         if (data && data.success) {
           isCaptchaSolved = true;
+          setCaptchaStatus('✓ Captcha terverifikasi!');
           updateDownloadButtonState();
         } else {
           isCaptchaSolved = false;
@@ -201,7 +204,6 @@
         console.error('Verifikasi backend gagal:', err);
         // Fallback jika API route belum dideploy/dikembangkan
         isCaptchaSolved = true;
-        setCaptchaStatus('✓ Captcha terverifikasi (Client)');
         updateDownloadButtonState();
       }
     };

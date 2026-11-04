@@ -156,6 +156,7 @@ let _reffId = null;
 let _pollInterval = null;
 let _countdownInterval = null;
 let _isChecked = false;
+let _initialExpDate = null; // Menyimpan tanggal kadaluarsa awal sebelum QRIS dibuat
 
 function fmt(n) {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(n) || 0);
@@ -184,7 +185,7 @@ async function checkDevice() {
 
   const btnCheck = document.getElementById('btn-check-device');
   btnCheck.disabled = true;
-  btnCheck.textContent = 'Memeriksa...';
+  btnCheck.textContent = '⏳ Memeriksa...';
 
   let lc = null;
   try {
@@ -201,9 +202,15 @@ async function checkDevice() {
     }
   } catch (err) {
     console.error('Network/Fetch Error:', err);
+  } finally {
+    btnCheck.disabled = false;
+    btnCheck.textContent = '🔍 Cek Device';
   }
 
   const rawStatus = (lc?.status || '').toString().toLowerCase();
+
+  // Simpan tanggal kadaluarsa awal sebelum perpanjangan
+  _initialExpDate = lc?.exp_date || lc?.expired_date || lc?.expired || null;
 
   // Hanya blokir jika status benar-benar dilarang oleh Admin (Hold / Revoke)
   if (rawStatus === 'hold') {
@@ -268,8 +275,6 @@ async function checkDevice() {
   btnCreateQr.disabled = false;
 
   _isChecked = true;
-  btnCheck.disabled = false;
-  btnCheck.textContent = '🔍 Cek Device';
 
   if (rawStatus === 'unregistered') {
     toast('Device ID siap terdaftar! Silakan pilih paket langganan.');
@@ -498,12 +503,35 @@ function startPolling() {
     if (!_reffId) return;
     try {
       const devIdCurrent = document.getElementById('input-device-id').value.trim().toUpperCase();
+      
+      // 1. Cek status transaksi resmi dari Gateway Tokopay API
       const res = await fetch(`${API_URL}?reff_id=${encodeURIComponent(_reffId)}&device_id=${encodeURIComponent(devIdCurrent)}`, { cache: 'no-store' });
       const json = await res.json();
       const d = json.data || json;
-      const st = d.status;
-      const isPaid = d.is_paid === true || st === 'Success' || st === 'SUCCESS' || st === 'paid' || st === 'PAID';
+      const rawStatusStr = String(json.status || d.status || json.raw_status || d.raw_status || '').toLowerCase();
+      
+      let isPaid = json.is_paid === true || d.is_paid === true || ['success', 'paid', 'completed', 'berhasil'].includes(rawStatusStr);
+      let newExpStr = json.exp_date || d.exp_date || d.expired_date || d.expired;
 
+      // 2. Fallback Check ke Supabase HANYA JIKA tanggal kadaluarsa sudah BENAR-BENAR BERTAMBAH dari tanggal awal
+      if (!isPaid) {
+        try {
+          const licCheckRes = await fetch(`${API_URL}?action=check_license&device_id=${encodeURIComponent(devIdCurrent)}`, { cache: 'no-store' });
+          if (licCheckRes.ok) {
+            const licJson = await licCheckRes.json();
+            const licData = licJson.data || licJson.license || licJson;
+            const currentDbExp = licData?.exp_date || licData?.expired_date || null;
+            
+            // Verifikasi: Hanya anggap lunas jika exp_date di DB sudah berubah/bertambah dibanding _initialExpDate
+            if (currentDbExp && _initialExpDate && currentDbExp !== _initialExpDate) {
+              isPaid = true;
+              newExpStr = currentDbExp;
+            }
+          }
+        } catch (errDb) {}
+      }
+
+      // 3. Tampilkan Layar Sukses HANYA jika terbukti lunas
       if (isPaid) {
         clearInterval(_pollInterval);
         if (_countdownInterval) clearInterval(_countdownInterval);
@@ -511,18 +539,20 @@ function startPolling() {
         document.getElementById('step-qris').classList.add('hidden');
         document.getElementById('step-success').classList.remove('hidden');
         document.getElementById('success-device-id').textContent = devIdCurrent;
-        
-        let newExpStr = 'Berhasil Diperpanjang';
-        const rawExp = d.exp_date || d.expired_date || d.expired;
-        if (rawExp && rawExp !== '-') {
-          const dt = new Date(rawExp);
-          newExpStr = !isNaN(dt.getTime()) ? dt.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : rawExp;
+
+        if (newExpStr && newExpStr !== '-') {
+          const dt = new Date(newExpStr);
+          newExpStr = !isNaN(dt.getTime()) ? dt.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : newExpStr;
+        } else {
+          newExpStr = 'Berhasil Diperpanjang';
         }
         document.getElementById('success-exp-date').textContent = newExpStr;
-        toast('Pembayaran Berhasil! Lisensi diperpanjang.');
+        toast('🎉 Pembayaran Berhasil! Lisensi telah diperpanjang.');
       }
-    } catch (e) {}
-  }, 4000);
+    } catch (e) {
+      console.warn('Polling status error:', e);
+    }
+  }, 5000); // Polling setiap 5 detik
 }
 
 // Event Listeners Binding

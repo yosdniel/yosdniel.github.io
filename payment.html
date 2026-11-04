@@ -103,18 +103,14 @@ chk:async()=>{
     const rc=await fetch(`${U}?action=check_license&device_id=${encodeURIComponent(id)}`,{method:'GET',cache:'no-store'});
     if(rc.ok){
       const j=await rc.json();
-      // Mengurai data dari berbagai kemungkinan struktur JSON API backend
       lc = j.data || j.license || j;
     }
   }catch(e){
     console.error('Check license error:', e);
   }
 
-  // Validasi longgar agar device yang terdaftar tidak salah terdeteksi
   const hasData = lc && (lc.device_id || lc.sppg_name || lc.nama || lc.expired || lc.exp_date || lc.status);
   const rawStatus = (lc?.status || '').toString().toLowerCase();
-  
-  // Jika server mengembalikan flag explicitly false/not found
   const isExplicitlyInvalid = lc?.found === false || lc?.valid === false || lc?.error || rawStatus === 'unregistered';
 
   if(!hasData || isExplicitlyInvalid){
@@ -138,7 +134,6 @@ chk:async()=>{
     return;
   }
 
-  // Tampilkan informasi SPPG & masa aktif
   document.getElementById('info-sppg-name').textContent = lc.sppg_name || lc.nama || lc.device_name || 'Terdaftar';
   let ef='-';
   const rawExp = lc.exp_date || lc.expired_date || lc.expired;
@@ -148,7 +143,6 @@ chk:async()=>{
   }
   document.getElementById('info-exp-date').textContent=ef;
   
-  // Tampilkan badge status
   let sb='<span class="text-amber-400 font-bold">Terdaftar</span>';
   if(rawStatus==='active'||lc.valid===true||rawStatus==='aktif'||rawStatus==='success') sb='<span class="text-emerald-400 font-bold">Aktif</span>';
   else if(rawStatus==='expired'||rawStatus==='kadaluarsa') sb='<span class="text-red-400 font-bold">Kadaluarsa</span>';
@@ -156,7 +150,6 @@ chk:async()=>{
   
   document.getElementById('device-info-box').classList.remove('hidden');
   
-  // Ambil daftar paket
   let pk=[{hari:7,harga:25000,nama:'Paket 7 Hari'},{hari:14,harga:40000,nama:'Paket 14 Hari'},{hari:30,harga:70000,nama:'Paket 30 Hari'},{hari:60,harga:100000,nama:'Paket 60 Hari'}];
   try{
     const rp=await fetch(`${U}?action=get_packages`,{cache:'no-store'});
@@ -255,7 +248,7 @@ qr:async()=>{
       qb.innerHTML=q.createImgTag(6,8);
       const img=qb.querySelector('img');
       if(img)img.className='w-56 h-56 object-contain rounded-xl shadow-md mx-auto';
-    }else(ql){
+    } else if(ql) {
       const img=document.createElement('img');
       img.src=ql;
       img.className='w-56 h-56 object-contain rounded-xl shadow-md mx-auto';

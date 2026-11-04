@@ -497,7 +497,8 @@ function startPolling() {
   _pollInterval = setInterval(async () => {
     if (!_reffId) return;
     try {
-      const res = await fetch(`${API_URL}?reff_id=${encodeURIComponent(_reffId)}`, { cache: 'no-store' });
+      const devIdCurrent = document.getElementById('input-device-id').value.trim().toUpperCase();
+      const res = await fetch(`${API_URL}?reff_id=${encodeURIComponent(_reffId)}&device_id=${encodeURIComponent(devIdCurrent)}`, { cache: 'no-store' });
       const json = await res.json();
       const d = json.data || json;
       const st = d.status;
@@ -509,11 +510,11 @@ function startPolling() {
 
         document.getElementById('step-qris').classList.add('hidden');
         document.getElementById('step-success').classList.remove('hidden');
-        document.getElementById('success-device-id').textContent = document.getElementById('input-device-id').value.trim().toUpperCase();
+        document.getElementById('success-device-id').textContent = devIdCurrent;
         
         let newExpStr = 'Berhasil Diperpanjang';
-        const rawExp = d.exp_date || d.expired_date;
-        if (rawExp) {
+        const rawExp = d.exp_date || d.expired_date || d.expired;
+        if (rawExp && rawExp !== '-') {
           const dt = new Date(rawExp);
           newExpStr = !isNaN(dt.getTime()) ? dt.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : rawExp;
         }

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - Halaman Tidak Ditemukan | Mindspace Universe</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/9a9fb66d9306be7be63bd1fec355ae5bccd21e60/assets/favicon.ico">
+
+    <!-- Google Font: Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Animasi Text Gradient Flow Ultra Smooth */
+        .animated-gradient-text {
+            background: linear-gradient(
+                135deg, 
+                #ffffff 0%, 
+                #38bdf8 30%, 
+                #818cf8 60%, 
+                #38bdf8 80%,
+                #ffffff 100%
+            );
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradientShift 8s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Float halus pada elemen Hero */
+        .animate-hero-float {
+            animation: heroFloat 6s ease-in-out infinite;
+        }
+
+        @keyframes heroFloat {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-12px) rotate(1deg); }
+        }
+
+        /* Entry Fade In Up */
+        .fade-in-up {
+            animation: fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.97);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* GEMINI AI LOADING AURORA GRADIENT ANIMATION */
+        .gemini-gradient-bg {
+            background: linear-gradient(
+                -45deg, 
+                #030712, 
+                #0284c7, 
+                #4f46e5, 
+                #9333ea, 
+                #ec4899, 
+                #06b6d4, 
+                #030712
+            );
+            background-size: 400% 400%;
+            animation: geminiAuroraShift 10s ease infinite;
+        }
+
+        @keyframes geminiAuroraShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Mesh Wave Layer overlay untuk efek kedalaman kilau Gemini */
+        .gemini-mesh-overlay {
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.35) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(147, 51, 234, 0.4) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.35) 0px, transparent 50%),
+                radial-gradient(at 0% 100%, rgba(6, 182, 212, 0.4) 0px, transparent 50%);
+            animation: meshPulse 8s ease-in-out infinite alternate;
+        }
+
+        @keyframes meshPulse {
+            0% { opacity: 0.6; transform: scale(1); }
+            100% { opacity: 1; transform: scale(1.08); }
+        }
+    </style>
+</head>
+<body class="bg-[#030712] font-sans text-white min-h-full flex items-center justify-center p-4 sm:p-6 selection:bg-sky-500 selection:text-white relative overflow-hidden" 
+      style="-webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;"
+      oncontextmenu="return false;">
+
+    <!-- Dynamic Gemini AI Loading Gradient Animated Background Layer -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <!-- Main Moving Linear Gradient Base (Redup/Tone down opacity to 0.18) -->
+        <div class="absolute inset-0 gemini-gradient-bg opacity-20"></div>
+        <!-- Fluid Mesh Overlay (Softened opacity) -->
+        <div class="absolute inset-0 gemini-mesh-overlay opacity-50"></div>
+        <!-- Dark Radial Vignette agar konten di tengah tetap jelas dan kontras (Ditingkatkan kegelapannya) -->
+        <div class="absolute inset-0 bg-radial-vignette opacity-90" style="background: radial-gradient(circle at center, rgba(3, 7, 18, 0.4) 10%, #030712 80%);"></div>
+    </div>
+
+    <!-- Main Content Canvas (Fully Responsive & Center-aligned) -->
+    <main class="relative z-10 max-w-3xl w-full text-center flex flex-col items-center justify-center fade-in-up my-auto py-6 px-4">
+        
+        <!-- Status Pill Badge -->
+        <div class="inline-flex items-center justify-center gap-2 px-3.5 py-1.5 sm:px-4 sm:py-1.5 rounded-full bg-slate-900/90 border border-sky-500/20 backdrop-blur-md mb-6 sm:mb-8 shadow-inner shadow-sky-500/10">
+            <span class="relative flex h-2 w-2">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-sky-500"></span>
+            </span>
+            <span class="text-[10px] sm:text-xs font-bold tracking-widest text-sky-400 uppercase">Error 404 &bull; Page Not Found</span>
+        </div>
+
+        <!-- Logo Mindspace & 404 Visual Layer (Centered Horizontally & Vertically) -->
+        <div class="relative flex items-center justify-center mb-4 sm:mb-6 w-full min-h-[160px] sm:min-h-[220px] md:min-h-[260px] mx-auto">
+            <!-- Mega Typography 404 Watermark Background -->
+            <span class="w-full text-center text-[32vw] sm:text-[180px] md:text-[220px] lg:text-[250px] font-black tracking-tighter leading-none select-none text-transparent bg-clip-text bg-gradient-to-b from-slate-200/40 via-sky-300/25 to-slate-800/20 font-mono drop-shadow-[0_10px_25px_rgba(56,189,248,0.15)] block">
+                404
+            </span>
+
+            <!-- Floating Hero Logo Overlay (Strict Centering) -->
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none w-full h-full">
+                <div class="animate-hero-float relative flex items-center justify-center">
+                    <div class="absolute w-32 h-32 sm:w-48 sm:h-48 md:w-56 md:h-56 bg-sky-500/15 rounded-full blur-2xl"></div>
+                    <img class="relative z-10 w-28 h-28 sm:w-44 sm:h-44 md:w-52 md:h-52 lg:w-56 lg:h-56 object-contain drop-shadow-[0_15px_35px_rgba(56,189,248,0.25)] mx-auto" 
+                         src="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/9a9fb66d9306be7be63bd1fec355ae5bccd21e60/assets/favicon512.png" 
+                         alt="Mindspace Universe Logo"
+                         draggable="false">
+                </div>
+            </div>
+        </div>
+
+        <!-- Judul & Deskripsi Utama -->
+        <h1 class="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight mb-3 sm:mb-4 animated-gradient-text leading-tight px-2">
+            Mindspace Universe
+        </h1>
+
+        <p class="text-slate-400 text-xs sm:text-base md:text-lg font-medium max-w-xs sm:max-w-md mx-auto mb-8 sm:mb-10 leading-relaxed px-2">
+            Halaman yang Anda tuju tidak dapat ditemukan atau telah dipindahkan ke alamat lain.
+        </p>
+
+        <!-- Neo-Glass Button (Ke Beranda Utama) -->
+        <div class="flex items-center justify-center w-full px-4">
+            <a href="https://www.mindspace.id" class="group relative inline-flex items-center justify-center gap-2.5 sm:gap-3 px-6 sm:px-8 py-3.5 sm:py-4 rounded-full bg-slate-900/70 border border-sky-500/30 hover:border-sky-400/80 backdrop-blur-xl text-white font-bold text-xs sm:text-base shadow-[0_0_25px_rgba(56,189,248,0.1)] hover:shadow-[0_0_35px_rgba(56,189,248,0.25)] transition-all duration-300 active:scale-95 overflow-hidden w-full max-w-xs sm:max-w-none sm:w-auto">
+                <!-- Hover Glow Effect Light -->
+                <div class="absolute inset-0 bg-gradient-to-r from-sky-500/0 via-sky-500/10 to-indigo-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                
+                <span class="relative z-10 tracking-wide text-slate-100 group-hover:text-white whitespace-nowrap">Ke Beranda Utama</span>
+                
+                <div class="relative z-10 flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-sky-500/20 border border-sky-400/40 text-sky-400 group-hover:bg-sky-500 group-hover:text-white group-hover:border-transparent transition-all duration-300 flex-shrink-0">
+                    <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform duration-300 group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                    </svg>
+                </div>
+            </a>
+        </div>
+
+        <!-- Subtitle Domain Reference -->
+        <p class="mt-8 text-xs sm:text-sm font-semibold text-slate-500 tracking-widest uppercase">
+            www.mindspace.id
+        </p>
+
+    </main>
+
+</body>
+</html>

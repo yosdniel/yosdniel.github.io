@@ -25,6 +25,34 @@ function calculateExpiryDate(currentExpStr, daysToAdd) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+// Helper perhitungan harga bersih paket berdasarkan diskon yang aktif
+function hitungHargaFinalPaket(pkg) {
+  if (!pkg) return 0;
+  const hargaNormal = Number(pkg.harga || 0);
+  const discType = pkg.discount_type || 'none';
+  const discVal = Number(pkg.discount_value || 0);
+  const discUntil = pkg.discount_until || null;
+
+  // Cek apakah ada batas waktu diskon dan apakah sudah lewat
+  if (discUntil && /^\d{4}-\d{2}-\d{2}$/.test(discUntil)) {
+    const hariIniWIB = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+    if (hariIniWIB > discUntil) {
+      return hargaNormal; // Promo sudah kadaluarsa, pakai harga normal
+    }
+  }
+
+  if (discType === 'percent' && discVal > 0) {
+    const potongan = Math.round((hargaNormal * discVal) / 100);
+    return Math.max(0, hargaNormal - potongan);
+  } else if (discType === 'nominal' && discVal > 0) {
+    return Math.max(0, hargaNormal - discVal);
+  } else if (pkg.final_price !== undefined && pkg.final_price !== null) {
+    return Number(pkg.final_price);
+  }
+
+  return hargaNormal;
+}
+
 async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, paketHari, nominal = 0, clientName = 'User QRIS / Voucher', sppgName = '') {
   if (!supabaseUrl || !supabaseKey || !deviceId) return null;
 
@@ -37,7 +65,7 @@ async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, pake
       });
       const pData = await pRes.json();
       if (Array.isArray(pData) && pData.length > 0) {
-        finalNominal = Number(pData[0].harga || 0);
+        finalNominal = hitungHargaFinalPaket(pData[0]);
       } else {
         finalNominal = Number(paketHari) === 30 ? 50000 : 100;
       }
@@ -177,7 +205,6 @@ export default async function handler(req, res) {
   // ==========================================
   // PEMERIKSAAN GLOBAL MAINTENANCE MODE
   // ==========================================
-  // Kecuali action untuk menyimpan setting maintenance itu sendiri (agar admin bisa mematikannya kembali)
   if (action !== 'save_setting' || body.key !== 'maintenance_mode') {
     try {
       const maintRes = await fetch(`${SUPABASE_URL}/rest/v1/settings?key=eq.maintenance_mode&select=*`, {
@@ -191,7 +218,6 @@ export default async function handler(req, res) {
         const isMaintenance = (val === true || val === 'true' || val === 1 || val === '1');
 
         if (isMaintenance) {
-          // Ambil pesan kustom pemeliharaan jika ada
           let maintenanceMsg = 'Sistem SIPGN Autofill saat ini sedang dalam jadwal pemeliharaan (maintenance). Silakan coba beberapa saat lagi.';
           try {
             const msgRes = await fetch(`${SUPABASE_URL}/rest/v1/settings?key=eq.maintenance_message&select=*`, {
@@ -204,7 +230,6 @@ export default async function handler(req, res) {
             }
           } catch (e) {}
 
-          // Respon khusus untuk memberitahu userscript bahwa server sedang maintenance
           return res.status(200).json({
             valid: false,
             status: 'maintenance',
@@ -242,7 +267,7 @@ export default async function handler(req, res) {
   }
 
   // ==========================================
-  // SINKRONISASI / REGISTRASI NAMA SPPG (NEW)
+  // SINKRONISASI / REGISTRASI NAMA SPPG
   // ==========================================
   if (action === 'register_sppg' && req.method === 'POST') {
     const targetDevId = body.device_id || device_id;
@@ -382,12 +407,12 @@ export default async function handler(req, res) {
   }
 
   // ==========================================
-  // 3. GET & SAVE PACKAGES
+  // 3. GET & SAVE PACKAGES (DISCOUNT UPDATED)
   // ==========================================
   if (action === 'get_packages') {
     const defaultPackages = [
-      { hari: 7, harga: 100, nama: 'Paket 7 Hari' },
-      { hari: 30, harga: 50000, nama: 'Paket 30 Hari' }
+      { hari: 7, harga: 25000, nama: 'Paket 7 Hari', discount_type: 'none', discount_value: 0, discount_until: null, final_price: 25000 },
+      { hari: 30, harga: 50000, nama: 'Paket 30 Hari', discount_type: 'none', discount_value: 0, discount_until: null, final_price: 50000 }
     ];
 
     try {
@@ -399,7 +424,13 @@ export default async function handler(req, res) {
 
       if (Array.isArray(dbPackages) && dbPackages.length > 0) {
         dbPackages.sort((a, b) => Number(a.hari || 0) - Number(b.hari || 0));
-        return res.status(200).json({ packages: dbPackages });
+        
+        // Hitung harga final terupdate untuk tiap paket
+        const formattedPkgs = dbPackages.map(p => ({
+          ...p,
+          final_price: hitungHargaFinalPaket(p)
+        }));
+        return res.status(200).json({ packages: formattedPkgs });
       }
     } catch (e) {
       console.error('[Get Packages Error]:', e);
@@ -416,15 +447,39 @@ export default async function handler(req, res) {
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
       });
       if (Array.isArray(newPackages) && newPackages.length > 0) {
+        const formattedPackages = newPackages.map(p => {
+          const harga = Number(p.harga || 0);
+          const discType = p.discount_type || 'none';
+          const discVal = Number(p.discount_value || 0);
+          const discUntil = p.discount_until || null;
+          
+          let finalPrice = harga;
+          if (discType === 'percent' && discVal > 0) {
+            finalPrice = Math.max(0, harga - Math.round((harga * discVal) / 100));
+          } else if (discType === 'nominal' && discVal > 0) {
+            finalPrice = Math.max(0, harga - discVal);
+          }
+
+          return {
+            nama: String(p.nama || '').trim(),
+            hari: Number(p.hari || 0),
+            harga: harga,
+            discount_type: discType,
+            discount_value: discVal,
+            discount_until: discUntil,
+            final_price: finalPrice
+          };
+        });
+
         await fetch(`${SUPABASE_URL}/rest/v1/packages`, {
           method: 'POST',
           headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify(newPackages)
+          body: JSON.stringify(formattedPackages)
         });
       }
       return res.status(200).json({ success: true });
     } catch (err) {
-      return res.status(500).json({ error: 'Gagal menyimpan paket.' });
+      return res.status(500).json({ error: 'Gagal menyimpan paket & diskon.' });
     }
   }
 
@@ -454,10 +509,12 @@ export default async function handler(req, res) {
       if (Array.isArray(newVouchers) && newVouchers.length > 0) {
         const formattedVouchers = newVouchers.map(v => ({
           code: String(v.code || '').trim().toUpperCase(),
-          days_value: Number(v.days_value || v.days || 7),
-          max_uses: Number(v.max_uses || 10),
+          days_value: Number(v.days_value || v.days || v.value || 7),
+          max_uses: Number(v.max_uses || v.quota || 1),
           used_count: Number(v.used_count || 0),
-          used_devices: Array.isArray(v.used_devices) ? v.used_devices : []
+          used_devices: Array.isArray(v.used_devices) ? v.used_devices : [],
+          exp_date: v.exp_date || null,
+          device_id: v.device_id || null
         }));
 
         await fetch(`${SUPABASE_URL}/rest/v1/vouchers`, {
@@ -983,7 +1040,7 @@ export default async function handler(req, res) {
         });
         const pkgData = await pkgRes.json();
         if (Array.isArray(pkgData) && pkgData.length > 0) {
-          nominal = Number(pkgData[0].harga || 0);
+          nominal = hitungHargaFinalPaket(pkgData[0]);
         }
       } catch (err) {}
     }

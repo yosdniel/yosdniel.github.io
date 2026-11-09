@@ -595,19 +595,21 @@
           </div>
         </div>
 
-        <!-- PACKAGES (PRICING PLANS) -->
-        <div id="subViewPackages" class="subview-section max-w-2xl mx-auto space-y-4">
+        <!-- PACKAGES (PRICING PLANS & DISCOUNTS) -->
+        <div id="subViewPackages" class="subview-section max-w-4xl mx-auto space-y-4">
           <div class="glass-card p-5 sm:p-8 rounded-3xl space-y-4 border border-slate-800">
             <div class="flex items-center justify-between flex-wrap gap-2">
               <div>
-                <label class="font-bold text-xs uppercase text-slate-300">Daftar Paket Langganan</label>
-                <p class="text-[11px] text-slate-400">Atur nama paket, durasi hari, dan nominal harga langganan.</p>
+                <label class="font-bold text-xs uppercase text-slate-300">Daftar Paket Langganan & Diskon</label>
+                <p class="text-[11px] text-slate-400">Atur nama paket, durasi hari, harga normal, serta konfigurasi promo diskon dan batas waktunya.</p>
               </div>
               <button onclick="tambahBarisPaketForm()" class="bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-bold px-4 py-3.5 rounded-2xl text-xs sm:text-sm transition shadow-lg shadow-brand-500/20 flex items-center justify-center gap-1.5">+ Tambah Paket</button>
             </div>
-            <div id="containerListPaket" class="space-y-3 max-h-[450px] overflow-y-auto pr-1"></div>
-            <div class="flex gap-3 pt-2">
-              <button onclick="simpanPengaturanPaketServer()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white py-3.5 px-6 rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2">💾 Simpan Paket</button>
+            
+            <div id="containerListPaket" class="space-y-4 max-h-[550px] overflow-y-auto pr-1"></div>
+            
+            <div class="flex gap-3 pt-4 border-t border-slate-800">
+              <button onclick="simpanPengaturanPaketServer()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white py-3.5 px-6 rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2">💾 Simpan Paket & Diskon</button>
               <button onclick="bukaFitur('overview')" class="w-32 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 py-3.5 px-5 rounded-2xl text-xs sm:text-sm font-bold transition border border-slate-700 flex items-center justify-center gap-2"><span>🏠</span> Menu</button>
             </div>
           </div>
@@ -1142,7 +1144,7 @@
       } else if (fitur === 'packages') {
         highlightActiveNav('navPackages');
         gantiSubView('subViewPackages');
-        document.getElementById('appTitle').textContent = 'Pricing Plans';
+        document.getElementById('appTitle').textContent = 'Pricing Plans & Discounts';
         muatDataPaketServer();
       } else if (fitur === 'release') {
         highlightActiveNav('navRelease');
@@ -1805,44 +1807,135 @@
         const container = document.getElementById('containerListPaket');
         container.innerHTML = '';
         if (list.length === 0) tambahBarisPaketForm('Paket 7 Hari', 7, 25000);
-        else list.forEach(p => tambahBarisPaketForm(p.nama, p.hari, p.harga));
+        else list.forEach(p => tambahBarisPaketForm(p.nama, p.hari, p.harga, p.discount_type, p.discount_value, p.discount_until));
       } catch (err) { showToast('Failed to load packages', false); }
     }
 
-    function tambahBarisPaketForm(nama = '', hari = '', harga = '') {
+    function tambahBarisPaketForm(nama = '', hari = '', harga = '', discType = 'none', discVal = '', discUntil = '') {
       const container = document.getElementById('containerListPaket');
       const div = document.createElement('div');
-      div.className = 'p-3.5 sm:p-4 rounded-2xl bg-slate-900/80 border border-slate-800/90 space-y-3 sm:space-y-0 sm:flex sm:items-center sm:gap-3 transition hover:border-slate-700';
+      div.className = 'package-item-row p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3 transition hover:border-slate-700 shadow-md';
+      
       div.innerHTML = `
-        <div class="grid grid-cols-12 gap-2 sm:flex-1">
-          <div class="col-span-12 sm:col-span-5">
-            <label class="block text-[9px] text-slate-500 font-extrabold uppercase mb-1">Nama Paket</label>
-            <input type="text" class="inp-nama w-full px-3 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-600 font-semibold outline-none focus:border-brand-500 transition" value="${nama}" placeholder="Contoh: Paket VIP">
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+          <div class="sm:col-span-4">
+            <label class="block text-[10px] text-slate-400 font-extrabold uppercase mb-1">Nama Paket</label>
+            <input type="text" class="inp-nama w-full px-3 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-600 font-semibold outline-none focus:border-brand-500 transition" value="${nama}" placeholder="Contoh: Paket Monthly PRO">
           </div>
-          <div class="col-span-5 sm:col-span-3">
-            <label class="block text-[9px] text-slate-500 font-extrabold uppercase mb-1">Durasi (Hari)</label>
+          <div class="sm:col-span-3">
+            <label class="block text-[10px] text-slate-400 font-extrabold uppercase mb-1">Durasi (Hari)</label>
             <input type="number" class="inp-hari w-full px-3 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-600 font-semibold outline-none focus:border-brand-500 transition" value="${hari}" placeholder="30">
           </div>
-          <div class="col-span-7 sm:col-span-4">
-            <label class="block text-[9px] text-slate-500 font-extrabold uppercase mb-1">Harga (Rp)</label>
-            <input type="number" class="inp-harga w-full px-3 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-brand-400 font-mono font-bold placeholder-slate-600 outline-none focus:border-brand-500 transition" value="${harga}" placeholder="50000">
+          <div class="sm:col-span-4">
+            <label class="block text-[10px] text-slate-400 font-extrabold uppercase mb-1">Harga Normal (Rp)</label>
+            <input type="number" oninput="kalkulasiHitungDiskonForm(this)" class="inp-harga w-full px-3 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-brand-400 font-mono font-bold placeholder-slate-600 outline-none focus:border-brand-500 transition" value="${harga}" placeholder="50000">
+          </div>
+          <div class="sm:col-span-1 flex justify-end">
+            <button onclick="this.closest('.package-item-row').remove()" class="w-full h-10 bg-red-500/15 hover:bg-red-500/25 active:scale-95 text-red-400 border border-red-500/20 rounded-xl font-bold flex items-center justify-center text-xs transition" title="Hapus Paket">✕</button>
           </div>
         </div>
-        <div class="flex justify-end sm:block shrink-0 pt-1 sm:pt-4">
-          <button onclick="this.closest('.p-3.5, .p-4').remove()" class="w-full sm:w-9 h-9 bg-red-500/15 hover:bg-red-500/25 active:scale-95 text-red-400 border border-red-500/20 rounded-xl font-bold flex items-center justify-center gap-1 text-xs transition">✕</button>
-        </div>`;
+
+        <div class="p-3 bg-slate-950/60 rounded-xl border border-slate-800/80 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-extrabold text-brand-400 uppercase tracking-wider flex items-center gap-1.5">
+              <span>🏷️ Promo & Diskon</span>
+            </span>
+            <span class="preview-harga-akhir text-[11px] font-mono font-extrabold text-emerald-400">Harga Akhir: Rp 0</span>
+          </div>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <div>
+              <label class="block text-[9px] text-slate-500 font-bold uppercase mb-1">Tipe Diskon</label>
+              <select onchange="kalkulasiHitungDiskonForm(this)" class="inp-disc-type w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white outline-none focus:border-brand-500 transition font-semibold">
+                <option value="none" ${discType === 'none' ? 'selected' : ''}>Tanpa Diskon</option>
+                <option value="percent" ${discType === 'percent' ? 'selected' : ''}>Persentase (%)</option>
+                <option value="nominal" ${discType === 'nominal' ? 'selected' : ''}>Nominal (Rp)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[9px] text-slate-500 font-bold uppercase mb-1">Nilai Diskon</label>
+              <input type="number" oninput="kalkulasiHitungDiskonForm(this)" class="inp-disc-val w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-amber-400 font-mono font-bold outline-none focus:border-brand-500 transition" value="${discVal}" placeholder="e.g. 20 atau 10000">
+            </div>
+            <div>
+              <label class="block text-[9px] text-slate-500 font-bold uppercase mb-1">Batas Waktu Diskon</label>
+              <input type="date" class="inp-disc-until w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white outline-none focus:border-brand-500 transition" value="${discUntil}">
+            </div>
+          </div>
+        </div>
+      `;
+      
       container.appendChild(div);
+      kalkulasiHitungDiskonForm(div.querySelector('.inp-harga'));
+    }
+
+    function kalkulasiHitungDiskonForm(el) {
+      const row = el.closest('.package-item-row');
+      if (!row) return;
+
+      const hargaNormal = Number(row.querySelector('.inp-harga').value) || 0;
+      const discType = row.querySelector('.inp-disc-type').value;
+      const discValInput = row.querySelector('.inp-disc-val');
+      const discVal = Number(discValInput.value) || 0;
+      const previewEl = row.querySelector('.preview-harga-akhir');
+
+      if (discType === 'none') {
+        discValInput.disabled = true;
+        discValInput.classList.add('opacity-40');
+      } else {
+        discValInput.disabled = false;
+        discValInput.classList.remove('opacity-40');
+      }
+
+      let hargaAkhir = hargaNormal;
+      if (discType === 'percent' && discVal > 0) {
+        const potongan = Math.round((hargaNormal * discVal) / 100);
+        hargaAkhir = Math.max(0, hargaNormal - potongan);
+      } else if (discType === 'nominal' && discVal > 0) {
+        hargaAkhir = Math.max(0, hargaNormal - discVal);
+      }
+
+      if (previewEl) {
+        if (hargaAkhir < hargaNormal) {
+          const hemat = hargaNormal - hargaAkhir;
+          previewEl.innerHTML = `<span class="line-through text-slate-500 mr-1.5">Rp ${hargaNormal.toLocaleString('id-ID')}</span> <span class="text-emerald-400 font-bold">Rp ${hargaAkhir.toLocaleString('id-ID')}</span> <span class="text-[9px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/20 ml-1">Hemat Rp ${hemat.toLocaleString('id-ID')}</span>`;
+        } else {
+          previewEl.textContent = `Harga Akhir: Rp ${hargaNormal.toLocaleString('id-ID')}`;
+        }
+      }
     }
 
     async function simpanPengaturanPaketServer() {
-      const rows = document.querySelectorAll('#containerListPaket > div');
+      const rows = document.querySelectorAll('#containerListPaket > .package-item-row');
       const packages = [];
+      
       rows.forEach(r => {
         const nama = r.querySelector('.inp-nama').value.trim();
-        const hari = Number(r.querySelector('.inp-hari').value);
-        const harga = Number(r.querySelector('.inp-harga').value);
-        if (nama) packages.push({ nama, hari, harga });
+        const hari = Number(r.querySelector('.inp-hari').value) || 0;
+        const harga = Number(r.querySelector('.inp-harga').value) || 0;
+        const discount_type = r.querySelector('.inp-disc-type').value;
+        const discount_value = Number(r.querySelector('.inp-disc-val').value) || 0;
+        const discount_until = r.querySelector('.inp-disc-until').value;
+
+        let final_price = harga;
+        if (discount_type === 'percent' && discount_value > 0) {
+          final_price = Math.max(0, harga - Math.round((harga * discount_value) / 100));
+        } else if (discount_type === 'nominal' && discount_value > 0) {
+          final_price = Math.max(0, harga - discount_value);
+        }
+
+        if (nama) {
+          packages.push({ 
+            nama, 
+            hari, 
+            harga,
+            discount_type,
+            discount_value,
+            discount_until,
+            final_price
+          });
+        }
       });
+
       try {
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
@@ -1850,9 +1943,15 @@
           body: JSON.stringify({ action: 'save_packages', packages, admin_secret: adminPasswordSecret })
         });
         const result = await res.json();
-        if (res.ok && (result.success || result.status)) { showToast('Packages saved!'); muatDataPaketServer(); }
-        else showToast('Save failed', false);
-      } catch (err) { showToast('Network Error', false); }
+        if (res.ok && (result.success || result.status)) { 
+          showToast('Paket langganan & promo diskon berhasil disimpan!'); 
+          muatDataPaketServer(); 
+        } else {
+          showToast('Gagal menyimpan paket server', false);
+        }
+      } catch (err) { 
+        showToast('Network Error saat menyimpan paket', false); 
+      }
     }
 
     async function muatDataReleaseServer() {

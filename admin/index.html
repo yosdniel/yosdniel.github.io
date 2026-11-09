@@ -2086,6 +2086,12 @@
       } else {
         showToast('PWA siap! Jika prompt tidak muncul, ketik menu browser (⋮) lalu pilih "Instal Aplikasi" atau "Tambahkan ke Layar Utama".', true);
       }
+    }
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      showToast('Aplikasi siap diinstal! Tekan tombol "Install Android App" di sidebar.');
     });
   </script>
 </body>

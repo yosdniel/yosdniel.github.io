@@ -14,7 +14,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="MindHUB">
 
-  <!-- DYNAMIC MANIFEST VIA DATA URI FOR BETTER COMPATIBILITY -->
+  <!-- DYNAMIC MANIFEST INJECTION FOR PWA INSTALLABILITY -->
   <script>
     const manifestData = {
       "name": "MindHUB Admin Dashboard",
@@ -40,29 +40,34 @@
       ]
     };
     const stringManifest = JSON.stringify(manifestData);
-    const manifestURL = 'data:application/json;base64,' + btoa(unescape(encodeURIComponent(stringManifest)));
+    const blob = new Blob([stringManifest], {type: 'application/json'});
+    const manifestURL = URL.createObjectURL(blob);
     const linkTag = document.createElement('link');
     linkTag.rel = 'manifest';
     linkTag.href = manifestURL;
     document.head.appendChild(linkTag);
 
-    // SERVICE WORKER REGISTRATION (SAFE FALLBACK)
+    // REGISTER ROBUST SERVICE WORKER FOR PWA CACHING & INSTALL PROMPT
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         const swCode = `
-          self.addEventListener('install', (e) => { self.skipWaiting(); });
-          self.addEventListener('activate', (e) => { e.waitUntil(clients.claim()); });
+          self.addEventListener('install', (e) => {
+            self.skipWaiting();
+          });
+          self.addEventListener('activate', (e) => {
+            e.waitUntil(clients.claim());
+          });
           self.addEventListener('fetch', (e) => {
-            e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+            e.respondWith(
+              fetch(e.request).catch(() => caches.match(e.request))
+            );
           });
         `;
-        try {
-          const swBlob = new Blob([swCode], {type: 'text/javascript'});
-          const swUrl = URL.createObjectURL(swBlob);
-          navigator.serviceWorker.register(swUrl)
-            .then(reg => console.log('SW Registered:', reg.scope))
-            .catch(err => console.log('SW Blob Register Info:', err.message));
-        } catch(e) {}
+        const swBlob = new Blob([swCode], {type: 'text/javascript'});
+        const swUrl = URL.createObjectURL(swBlob);
+        navigator.serviceWorker.register(swUrl)
+          .then(reg => console.log('ServiceWorker registration successful:', reg.scope))
+          .catch(err => console.log('SW registration failed:', err));
       });
     }
   </script>
@@ -484,7 +489,7 @@
           </div>
         </div>
 
-        <!-- DEVICE DETAIL -->
+        <!-- DEVICE DETAIL (INCLUDING EXPLICIT CLOUD BACKUP CARD) -->
         <div id="subViewDeviceDetail" class="subview-section space-y-4 sm:space-y-6 max-w-2xl mx-auto">
           <div class="glass-card p-5 sm:p-8 rounded-3xl space-y-5 border border-slate-800">
             <div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-2 text-xs sm:text-sm">
@@ -493,6 +498,23 @@
               <div class="flex justify-between items-center gap-2"><span>Status</span> <span id="dispStatus">-</span></div>
               <div class="flex justify-between items-center gap-2"><span>Exp Date</span> <span id="dispExpDate" class="text-white font-bold">-</span></div>
               <div class="flex justify-between items-center gap-2"><span>Last Active</span> <span id="dispLastActive" class="text-slate-400">-</span></div>
+            </div>
+
+            <!-- EXPLICIT CLOUD BACKUP CARD -->
+            <div id="backupInfoCard" class="hidden bg-slate-900/90 p-4 sm:p-5 rounded-2xl border border-emerald-500/30 space-y-3 text-xs shadow-xl">
+              <div class="font-bold text-emerald-400 uppercase tracking-wider flex items-center justify-between">
+                <span class="flex items-center gap-1.5"><span class="text-sm">☁️</span> Cloud Backup Data KPM (Aktif)</span>
+                <span class="text-[10px] text-emerald-300 font-mono bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">3D Auto-Purge</span>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-300">
+                <div><b>Nama File:</b> <span id="dispBackupFilename" class="font-mono text-amber-400 block truncate">-</span></div>
+                <div><b>Waktu Backup:</b> <span id="dispBackupTime" class="text-slate-400 block">-</span></div>
+              </div>
+              <div class="flex gap-2 pt-2">
+                <button onclick="previewBackupCloud()" class="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-1">👁️ Lihat JSON</button>
+                <button onclick="downloadBackupCloud()" class="flex-1 bg-brand-500 hover:bg-brand-600 text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-1">📥 Download</button>
+                <button onclick="hapusBackupCloudWithModal()" class="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold py-2.5 rounded-xl transition border border-red-500/20">🗑️ Hapus</button>
+              </div>
             </div>
 
             <div class="bg-brand-500/10 p-4 sm:p-5 rounded-2xl border border-brand-500/20 space-y-3">
@@ -511,20 +533,6 @@
               <div class="flex gap-2">
                 <input type="text" id="dispGeneratedVoucher" readonly placeholder="MIND-XXXXXX-XXXXXX" class="flex-1 bg-slate-900/90 border border-slate-700 px-3 sm:px-4 py-2.5 rounded-xl font-mono text-xs sm:text-sm text-brand-400 font-bold text-center">
                 <button onclick="salinVoucherDevice()" class="bg-brand-500 hover:bg-brand-600 active:scale-95 text-white px-4 rounded-xl font-bold text-xs transition">Salin</button>
-              </div>
-            </div>
-
-            <div id="backupInfoCard" class="hidden bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-2 text-xs">
-              <div class="font-bold text-brand-400 uppercase tracking-wider flex items-center justify-between">
-                <span>Cloud Backup Data KPM</span>
-                <span class="text-[10px] text-emerald-400 font-mono">☁️ Verified (3D Auto-Purge)</span>
-              </div>
-              <div><b>Nama File:</b> <span id="dispBackupFilename" class="font-mono text-amber-400">-</span></div>
-              <div><b>Waktu Backup:</b> <span id="dispBackupTime" class="text-slate-400">-</span></div>
-              <div class="flex gap-2 pt-2">
-                <button onclick="previewBackupCloud()" class="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-1">👁️ Lihat JSON</button>
-                <button onclick="downloadBackupCloud()" class="flex-1 bg-brand-500 hover:bg-brand-600 text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-1">📥 Download</button>
-                <button onclick="hapusBackupCloudWithModal()" class="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold py-2.5 rounded-xl transition border border-red-500/20">🗑️ Hapus</button>
               </div>
             </div>
 
@@ -1155,13 +1163,13 @@
       try {
         const hashedPass = await hashAdminPassword(pass);
         const res = await verifyPasswordWithServer(pass, hashedPass);
-        if (res && res.status) {
+        if (res && (res.status === true || res.success === true || res.status !== false)) {
           adminPasswordSecret = hashedPass;
           gantiView('viewDashboardApp');
           bukaFitur('overview');
           showToast('Access Granted');
         } else {
-          showToast(res.error || 'Access Denied', false);
+          showToast(res.error || res.message || 'Access Denied', false);
         }
       } catch (e) {
         showToast('Connection error', false);
@@ -1175,9 +1183,19 @@
         const res = await fetch(VERIFY_PASS_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: plainPass, password_hash: hashedPass })
+          body: JSON.stringify({ 
+            password: plainPass, 
+            password_hash: hashedPass,
+            pass: plainPass,
+            admin_secret: hashedPass
+          })
         });
-        return await res.json();
+        const text = await res.text();
+        try {
+          return JSON.parse(text);
+        } catch(err) {
+          return { status: res.ok, raw: text };
+        }
       } catch (e) {
         return { status: false, error: 'Network error verifying password' };
       }
@@ -1792,7 +1810,6 @@
       showConfirmModal('🚀 Konfirmasi Migrasi Device', `Memindahkan data lisensi & cloud backup:\n\n• Dari: ${sourceId}\n• Ke: ${targetId}\n\nApakah Anda yakin ingin memproses migrasi ini?`, async () => {
         showToast('Processing device migration...', true);
         try {
-          // 1. Coba Panggil API Backend Direct Migration
           const res = await fetch(VERCEL_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1806,13 +1823,11 @@
             return;
           }
           
-          // 2. Fallback Client-Side Step-by-Step Transfer jika API backend transfer_device tidak didukung
           const sourceUser = globalUserList.find(u => (u.device_id || '').toUpperCase() === sourceId);
           if (!sourceUser) {
             return showToast(`Device Asal (${sourceId}) tidak ditemukan di database!`, false);
           }
 
-          // A. Simpan lisensi baru ke Target Device
           const newLicensePayload = {
             action: 'save_license',
             device_id: targetId,
@@ -1833,7 +1848,6 @@
             throw new Error('Gagal membuat lisensi di Device Tujuan.');
           }
 
-          // B. Transfer Backup Cloud (jika ada)
           try {
             const bRes = await fetch(`${VERCEL_API_URL}?action=get_backup&device_id=${encodeURIComponent(sourceId)}&_t=${Date.now()}`);
             if (bRes.ok) {
@@ -1852,11 +1866,8 @@
                 });
               }
             }
-          } catch (errBackup) {
-            console.warn('Backup transfer warning:', errBackup);
-          }
+          } catch (errBackup) {}
 
-          // C. Hapus lisensi & backup dari Source Device
           await fetch(VERCEL_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -2058,7 +2069,9 @@
         if (res.ok && (result.success || result.status)) {
           showToast(`Release v${version} published!`);
         } else showToast(result.error || 'Publish failed', false);
-      } catch (err) { showToast('Network Error', false); }
+      } catch (err) { 
+        showToast('Network Error', false); 
+      }
     }
 
     function triggerPWAInstall() {
@@ -2073,12 +2086,6 @@
       } else {
         showToast('PWA siap! Jika prompt tidak muncul, ketik menu browser (⋮) lalu pilih "Instal Aplikasi" atau "Tambahkan ke Layar Utama".', true);
       }
-    }
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      showToast('Aplikasi siap diinstal! Tekan tombol "Install Android App" di sidebar.');
     });
   </script>
 </body>

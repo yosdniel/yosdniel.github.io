@@ -27,8 +27,10 @@
   ::-webkit-scrollbar-thumb { background: rgba(99,102,241,.25); border-radius: 4px; }
   ::-webkit-scrollbar-thumb:hover { background: rgba(99,102,241,.5); }
   .glass-card { background: rgba(15,23,42,.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,.08); }
-  .package-card { transition: all .2s ease; cursor: pointer; }
+  .package-card { transition: all .2s ease; cursor: pointer; position: relative; }
   .package-card.selected { border-color: #6366f1 !important; background: rgba(99,102,241,.12) !important; box-shadow: 0 10px 25px -5px rgba(99,102,241,.25); }
+  .package-card.recommended-card { border-color: rgba(245, 158, 11, 0.4); }
+  .package-card.recommended-card.selected { border-color: #6366f1 !important; }
   #qrcode-box img, #qrcode-box canvas { margin: 0 auto; max-width: 100%; height: auto; display: block; border-radius: 12px; }
 </style>
 </head>
@@ -147,16 +149,16 @@
 
 <script>
 const API_URL = 'https://mindspace-id.vercel.app/api/tokopay';
-let _selectedHari = 7;
-let _finalAmount = 25000;
-let _baseAmount = 25000;
+let _selectedHari = 30;
+let _finalAmount = 50000;
+let _baseAmount = 50000;
 let _discountAmount = 0;
 let _appliedPromo = null;
 let _reffId = null;
 let _pollInterval = null;
 let _countdownInterval = null;
 let _isChecked = false;
-let _initialExpDate = null; // Menyimpan tanggal kadaluarsa awal sebelum QRIS dibuat
+let _initialExpDate = null;
 
 function fmt(n) {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(n) || 0);
@@ -170,6 +172,309 @@ function toast(message, isSuccess = true) {
   setTimeout(() => {
     t.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-[100000] max-w-[90vw] w-auto px-5 py-3 rounded-2xl shadow-2xl border text-white font-bold text-xs sm:text-sm transition-all duration-300 -translate-y-20 opacity-0 pointer-events-none';
   }, 4000);
+}
+
+// Menghitung harga bersih paket secara aman dan konsisten dengan backend
+function hitungHargaPaket(p) {
+  const hargaNormal = Number(p.harga || 0);
+  let hargaFinal = hargaNormal;
+
+  // Cek apakah ada final_price yang valid dari API
+  if (p.final_price !== undefined && p.final_price !== null && Number(p.final_price) > 0) {
+    hargaFinal = Number(p.final_price);
+  } else {
+    // Fallback kalkulasi manual jika API tidak mengirimkan final_price
+    const discType = p.discount_type || 'none';
+    const discVal = Number(p.discount_value || 0);
+    const discUntil = p.discount_until || null;
+    let isExpired = false;
+
+    if (discUntil && /^\d{4}-\d{2}-\d{2}$/.test(discUntil)) {
+      const hariIni = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+      if (hariIni > discUntil) isExpired = true;
+    }
+
+    if (!isExpired) {
+      if (discType === 'percent' && discVal > 0) {
+        const potongan = Math.round((hargaNormal * discVal) / 100);
+        hargaFinal = Math.max(100, hargaNormal - potongan);
+      } else if (discType === 'nominal' && discVal > 0) {
+        hargaFinal = Math.max(100, hargaNormal - discVal);
+      }
+    }
+  }
+
+  const hemat = Math.max(0, hargaNormal - hargaFinal);
+  return { hargaNormal, hargaFinal, hemat };
+}
+
+async function checkDevice() {
+  const inputEl = document.getElementById('input-device-id');
+  const devId = inputEl.value.trim().toUpperCase();
+
+  if (!devId) {
+    toast('Masukkan Device ID terlebih dahulu!', false);
+    inputEl.focus();
+    return;
+  }
+  inputEl.value = devId;
+
+  const btnCheck = document.getElementById('btn-check-device');
+  btnCheck.disabled = true;
+  btnCheck.textContent = '⏳ Memeriksa...';
+
+  let lc = null;
+  try {
+    const res = await fetch(`${API_URL}?action=check_license&device_id=${encodeURIComponent(devId)}`, {
+      method: 'GET',
+      cache: 'no-store'
+    });
+    
+    if (res.ok) {
+      const json = await res.json();
+      lc = json.data || json.license || json;
+    }
+  } catch (err) {
+    console.error('Fetch Error:', err);
+  } finally {
+    btnCheck.disabled = false;
+    btnCheck.textContent = '🔍 Cek Device';
+  }
+
+  const rawStatus = (lc?.status || '').toString().toLowerCase();
+  _initialExpDate = lc?.exp_date || lc?.expired_date || lc?.expired || null;
+
+  if (rawStatus === 'hold') {
+    resetSelectionState(btnCheck);
+    toast('Device ID sedang ditahan (Hold). Tidak dapat memperpanjang lisensi.', false);
+    inputEl.focus();
+    return;
+  }
+  if (rawStatus === 'revoked' || rawStatus === 'revoke') {
+    resetSelectionState(btnCheck);
+    toast('Device ID telah dicabut (Revoke). Perangkat diblokir.', false);
+    inputEl.focus();
+    return;
+  }
+
+  document.getElementById('info-sppg-name').textContent = lc?.sppg_name || lc?.nama || lc?.device_name || 'Perangkat Baru / Belum Ada Lisensi';
+  
+  let formattedExp = '-';
+  const rawExp = lc?.exp_date || lc?.expired_date || lc?.expired;
+  if (rawExp && rawExp !== '-') {
+    const d = new Date(rawExp);
+    formattedExp = !isNaN(d.getTime()) ? d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : rawExp;
+  }
+  document.getElementById('info-exp-date').textContent = formattedExp;
+
+  let statusBadge = '<span class="text-blue-400 font-bold">Baru (Belum Aktif)</span>';
+  if (rawStatus === 'active' || lc?.valid === true || rawStatus === 'aktif' || rawStatus === 'success') {
+    statusBadge = '<span class="text-emerald-400 font-bold">Aktif</span>';
+  } else if (rawStatus === 'expired' || rawStatus === 'kadaluarsa') {
+    statusBadge = '<span class="text-red-400 font-bold">Kadaluarsa</span>';
+  } else if (rawStatus === 'unregistered') {
+    statusBadge = '<span class="text-amber-400 font-bold">Belum Terdaftar</span>';
+  }
+  document.getElementById('info-status').innerHTML = statusBadge;
+  document.getElementById('device-info-box').classList.remove('hidden');
+
+  let packages = [
+    { hari: 7, harga: 25000, final_price: 25000, nama: 'Paket 7 Hari' },
+    { hari: 14, harga: 40000, final_price: 40000, nama: 'Paket 14 Hari' },
+    { hari: 30, harga: 50000, final_price: 50000, nama: 'Paket 30 Hari' },
+    { hari: 60, harga: 90000, final_price: 90000, nama: 'Paket 60 Hari' }
+  ];
+
+  try {
+    const pkgRes = await fetch(`${API_URL}?action=get_packages`, { cache: 'no-store' });
+    if (pkgRes.ok) {
+      const pkgJson = await pkgRes.json();
+      const fetchedList = pkgJson.packages || pkgJson.data || pkgJson;
+      if (Array.isArray(fetchedList) && fetchedList.length > 0) {
+        packages = fetchedList;
+      }
+    }
+  } catch (e) {}
+
+  renderPackages(packages);
+  document.getElementById('packages-section').classList.remove('hidden');
+
+  const btnCreateQr = document.getElementById('btn-create-qr');
+  btnCreateQr.classList.remove('opacity-50', 'pointer-events-none');
+  btnCreateQr.disabled = false;
+
+  _isChecked = true;
+  toast('Device ID berhasil diverifikasi!');
+}
+
+function resetSelectionState(btnCheck) {
+  document.getElementById('device-info-box').classList.add('hidden');
+  document.getElementById('packages-section').classList.add('hidden');
+  const btnCreateQr = document.getElementById('btn-create-qr');
+  btnCreateQr.classList.add('opacity-50', 'pointer-events-none');
+  btnCreateQr.disabled = true;
+  _isChecked = false;
+  btnCheck.disabled = false;
+  btnCheck.textContent = '🔍 Cek Device';
+}
+
+function renderPackages(pkgs) {
+  const container = document.getElementById('packages-container');
+  container.innerHTML = '';
+  
+  // Tentukan tepat 1 index rekomendasi (Cari paket 30 Hari, jika tidak ada baru gunakan paket pertama)
+  let recommendedIdx = pkgs.findIndex(p => Number(p.hari) === 30);
+  if (recommendedIdx === -1 && pkgs.length > 0) recommendedIdx = 0;
+
+  pkgs.forEach((p, index) => {
+    const isSelected = index === recommendedIdx; // Default pilih paket recommended
+    const isRecommended = index === recommendedIdx;
+    const { hargaNormal, hargaFinal, hemat } = hitungHargaPaket(p);
+
+    if (isSelected) {
+      _selectedHari = Number(p.hari);
+      _baseAmount = hargaFinal;
+      _finalAmount = Math.max(100, _baseAmount - _discountAmount);
+    }
+
+    const card = document.createElement('div');
+    card.className = `package-card p-4 rounded-2xl bg-slate-900/80 border ${isRecommended ? 'recommended-card' : 'border-slate-800'} flex flex-col justify-between ${isSelected ? 'selected' : ''}`;
+    
+    card.onclick = () => {
+      document.querySelectorAll('.package-card').forEach(el => el.classList.remove('selected'));
+      card.classList.add('selected');
+      _selectedHari = Number(p.hari);
+      _baseAmount = hargaFinal;
+      _finalAmount = Math.max(100, _baseAmount - _discountAmount);
+    };
+
+    let recommendedBadge = isRecommended ? `
+      <div class="absolute -top-3.5 right-4 z-20 flex items-center">
+        <span class="relative flex h-full w-full">
+          <span class="animate-pulse absolute inline-flex h-full w-full rounded-full bg-amber-400/40 opacity-75 blur-sm"></span>
+          <span class="relative bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 text-slate-950 font-black text-[9px] px-3 py-1 rounded-full shadow-lg shadow-amber-500/25 uppercase tracking-wider border border-amber-300/60 flex items-center gap-1.5 backdrop-blur-md">
+            <span class="text-xs leading-none">⭐</span> RECOMMENDED
+          </span>
+        </span>
+      </div>
+    ` : '';
+    
+    let promoBadgeHtml = '';
+    if (hemat > 0) {
+      promoBadgeHtml = `<div class="mt-1"><span class="inline-flex items-center gap-1 text-[9px] font-extrabold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-lg">🔥 Hemat ${fmt(hemat)}</span></div>`;
+    }
+
+    let priceHtml = '';
+    if (hemat > 0) {
+      priceHtml = `
+        <div class="text-right">
+          <span class="text-[10px] text-slate-500 line-through block font-mono">${fmt(hargaNormal)}</span>
+          <span class="text-emerald-400 font-mono font-black text-sm sm:text-base">${fmt(hargaFinal)}</span>
+        </div>
+      `;
+    } else {
+      priceHtml = `<span class="text-emerald-400 font-mono font-black text-sm sm:text-base">${fmt(hargaFinal)}</span>`;
+    }
+
+    card.innerHTML = `
+      ${recommendedBadge}
+      <div>
+        <span class="text-[10px] font-extrabold text-brand-400 uppercase tracking-wider block">${p.nama || `Paket ${p.hari} Hari`}</span>
+        <b class="text-white text-base sm:text-lg font-black mt-0.5 block">${p.hari} Hari Aktif</b>
+        ${promoBadgeHtml}
+      </div>
+        <div class="mt-3 pt-3 border-t border-slate-800/80 flex items-center justify-between">
+        <span class="text-[10px] text-slate-400 font-medium">Harga:</span>
+        ${priceHtml}
+      </div>`;
+      
+    container.appendChild(card);
+  });
+}
+
+async function applyPromo() {
+  const inputPromo = document.getElementById('input-promo-code');
+  const promoMsg = document.getElementById('promo-msg');
+  const code = inputPromo.value.trim().toUpperCase();
+
+  if (!code) {
+    toast('Masukkan kode promo!', false);
+    return;
+  }
+
+  promoMsg.classList.remove('hidden');
+  promoMsg.className = 'text-[11px] font-medium text-slate-400';
+  promoMsg.textContent = 'Memvalidasi promo...';
+
+  try {
+    const res = await fetch(`${API_URL}?action=check_promo&code=${encodeURIComponent(code)}`, { cache: 'no-store' });
+    if (res.ok) {
+      const json = await res.json();
+      const d = json.data || json;
+      if (d && (d.valid === true || d.success === true)) {
+        _appliedPromo = code;
+        _discountAmount = d.type === 'percent' ? Math.round(_baseAmount * (Number(d.value) / 100)) : (Number(d.value) || 5000);
+        _finalAmount = Math.max(100, _baseAmount - _discountAmount);
+        promoMsg.className = 'text-[11px] font-semibold text-emerald-400';
+        promoMsg.textContent = `✔ Promo "${code}" aktif! Diskon ${fmt(_discountAmount)}`;
+        toast(`Promo berhasil! Diskon ${fmt(_discountAmount)}`);
+        return;
+      }
+    }
+  } catch (err) {}
+
+  if (code === 'MINDSPACE20' || code === 'SIPGN') {
+    _appliedPromo = code;
+    _discountAmount = 5000;
+    _finalAmount = Math.max(100, _baseAmount - _discountAmount);
+    promoMsg.className = 'text-[11px] font-semibold text-emerald-400';
+    promoMsg.textContent = `✔ Promo "${code}" aktif! Diskon ${fmt(_discountAmount)}`;
+    toast(`Promo ${code} diterapkan!`);
+    return;
+  }
+
+  _discountAmount = 0;
+  _finalAmount = _baseAmount;
+  _appliedPromo = null;
+  promoMsg.className = 'text-[11px] font-semibold text-red-400';
+  promoMsg.textContent = 'Kode promo tidak valid.';
+  toast('Kode promo tidak valid', false);
+}
+
+function toast(message, isSuccess = true) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = message;
+  t.className = `fixed top-4 left-1/2 -translate-x-1/2 z-[100000] max-w-[90vw] w-auto px-5 py-3 rounded-2xl shadow-2xl border text-white font-bold text-xs sm:text-sm transition-all duration-300 translate-y-0 opacity-100 ${isSuccess ? 'bg-emerald-600 border-emerald-500' : 'bg-red-600 border-red-500'}`;
+  setTimeout(() => {
+    t.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-[100000] max-w-[90vw] w-auto px-5 py-3 rounded-2xl shadow-2xl border text-white font-bold text-xs sm:text-sm transition-all duration-300 -translate-y-20 opacity-0 pointer-events-none';
+  }, 4000);
+}
+
+// Helper kalkulasi harga bersih paket berdasarkan promo diskon aktif dari server
+function hitungHargaDiskonBackend(p) {
+  const hargaNormal = Number(p.harga || 0);
+  const discType = p.discount_type || 'none';
+  const discVal = Number(p.discount_value || 0);
+  const discUntil = p.discount_until || null;
+
+  if (discUntil && /^\d{4}-\d{2}-\d{2}$/.test(discUntil)) {
+    const hariIniStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+    if (hariIniStr > discUntil) {
+      return hargaNormal;
+    }
+  }
+
+  if (discType === 'percent' && discVal > 0) {
+    const potongan = Math.round((hargaNormal * discVal) / 100);
+    return Math.max(0, hargaNormal - potongan);
+  } else if (discType === 'nominal' && discVal > 0) {
+    return Math.max(0, hargaNormal - discVal);
+  } else if (p.final_price !== undefined && p.final_price !== null) {
+    return Number(p.final_price);
+  }
+
+  return hargaNormal;
 }
 
 async function checkDevice() {
@@ -250,10 +555,8 @@ async function checkDevice() {
 
   // Ambil paket langganan
   let packages = [
-    { hari: 7, harga: 25000, nama: 'Paket 7 Hari' },
-    { hari: 14, harga: 40000, nama: 'Paket 14 Hari' },
-    { hari: 30, harga: 70000, nama: 'Paket 30 Hari' },
-    { hari: 60, harga: 100000, nama: 'Paket 60 Hari' }
+    { hari: 7, harga: 25000, nama: 'Paket 7 Hari', discount_type: 'none', discount_value: 0 },
+    { hari: 30, harga: 50000, nama: 'Paket 30 Hari', discount_type: 'none', discount_value: 0 }
   ];
 
   try {
@@ -299,31 +602,68 @@ function resetSelectionState(btnCheck) {
 function renderPackages(pkgs) {
   const container = document.getElementById('packages-container');
   container.innerHTML = '';
+  
+  // Tentukan tepat 1 index yang menjadi recommended (utamakan paket 30 hari, jika tidak ada pakai paket ke-0)
+  let recommendedIdx = pkgs.findIndex(p => Number(p.hari) === 30);
+  if (recommendedIdx === -1 && pkgs.length > 0) recommendedIdx = 0;
+
   pkgs.forEach((p, index) => {
-    const isFirst = index === 0;
-    if (isFirst) {
+    const isSelected = index === recommendedIdx;
+    const isRecommended = index === recommendedIdx;
+    const { hargaNormal, hargaFinal, hemat } = hitungHargaPaket(p);
+
+    if (isSelected) {
       _selectedHari = Number(p.hari);
-      _baseAmount = Number(p.harga);
-      _finalAmount = Math.max(0, _baseAmount - _discountAmount);
+      _baseAmount = hargaFinal;
+      _finalAmount = Math.max(100, _baseAmount - _discountAmount);
     }
+
     const card = document.createElement('div');
-    card.className = `package-card p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between ${isFirst ? 'selected' : ''}`;
+    card.className = `package-card p-4 sm:p-5 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between ${isSelected ? 'selected' : ''}`;
+    
     card.onclick = () => {
       document.querySelectorAll('.package-card').forEach(el => el.classList.remove('selected'));
       card.classList.add('selected');
       _selectedHari = Number(p.hari);
-      _baseAmount = Number(p.harga);
-      _finalAmount = Math.max(0, _baseAmount - _discountAmount);
+      _baseAmount = hargaFinal;
+      _finalAmount = Math.max(100, _baseAmount - _discountAmount);
     };
+
+    let recommendedBadge = isRecommended ? `
+      <div class="-mt-3 mb-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white text-[9px] font-black uppercase tracking-wider shadow-lg shadow-indigo-500/25 border border-white/20">
+        <span class="text-amber-300 drop-shadow">✨</span>
+        <span class="bg-gradient-to-r from-white via-slate-100 to-amber-200 bg-clip-text text-transparent">MOST POPULAR</span>
+      </div>` : '';
+    
+    let promoBadgeHtml = '';
+    if (hemat > 0) {
+      promoBadgeHtml = `<div class="mt-1"><span class="inline-flex items-center gap-1 text-[9px] font-extrabold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-lg">🔥 Hemat ${fmt(hemat)}</span></div>`;
+    }
+
+    let priceHtml = '';
+    if (hemat > 0) {
+      priceHtml = `
+        <div class="text-right">
+          <span class="text-[10px] text-slate-500 line-through block font-mono">${fmt(hargaNormal)}</span>
+          <span class="text-emerald-400 font-mono font-black text-sm sm:text-base">${fmt(hargaFinal)}</span>
+        </div>
+      `;
+    } else {
+      priceHtml = `<span class="text-emerald-400 font-mono font-black text-sm sm:text-base">${fmt(hargaFinal)}</span>`;
+    }
+
     card.innerHTML = `
       <div>
+        ${recommendedBadge}
         <span class="text-[10px] font-extrabold text-brand-400 uppercase tracking-wider block">${p.nama || `Paket ${p.hari} Hari`}</span>
         <b class="text-white text-base sm:text-lg font-black mt-0.5 block">${p.hari} Hari Aktif</b>
+        ${promoBadgeHtml}
       </div>
       <div class="mt-3 pt-3 border-t border-slate-800/80 flex items-center justify-between">
-        <span class="text-[10px] text-slate-400">Harga:</span>
-        <span class="text-emerald-400 font-mono font-bold text-xs sm:text-sm">${fmt(p.harga)}</span>
+        <span class="text-[10px] text-slate-400 font-medium">Harga:</span>
+        ${priceHtml}
       </div>`;
+      
     container.appendChild(card);
   });
 }
@@ -350,32 +690,31 @@ async function applyPromo() {
       if (d && (d.valid === true || d.success === true)) {
         _appliedPromo = code;
         _discountAmount = d.type === 'percent' ? Math.round(_baseAmount * (Number(d.value) / 100)) : (Number(d.value) || 5000);
-        _finalAmount = Math.max(0, _baseAmount - _discountAmount);
+        _finalAmount = Math.max(100, _baseAmount - _discountAmount);
         promoMsg.className = 'text-[11px] font-semibold text-emerald-400';
         promoMsg.textContent = `✔ Promo "${code}" aktif! Diskon ${fmt(_discountAmount)}`;
         toast(`Promo berhasil! Diskon ${fmt(_discountAmount)}`);
         return;
-      } else {
-        throw new Error(d.message || 'Kode promo tidak valid');
       }
     }
-  } catch (err) {
-    if (code === 'MINDSPACE20' || code === 'SIPGN') {
-      _appliedPromo = code;
-      _discountAmount = 5000;
-      _finalAmount = Math.max(0, _baseAmount - _discountAmount);
-      promoMsg.className = 'text-[11px] font-semibold text-emerald-400';
-      promoMsg.textContent = `✔ Promo "${code}" aktif! Diskon ${fmt(_discountAmount)}`;
-      toast(`Promo ${code} diterapkan!`);
-      return;
-    }
-    _discountAmount = 0;
-    _finalAmount = _baseAmount;
-    _appliedPromo = null;
-    promoMsg.className = 'text-[11px] font-semibold text-red-400';
-    promoMsg.textContent = err.message || 'Kode promo salah.';
-    toast('Kode promo tidak valid', false);
+  } catch (err) {}
+
+  if (code === 'MINDSPACE20' || code === 'SIPGN') {
+    _appliedPromo = code;
+    _discountAmount = 5000;
+    _finalAmount = Math.max(100, _baseAmount - _discountAmount);
+    promoMsg.className = 'text-[11px] font-semibold text-emerald-400';
+    promoMsg.textContent = `✔ Promo "${code}" aktif! Diskon ${fmt(_discountAmount)}`;
+    toast(`Promo ${code} diterapkan!`);
+    return;
   }
+
+  _discountAmount = 0;
+  _finalAmount = _baseAmount;
+  _appliedPromo = null;
+  promoMsg.className = 'text-[11px] font-semibold text-red-400';
+  promoMsg.textContent = 'Kode promo tidak valid.';
+  toast('Kode promo tidak valid', false);
 }
 
 async function createQR() {
@@ -418,7 +757,7 @@ async function createQR() {
     const qrLink = d.qr_link || d.qr_url || d.qrCodeUrl;
     const ref = d.reff_id || d.ref_id || d.trx_id;
 
-    const isErr = json.success === false || d.status === 'Error' || d.status === false || d.status === 0;
+    const isErr = json.success === false || d.status === 'Error' || d.status === false;
     const errMsg = d.error || d.message || json.message || json.error;
 
     if (isErr || (!qrString && !qrLink)) {
@@ -433,7 +772,7 @@ async function createQR() {
     document.getElementById('qris-total-amount').textContent = fmt(totalPay);
 
     let feeText = `(Harga: ${fmt(_baseAmount)}`;
-    if (_discountAmount > 0) feeText += ` - Diskon: ${fmt(_discountAmount)}`;
+    if (_discountAmount > 0) feeText += ` - Diskon Kode: ${fmt(_discountAmount)}`;
     feeText += ` + Fee 1.7%: ${fmt(fee)})`;
     document.getElementById('qris-fee-info').textContent = feeText;
 
@@ -504,7 +843,6 @@ function startPolling() {
     try {
       const devIdCurrent = document.getElementById('input-device-id').value.trim().toUpperCase();
       
-      // 1. Cek status transaksi resmi dari Gateway Tokopay API
       const res = await fetch(`${API_URL}?reff_id=${encodeURIComponent(_reffId)}&device_id=${encodeURIComponent(devIdCurrent)}`, { cache: 'no-store' });
       const json = await res.json();
       const d = json.data || json;
@@ -513,7 +851,6 @@ function startPolling() {
       let isPaid = json.is_paid === true || d.is_paid === true || ['success', 'paid', 'completed', 'berhasil'].includes(rawStatusStr);
       let newExpStr = json.exp_date || d.exp_date || d.expired_date || d.expired;
 
-      // 2. Fallback Check ke Supabase HANYA JIKA tanggal kadaluarsa sudah BENAR-BENAR BERTAMBAH dari tanggal awal
       if (!isPaid) {
         try {
           const licCheckRes = await fetch(`${API_URL}?action=check_license&device_id=${encodeURIComponent(devIdCurrent)}`, { cache: 'no-store' });
@@ -522,7 +859,6 @@ function startPolling() {
             const licData = licJson.data || licJson.license || licJson;
             const currentDbExp = licData?.exp_date || licData?.expired_date || null;
             
-            // Verifikasi: Hanya anggap lunas jika exp_date di DB sudah berubah/bertambah dibanding _initialExpDate
             if (currentDbExp && _initialExpDate && currentDbExp !== _initialExpDate) {
               isPaid = true;
               newExpStr = currentDbExp;
@@ -531,7 +867,6 @@ function startPolling() {
         } catch (errDb) {}
       }
 
-      // 3. Tampilkan Layar Sukses HANYA jika terbukti lunas
       if (isPaid) {
         clearInterval(_pollInterval);
         if (_countdownInterval) clearInterval(_countdownInterval);
@@ -552,10 +887,9 @@ function startPolling() {
     } catch (e) {
       console.warn('Polling status error:', e);
     }
-  }, 5000); // Polling setiap 5 detik
+  }, 5000);
 }
 
-// Event Listeners Binding
 window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-check-device').addEventListener('click', checkDevice);
   document.getElementById('btn-apply-promo').addEventListener('click', applyPromo);
@@ -566,7 +900,6 @@ window.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Enter') checkDevice();
   });
 
-  // Auto check jika ada URL query parameter
   const qParams = new URLSearchParams(window.location.search);
   const paramId = qParams.get('device_id') || qParams.get('did');
   if (paramId) {

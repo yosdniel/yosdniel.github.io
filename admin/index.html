@@ -14,7 +14,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="MindHUB">
 
-  <!-- DYNAMIC MANIFEST INJECTION FOR PWA INSTALLABILITY -->
+  <!-- DYNAMIC MANIFEST VIA DATA URI FOR BETTER COMPATIBILITY -->
   <script>
     const manifestData = {
       "name": "MindHUB Admin Dashboard",
@@ -40,34 +40,29 @@
       ]
     };
     const stringManifest = JSON.stringify(manifestData);
-    const blob = new Blob([stringManifest], {type: 'application/json'});
-    const manifestURL = URL.createObjectURL(blob);
+    const manifestURL = 'data:application/json;base64,' + btoa(unescape(encodeURIComponent(stringManifest)));
     const linkTag = document.createElement('link');
     linkTag.rel = 'manifest';
     linkTag.href = manifestURL;
     document.head.appendChild(linkTag);
 
-    // REGISTER ROBUST SERVICE WORKER FOR PWA CACHING & INSTALL PROMPT
+    // SERVICE WORKER REGISTRATION (SAFE FALLBACK)
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         const swCode = `
-          self.addEventListener('install', (e) => {
-            self.skipWaiting();
-          });
-          self.addEventListener('activate', (e) => {
-            e.waitUntil(clients.claim());
-          });
+          self.addEventListener('install', (e) => { self.skipWaiting(); });
+          self.addEventListener('activate', (e) => { e.waitUntil(clients.claim()); });
           self.addEventListener('fetch', (e) => {
-            e.respondWith(
-              fetch(e.request).catch(() => caches.match(e.request))
-            );
+            e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
           });
         `;
-        const swBlob = new Blob([swCode], {type: 'text/javascript'});
-        const swUrl = URL.createObjectURL(swBlob);
-        navigator.serviceWorker.register(swUrl)
-          .then(reg => console.log('ServiceWorker registration successful:', reg.scope))
-          .catch(err => console.log('SW registration failed:', err));
+        try {
+          const swBlob = new Blob([swCode], {type: 'text/javascript'});
+          const swUrl = URL.createObjectURL(swBlob);
+          navigator.serviceWorker.register(swUrl)
+            .then(reg => console.log('SW Registered:', reg.scope))
+            .catch(err => console.log('SW Blob Register Info:', err.message));
+        } catch(e) {}
       });
     }
   </script>
@@ -799,7 +794,6 @@
         const avgVal = Math.round(heartbeatPoints.reduce((a, b) => a + b, 0) / heartbeatPoints.length);
 
         const hbVal = document.getElementById('heartbeatLiveValue');
-        const statPingMs = document.getElementById('statPingMs');
         const minEl = document.getElementById('hbMinMs');
         const maxEl = document.getElementById('hbMaxMs');
         const avgEl = document.getElementById('hbAvgMs');
@@ -808,7 +802,6 @@
         const badge = document.getElementById('systemEngineBadge');
 
         if (hbVal) hbVal.textContent = `${currentLatency} ms`;
-        if (statPingMs) statPingMs.textContent = `${currentLatency} ms`;
         if (minEl) minEl.textContent = `Min: ${minVal}ms`;
         if (maxEl) maxEl.textContent = `Max: ${maxVal}ms`;
         if (avgEl) avgEl.textContent = `Avg: ${avgVal}ms`;
@@ -1587,18 +1580,21 @@
       }
     }
 
-    function salinVoucherDevice() {
+    async function salinVoucherDevice() {
       const val = document.getElementById('dispGeneratedVoucher').value;
       if (!val || val.includes('Generating')) return;
-      document.execCommand ? (function(){
+      try {
+        await navigator.clipboard.writeText(val);
+        showToast('Voucher disalin ke clipboard!');
+      } catch (err) {
         const el = document.createElement('textarea');
         el.value = val;
         document.body.appendChild(el);
         el.select();
         document.execCommand('copy');
         document.body.removeChild(el);
-      })() : navigator.clipboard.writeText(val);
-      showToast('Copied to clipboard');
+        showToast('Voucher disalin ke clipboard!');
+      }
     }
 
     function buatLicenseKey(exp, did) {
@@ -1735,18 +1731,21 @@
       modal.classList.add('hidden');
     }
 
-    function copyJsonPreview() {
+    async function copyJsonPreview() {
       if (!currentBackupPayload) return;
       const val = JSON.stringify(currentBackupPayload, null, 2);
-      document.execCommand ? (function(){
+      try {
+        await navigator.clipboard.writeText(val);
+        showToast('JSON Backup disalin ke clipboard!');
+      } catch (err) {
         const el = document.createElement('textarea');
         el.value = val;
         document.body.appendChild(el);
         el.select();
         document.execCommand('copy');
         document.body.removeChild(el);
-      })() : navigator.clipboard.writeText(val);
-      showToast('JSON Backup copied to clipboard!');
+        showToast('JSON Backup disalin ke clipboard!');
+      }
     }
 
     function downloadBackupCloud() {
@@ -1782,20 +1781,98 @@
     function eksekusiOperDeviceWithModal() {
       const sourceId = document.getElementById('inputSourceDevice').value.trim().toUpperCase();
       const targetId = document.getElementById('inputTargetDevice').value.trim().toUpperCase();
-      if (!sourceId || !targetId) return showToast('Enter Source & Target Device IDs', false);
-      showConfirmModal('Migrate License', `Transfer license from ${sourceId} to ${targetId}?`, async () => {
+      
+      if (!sourceId || !targetId) {
+        return showToast('Device ID Asal dan Tujuan wajib diisi!', false);
+      }
+      if (sourceId === targetId) {
+        return showToast('Device ID Asal dan Tujuan tidak boleh sama!', false);
+      }
+
+      showConfirmModal('🚀 Konfirmasi Migrasi Device', `Memindahkan data lisensi & cloud backup:\n\n• Dari: ${sourceId}\n• Ke: ${targetId}\n\nApakah Anda yakin ingin memproses migrasi ini?`, async () => {
+        showToast('Processing device migration...', true);
         try {
+          // 1. Coba Panggil API Backend Direct Migration
           const res = await fetch(VERCEL_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'transfer_device', source_device_id: sourceId, target_device_id: targetId, admin_secret: adminPasswordSecret })
           });
           const data = await res.json();
+          
           if (res.ok && (data.success || data.status)) {
-            showToast('Migration successful!');
+            showToast(`🎉 Migrasi ${sourceId} ➔ ${targetId} Berhasil!`);
             bukaFitur('device');
-          } else showToast(data.error || 'Migration failed', false);
-        } catch (e) { showToast('Network Error', false); }
+            return;
+          }
+          
+          // 2. Fallback Client-Side Step-by-Step Transfer jika API backend transfer_device tidak didukung
+          const sourceUser = globalUserList.find(u => (u.device_id || '').toUpperCase() === sourceId);
+          if (!sourceUser) {
+            return showToast(`Device Asal (${sourceId}) tidak ditemukan di database!`, false);
+          }
+
+          // A. Simpan lisensi baru ke Target Device
+          const newLicensePayload = {
+            action: 'save_license',
+            device_id: targetId,
+            sppg_name: sourceUser.sppg_name || '',
+            status: sourceUser.status || 'active',
+            exp_date: sourceUser.exp_date || '',
+            license_key: buatLicenseKey(sourceUser.exp_date || '2099-12-31', targetId),
+            admin_secret: adminPasswordSecret
+          };
+
+          const saveRes = await fetch(VERCEL_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newLicensePayload)
+          });
+
+          if (!saveRes.ok) {
+            throw new Error('Gagal membuat lisensi di Device Tujuan.');
+          }
+
+          // B. Transfer Backup Cloud (jika ada)
+          try {
+            const bRes = await fetch(`${VERCEL_API_URL}?action=get_backup&device_id=${encodeURIComponent(sourceId)}&_t=${Date.now()}`);
+            if (bRes.ok) {
+              const bData = await bRes.json();
+              const backupPayload = bData.backup_data || bData.backup || bData.data || bData;
+              if (backupPayload && typeof backupPayload === 'object' && !bData.error) {
+                await fetch(VERCEL_API_URL, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    action: 'save_backup',
+                    device_id: targetId,
+                    backup_data: backupPayload,
+                    admin_secret: adminPasswordSecret
+                  })
+                });
+              }
+            }
+          } catch (errBackup) {
+            console.warn('Backup transfer warning:', errBackup);
+          }
+
+          // C. Hapus lisensi & backup dari Source Device
+          await fetch(VERCEL_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'delete_license', device_id: sourceId, admin_secret: adminPasswordSecret })
+          });
+          await fetch(VERCEL_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'delete_backup', device_id: sourceId, admin_secret: adminPasswordSecret })
+          });
+
+          showToast(`🎉 Migrasi Data ${sourceId} ➔ ${targetId} Berhasil!`);
+          bukaFitur('device');
+        } catch (e) { 
+          showToast(e.message || 'Gagal melakukan migrasi device', false); 
+        }
       });
     }
 

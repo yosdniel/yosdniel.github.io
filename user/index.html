@@ -463,7 +463,10 @@
         // Mengirim email verifikasi murni via api/config.js backend handler
         const response = await fetch(CONFIG_API_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
           body: JSON.stringify({
             action: 'send_verification_email',
             to: email,
@@ -472,13 +475,21 @@
           })
         });
 
-        if (!response.ok) {
-          throw new Error('Gagal mengirim email via SMTP relay.');
+        const responseText = await response.text();
+        let resJson;
+        try {
+          resJson = JSON.parse(responseText);
+        } catch (e) {
+          throw new Error('Server response bukan JSON yang valid: ' + responseText.substring(0, 100));
+        }
+
+        if (!response.ok || !resJson.success) {
+          throw new Error(resJson.error || 'Gagal mengirim email via SMTP relay.');
         }
 
         document.getElementById('verifyTargetEmail').textContent = email;
         switchAuthTab('verify');
-        showToast('Kode verifikasi 6-angka telah dikirim ke email Anda via SMTP.');
+        showToast('Kode verifikasi telah dikirim ke email Anda via SMTP.');
       } catch (err) {
         showToast(err.message || 'Gagal mengirim email verifikasi', false);
       } finally {

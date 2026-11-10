@@ -325,25 +325,25 @@
 
   <script>
     const VERCEL_BASE_URL = 'https://mindspace-id.vercel.app';
-    const VERCEL_API_URL = `${VERCEL_BASE_URL}/api/tokopay`;
+    const CONFIG_API_URL = `${VERCEL_BASE_URL}/api/config.js`;
     
     let supabaseClientInstance = null;
     let activeUserSession = null;
     let pendingVerificationEmail = null;
 
-    // FETCH SUPABASE CONFIG DINAMIS FROM VERCEL API ROUTE
+    // FETCH SUPABASE CONFIG DINAMIS FROM VERCEL API/CONFIG.JS
     async function initSupabaseEnvConfig() {
       try {
-        const res = await fetch(`${VERCEL_BASE_URL}/api/config`);
+        const res = await fetch(CONFIG_API_URL);
         if (!res.ok) return;
         const config = await res.json();
         
         if (config.supabaseUrl && config.supabaseAnonKey && window.supabase) {
           supabaseClientInstance = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
-          console.log("Supabase initialized dynamic environment.");
+          console.log("Supabase initialized via api/config.js.");
         }
       } catch (err) {
-        console.warn("Server config API offline.");
+        console.warn("API config endpoint offline, fallback mode.");
       }
     }
 
@@ -426,6 +426,12 @@
       const email = document.getElementById('regEmail').value.trim();
       const pass = document.getElementById('regPassword').value.trim();
       const btn = document.getElementById('btnRegister');
+    /* PROSES REGISTER USER BARU & KIRIM KODE VERIFIKASI SMTP VIA API/CONFIG.JS */
+    async function prosesUserRegister() {
+      const username = document.getElementById('regUsername').value.trim();
+      const email = document.getElementById('regEmail').value.trim();
+      const pass = document.getElementById('regPassword').value.trim();
+      const btn = document.getElementById('btnRegister');
 
       if (!username || !email || !pass) {
         return showToast('Seluruh kolom registrasi wajib diisi!', false);
@@ -460,19 +466,20 @@
           }
         }
 
+        // Mengirim email verifikasi via api/config.js backend handler
         try {
-          await fetch(VERCEL_API_URL, {
+          await fetch(CONFIG_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              action: 'send_email',
+              action: 'send_verification_email',
               to: email,
-              subject: 'Kode Verifikasi MindHUB Portal',
-              body: `Halo ${username},\n\nKode verifikasi akun MindHUB Anda adalah: ${verificationCode}\n\nSender: no-reply@minduniverse.id`
+              code: verificationCode,
+              username: username
             })
           });
         } catch (smtpErr) {
-          console.warn("SMTP relay simulation fallback active.");
+          console.warn("SMTP relay handled via serverless fallback.");
         }
 
         document.getElementById('verifyTargetEmail').textContent = email;

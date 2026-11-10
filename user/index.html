@@ -169,7 +169,7 @@
       </div>
 
       <div class="mt-6 pt-4 border-t border-slate-800/80 text-center flex flex-col gap-1">
-        <span class="text-[10px] text-slate-500">Official Mailer: no-reply@minduniverse.id</span>
+        <span class="text-[10px] text-slate-500">Official Mailer: menggunakan alamat email SMTP terdaftar</span>
         <span class="text-[10px] text-slate-500">Mindspace Studio &copy; 2026</span>
       </div>
     </div>
@@ -277,7 +277,7 @@
               <div class="bg-slate-900/80 p-4 rounded-2xl border border-slate-800 space-y-2">
                 <div class="flex justify-between">
                   <span class="text-slate-400">Sender Address:</span>
-                  <span class="text-emerald-400 font-mono font-bold">no-reply@minduniverse.id</span>
+                  <span class="text-emerald-400 font-mono font-bold">EMAIL_ID (Vercel)</span>
                 </div>
                 <div class="flex justify-between">
                   <span class="text-slate-400">SMTP Host:</span>
@@ -476,6 +476,24 @@
 
       try {
         const supabase = await initSupabaseEnvConfig();
+
+        // Periksa username sebelum mengirim email atau membuat akun.
+        const { data: existingUsername, error: usernameCheckError } = await supabase
+          .from('user_accounts')
+          .select('id')
+          .eq('username', username)
+          .limit(1);
+
+        if (usernameCheckError) {
+          throw new Error('Gagal memeriksa username: ' + usernameCheckError.message);
+        }
+
+        if (existingUsername && existingUsername.length > 0) {
+          showToast('Username telah terpakai. Silakan gunakan username lain.', false);
+          document.getElementById('regUsername').focus();
+          return;
+        }
+
         const passHash = await hashPassword(pass);
         const uuid = randomSixDigitCode();
         const verificationCode = randomSixDigitCode();
@@ -498,6 +516,16 @@
         });
 
         if (error) {
+          // Tangani duplikasi jika ada pendaftaran bersamaan setelah pengecekan awal.
+          if (
+            error.code === '23505' &&
+            String(error.message || '').includes('user_accounts_username_key')
+          ) {
+            showToast('Username telah terpakai. Silakan gunakan username lain.', false);
+            document.getElementById('regUsername').focus();
+            return;
+          }
+
           throw new Error(error.message || 'Gagal menyimpan akun ke database.');
         }
 

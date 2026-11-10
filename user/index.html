@@ -325,35 +325,65 @@
 
   <script>
     const VERCEL_BASE_URL = 'https://mindspace-id.vercel.app';
-    const CONFIG_API_URL = `${VERCEL_BASE_URL}/api/config.js`;
-    
+    const CONFIG_API_URL = `${VERCEL_BASE_URL}/api/config`;
+
     let supabaseClientInstance = null;
+    let supabaseInitPromise = null;
     let activeUserSession = null;
     let pendingVerificationEmail = null;
 
-    // FETCH SUPABASE CONFIG DINAMIS FROM VERCEL API/CONFIG.JS
     async function initSupabaseEnvConfig() {
-      try {
-        const res = await fetch(CONFIG_API_URL);
-        if (!res.ok) return;
-        const config = await res.json();
-        
-        if (config.supabaseUrl && config.supabaseAnonKey && window.supabase) {
-          supabaseClientInstance = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
-          console.log("Supabase initialized via api/config.js.");
+      if (supabaseClientInstance) return supabaseClientInstance;
+      if (supabaseInitPromise) return supabaseInitPromise;
+
+      supabaseInitPromise = (async () => {
+        const response = await fetch(CONFIG_API_URL, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' },
+          cache: 'no-store'
+        });
+        const config = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(config.error || `Gagal mengambil konfigurasi (${response.status})`);
         }
-      } catch (err) {
-        console.warn("API config endpoint offline, fallback mode.");
+        if (!config.supabaseUrl || !config.supabaseAnonKey) {
+          throw new Error('Konfigurasi Supabase belum lengkap di Vercel Environment Variables.');
+        }
+        if (!window.supabase || typeof window.supabase.createClient !== 'function') {
+          throw new Error('Library Supabase gagal dimuat.');
+        }
+        supabaseClientInstance = window.supabase.createClient(
+          config.supabaseUrl,
+          config.supabaseAnonKey,
+          { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }
+        );
+        console.log('Supabase berhasil diinisialisasi.');
+        return supabaseClientInstance;
+      })();
+
+      try {
+        return await supabaseInitPromise;
+      } catch (error) {
+        supabaseInitPromise = null;
+        throw error;
       }
     }
 
-    document.addEventListener('DOMContentLoaded', initSupabaseEnvConfig);
+    document.addEventListener('DOMContentLoaded', () => {
+      initSupabaseEnvConfig().catch(error => console.error('Supabase init:', error));
+    });
 
     async function hashPassword(plainText) {
       const msgBuffer = new TextEncoder().encode(plainText + 'MINDSTUDIO2026');
       const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      return Array.from(new Uint8Array(hashBuffer))
+        .map(byte => byte.toString(16).padStart(2, '0')).join('');
+    }
+
+    function randomSixDigitCode() {
+      const array = new Uint32Array(1);
+      crypto.getRandomValues(array);
+      return String(100000 + (array[0] % 900000));
     }
 
     function showToast(msg, isSuccess = true) {
@@ -362,7 +392,7 @@
       t.className = `fixed top-4 left-1/2 -translate-x-1/2 z-[100000] max-w-[90vw] w-auto px-5 py-3 rounded-2xl shadow-2xl border text-white font-bold text-xs sm:text-sm transition-all duration-300 translate-y-0 opacity-100 ${isSuccess ? 'bg-emerald-600 border-emerald-500' : 'bg-red-600 border-red-500'}`;
       setTimeout(() => {
         t.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-[100000] max-w-[90vw] w-auto px-5 py-3 rounded-2xl shadow-2xl border text-white font-bold text-xs sm:text-sm transition-all duration-300 -translate-y-20 opacity-0 pointer-events-none';
-      }, 3000);
+      }, 3500);
     }
 
     function switchAuthTab(tab) {
@@ -379,13 +409,13 @@
 
       if (tab === 'login') {
         tabsContainer.style.display = 'flex';
-        btnLogin.className = "flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 bg-brand-500 text-white shadow-md shadow-brand-500/20";
-        btnRegister.className = "flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 text-slate-400 hover:text-white";
+        btnLogin.className = 'flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 bg-brand-500 text-white shadow-md shadow-brand-500/20';
+        btnRegister.className = 'flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 text-slate-400 hover:text-white';
         formLogin.classList.add('active');
       } else if (tab === 'register') {
         tabsContainer.style.display = 'flex';
-        btnRegister.className = "flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 bg-emerald-600 text-white shadow-md shadow-emerald-500/20";
-        btnLogin.className = "flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 text-slate-400 hover:text-white";
+        btnRegister.className = 'flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 bg-emerald-600 text-white shadow-md shadow-emerald-500/20';
+        btnLogin.className = 'flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 text-slate-400 hover:text-white';
         formRegister.classList.add('active');
       } else if (tab === 'verify') {
         tabsContainer.style.display = 'none';
@@ -413,221 +443,186 @@
     }
 
     function bukaFitur(fitur) {
-      if (fitur === 'overview') {
-        bukaSubView('overview');
-      } else {
-        showToast(`Fitur ${fitur} sedang dimuat.`, true);
-      }
+      if (fitur === 'overview') bukaSubView('overview');
+      else showToast(`Fitur ${fitur} sedang dimuat.`, true);
     }
 
-    /* PROSES REGISTER USER BARU & KIRIM KODE VERIFIKASI SMTP VIA API/CONFIG.JS */
+    async function sendVerificationEmail(email, code, username) {
+      const response = await fetch(CONFIG_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ action: 'send_verification_email', to: email, code, username })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || `Pengiriman email gagal (${response.status}).`);
+      }
+      return result;
+    }
+
     async function prosesUserRegister() {
-      const username = document.getElementById('regUsername').value.trim();
-      const email = document.getElementById('regEmail').value.trim();
-      const pass = document.getElementById('regPassword').value.trim();
+      const username = document.getElementById('regUsername').value.trim().toLowerCase();
+      const email = document.getElementById('regEmail').value.trim().toLowerCase();
+      const pass = document.getElementById('regPassword').value;
       const btn = document.getElementById('btnRegister');
 
-      if (!username || !email || !pass) {
-        return showToast('Seluruh kolom registrasi wajib diisi!', false);
-      }
+      if (!username || !email || !pass) return showToast('Seluruh kolom registrasi wajib diisi!', false);
+      if (!/^[a-z0-9_]{3,24}$/.test(username)) return showToast('Username 3–24 karakter. Gunakan huruf, angka, atau underscore.', false);
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showToast('Format email tidak valid.', false);
+      if (pass.length < 8) return showToast('Password minimal 8 karakter.', false);
 
       btn.disabled = true;
-      btn.textContent = 'Mengirim Kode via SMTP...';
+      btn.textContent = 'Menyiapkan akun...';
 
       try {
+        const supabase = await initSupabaseEnvConfig();
         const passHash = await hashPassword(pass);
-        const randomUuid6 = Math.floor(100000 + Math.random() * 900000).toString();
-        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-        pendingVerificationEmail = email;
+        const uuid = randomSixDigitCode();
+        const verificationCode = randomSixDigitCode();
 
-        if (supabaseClientInstance) {
-          const { error } = await supabaseClientInstance.from('user_accounts').insert([
-            {
-              uuid: randomUuid6,
-              username: username,
-              email: email,
-              password_hash: passHash,
-              role: 'user',
-              email_verified: false,
-              verification_code: verificationCode,
-              created_at: new Date().toISOString(),
-              last_active: new Date().toISOString()
-            }
-          ]);
+        // Kirim email dahulu. Jika SMTP gagal, akun tidak dibuat sebagai akun yatim.
+        btn.textContent = 'Mengirim kode verifikasi...';
+        await sendVerificationEmail(email, verificationCode, username);
 
-          if (error) {
-            throw new Error(error.message || 'Gagal menyimpan akun ke database');
-          }
-        }
-
-        // Mengirim email verifikasi murni via api/config.js backend handler
-        const response = await fetch(CONFIG_API_URL, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify({
-            action: 'send_verification_email',
-            to: email,
-            code: verificationCode,
-            username: username
-          })
+        btn.textContent = 'Menyimpan akun...';
+        const { error } = await supabase.from('user_accounts').insert({
+          uuid,
+          username,
+          email,
+          password_hash: passHash,
+          role: 'user',
+          email_verified: false,
+          verification_code: verificationCode,
+          created_at: new Date().toISOString(),
+          last_active: new Date().toISOString()
         });
 
-        const responseText = await response.text();
-        let resJson;
-        try {
-          resJson = JSON.parse(responseText);
-        } catch (e) {
-          throw new Error('Server response bukan JSON yang valid: ' + responseText.substring(0, 100));
+        if (error) {
+          throw new Error(error.message || 'Gagal menyimpan akun ke database.');
         }
 
-        if (!response.ok || !resJson.success) {
-          throw new Error(resJson.error || 'Gagal mengirim email via SMTP relay.');
-        }
-
+        pendingVerificationEmail = email;
         document.getElementById('verifyTargetEmail').textContent = email;
+        document.getElementById('verifyInputCode').value = '';
         switchAuthTab('verify');
-        showToast('Kode verifikasi telah dikirim ke email Anda via SMTP.');
-      } catch (err) {
-        showToast(err.message || 'Gagal mengirim email verifikasi', false);
+        showToast('Kode verifikasi dikirim. Periksa inbox atau folder spam.');
+      } catch (error) {
+        console.error('Register error:', error);
+        showToast(error.message || 'Registrasi gagal.', false);
       } finally {
         btn.disabled = false;
         btn.textContent = 'Kirim Kode Verifikasi SMTP';
       }
     }
 
-    /* KONFIRMASI KODE VERIFIKASI 6 ANGKA */
     async function konfirmasiKodeVerifikasi() {
       const code = document.getElementById('verifyInputCode').value.trim();
       const btn = document.getElementById('btnVerifyEmail');
-
-      if (!code || code.length !== 6) {
-        return showToast('Masukkan 6-angka kode verifikasi yang valid!', false);
-      }
+      if (!/^\d{6}$/.test(code)) return showToast('Masukkan kode verifikasi 6 angka.', false);
+      if (!pendingVerificationEmail) return showToast('Sesi verifikasi tidak ditemukan. Silakan daftar ulang.', false);
 
       btn.disabled = true;
       btn.textContent = 'Memverifikasi...';
-
       try {
-        let verified = false;
-        if (supabaseClientInstance && pendingVerificationEmail) {
-          const { data, error } = await supabaseClientInstance
-            .from('user_accounts')
-            .select('*')
-            .eq('email', pendingVerificationEmail)
-            .eq('verification_code', code)
-            .single();
+        const supabase = await initSupabaseEnvConfig();
+        const { data, error } = await supabase.from('user_accounts')
+          .select('id,email,verification_code,email_verified')
+          .eq('email', pendingVerificationEmail)
+          .eq('verification_code', code)
+          .maybeSingle();
 
-          if (data && !error) {
-            await supabaseClientInstance
-              .from('user_accounts')
-              .update({ email_verified: true, verification_code: null })
-              .eq('id', data.id);
-            verified = true;
-          }
-        } else {
-          verified = true;
-        }
-
-        if (verified) {
-          showToast('Email berhasil diverifikasi! Silakan masuk.');
+        if (error) throw new Error(error.message);
+        if (!data) throw new Error('Kode salah atau tidak cocok dengan akun.');
+        if (data.email_verified) {
           switchAuthTab('login');
-        } else {
-          showToast('Kode verifikasi salah atau kadaluarsa!', false);
+          return showToast('Email sudah terverifikasi. Silakan login.');
         }
-      } catch (err) {
-        showToast('Gagal memverifikasi kode', false);
+
+        const { error: updateError } = await supabase.from('user_accounts')
+          .update({ email_verified: true, verification_code: null })
+          .eq('id', data.id);
+        if (updateError) throw new Error(updateError.message || 'Gagal memperbarui status verifikasi.');
+
+        pendingVerificationEmail = null;
+        document.getElementById('verifyInputCode').value = '';
+        switchAuthTab('login');
+        showToast('Email berhasil diverifikasi. Silakan login.');
+      } catch (error) {
+        console.error('Verification error:', error);
+        showToast(error.message || 'Verifikasi gagal.', false);
       } finally {
         btn.disabled = false;
         btn.textContent = 'Verifikasi & Aktifkan Akun';
       }
     }
 
-    /* PROSES VERIFIKASI LOGIN MULTI-ROLE */
     async function verifikasiUserLogin() {
       const identifier = document.getElementById('loginUserIdentifier').value.trim();
-      const pass = document.getElementById('loginPassword').value.trim();
+      const pass = document.getElementById('loginPassword').value;
       const btn = document.getElementById('btnLogin');
-
-      if (!identifier || !pass) return showToast('Identifier & Password wajib diisi', false);
+      if (!identifier || !pass) return showToast('Identifier dan password wajib diisi.', false);
 
       btn.disabled = true;
       btn.textContent = 'Memverifikasi...';
-
       try {
-        let userData = null;
-        let role = 'user';
+        const supabase = await initSupabaseEnvConfig();
+        let query = supabase.from('user_accounts').select('*');
+        if (/^\d{6}$/.test(identifier)) query = query.eq('uuid', identifier);
+        else if (identifier.includes('@')) query = query.eq('email', identifier.toLowerCase());
+        else query = query.eq('username', identifier.toLowerCase());
 
-        if (supabaseClientInstance) {
-          const passHash = await hashPassword(pass);
-          
-          // Coba cari berdasarkan identifier (uuid, email, atau username)
-          const { data, error } = await supabaseClientInstance
-            .from('user_accounts')
-            .select('*')
-            .or(`uuid.eq.${identifier},email.eq.${identifier.toLowerCase()},username.eq.${identifier.toLowerCase()}`)
-            .single();
-
-          if (data && !error) {
-            // Cek apakah password hash cocok atau jika developer bypass
-            if (data.password_hash === passHash || pass === 'admin123' || pass === 'mindspace2026') {
-              userData = data;
-              role = (data.role || 'user').toLowerCase();
-              
-              await supabaseClientInstance
-                .from('user_accounts')
-                .update({ last_active: new Date().toISOString() })
-                .eq('id', data.id);
-            } else {
-              // Coba jika password disimpan plain text / belum ter-hash pada testing sebelumnya
-              console.warn("Hash mismatch, checking alternative verification...");
-            }
-          }
+        const { data: userData, error } = await query.maybeSingle();
+        if (error) throw new Error(error.message);
+        if (!userData) throw new Error('Akun tidak ditemukan atau password salah.');
+        if (userData.password_hash !== await hashPassword(pass)) {
+          throw new Error('Akun tidak ditemukan atau password salah.');
+        }
+        if (userData.email_verified !== true) {
+          throw new Error('Email belum diverifikasi. Selesaikan verifikasi email terlebih dahulu.');
         }
 
-        if (userData) {
-          activeUserSession = { identifier, role };
-          document.getElementById('userDisplayName').textContent = userData.username || identifier;
-          
-          const roleBadge = document.getElementById('userRoleBadge');
-          roleBadge.textContent = role.toUpperCase();
+        const role = String(userData.role || 'user').toLowerCase();
+        activeUserSession = { id: userData.id, identifier, role };
+        document.getElementById('userDisplayName').textContent = userData.username || identifier;
+        const roleBadge = document.getElementById('userRoleBadge');
+        roleBadge.textContent = role.toUpperCase();
 
-          const adminMenu = document.getElementById('sectionAdminMenu');
-          const systemConfig = document.getElementById('sectionSystemConfig');
-          const userMenu = document.getElementById('sectionUserMenu');
+        const adminMenu = document.getElementById('sectionAdminMenu');
+        const systemConfig = document.getElementById('sectionSystemConfig');
+        const userMenu = document.getElementById('sectionUserMenu');
 
-          if (role === 'developer') {
-            adminMenu.style.display = 'block';
-            systemConfig.style.display = 'block';
-            userMenu.style.display = 'block';
-            roleBadge.className = 'text-[10px] uppercase font-bold text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20';
-            gantiView('viewDashboardApp');
-            bukaFitur('overview');
-          } else if (role === 'admin') {
-            adminMenu.style.display = 'block';
-            systemConfig.style.display = 'none';
-            userMenu.style.display = 'block';
-            roleBadge.className = 'text-[10px] uppercase font-bold text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-lg border border-indigo-500/20';
-            gantiView('viewDashboardApp');
-            bukaFitur('overview');
-          } else {
-            adminMenu.style.display = 'none';
-            systemConfig.style.display = 'none';
-            userMenu.style.display = 'block';
-            roleBadge.className = 'text-[10px] uppercase font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20';
-            gantiView('viewDashboardApp');
-            bukaSubView('services');
-          }
-
-          showToast(`Selamat Datang, ${userData.username || identifier} (${role.toUpperCase()})!`);
+        if (role === 'developer') {
+          adminMenu.style.display = 'block';
+          systemConfig.style.display = 'block';
+          userMenu.style.display = 'block';
+          roleBadge.className = 'text-[10px] uppercase font-bold text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20';
+          gantiView('viewDashboardApp');
+          bukaFitur('overview');
+        } else if (role === 'admin') {
+          adminMenu.style.display = 'block';
+          systemConfig.style.display = 'none';
+          userMenu.style.display = 'block';
+          roleBadge.className = 'text-[10px] uppercase font-bold text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-lg border border-indigo-500/20';
+          gantiView('viewDashboardApp');
+          bukaFitur('overview');
         } else {
-          showToast('Akun tidak ditemukan atau kata sandi salah!', false);
+          adminMenu.style.display = 'none';
+          systemConfig.style.display = 'none';
+          userMenu.style.display = 'block';
+          roleBadge.className = 'text-[10px] uppercase font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20';
+          gantiView('viewDashboardApp');
+          bukaSubView('services');
         }
-      } catch (e) {
-        console.error(e);
-        showToast('Gagal terhubung ke Server Autentikasi', false);
+
+        // Update aktivitas tidak menggagalkan login jika policy update belum tersedia.
+        const { error: activityError } = await supabase.from('user_accounts')
+          .update({ last_active: new Date().toISOString() }).eq('id', userData.id);
+        if (activityError) console.warn('last_active update:', activityError.message);
+
+        showToast(`Selamat datang, ${userData.username || identifier} (${role.toUpperCase()})!`);
+      } catch (error) {
+        console.error('Login error:', error);
+        showToast(error.message || 'Gagal terhubung ke server autentikasi.', false);
       } finally {
         btn.disabled = false;
         btn.textContent = 'Masuk Portal';
@@ -640,7 +635,7 @@
       document.getElementById('loginPassword').value = '';
       gantiView('viewLandingPage');
       switchAuthTab('login');
-      showToast('Berhasil keluar sesi');
+      showToast('Berhasil keluar sesi.');
     }
   </script>
 </body>

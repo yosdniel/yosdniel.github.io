@@ -384,7 +384,7 @@
         switchAuthTab('login');
       } catch (err) {
         showToast(err.message || 'Gagal registrasi user', false);
-      } font-bold {
+      } finally {
         btn.disabled = false;
         btn.textContent = 'Buat Akun Baru';
       }

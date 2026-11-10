@@ -2,13 +2,13 @@
 /**
  * ============================================================
  * MINDHUB PORTAL - SUPABASE & SMTP API
+ * ============================================================
  * Provider : IDCloudHost Zimbra
  * Runtime  : Vercel Serverless Functions
  * File     : api/config.js
- * ============================================================
  *
  * Dependencies:
- * npm install nodemailer @supabase/supabase-js
+ * npm install nodemailer
  */
 
 import nodemailer from 'nodemailer';
@@ -155,10 +155,13 @@ Mindspace Studio © 2026
       `
     });
 
-    console.log('SMTP email sent:', {
+    // Log lengkap hasil pengiriman SMTP.
+    console.log('SMTP SEND RESULT:', {
       messageId: result.messageId,
       accepted: result.accepted,
-      rejected: result.rejected
+      rejected: result.rejected,
+      response: result.response,
+      envelope: result.envelope
     });
 
     return result;
@@ -286,8 +289,12 @@ export default async function handler(req, res) {
 
     return json(res, 200, {
       success: true,
-      message: 'Email verifikasi berhasil dikirim.',
-      messageId: result.messageId
+      message: 'SMTP server accepted the email.',
+      messageId: result.messageId,
+      accepted: result.accepted,
+      rejected: result.rejected,
+      response: result.response,
+      envelope: result.envelope
     });
 
   } catch (error) {
@@ -296,13 +303,16 @@ export default async function handler(req, res) {
       message: error.message,
       code: error.code,
       command: error.command,
-      response: error.response
+      response: error.response,
+      responseCode: error.responseCode
     });
 
     return json(res, 500, {
       success: false,
       error: error.message || 'Gagal mengirim email verifikasi.',
-      smtpCode: error.code || null
+      smtpCode: error.code || null,
+      smtpResponse: error.response || null,
+      smtpResponseCode: error.responseCode || null
     });
   }
 }

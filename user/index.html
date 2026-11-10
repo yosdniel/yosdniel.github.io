@@ -420,12 +420,6 @@
       }
     }
 
-    /* PROSES REGISTER USER BARU & KIRIM KODE VERIFIKASI SMTP */
-    async function prosesUserRegister() {
-      const username = document.getElementById('regUsername').value.trim();
-      const email = document.getElementById('regEmail').value.trim();
-      const pass = document.getElementById('regPassword').value.trim();
-      const btn = document.getElementById('btnRegister');
     /* PROSES REGISTER USER BARU & KIRIM KODE VERIFIKASI SMTP VIA API/CONFIG.JS */
     async function prosesUserRegister() {
       const username = document.getElementById('regUsername').value.trim();

@@ -342,62 +342,6 @@ Mindspace Studio © 2026
   return await sendSmtpMail({ to, subject, text, html });
 }
 
-async function sendResetPasswordEmail({ to, code, username }) {
-  const safeName = escapeHtml(username || 'Pengguna');
-  const safeCode = escapeHtml(code);
-
-  const subject = 'Kode Reset Password Akun MindHUB Anda';
-  const text = `
-Halo ${username || 'Pengguna'},
-
-Permintaan reset password akun MindHUB Anda telah diterima.
-
-Kode OTP reset password Anda adalah:
-
-${code}
-
-Masukkan kode tersebut pada portal untuk membuat password baru.
-
-Jika Anda tidak meminta reset password ini, abaikan email ini atau amankan kata sandi Anda.
-
-Mindspace Studio © 2026
-  `;
-
-  const html = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-</head>
-<body style="margin:0;padding:30px;background:#020617;font-family:Arial,sans-serif;color:#f8fafc">
-  <div style="max-width:500px;margin:auto;background:#0f172a;border:1px solid #1e293b;padding:25px;border-radius:12px">
-    <h2 style="color:#f59e0b;margin-top:0">
-      Reset Password Akun MindHUB
-    </h2>
-    <p style="color:#cbd5e1">
-      Halo <b>${safeName}</b>,
-    </p>
-    <p style="color:#cbd5e1">
-      Gunakan kode 6 digit OTP berikut untuk melanjutkan proses reset password akun Anda:
-    </p>
-    <div style="background:#1e293b;color:#f59e0b;font-size:28px;font-weight:bold;text-align:center;padding:15px;border-radius:8px;letter-spacing:6px;margin:20px 0">
-      ${safeCode}
-    </div>
-    <p style="color:#94a3b8;font-size:12px;text-align:center">
-      Jika Anda tidak meminta reset password ini, abaikan email ini.
-    </p>
-    <p style="color:#64748b;font-size:12px;text-align:center">
-      Mindspace Studio &copy; 2026
-    </p>
-  </div>
-</body>
-</html>
-  `;
-
-  return await sendSmtpMail({ to, subject, text, html });
-}
-
 // ============================================================
 // VERCEL SERVERLESS HANDLER
 // ============================================================
@@ -447,7 +391,7 @@ export default async function handler(req, res) {
 
   // POST HANDLER (SEND EMAILS)
   try {
-    const body = req.body || {};
+    const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
     const { action, to, code, username } = body;
 
     const validActions = ['send_verification_email', 'send_reset_password_email'];

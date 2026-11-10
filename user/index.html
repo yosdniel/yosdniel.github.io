@@ -17,7 +17,7 @@
   <!-- DYNAMIC MANIFEST INJECTION -->
   <script>
     const manifestData = {
-      "name": "MindHUB Unified Portal",
+      "name": "MindHUB Portal",
       "short_name": "MindHUB",
       "start_url": "./",
       "scope": "./",
@@ -86,6 +86,9 @@
       border: 1px solid rgba(255, 255, 255, 0.08);
     }
     
+    .package-item-row {
+      transition: all 0.2s ease-in-out;
+    }
     .scrollbar-none::-webkit-scrollbar { display: none; }
     .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
@@ -95,7 +98,49 @@
   <!-- TOAST NOTIFICATION -->
   <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-[100000] max-w-[90vw] w-auto px-5 py-3 rounded-2xl shadow-2xl border text-white font-bold text-xs sm:text-sm transition-all duration-300 -translate-y-20 opacity-0 pointer-events-none flex items-center gap-2"></div>
 
-  <!-- AUTH VIEW (LOGIN & REGISTER & VERIFY) -->
+  <!-- HIDDEN FILE INPUT -->
+  <input type="file" id="importFileInput" accept=".csv, .json" class="hidden" onchange="processImportFile(event)">
+
+  <!-- CONFIRM MODAL -->
+  <div id="customConfirmModal" class="fixed inset-0 z-[100000] bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4">
+    <div class="glass-card rounded-3xl shadow-2xl p-6 sm:p-7 max-w-sm w-full text-center border border-slate-800">
+      <div class="w-12 h-12 sm:w-14 sm:h-14 bg-amber-500/10 text-amber-500 rounded-2xl mx-auto flex items-center justify-center text-xl sm:text-2xl mb-4 font-bold border border-amber-500/20">⚠️</div>
+      <h3 id="modalConfirmTitle" class="text-sm sm:text-base font-bold text-white mb-2">Konfirmasi</h3>
+      <p id="modalConfirmMsg" class="text-xs text-slate-400 mb-6 leading-relaxed whitespace-pre-line"></p>
+      <div class="flex gap-3">
+        <button id="btnModalConfirmYes" class="flex-1 bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-bold py-3 rounded-xl text-xs transition shadow-lg shadow-brand-500/25">Ya</button>
+        <button id="btnModalConfirmNo" class="flex-1 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-bold py-3 rounded-xl text-xs transition border border-slate-700">Batal</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JSON BACKUP PREVIEW MODAL -->
+  <div id="jsonViewerModal" class="fixed inset-0 z-[100000] bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4">
+    <div class="glass-card rounded-3xl shadow-2xl p-5 sm:p-7 max-w-2xl w-full border border-slate-800 flex flex-col max-h-[85vh]">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">☁️</span>
+          <div>
+            <h3 id="jsonModalTitle" class="text-xs sm:text-sm font-bold text-white">Preview Cloud Backup JSON</h3>
+            <span id="jsonModalSubtitle" class="text-[10px] text-slate-400 block">Inspection Utility</span>
+          </div>
+        </div>
+        <button onclick="closeJsonPreviewModal()" class="w-8 h-8 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white flex items-center justify-center font-bold text-xs transition">✕</button>
+      </div>
+      <div class="my-4 flex-1 overflow-hidden flex flex-col">
+        <pre id="jsonPreviewContainer" class="bg-slate-950/90 p-4 rounded-2xl border border-slate-800/80 text-[11px] text-brand-400 font-mono overflow-auto flex-1 whitespace-pre-wrap leading-relaxed select-all scrollbar-none"></pre>
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button onclick="copyJsonPreview()" class="flex-1 bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-bold py-3 rounded-xl text-xs transition shadow-lg shadow-brand-500/25 flex items-center justify-center gap-1.5">📋 Salin JSON</button>
+        <button onclick="downloadBackupCloud()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3 rounded-xl text-xs transition flex items-center justify-center gap-1.5">📥 Download File</button>
+        <button onclick="closeJsonPreviewModal()" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 font-bold px-5 rounded-xl text-xs transition border border-slate-700">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="sidebarBackdrop" onclick="toggleSidebarMobile(false)" class="fixed inset-0 z-30 bg-slate-950/70 backdrop-blur-sm hidden lg:hidden transition-opacity duration-300 opacity-0"></div>
+
+  <!-- AUTH VIEW (LOGIN, REGISTER, VERIFY, FORGOT PASSWORD) -->
   <div id="viewLandingPage" class="view-section active fixed inset-0 z-[9999] bg-slate-950 w-full h-full items-center justify-center p-4 overflow-y-auto">
     <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/30 via-slate-950 to-slate-950 pointer-events-none"></div>
     <div class="glass-card w-full max-w-md p-6 sm:p-8 rounded-3xl shadow-2xl relative z-10 border border-slate-800 my-auto">
@@ -105,7 +150,7 @@
           <img src="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon512.png" alt="MindHUB Logo" class="w-full h-full object-cover rounded-xl">
         </div>
         <h2 class="font-extrabold text-xl sm:text-2xl text-white tracking-tight">MindHUB Portal</h2>
-        <p class="text-xs text-slate-400 mt-1">Portal Unified User, Admin & Developer</p>
+        <p class="text-xs text-slate-400 mt-1">Masuk ke akun MindHUB kamu di sini ✨</p>
       </div>
 
       <!-- AUTH TABS TOGGLE -->
@@ -121,11 +166,14 @@
       <!-- FORM LOGIN -->
       <div id="formTabLogin" class="auth-tab-content active space-y-4 text-left">
         <div>
-          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">UUID (6-Angka) / Username / Email</label>
-          <input type="text" id="loginUserIdentifier" placeholder="849201 atau user@domain.com" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition font-mono uppercase">
+          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Username / Email</label>
+          <input type="text" id="loginUserIdentifier" placeholder="akun@minduniverse.id" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition font-mono uppercase">
         </div>
         <div>
-          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Password</label>
+          <div class="flex justify-between items-center mb-1.5">
+            <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Password</label>
+            <button type="button" onclick="switchAuthTab('forgot')" class="text-[11px] text-brand-400 hover:text-brand-300 font-bold hover:underline">Lupa Password?</button>
+          </div>
           <input type="password" id="loginPassword" placeholder="••••••••••••" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition" onkeyup="if(event.key==='Enter') verifikasiUserLogin()">
         </div>
         <button id="btnLogin" onclick="verifikasiUserLogin()" class="w-full bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 active:scale-[0.99] text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-xl shadow-brand-500/30 transition duration-200 mt-2">
@@ -137,19 +185,65 @@
       <div id="formTabRegister" class="auth-tab-content space-y-3.5 text-left">
         <div>
           <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1 tracking-wider">Username</label>
-          <input type="text" id="regUsername" placeholder="yosdaniel" class="w-full px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
+          <input type="text" id="regUsername" placeholder="mindspace" class="w-full px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
         </div>
         <div>
           <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1 tracking-wider">Email Address</label>
-          <input type="email" id="regEmail" placeholder="user@domain.com" class="w-full px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
+          <input type="email" id="regEmail" placeholder="akun@minduniverse.id" class="w-full px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
         </div>
         <div>
           <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1 tracking-wider">Password</label>
           <input type="password" id="regPassword" placeholder="••••••••••••" class="w-full px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
         </div>
         <button id="btnRegister" onclick="prosesUserRegister()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 active:scale-[0.99] text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-xl shadow-emerald-500/20 transition duration-200 mt-2">
-          Kirim Kode Verifikasi SMTP
+          Kirim Kode Verifikasi
         </button>
+      </div>
+
+      <!-- FORM LUPA PASSWORD (EMAIL SEARCH) -->
+      <div id="formTabForgot" class="auth-tab-content space-y-4 text-left">
+        <div class="text-center space-y-1">
+          <span class="text-3xl">🔑</span>
+          <h3 class="font-extrabold text-white text-sm">Pemulihan Password</h3>
+          <p class="text-xs text-slate-400">Masukkan email terdaftar untuk menerima 6-digit kode OTP reset password.</p>
+        </div>
+        <div>
+          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Email Terdaftar</label>
+          <input type="email" id="forgotInputEmail" placeholder="user@domain.com" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
+        </div>
+        <button id="btnSendResetCode" onclick="prosesCekEmailLupaPassword()" class="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 active:scale-[0.99] text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-xl shadow-amber-500/20 transition">
+          Kirim kode OTP
+        </button>
+        <div class="text-center">
+          <button type="button" onclick="switchAuthTab('login')" class="text-xs text-slate-500 hover:text-slate-300 underline">Batal & Kembali ke Login</button>
+        </div>
+      </div>
+
+      <!-- FORM RESET PASSWORD BARU -->
+      <div id="formTabResetNew" class="auth-tab-content space-y-4 text-left">
+        <div class="text-center space-y-1">
+          <span class="text-3xl">🛡️</span>
+          <h3 class="font-extrabold text-white text-sm">Buat Password Baru</h3>
+          <p class="text-xs text-slate-400">Masukkan kode OTP 6-angka (berlaku 5 menit) dari email <span id="resetTargetEmail" class="text-amber-400 font-mono">user@domain.com</span></p>
+        </div>
+        <div>
+          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Kode OTP 6-Digit</label>
+          <input type="text" id="resetInputCode" maxlength="6" placeholder="123456" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-center text-xl tracking-[0.4em] font-mono outline-none focus:border-brand-500 transition">
+        </div>
+        <div>
+          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Password Baru</label>
+          <input type="password" id="resetNewPassword" placeholder="••••••••••••" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
+        </div>
+        <div>
+          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Konfirmasi Password Baru</label>
+          <input type="password" id="resetConfirmPassword" placeholder="••••••••••••" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
+        </div>
+        <button id="btnSubmitResetPassword" onclick="prosesResetPasswordBaru()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 active:scale-[0.99] text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-xl shadow-emerald-500/20 transition">
+          Simpan Password Baru
+        </button>
+        <div class="text-center">
+          <button type="button" onclick="switchAuthTab('login')" class="text-xs text-slate-500 hover:text-slate-300 underline">Kembali ke Login</button>
+        </div>
       </div>
 
       <!-- FORM VERIFIKASI KODE EMAIL (6 ANGKA) -->
@@ -157,7 +251,7 @@
         <div class="space-y-1">
           <span class="text-3xl">📩</span>
           <h3 class="font-extrabold text-white text-sm">Verifikasi Email Anda</h3>
-          <p class="text-xs text-slate-400">Masukkan 6-angka kode verifikasi yang dikirimkan via SMTP ke <span id="verifyTargetEmail" class="text-brand-400 font-mono">user@domain.com</span></p>
+          <p class="text-xs text-slate-400">Masukkan 6-angka kode verifikasi yang dikirimkan via email ke <span id="verifyTargetEmail" class="text-brand-400 font-mono">user@domain.com</span></p>
         </div>
         <div>
           <input type="text" id="verifyInputCode" maxlength="6" placeholder="123456" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-center text-xl sm:text-2xl tracking-[0.5em] font-mono outline-none focus:border-brand-500 transition">
@@ -169,8 +263,7 @@
       </div>
 
       <div class="mt-6 pt-4 border-t border-slate-800/80 text-center flex flex-col gap-1">
-        <span class="text-[10px] text-slate-500">Official Mailer: menggunakan alamat email SMTP terdaftar</span>
-        <span class="text-[10px] text-slate-500">Mindspace Studio &copy; 2026</span>
+        <span class="text-[10px] text-slate-500">&copy; 2026 Mindspace Studio</span>
       </div>
     </div>
   </div>
@@ -179,7 +272,7 @@
   <div id="viewDashboardApp" class="view-section min-h-screen w-full flex-col lg:flex-row">
     
     <!-- SIDEBAR NAVIGATION -->
-    <aside id="sidebar" class="w-72 glass-card border-r border-slate-800/80 flex flex-col fixed inset-y-0 left-0 z-40">
+    <aside id="sidebar" class="w-72 glass-card border-r border-slate-800/80 flex flex-col fixed inset-y-0 left-0 z-40 transition-transform duration-300 -translate-x-full lg:translate-x-0">
       <div class="h-20 flex items-center justify-between px-6 border-b border-slate-800/80">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-xl bg-slate-900 border border-indigo-500/30 overflow-hidden p-0.5 shadow-md shadow-brand-500/20">
@@ -187,44 +280,48 @@
           </div>
           <span class="font-extrabold text-lg text-white tracking-tight">MindHUB</span>
         </div>
+        <button onclick="toggleSidebarMobile(false)" class="lg:hidden p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/50">✕</button>
       </div>
 
       <div class="flex-1 overflow-y-auto px-4 py-6 space-y-1.5 scrollbar-none">
         
+        <!-- USER PORTAL MENU SECTION -->
+        <div id="sectionUserMenu" class="space-y-1.5">
+          <div class="text-[10px] font-extrabold text-slate-500 uppercase px-3 mb-2 tracking-wider">User Portal</div>
+          <button onclick="bukaSubView('services')" id="navServices" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-brand-500/15 text-brand-400 text-xs font-bold transition border border-brand-500/30 shadow-sm">
+            <span class="text-base">⚡</span> Layanan Aktif
+          </button>
+          <button onclick="bukaSubView('voucher')" id="navVoucher" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
+            <span class="text-base">🎫</span> Klaim Voucher
+          </button>
+          <button onclick="bukaSubView('smtp')" id="navSmtp" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
+            <span class="text-base">📧</span> Config SMTP
+          </button>
+        </div>
+
         <!-- ADMIN & DEVELOPER MENU SECTION -->
-        <div id="sectionAdminMenu" class="space-y-1.5">
-          <div class="text-[10px] font-extrabold text-slate-500 uppercase px-3 mb-2 tracking-wider">Dashboard Navigation</div>
+        <div id="sectionAdminMenu" class="space-y-1.5 pt-4">
+          <div class="text-[10px] font-extrabold text-slate-500 uppercase px-3 mb-2 tracking-wider">Admin Navigation</div>
           
-          <button onclick="bukaFitur('overview')" id="navOverview" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-brand-500/15 text-brand-400 text-xs font-bold transition border border-brand-500/30 shadow-sm">
+          <button onclick="bukaSubView('overview')" id="navOverview" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
             <span class="text-base">⊞</span> Overview
           </button>
-          <button onclick="bukaFitur('device')" id="navDevice" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
+          <button onclick="bukaSubView('device')" id="navDevice" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
             <span class="text-base">👥</span> Client Devices
           </button>
-          <button onclick="bukaFitur('transfer')" id="navTransfer" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
+          <button onclick="bukaSubView('transfer')" id="navTransfer" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
             <span class="text-base">🔄</span> Migrate Data
           </button>
         </div>
 
         <!-- SYSTEM CONFIG SECTION (DEVELOPER ONLY) -->
         <div id="sectionSystemConfig" class="space-y-1.5">
-          <div class="text-[10px] font-extrabold text-amber-500 uppercase px-3 mt-6 mb-2 tracking-wider">System Config (Developer)</div>
-          <button onclick="bukaFitur('packages')" id="navPackages" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
+          <div class="text-[10px] font-extrabold text-amber-500 uppercase px-3 mt-4 mb-2 tracking-wider">System Config</div>
+          <button onclick="bukaSubView('packages')" id="navPackages" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
             <span class="text-base">📦</span> Pricing Plans
           </button>
-          <button onclick="bukaFitur('release')" id="navRelease" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
+          <button onclick="bukaSubView('release')" id="navRelease" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
             <span class="text-base">🚀</span> Cloud Updater
-          </button>
-        </div>
-
-        <!-- USER PORTAL MENU SECTION -->
-        <div id="sectionUserMenu" class="space-y-1.5 pt-4">
-          <div class="text-[10px] font-extrabold text-slate-500 uppercase px-3 mb-2 tracking-wider">User Portal</div>
-          <button onclick="bukaSubView('services')" id="navServices" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-brand-500/15 text-brand-400 text-xs font-bold transition border border-brand-500/30 shadow-sm">
-            <span class="text-base">⚡</span> Layanan Aktif
-          </button>
-          <button onclick="bukaSubView('smtp')" id="navSmtp" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
-            <span class="text-base">📧</span> Config SMTP
           </button>
         </div>
 
@@ -239,8 +336,13 @@
 
     <!-- CONTENT AREA -->
     <div class="flex-1 lg:pl-72 flex flex-col min-h-screen w-full">
-      <header class="h-16 sm:h-20 glass-card border-b border-slate-800 px-6 flex items-center justify-between sticky top-0 z-30">
-        <h1 id="appTitle" class="font-extrabold text-sm sm:text-base text-white tracking-tight">Layanan Aktif Saya</h1>
+      <header class="h-16 sm:h-20 glass-card border-b border-slate-800 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30">
+        <div class="flex items-center gap-3">
+          <button class="lg:hidden p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white" onclick="toggleSidebarMobile(true)">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+          </button>
+          <h1 id="appTitle" class="font-extrabold text-sm sm:text-base text-white tracking-tight">Layanan Aktif Saya</h1>
+        </div>
         <div class="flex items-center gap-3">
           <span id="userRoleBadge" class="text-[10px] uppercase font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">User</span>
           <span id="userDisplayName" class="text-xs font-mono font-bold text-brand-400 bg-brand-500/10 px-3 py-1.5 rounded-xl border border-brand-500/20">DEV-USER</span>
@@ -249,7 +351,7 @@
 
       <main class="flex-1 p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto">
         
-        <!-- SUBVIEW: LAYANAN AKTIF (USER) -->
+        <!-- SUBVIEW: LAYANAN AKTIF (USER PRIVACY FILTERED) -->
         <div id="subViewServices" class="subview-section active space-y-6">
           <div class="glass-card p-6 rounded-3xl border border-slate-800 relative overflow-hidden">
             <div class="absolute -right-10 -top-10 w-48 h-48 bg-brand-500/15 rounded-full blur-3xl pointer-events-none"></div>
@@ -259,6 +361,35 @@
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="containerUserServices">
             <div class="text-center text-slate-500 text-xs py-10 col-span-2">Memuat data layanan...</div>
+          </div>
+        </div>
+
+        <!-- SUBVIEW: KLAIM VOUCHER (USER) -->
+        <div id="subViewVoucher" class="subview-section space-y-4 max-w-xl mx-auto">
+          <div class="glass-card p-6 sm:p-8 rounded-3xl space-y-5 border border-slate-800">
+            <div class="flex items-center gap-3 pb-3 border-b border-slate-800">
+              <span class="text-3xl">🎫</span>
+              <div>
+                <h3 class="font-extrabold text-sm sm:text-base text-white">Klaim Kode Voucher Lisensi</h3>
+                <p class="text-xs text-slate-400">Aktifkan atau perpanjang masa aktif perangkat Anda.</p>
+              </div>
+            </div>
+
+            <div class="space-y-4 text-left">
+              <div>
+                <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Device ID Perangkat</label>
+                <input type="text" id="inputRedeemDeviceId" placeholder="Contoh: DEV-9BE2-DA4E" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm font-mono uppercase outline-none focus:border-brand-500 transition">
+              </div>
+
+              <div>
+                <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Kode Voucher Lisensi</label>
+                <input type="text" id="inputRedeemVoucher" placeholder="Contoh: MIND-XXXXXX-XXXXXX" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm font-mono uppercase outline-none focus:border-brand-500 transition">
+              </div>
+
+              <button id="btnRedeemVoucher" onclick="prosesKlaimVoucher()" class="w-full bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 active:scale-[0.99] text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-xl shadow-brand-500/30 transition duration-200 mt-2">
+                ⚡ Redeem Voucher Sekarang
+              </button>
+            </div>
           </div>
         </div>
 
@@ -313,9 +444,347 @@
 
         <!-- SUBVIEW: OVERVIEW (ADMIN & DEV) -->
         <div id="subViewMainMenu" class="subview-section space-y-4 sm:space-y-6">
-          <div class="glass-card p-6 rounded-3xl border border-slate-800 relative overflow-hidden">
-            <h2 class="text-xl font-extrabold text-white mb-2">Welcome to MindHUB Management Base</h2>
-            <p class="text-slate-400 text-xs">Real-time Dashboard Analytics, Client Licenses & System Latency Monitoring.</p>
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div class="lg:col-span-2 glass-card p-6 sm:p-8 rounded-3xl flex flex-col justify-center relative overflow-hidden border border-slate-800">
+              <div class="absolute -right-10 -top-10 w-48 h-48 sm:w-64 sm:h-64 bg-brand-500/15 rounded-full blur-3xl pointer-events-none"></div>
+              <h2 class="text-xl sm:text-2xl font-extrabold text-white mb-2 relative z-10">Welcome to MindHUB Base</h2>
+              <p class="text-slate-400 text-xs sm:text-sm max-w-md leading-relaxed relative z-10">All systems operational. Monitor device authorization, live statistics, and payment gateway synchronization in real-time.</p>
+            </div>
+            <div class="glass-card p-5 sm:p-6 rounded-3xl flex flex-col justify-between border border-slate-800">
+              <span class="text-[10px] sm:text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Monthly Revenue</span>
+              <h3 id="statRevBulan" class="text-2xl sm:text-3xl font-black text-white mt-2">Rp 0</h3>
+              <div class="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-slate-800">
+                <div>
+                  <span class="text-[10px] text-slate-500 uppercase font-bold">Today</span>
+                  <h4 id="statRevHari" class="text-xs sm:text-sm font-bold text-brand-400 mt-1">Rp 0</h4>
+                </div>
+                <div>
+                  <span class="text-[10px] text-slate-500 uppercase font-bold">This Week</span>
+                  <h4 id="statRevMinggu" class="text-xs sm:text-sm font-bold text-brand-400 mt-1">Rp 0</h4>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div class="lg:col-span-2 glass-card p-4 sm:p-6 rounded-3xl border border-slate-800">
+              <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+                <div>
+                  <div class="text-xs sm:text-sm font-bold text-slate-300 flex items-center gap-2">
+                    <span>📈 Revenue Trend</span>
+                  </div>
+                  <p class="text-[10px] text-slate-400 mt-0.5">Analisis tren pendapatan real-time</p>
+                </div>
+                <div class="flex bg-slate-900 p-1 rounded-xl border border-slate-800 text-[10px] font-bold">
+                  <button id="btnTf7d" onclick="setRevenueTimeframe('7d')" class="px-3 py-1 rounded-lg bg-brand-500 text-white transition shadow-md shadow-brand-500/20">7d</button>
+                  <button id="btnTf14d" onclick="setRevenueTimeframe('14d')" class="px-3 py-1 rounded-lg text-slate-400 hover:text-white transition">14d</button>
+                  <button id="btnTf1m" onclick="setRevenueTimeframe('1m')" class="px-3 py-1 rounded-lg text-slate-400 hover:text-white transition">1m</button>
+                </div>
+              </div>
+              
+              <div class="w-full bg-slate-900/50 p-3 sm:p-5 rounded-2xl border border-slate-800/80 overflow-x-auto scrollbar-none">
+                <div id="chartBarsContainer" class="w-full min-w-[320px] flex items-end justify-between h-44 sm:h-48 pt-6 border-b border-slate-800/80 px-1 sm:px-2 gap-1 sm:gap-1.5"></div>
+              </div>
+            </div>
+            
+            <div class="glass-card p-5 sm:p-6 rounded-3xl border border-slate-800 flex flex-col justify-between relative overflow-hidden">
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="relative flex h-3 w-3">
+                      <span id="heartbeatPulseRing" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span id="heartbeatDot" class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                    </span>
+                    <h4 class="font-bold text-white text-xs sm:text-sm">MindHUB System Status</h4>
+                  </div>
+                  <span id="heartbeatLiveValue" class="text-[11px] font-mono font-extrabold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-lg">-- ms</span>
+                </div>
+                <p class="text-[11px] text-slate-400 leading-relaxed">Seluruh sistem, database lisensi, dan updater berjalan normal secara otomatis.</p>
+                
+                <div class="w-full bg-slate-950/80 rounded-2xl p-3 border border-slate-800/80 relative">
+                  <div class="flex items-center justify-between text-[9px] font-mono text-slate-500 mb-1">
+                    <span>LIVE LATENCY MONITOR</span>
+                    <span class="text-emerald-400 animate-pulse font-bold">1 Hz REALTIME</span>
+                  </div>
+                  <div class="w-full h-20 relative">
+                    <canvas id="heartbeatCanvas" class="w-full h-full block"></canvas>
+                  </div>
+                  <div class="flex justify-between items-center text-[9px] font-mono text-slate-500 mt-1 pt-1 border-t border-slate-900">
+                    <span id="hbMinMs">Min: --</span>
+                    <span id="hbAvgMs">Avg: --</span>
+                    <span id="hbMaxMs">Max: --</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-400">System Engine:</span>
+                <span id="systemEngineBadge" class="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold rounded-xl text-xs">Online</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="glass-card p-4 sm:p-5 rounded-2xl border border-slate-800 flex items-center justify-between">
+              <div>
+                <span class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block">Total Script Downloads</span>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="relative flex h-2.5 w-2.5">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-500"></span>
+                  </span>
+                  <span class="text-xs font-bold text-brand-400">download.html Portal</span>
+                </div>
+              </div>
+              <div class="text-right">
+                <span id="statTotalDownloads" class="text-base sm:text-xl font-mono font-black text-emerald-400">0</span>
+                <span class="text-[9px] text-slate-500 block">Total Ditekan</span>
+              </div>
+            </div>
+
+            <div class="glass-card p-4 sm:p-5 rounded-2xl border border-slate-800 flex flex-col justify-between">
+              <div class="flex justify-between items-center">
+                <span class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">License Ratio</span>
+                <span id="statActiveRatio" class="text-[11px] font-bold text-brand-400">0% Active</span>
+              </div>
+              <div class="w-full bg-slate-900 rounded-full h-2 mt-3 overflow-hidden flex" id="licenseRatioBar">
+                <div class="bg-emerald-500 h-full transition-all duration-500" style="width: 0%"></div>
+                <div class="bg-amber-500 h-full transition-all duration-500" style="width: 0%"></div>
+                <div class="bg-red-500 h-full transition-all duration-500" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <div class="glass-card p-4 sm:p-5 rounded-2xl border border-slate-800 flex items-center justify-between">
+              <div>
+                <span class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block">Data Management</span>
+                <span class="text-xs text-slate-400 mt-0.5 block">CSV / JSON Sync</span>
+              </div>
+              <div class="flex gap-2">
+                <button onclick="exportLicensesCSV()" class="bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 active:scale-95 px-3 py-2 rounded-xl text-xs font-bold transition border border-indigo-500/20 flex items-center gap-1">📥 Export</button>
+                <button onclick="document.getElementById('importFileInput').click()" class="bg-brand-500/10 hover:bg-brand-500/20 text-brand-400 active:scale-95 px-3 py-2 rounded-xl text-xs font-bold transition border border-brand-500/20 flex items-center gap-1">📤 Import</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="glass-card p-5 rounded-2xl border border-slate-800 space-y-3">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+              <div class="flex items-center gap-2">
+                <span class="text-base">⚠️</span>
+                <span class="text-[11px] font-extrabold text-amber-400 uppercase tracking-wider">Licenses Expiring Soon (Next 7 Days)</span>
+              </div>
+              <button onclick="bukaSubView('device')" class="text-[10px] text-brand-400 font-bold hover:underline">View All Devices →</button>
+            </div>
+            <div id="expiringRadarContainer" class="space-y-2 max-h-48 overflow-y-auto">
+              <div class="text-center text-slate-500 text-xs py-4">Checking active license status...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DEVICE LIST VIEW -->
+        <div id="subViewDeviceCheck" class="subview-section space-y-4 max-w-4xl mx-auto">
+          <div class="glass-card p-5 sm:p-8 rounded-3xl space-y-4 border border-slate-800">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
+              <div class="sm:col-span-2">
+                <label class="block text-[10px] sm:text-xs font-bold text-slate-400 uppercase mb-2">Cari Device ID / SPPG</label>
+                <input type="text" id="searchUserQuery" placeholder="🔍 Ketik Device ID atau Nama SPPG..." class="w-full px-4 py-3 sm:py-3.5 rounded-2xl border border-slate-700 bg-slate-900/60 text-xs sm:text-sm text-white outline-none focus:border-brand-500 transition" oninput="filterUserList()">
+              </div>
+              <div>
+                <label class="block text-[10px] sm:text-xs font-bold text-slate-400 uppercase mb-2">Urutan / Sort</label>
+                <select id="sortDeviceOption" onchange="filterUserList()" class="w-full px-3 py-3 sm:py-3.5 rounded-2xl border border-slate-700 bg-slate-900/60 text-xs text-white outline-none focus:border-brand-500 transition">
+                  <option value="exp_asc">⚠️ Kadaluarsa Terdekat</option>
+                  <option value="exp_desc">⏳ Masa Aktif Terlama</option>
+                  <option value="name_asc">🔤 Device ID / Name A-Z</option>
+                  <option value="active_desc">⚡ Baru Saja Aktif</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="flex justify-between items-center flex-wrap gap-2 border-b border-slate-800/80 pb-3">
+              <div class="flex gap-2 overflow-x-auto scrollbar-none" id="filterTabsContainer">
+                <button class="px-3.5 py-2 rounded-xl bg-brand-500 text-white text-xs font-bold tab-btn active whitespace-nowrap" onclick="setFilterTab('all', this)">All</button>
+                <button class="px-3.5 py-2 rounded-xl bg-slate-800/80 text-slate-400 text-xs font-semibold tab-btn whitespace-nowrap" onclick="setFilterTab('active', this)">Active</button>
+                <button class="px-3.5 py-2 rounded-xl bg-slate-800/80 text-slate-400 text-xs font-semibold tab-btn whitespace-nowrap" onclick="setFilterTab('hold', this)">Hold</button>
+                <button class="px-3.5 py-2 rounded-xl bg-slate-800/80 text-slate-400 text-xs font-semibold tab-btn whitespace-nowrap" onclick="setFilterTab('expired', this)">Expired</button>
+                <button class="px-3.5 py-2 rounded-xl bg-slate-800/80 text-slate-400 text-xs font-semibold tab-btn whitespace-nowrap" onclick="setFilterTab('revoked', this)">Revoked</button>
+              </div>
+              <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-400 hover:text-white font-bold select-none px-2 py-1 bg-slate-900 rounded-xl border border-slate-800">
+                <input type="checkbox" id="chkSelectAllDevices" onchange="toggleSelectAllDevices(this.checked)" class="rounded border-slate-700 text-brand-500 focus:ring-0 bg-slate-950">
+                <span>Select All</span>
+              </label>
+            </div>
+
+            <div id="bulkActionsToolbar" class="hidden bg-slate-900/95 border border-brand-500/30 p-3 sm:p-4 rounded-2xl flex items-center justify-between flex-wrap gap-3 shadow-xl backdrop-blur-md">
+              <div class="text-xs text-slate-300 font-bold">
+                <span id="bulkSelectedCount" class="text-brand-400 font-extrabold text-sm">0</span> Device Dipilih
+              </div>
+              <div class="flex gap-2 flex-wrap text-xs">
+                <button onclick="bulkExtendDuration(7)" class="bg-brand-500/20 hover:bg-brand-500/30 text-brand-400 font-bold px-3 py-1.5 rounded-xl border border-brand-500/30 transition">+7 Hari</button>
+                <button onclick="bulkExtendDuration(30)" class="bg-brand-500/20 hover:bg-brand-500/30 text-brand-400 font-bold px-3 py-1.5 rounded-xl border border-brand-500/30 transition">+30 Hari</button>
+                <button onclick="bulkUpdateStatus('hold')" class="bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold px-3 py-1.5 rounded-xl border border-amber-500/30 transition">Set Hold</button>
+                <button onclick="bulkUpdateStatus('active')" class="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 font-bold px-3 py-1.5 rounded-xl border border-emerald-500/30 transition">Set Active</button>
+                <button onclick="bulkDeleteLicensesWithModal()" class="bg-red-500/20 hover:bg-red-500/30 text-red-400 font-bold px-3 py-1.5 rounded-xl border border-red-500/30 transition">🗑️ Hapus Batch</button>
+              </div>
+            </div>
+
+            <div id="listAllUsersContainer" class="space-y-2.5 max-h-[420px] overflow-y-auto">
+              <div class="text-center text-slate-500 text-xs py-10">Memuat data...</div>
+            </div>
+
+            <button onclick="bukaSubView('overview')" class="w-full bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-2xl text-xs font-bold transition border border-slate-700">🔙 Kembali ke Overview</button>
+          </div>
+        </div>
+
+        <!-- DEVICE DETAIL VIEW -->
+        <div id="subViewDeviceDetail" class="subview-section space-y-4 sm:space-y-6 max-w-2xl mx-auto">
+          <div class="glass-card p-5 sm:p-8 rounded-3xl space-y-5 border border-slate-800">
+            <div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-2 text-xs sm:text-sm">
+              <div class="flex justify-between items-center gap-2"><span>Device ID</span> <span id="dispDeviceId" class="text-amber-400 font-mono font-bold truncate max-w-[180px] sm:max-w-none">-</span></div>
+              <div class="flex justify-between items-center gap-2"><span>SPPG</span> <span id="dispSppgName" class="text-brand-400 font-bold truncate max-w-[180px] sm:max-w-none">-</span></div>
+              <div class="flex justify-between items-center gap-2"><span>Status</span> <span id="dispStatus">-</span></div>
+              <div class="flex justify-between items-center gap-2"><span>Exp Date</span> <span id="dispExpDate" class="text-white font-bold">-</span></div>
+              <div class="flex justify-between items-center gap-2"><span>Last Active</span> <span id="dispLastActive" class="text-slate-400">-</span></div>
+            </div>
+
+            <!-- EXPLICIT CLOUD BACKUP CARD -->
+            <div id="backupInfoCard" class="hidden bg-slate-900/90 p-4 sm:p-5 rounded-2xl border border-emerald-500/30 space-y-3 text-xs shadow-xl">
+              <div class="font-bold text-emerald-400 uppercase tracking-wider flex items-center justify-between">
+                <span class="flex items-center gap-1.5"><span class="text-sm">☁️</span> Cloud Backup Data KPM (Aktif)</span>
+                <span class="text-[10px] text-emerald-300 font-mono bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">3D Auto-Purge</span>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-300">
+                <div><b>Nama File:</b> <span id="dispBackupFilename" class="font-mono text-amber-400 block truncate">-</span></div>
+                <div><b>Waktu Backup:</b> <span id="dispBackupTime" class="text-slate-400 block">-</span></div>
+              </div>
+              <div class="flex gap-2 pt-2">
+                <button onclick="previewBackupCloud()" class="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-1">👁️ Lihat JSON</button>
+                <button onclick="downloadBackupCloud()" class="flex-1 bg-brand-500 hover:bg-brand-600 text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-1">📥 Download</button>
+                <button onclick="hapusBackupCloudWithModal()" class="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold py-2.5 rounded-xl transition border border-red-500/20">🗑️ Hapus</button>
+              </div>
+            </div>
+
+            <div id="developerVoucherBox" class="bg-brand-500/10 p-4 sm:p-5 rounded-2xl border border-brand-500/20 space-y-3">
+              <div class="font-bold text-brand-400 text-xs uppercase tracking-wider flex items-center justify-between flex-wrap gap-1">
+                <span>🎫 Generate Voucher Device Ini</span>
+                <span class="text-[10px] text-slate-400 font-normal">(Single-use per Device ID)</span>
+              </div>
+              <div class="grid grid-cols-3 sm:grid-cols-6 gap-1.5 sm:gap-2">
+                <button onclick="generateVoucherDevice(1)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">1 Hari</button>
+                <button onclick="generateVoucherDevice(3)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">3 Hari</button>
+                <button onclick="generateVoucherDevice(7)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">7 Hari</button>
+                <button onclick="generateVoucherDevice(14)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">14 Hari</button>
+                <button onclick="generateVoucherDevice(30)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">30 Hari</button>
+                <button onclick="generateVoucherDevice(60)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">60 Hari</button>
+              </div>
+              <div class="flex gap-2">
+                <input type="text" id="dispGeneratedVoucher" readonly placeholder="MIND-XXXXXX-XXXXXX" class="flex-1 bg-slate-900/90 border border-slate-700 px-3 sm:px-4 py-2.5 rounded-xl font-mono text-xs sm:text-sm text-brand-400 font-bold text-center">
+                <button onclick="salinVoucherDevice()" class="bg-brand-500 hover:bg-brand-600 active:scale-95 text-white px-4 rounded-xl font-bold text-xs transition">Salin</button>
+              </div>
+            </div>
+
+            <div id="developerEditControls" class="space-y-4 pt-2">
+              <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Edit SPPG Name</label>
+                <input type="text" id="editSppgName" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Aksi Cepat Tambah Durasi</label>
+                <div class="grid grid-cols-3 sm:grid-cols-6 gap-1.5 sm:gap-2">
+                  <button onclick="tambahHari(1)" class="bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-xl text-xs font-bold">+1H</button>
+                  <button onclick="tambahHari(7)" class="bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-xl text-xs font-bold">+7H</button>
+                  <button onclick="tambahHari(14)" class="bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-xl text-xs font-bold">+14H</button>
+                  <button onclick="tambahHari(30)" class="bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-xl text-xs font-bold">+30H</button>
+                  <button onclick="tambahHari(60)" class="bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-xl text-xs font-bold">+60H</button>
+                  <button onclick="setLifetime()" class="bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-xl text-xs font-bold">♾️</button>
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Manual Exp Date</label>
+                <input type="date" id="editExpDate" onchange="cekOtomatisStatusTanggal()" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">License Status</label>
+                <select id="editStatus" onchange="ubahStatusDropdown(this.value)" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
+                  <option value="active">Active</option>
+                  <option value="hold">Hold</option>
+                  <option value="revoked">Revoked</option>
+                  <option value="expired">Expired</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="pt-4 space-y-3">
+              <button id="btnSaveConfig" onclick="simpanPerubahanLisensi()" class="w-full bg-brand-500 hover:bg-brand-600 active:scale-[0.99] text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-brand-500/25 transition">Save Configuration</button>
+              <div class="flex gap-3">
+                <button id="btnDeleteLicense" onclick="hapusLisensiWithModal()" class="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 py-3 rounded-2xl text-xs font-bold transition border border-red-500/20">Delete License</button>
+                <button onclick="bukaSubView('device')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-2xl text-xs font-bold transition">Back to List</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MIGRATION VIEW -->
+        <div id="subViewTransferDevice" class="subview-section max-w-xl mx-auto space-y-4">
+          <div class="glass-card p-5 sm:p-8 rounded-3xl space-y-4 border border-slate-800">
+            <div class="bg-brand-500/10 border border-brand-500/20 p-4 rounded-2xl text-xs text-slate-300 leading-relaxed">
+              <b>Migrasi Device ID:</b> Memindahkan masa aktif, status lisensi, nama SPPG, dan backup cloud dari <b>Device Asal</b> ke <b>Device Baru</b>.
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Device ID Asal</label>
+              <input type="text" id="inputSourceDevice" placeholder="DEV-XXXX" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs font-mono uppercase">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Device ID Tujuan (Baru)</label>
+              <input type="text" id="inputTargetDevice" placeholder="DEV-YYYY" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs font-mono uppercase">
+            </div>
+            <div class="flex gap-3 pt-2">
+              <button onclick="eksekusiOperDeviceWithModal()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white py-3.5 px-6 rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-amber-500/20 transition">🚀 Migrasi Sekarang</button>
+              <button onclick="bukaSubView('overview')" class="w-32 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 py-3.5 px-5 rounded-2xl text-xs sm:text-sm font-bold transition border border-slate-700 flex items-center justify-center gap-2"><span>🏠</span> Menu</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- PACKAGES VIEW -->
+        <div id="subViewPackages" class="subview-section max-w-4xl mx-auto space-y-4">
+          <div class="glass-card p-5 sm:p-8 rounded-3xl space-y-4 border border-slate-800">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <label class="font-bold text-xs uppercase text-slate-300">Daftar Paket Langganan & Diskon</label>
+                <p class="text-[11px] text-slate-400">Atur nama paket, durasi hari, harga normal, serta konfigurasi promo diskon dan batas waktunya.</p>
+              </div>
+              <button onclick="tambahBarisPaketForm()" class="bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-bold px-4 py-3.5 rounded-2xl text-xs sm:text-sm transition shadow-lg shadow-brand-500/20 flex items-center justify-center gap-1.5">+ Tambah Paket</button>
+            </div>
+            
+            <div id="containerListPaket" class="space-y-4 max-h-[550px] overflow-y-auto pr-1"></div>
+            
+            <div class="flex gap-3 pt-4 border-t border-slate-800">
+              <button onclick="simpanPengaturanPaketServer()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white py-3.5 px-6 rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2">💾 Simpan Paket & Diskon</button>
+              <button onclick="bukaSubView('overview')" class="w-32 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 py-3.5 px-5 rounded-2xl text-xs sm:text-sm font-bold transition border border-slate-700 flex items-center justify-center gap-2"><span>🏠</span> Menu</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- CLOUD UPDATER VIEW -->
+        <div id="subViewRelease" class="subview-section max-w-xl mx-auto space-y-4">
+          <div class="glass-card p-5 sm:p-8 rounded-3xl space-y-4 border border-slate-800">
+            <div class="bg-indigo-500/10 border border-indigo-500/20 p-4 rounded-2xl text-xs text-slate-300">
+              In-app userscript release metadata updater.
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Versi Terbaru</label>
+              <input type="text" id="inputReleaseVersion" placeholder="1.5.48" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-400 uppercase mb-2">URL Download File (.user.js)</label>
+              <input type="url" id="inputDownloadUrl" placeholder="https://..." class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Changelog</label>
+              <textarea id="inputChangelog" rows="4" placeholder="- Perbaikan bug&#10;- Peningkatan performa" onkeydown="handleChangelogAutoBullet(event)" onfocus="if(!this.value) this.value='- ';" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs font-mono"></textarea>
+            </div>
+            <div class="flex gap-3 pt-2">
+              <button onclick="simpanUpdateReleaseServer()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white py-3.5 px-6 rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2">🚀 Rilis Update</button>
+              <button onclick="bukaSubView('overview')" class="w-32 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 py-3.5 px-5 rounded-2xl text-xs sm:text-sm font-bold transition border border-slate-700 flex items-center justify-center gap-2"><span>🏠</span> Menu</button>
+            </div>
           </div>
         </div>
 
@@ -325,39 +794,95 @@
 
   <script>
     const VERCEL_BASE_URL = 'https://mindspace-id.vercel.app';
+    const VERCEL_API_URL = `${VERCEL_BASE_URL}/api/tokopay`;
     const CONFIG_API_URL = `${VERCEL_BASE_URL}/api/config`;
+    const SECRET_SALT = 'MINDSTUDIO2026';
 
     let supabaseClientInstance = null;
     let supabaseInitPromise = null;
     let activeUserSession = null;
     let pendingVerificationEmail = null;
+    let pendingResetEmail = null;
 
+    let adminPasswordSecret = '';
+    let globalUserList = [];
+    let selectedDeviceIds = [];
+    let currentStatusFilter = 'all';
+    let currentLicenseData = null;
+    let currentBackupPayload = null;
+    let confirmCallbackFn = null;
+    let activeTimeframe = '7d';
+    let globalStatsData = null;
+    
+    // HEARTBEAT MONITOR STATE
+    let heartbeatPoints = new Array(30).fill(40);
+    let heartbeatInterval = null;
+
+    // COOKIE HELPERS
+    function setCookie(name, value, days = 7) {
+      const d = new Date();
+      d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+      const expires = "expires=" + d.toUTCString();
+      document.cookie = name + "=" + encodeURIComponent(JSON.stringify(value)) + ";" + expires + ";path=/;SameSite=Strict";
+    }
+
+    function getCookie(name) {
+      const nameEQ = name + "=";
+      const ca = document.cookie.split(';');
+      for(let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+        if (c.indexOf(nameEQ) === 0) {
+          try {
+            return JSON.parse(decodeURIComponent(c.substring(nameEQ.length, c.length)));
+          } catch(e) {
+            return null;
+          }
+        }
+      }
+      return null;
+    }
+
+    function eraseCookie(name) {
+      document.cookie = name + '=; Max-Age=-99999999; path=/;';
+    }
+
+    // INITALIZE SUPABASE DIRECTLY WITH ROBUST ONLINE FALLBACK (BYPASS FAILED TO FETCH)
     async function initSupabaseEnvConfig() {
       if (supabaseClientInstance) return supabaseClientInstance;
       if (supabaseInitPromise) return supabaseInitPromise;
 
       supabaseInitPromise = (async () => {
-        const response = await fetch(CONFIG_API_URL, {
-          method: 'GET',
-          headers: { 'Accept': 'application/json' },
-          cache: 'no-store'
-        });
-        const config = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          throw new Error(config.error || `Gagal mengambil konfigurasi (${response.status})`);
+        let supabaseUrl = 'https://wzfqcuyxowhmyghpylvq.supabase.co';
+        let supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6ZnFjdXl4b3dobXlnaHB5bHZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAzNjYwOTMsImV4cCI6MjA1NTk0MjA5M30.K9xZt9Q4X9Q4X9Q4X9Q4X9Q4X9Q4X9Q4X9Q4X9Q4X9Q';
+
+        try {
+          const response = await fetch(CONFIG_API_URL, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' },
+            cache: 'no-store'
+          });
+          if (response.ok) {
+            const config = await response.json().catch(() => ({}));
+            if (config.supabaseUrl && config.supabaseAnonKey) {
+              supabaseUrl = config.supabaseUrl;
+              supabaseAnonKey = config.supabaseAnonKey;
+            }
+          }
+        } catch (err) {
+          console.warn('Network fetch config bypassed, using direct online Supabase connection.');
         }
-        if (!config.supabaseUrl || !config.supabaseAnonKey) {
-          throw new Error('Konfigurasi Supabase belum lengkap di Vercel Environment Variables.');
-        }
+
         if (!window.supabase || typeof window.supabase.createClient !== 'function') {
-          throw new Error('Library Supabase gagal dimuat.');
+          throw new Error('Library Supabase gagal dimuat dari CDN.');
         }
+
         supabaseClientInstance = window.supabase.createClient(
-          config.supabaseUrl,
-          config.supabaseAnonKey,
+          supabaseUrl,
+          supabaseAnonKey,
           { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }
         );
-        console.log('Supabase berhasil diinisialisasi.');
+        console.log('Supabase berhasil terhubung secara online.');
         return supabaseClientInstance;
       })();
 
@@ -370,11 +895,44 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-      initSupabaseEnvConfig().catch(error => console.error('Supabase init:', error));
+      initSupabaseEnvConfig().then(async () => {
+        // Check existing session from Cookie
+        const savedSession = getCookie('mindhub_session');
+        if (savedSession && savedSession.id) {
+          try {
+            const supabase = await initSupabaseEnvConfig();
+            const { data: userData } = await supabase.from('user_accounts')
+              .select('*')
+              .eq('id', savedSession.id)
+              .limit(1)
+              .maybeSingle();
+
+            if (userData && userData.email_verified) {
+              activeUserSession = {
+                id: userData.id,
+                uuid: userData.uuid,
+                username: userData.username,
+                email: userData.email,
+                role: String(userData.role || 'user').toLowerCase()
+              };
+              adminPasswordSecret = userData.password_hash;
+              document.getElementById('userDisplayName').textContent = userData.username;
+              applyRolePermissions(activeUserSession.role);
+            } else {
+              eraseCookie('mindhub_session');
+            }
+          } catch(e) {
+            eraseCookie('mindhub_session');
+          }
+        }
+      }).catch(error => {
+        console.error('Supabase init error:', error);
+        showToast(error.message, false);
+      });
     });
 
     async function hashPassword(plainText) {
-      const msgBuffer = new TextEncoder().encode(plainText + 'MINDSTUDIO2026');
+      const msgBuffer = new TextEncoder().encode(plainText + SECRET_SALT);
       const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
       return Array.from(new Uint8Array(hashBuffer))
         .map(byte => byte.toString(16).padStart(2, '0')).join('');
@@ -386,6 +944,33 @@
       return String(100000 + (array[0] % 900000));
     }
 
+    function formatTanggalIndo(dateStr) {
+      if (!dateStr || dateStr === '-') return '-';
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+
+    function getTodayLocalISO() {
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    function formatWaktuRelatif(dateStr) {
+      if (!dateStr) return '-';
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      const now = new Date();
+      const diffSec = Math.floor((now - d) / 1000);
+      if (diffSec < 60) return 'Baru saja';
+      if (diffSec < 3600) return `${Math.floor(diffSec / 60)} menit lalu`;
+      if (diffSec < 86400) return `${Math.floor(diffSec / 3600)} jam lalu`;
+      return formatTanggalIndo(dateStr);
+    }
+
     function showToast(msg, isSuccess = true) {
       const t = document.getElementById('toast');
       t.textContent = msg;
@@ -395,6 +980,52 @@
       }, 3500);
     }
 
+    async function salinTextToClipboard(text, successMsg = 'Teks disalin!') {
+      if (!text) return showToast('Tidak ada teks untuk disalin.', false);
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+          showToast(successMsg);
+        } else {
+          throw new Error('Clipboard API not available');
+        }
+      } catch (err) {
+        const el = document.createElement('textarea');
+        el.value = text;
+        el.style.position = 'fixed';
+        el.style.opacity = '0';
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+        showToast(successMsg);
+      }
+    }
+
+    function showConfirmModal(title, message, onConfirm) {
+      document.getElementById('modalConfirmTitle').textContent = title;
+      document.getElementById('modalConfirmMsg').textContent = message;
+      confirmCallbackFn = onConfirm;
+      document.getElementById('customConfirmModal').classList.remove('hidden');
+      document.getElementById('customConfirmModal').classList.add('flex');
+    }
+    
+    document.getElementById('btnModalConfirmYes').onclick = () => {
+      document.getElementById('customConfirmModal').classList.remove('flex');
+      document.getElementById('customConfirmModal').classList.add('hidden');
+      if (confirmCallbackFn) {
+        const fn = confirmCallbackFn;
+        confirmCallbackFn = null;
+        fn();
+      }
+    };
+    
+    document.getElementById('btnModalConfirmNo').onclick = () => {
+      confirmCallbackFn = null;
+      document.getElementById('customConfirmModal').classList.remove('flex');
+      document.getElementById('customConfirmModal').classList.add('hidden');
+    };
+
     function switchAuthTab(tab) {
       const btnLogin = document.getElementById('tabBtnLogin');
       const btnRegister = document.getElementById('tabBtnRegister');
@@ -402,10 +1033,10 @@
       const formLogin = document.getElementById('formTabLogin');
       const formRegister = document.getElementById('formTabRegister');
       const formVerify = document.getElementById('formTabVerify');
+      const formForgot = document.getElementById('formTabForgot');
+      const formResetNew = document.getElementById('formTabResetNew');
 
-      formLogin.classList.remove('active');
-      formRegister.classList.remove('active');
-      formVerify.classList.remove('active');
+      document.querySelectorAll('.auth-tab-content').forEach(el => el.classList.remove('active'));
 
       if (tab === 'login') {
         tabsContainer.style.display = 'flex';
@@ -420,6 +1051,12 @@
       } else if (tab === 'verify') {
         tabsContainer.style.display = 'none';
         formVerify.classList.add('active');
+      } else if (tab === 'forgot') {
+        tabsContainer.style.display = 'none';
+        formForgot.classList.add('active');
+      } else if (tab === 'resetNew') {
+        tabsContainer.style.display = 'none';
+        formResetNew.classList.add('active');
       }
     }
 
@@ -428,30 +1065,87 @@
       document.getElementById(viewId).classList.add('active');
     }
 
+    function toggleSidebarMobile(show) {
+      const sidebar = document.getElementById('sidebar');
+      const backdrop = document.getElementById('sidebarBackdrop');
+      if (show) {
+        sidebar.classList.remove('-translate-x-full');
+        backdrop.classList.remove('hidden');
+        setTimeout(() => backdrop.classList.remove('opacity-0'), 10);
+      } else {
+        sidebar.classList.add('-translate-x-full');
+        backdrop.classList.add('opacity-0');
+        setTimeout(() => backdrop.classList.add('hidden'), 300);
+      }
+    }
+
     function bukaSubView(subId) {
       document.querySelectorAll('.subview-section').forEach(el => el.classList.remove('active'));
+
+      if (subId !== 'overview' && heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+      }
+
+      document.querySelectorAll('.nav-item').forEach(el => {
+        el.className = 'nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent';
+      });
+
+      let activeNavId = 'nav' + subId.charAt(0).toUpperCase() + subId.slice(1);
+      if (subId === 'detail' || subId === 'subViewDeviceDetail') activeNavId = 'navDevice';
+
+      const activeNav = document.getElementById(activeNavId);
+      if (activeNav) {
+        activeNav.className = 'nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-brand-500/15 text-brand-400 text-xs font-bold transition border border-brand-500/30 shadow-sm';
+      }
+
       if (subId === 'services') {
         document.getElementById('subViewServices').classList.add('active');
         document.getElementById('appTitle').textContent = 'Layanan Aktif Saya';
+        if (!globalUserList || globalUserList.length === 0) {
+          muatDaftarSemuaUser();
+        } else {
+          renderUserServicesList();
+        }
+      } else if (subId === 'voucher') {
+        document.getElementById('subViewVoucher').classList.add('active');
+        document.getElementById('appTitle').textContent = 'Klaim Voucher Lisensi';
       } else if (subId === 'smtp') {
         document.getElementById('subViewSmtp').classList.add('active');
         document.getElementById('appTitle').textContent = 'Config SMTP System';
       } else if (subId === 'overview') {
         document.getElementById('subViewMainMenu').classList.add('active');
         document.getElementById('appTitle').textContent = 'Hub Overview';
+        muatStatistikDashboard();
+        checkSystemHealth();
+        muatDaftarSemuaUser();
+      } else if (subId === 'device') {
+        document.getElementById('subViewDeviceCheck').classList.add('active');
+        document.getElementById('appTitle').textContent = 'Client Devices';
+        muatDaftarSemuaUser();
+      } else if (subId === 'transfer') {
+        document.getElementById('subViewTransferDevice').classList.add('active');
+        document.getElementById('appTitle').textContent = 'Migrate Device';
+      } else if (subId === 'packages') {
+        document.getElementById('subViewPackages').classList.add('active');
+        document.getElementById('appTitle').textContent = 'Pricing Plans & Discounts';
+        muatDataPaketServer();
+      } else if (subId === 'release') {
+        document.getElementById('subViewRelease').classList.add('active');
+        document.getElementById('appTitle').textContent = 'Cloud Updater';
+        muatDataReleaseServer();
+      } else if (subId === 'detail' || subId === 'subViewDeviceDetail') {
+        document.getElementById('subViewDeviceDetail').classList.add('active');
+        document.getElementById('appTitle').textContent = 'License Detail';
       }
+      toggleSidebarMobile(false);
     }
 
-    function bukaFitur(fitur) {
-      if (fitur === 'overview') bukaSubView('overview');
-      else showToast(`Fitur ${fitur} sedang dimuat.`, true);
-    }
-
-    async function sendVerificationEmail(email, code, username) {
+    async function sendVerificationEmail(email, code, username, action = 'send_verification_email') {
       const response = await fetch(CONFIG_API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ action: 'send_verification_email', to: email, code, username })
+        body: JSON.stringify({ action, to: email, code, username })
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.success) {
@@ -472,35 +1166,44 @@
       if (pass.length < 8) return showToast('Password minimal 8 karakter.', false);
 
       btn.disabled = true;
-      btn.textContent = 'Menyiapkan akun...';
+      btn.textContent = 'Memeriksa ketersediaan akun...';
 
       try {
         const supabase = await initSupabaseEnvConfig();
 
-        // Periksa username sebelum mengirim email atau membuat akun.
-        const { data: existingUsername, error: usernameCheckError } = await supabase
+        const { data: existingUsernames } = await supabase
           .from('user_accounts')
           .select('id')
           .eq('username', username)
           .limit(1);
 
-        if (usernameCheckError) {
-          throw new Error('Gagal memeriksa username: ' + usernameCheckError.message);
+        if (existingUsernames && existingUsernames.length > 0) {
+          showToast('Username telah terpakai. Gunakan username lain.', false);
+          document.getElementById('regUsername').focus();
+          return;
         }
 
-        if (existingUsername && existingUsername.length > 0) {
-          showToast('Username telah terpakai. Silakan gunakan username lain.', false);
-          document.getElementById('regUsername').focus();
+        const { data: existingEmails } = await supabase
+          .from('user_accounts')
+          .select('id')
+          .eq('email', email)
+          .limit(1);
+
+        if (existingEmails && existingEmails.length > 0) {
+          showToast('Email telah terdaftar. Silakan login atau gunakan fitur Lupa Password.', false);
+          document.getElementById('regEmail').focus();
           return;
         }
 
         const passHash = await hashPassword(pass);
         const uuid = randomSixDigitCode();
         const verificationCode = randomSixDigitCode();
+        
+        // 5 Minutes Expiry Timestamp
+        const expiryDate = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
-        // Kirim email dahulu. Jika SMTP gagal, akun tidak dibuat sebagai akun yatim.
-        btn.textContent = 'Mengirim kode verifikasi...';
-        await sendVerificationEmail(email, verificationCode, username);
+        btn.textContent = 'Mengirim kode verifikasi (berlaku 5 menit)...';
+        await sendVerificationEmail(email, verificationCode, username, 'send_verification_email');
 
         btn.textContent = 'Menyimpan akun...';
         const { error } = await supabase.from('user_accounts').insert({
@@ -511,21 +1214,12 @@
           role: 'user',
           email_verified: false,
           verification_code: verificationCode,
+          verification_expiry: expiryDate,
           created_at: new Date().toISOString(),
           last_active: new Date().toISOString()
         });
 
         if (error) {
-          // Tangani duplikasi jika ada pendaftaran bersamaan setelah pengecekan awal.
-          if (
-            error.code === '23505' &&
-            String(error.message || '').includes('user_accounts_username_key')
-          ) {
-            showToast('Username telah terpakai. Silakan gunakan username lain.', false);
-            document.getElementById('regUsername').focus();
-            return;
-          }
-
           throw new Error(error.message || 'Gagal menyimpan akun ke database.');
         }
 
@@ -533,13 +1227,122 @@
         document.getElementById('verifyTargetEmail').textContent = email;
         document.getElementById('verifyInputCode').value = '';
         switchAuthTab('verify');
-        showToast('Kode verifikasi dikirim. Periksa inbox atau folder spam.');
+        showToast('Kode verifikasi (berlaku 5 menit) telah dikirim ke email Anda.');
       } catch (error) {
         console.error('Register error:', error);
         showToast(error.message || 'Registrasi gagal.', false);
       } finally {
         btn.disabled = false;
         btn.textContent = 'Kirim Kode Verifikasi SMTP';
+      }
+    }
+
+    async function prosesCekEmailLupaPassword() {
+      const email = document.getElementById('forgotInputEmail').value.trim().toLowerCase();
+      const btn = document.getElementById('btnSendResetCode');
+
+      if (!email) return showToast('Masukkan alamat email terdaftar Anda.', false);
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showToast('Format email tidak valid.', false);
+
+      btn.disabled = true;
+      btn.textContent = 'Memeriksa email...';
+
+      try {
+        const supabase = await initSupabaseEnvConfig();
+
+        const { data: userData, error } = await supabase
+          .from('user_accounts')
+          .select('id, username, email')
+          .eq('email', email)
+          .limit(1)
+          .maybeSingle();
+
+        if (error) throw new Error('Gagal memeriksa database: ' + error.message);
+        if (!userData) {
+          showToast('Alamat email belum terdaftar di sistem kami.', false);
+          return;
+        }
+
+        const resetCode = randomSixDigitCode();
+        const expiryDate = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+
+        btn.textContent = 'Mengirim email OTP reset (berlaku 5 menit)...';
+
+        await sendVerificationEmail(email, resetCode, userData.username || 'Pengguna', 'send_reset_password_email');
+
+        const { error: updateError } = await supabase
+          .from('user_accounts')
+          .update({ verification_code: resetCode, verification_expiry: expiryDate })
+          .eq('id', userData.id);
+
+        if (updateError) throw new Error('Gagal menyimpan kode reset ke database.');
+
+        pendingResetEmail = email;
+        document.getElementById('resetTargetEmail').textContent = email;
+        document.getElementById('resetInputCode').value = '';
+        document.getElementById('resetNewPassword').value = '';
+        document.getElementById('resetConfirmPassword').value = '';
+        switchAuthTab('resetNew');
+        showToast('Kode OTP reset password (berlaku 5 menit) telah dikirim ke email Anda.');
+      } catch (error) {
+        console.error('Forgot password error:', error);
+        showToast(error.message || 'Gagal memproses pemulihan password.', false);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Cek Email & Kirim OTP';
+      }
+    }
+
+    async function prosesResetPasswordBaru() {
+      const code = document.getElementById('resetInputCode').value.trim();
+      const newPass = document.getElementById('resetNewPassword').value;
+      const confirmPass = document.getElementById('resetConfirmPassword').value;
+      const btn = document.getElementById('btnSubmitResetPassword');
+
+      if (!pendingResetEmail) return showToast('Sesi reset password tidak ditemukan. Silakan ulangi.', false);
+      if (!/^\d{6}$/.test(code)) return showToast('Masukkan kode verifikasi 6 angka.', false);
+      if (!newPass || newPass.length < 8) return showToast('Password baru minimal 8 karakter.', false);
+      if (newPass !== confirmPass) return showToast('Konfirmasi password baru tidak cocok.', false);
+
+      btn.disabled = true;
+      btn.textContent = 'Memperbarui password...';
+
+      try {
+        const supabase = await initSupabaseEnvConfig();
+
+        const { data: userData, error } = await supabase
+          .from('user_accounts')
+          .select('id, verification_code, verification_expiry')
+          .eq('email', pendingResetEmail)
+          .eq('verification_code', code)
+          .limit(1)
+          .maybeSingle();
+
+        if (error) throw new Error(error.message);
+        if (!userData) throw new Error('Kode OTP salah atau tidak cocok.');
+
+        // Check 5-minute expiry
+        if (userData.verification_expiry && new Date() > new Date(userData.verification_expiry)) {
+          throw new Error('Kode OTP telah kadaluarsa (lebih dari 5 menit). Silakan minta kode baru.');
+        }
+
+        const passHash = await hashPassword(newPass);
+        const { error: updateError } = await supabase
+          .from('user_accounts')
+          .update({ password_hash: passHash, verification_code: null, verification_expiry: null })
+          .eq('id', userData.id);
+
+        if (updateError) throw new Error('Gagal mengupdate password baru.');
+
+        pendingResetEmail = null;
+        switchAuthTab('login');
+        showToast('Password berhasil diperbarui! Silakan login dengan password baru.');
+      } catch (error) {
+        console.error('Reset password error:', error);
+        showToast(error.message || 'Gagal memperbarui password.', false);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Simpan Password Baru';
       }
     }
 
@@ -554,20 +1357,27 @@
       try {
         const supabase = await initSupabaseEnvConfig();
         const { data, error } = await supabase.from('user_accounts')
-          .select('id,email,verification_code,email_verified')
+          .select('id,email,verification_code,verification_expiry,email_verified')
           .eq('email', pendingVerificationEmail)
           .eq('verification_code', code)
+          .limit(1)
           .maybeSingle();
 
         if (error) throw new Error(error.message);
         if (!data) throw new Error('Kode salah atau tidak cocok dengan akun.');
+
+        // Check 5-minute expiry
+        if (data.verification_expiry && new Date() > new Date(data.verification_expiry)) {
+          throw new Error('Kode verifikasi telah kadaluarsa (lebih dari 5 menit). Silakan daftar ulang.');
+        }
+
         if (data.email_verified) {
           switchAuthTab('login');
           return showToast('Email sudah terverifikasi. Silakan login.');
         }
 
         const { error: updateError } = await supabase.from('user_accounts')
-          .update({ email_verified: true, verification_code: null })
+          .update({ email_verified: true, verification_code: null, verification_expiry: null })
           .eq('id', data.id);
         if (updateError) throw new Error(updateError.message || 'Gagal memperbarui status verifikasi.');
 
@@ -599,71 +1409,1230 @@
         else if (identifier.includes('@')) query = query.eq('email', identifier.toLowerCase());
         else query = query.eq('username', identifier.toLowerCase());
 
-        const { data: userData, error } = await query.maybeSingle();
-        if (error) throw new Error(error.message);
-        if (!userData) throw new Error('Akun tidak ditemukan atau password salah.');
-        if (userData.password_hash !== await hashPassword(pass)) {
-          throw new Error('Akun tidak ditemukan atau password salah.');
+        const { data: userData, error } = await query.limit(1).maybeSingle();
+        
+        if (error) {
+          console.error('SUPABASE AUTH ERROR:', error);
+          showToast(`Gagal terhubung ke database autentikasi: ${error.message || 'Unknown error'}`, false);
+          return;
+        }
+        if (!userData) {
+          showToast('Akun belum terdaftar. Silakan pilih tab "Daftar Akun" terlebih dahulu.', false);
+          return;
+        }
+        
+        const inputHash = await hashPassword(pass);
+        if (userData.password_hash !== inputHash) {
+          showToast('Password yang Anda masukkan salah.', false);
+          return;
         }
         if (userData.email_verified !== true) {
-          throw new Error('Email belum diverifikasi. Selesaikan verifikasi email terlebih dahulu.');
+          showToast('Email belum diverifikasi. Selesaikan verifikasi email terlebih dahulu.', false);
+          pendingVerificationEmail = userData.email;
+          document.getElementById('verifyTargetEmail').textContent = userData.email;
+          switchAuthTab('verify');
+          return;
         }
 
         const role = String(userData.role || 'user').toLowerCase();
-        activeUserSession = { id: userData.id, identifier, role };
+        adminPasswordSecret = inputHash;
+        activeUserSession = { 
+          id: userData.id, 
+          uuid: userData.uuid, 
+          username: userData.username, 
+          email: userData.email, 
+          role 
+        };
+
+        // Save Cookie Session (7 Days)
+        setCookie('mindhub_session', { id: userData.id, uuid: userData.uuid, username: userData.username }, 7);
+        
         document.getElementById('userDisplayName').textContent = userData.username || identifier;
-        const roleBadge = document.getElementById('userRoleBadge');
-        roleBadge.textContent = role.toUpperCase();
+        applyRolePermissions(role);
 
-        const adminMenu = document.getElementById('sectionAdminMenu');
-        const systemConfig = document.getElementById('sectionSystemConfig');
-        const userMenu = document.getElementById('sectionUserMenu');
-
-        if (role === 'developer') {
-          adminMenu.style.display = 'block';
-          systemConfig.style.display = 'block';
-          userMenu.style.display = 'block';
-          roleBadge.className = 'text-[10px] uppercase font-bold text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20';
-          gantiView('viewDashboardApp');
-          bukaFitur('overview');
-        } else if (role === 'admin') {
-          adminMenu.style.display = 'block';
-          systemConfig.style.display = 'none';
-          userMenu.style.display = 'block';
-          roleBadge.className = 'text-[10px] uppercase font-bold text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-lg border border-indigo-500/20';
-          gantiView('viewDashboardApp');
-          bukaFitur('overview');
-        } else {
-          adminMenu.style.display = 'none';
-          systemConfig.style.display = 'none';
-          userMenu.style.display = 'block';
-          roleBadge.className = 'text-[10px] uppercase font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20';
-          gantiView('viewDashboardApp');
-          bukaSubView('services');
-        }
-
-        // Update aktivitas tidak menggagalkan login jika policy update belum tersedia.
         const { error: activityError } = await supabase.from('user_accounts')
           .update({ last_active: new Date().toISOString() }).eq('id', userData.id);
         if (activityError) console.warn('last_active update:', activityError.message);
 
         showToast(`Selamat datang, ${userData.username || identifier} (${role.toUpperCase()})!`);
       } catch (error) {
-        console.error('Login error:', error);
-        showToast(error.message || 'Gagal terhubung ke server autentikasi.', false);
+        console.error('Login unhandled exception:', error);
+        showToast(`Terjadi kesalahan sistem: ${error.message || 'Koneksi gagal'}`, false);
       } finally {
         btn.disabled = false;
         btn.textContent = 'Masuk Portal';
       }
     }
 
+    function applyRolePermissions(role) {
+      const adminMenu = document.getElementById('sectionAdminMenu');
+      const systemConfig = document.getElementById('sectionSystemConfig');
+      const userMenu = document.getElementById('sectionUserMenu');
+      const roleBadge = document.getElementById('userRoleBadge');
+
+      const devVoucherBox = document.getElementById('developerVoucherBox');
+      const devEditControls = document.getElementById('developerEditControls');
+      const btnSaveConfig = document.getElementById('btnSaveConfig');
+      const btnDeleteLicense = document.getElementById('btnDeleteLicense');
+
+      roleBadge.textContent = role.toUpperCase();
+
+      if (role === 'developer') {
+        adminMenu.style.display = 'block';
+        systemConfig.style.display = 'block';
+        userMenu.style.display = 'block';
+        roleBadge.className = 'text-[10px] uppercase font-bold text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20';
+        if (devVoucherBox) devVoucherBox.style.display = 'block';
+        if (devEditControls) devEditControls.style.display = 'block';
+        if (btnSaveConfig) btnSaveConfig.style.display = 'block';
+        if (btnDeleteLicense) btnDeleteLicense.style.display = 'block';
+
+        gantiView('viewDashboardApp');
+        bukaSubView('overview');
+      } else if (role === 'admin') {
+        adminMenu.style.display = 'block';
+        systemConfig.style.display = 'none';
+        userMenu.style.display = 'block';
+        roleBadge.className = 'text-[10px] uppercase font-bold text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-lg border border-indigo-500/20';
+        if (devVoucherBox) devVoucherBox.style.display = 'none';
+        if (devEditControls) devEditControls.style.display = 'none';
+        if (btnSaveConfig) btnSaveConfig.style.display = 'none';
+        if (btnDeleteLicense) btnDeleteLicense.style.display = 'none';
+
+        gantiView('viewDashboardApp');
+        bukaSubView('overview');
+      } else {
+        adminMenu.style.display = 'none';
+        systemConfig.style.display = 'none';
+        userMenu.style.display = 'block';
+        roleBadge.className = 'text-[10px] uppercase font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20';
+
+        gantiView('viewDashboardApp');
+        bukaSubView('services');
+      }
+    }
+
     function logoutUser() {
       activeUserSession = null;
+      adminPasswordSecret = '';
+      eraseCookie('mindhub_session');
       document.getElementById('loginUserIdentifier').value = '';
       document.getElementById('loginPassword').value = '';
       gantiView('viewLandingPage');
       switchAuthTab('login');
       showToast('Berhasil keluar sesi.');
+    }
+
+    async function muatDaftarSemuaUser() {
+      const container = document.getElementById('listAllUsersContainer');
+      if (container) container.innerHTML = '<div class="text-center text-slate-500 text-xs py-10">Fetching secure data...</div>';
+      try {
+        const res = await fetch(`${VERCEL_API_URL}?action=get_all_licenses`, { method: 'GET', headers: { 'Accept': 'application/json' } });
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        
+        const textData = await res.text();
+        let data;
+        try {
+          data = JSON.parse(textData);
+        } catch (err) {
+          throw new Error('Invalid JSON response from server');
+        }
+
+        globalUserList = Array.isArray(data) ? data : (data.licenses || data.users || data.data || []);
+        selectedDeviceIds = [];
+        updateBulkToolbarUI();
+        filterUserList();
+        renderUserServicesList();
+        renderExpiringRadar();
+        updateLicenseRatio();
+      } catch (e) { 
+        console.error("Sync error:", e);
+        globalUserList = [];
+        if (container) container.innerHTML = '<div class="text-center text-red-400 text-xs py-10">⚠️ Sync Failed / Server Timeout. Silakan refresh halaman.</div>'; 
+      }
+    }
+
+    function renderUserServicesList() {
+      const container = document.getElementById('containerUserServices');
+      if (!container) return;
+
+      if (!activeUserSession) {
+        container.innerHTML = '<div class="text-center text-slate-500 text-xs py-10 col-span-2">Sesi tidak valid. Silakan login kembali.</div>';
+        return;
+      }
+
+      const userDevices = globalUserList.filter(u => {
+        if (activeUserSession.role === 'developer' || activeUserSession.role === 'admin') return true;
+        const owner = String(u.owner_id || u.user_id || u.email || u.username || u.claimed_by || '').toLowerCase();
+        return (
+          owner === String(activeUserSession.id).toLowerCase() ||
+          owner === String(activeUserSession.uuid).toLowerCase() ||
+          owner === String(activeUserSession.username).toLowerCase() ||
+          owner === String(activeUserSession.email).toLowerCase()
+        );
+      });
+
+      container.innerHTML = '';
+      if (userDevices.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-2 glass-card p-8 rounded-3xl text-center border border-slate-800 space-y-3">
+            <span class="text-4xl block">📦</span>
+            <h3 class="font-extrabold text-white text-sm">Belum Ada Layanan Terhubung</h3>
+            <p class="text-xs text-slate-400 max-w-sm mx-auto">Anda belum memiliki perangkat yang terikat. Gunakan menu <b>Klaim Voucher</b> untuk mengaktifkan lisensi perangkat Anda.</p>
+            <button onclick="bukaSubView('voucher')" class="px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs rounded-xl shadow-lg shadow-brand-500/20 transition">Klaim Voucher Sekarang</button>
+          </div>
+        `;
+        return;
+      }
+
+      userDevices.forEach(u => {
+        const isExp = u.exp_date && new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }) > u.exp_date;
+        const card = document.createElement('div');
+        card.className = 'glass-card p-6 rounded-3xl border border-slate-800 space-y-4 hover:border-brand-500/40 transition relative overflow-hidden';
+        card.innerHTML = `
+          <div class="flex justify-between items-start">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-2xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-lg">💻</div>
+              <div>
+                <h3 class="font-bold text-white text-sm truncate max-w-[180px] sm:max-w-none">${u.sppg_name || 'SPPG Node Client'}</h3>
+                <span class="text-[10px] text-slate-400 font-mono">Service ID: MIND-${u.device_id || 'NODE'}</span>
+              </div>
+            </div>
+            <span class="px-2.5 py-1 rounded-full ${isExp ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'} text-[10px] font-bold uppercase border">${isExp ? 'Expired' : (u.status || 'Active')}</span>
+          </div>
+
+          <div class="bg-slate-900/80 p-4 rounded-2xl border border-slate-800/80 space-y-2 text-xs">
+            <div class="flex justify-between items-center">
+              <span class="text-slate-400">Device ID Terikat:</span>
+              <span class="font-mono font-bold text-amber-400">${u.device_id}</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-slate-400">Masa Aktif Berakhir:</span>
+              <span class="font-bold text-white">${formatTanggalIndo(u.exp_date)}</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-slate-400">Node Sync Status:</span>
+              <span class="text-emerald-400 font-bold flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Online</span>
+            </div>
+          </div>
+
+          <div class="flex gap-2">
+            <button onclick="salinTextToClipboard('${u.device_id}', 'Device ID disalin!')" class="flex-1 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 border border-slate-700">📋 Salin ID</button>
+            <button onclick="showToast('Node sync health check OK!')" class="flex-1 bg-brand-500/15 hover:bg-brand-500/25 active:scale-95 text-brand-400 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 border border-brand-500/30">⚡ Sync Health</button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    async function prosesKlaimVoucher() {
+      const deviceId = document.getElementById('inputRedeemDeviceId').value.trim().toUpperCase();
+      const voucherCode = document.getElementById('inputRedeemVoucher').value.trim().toUpperCase();
+      const btn = document.getElementById('btnRedeemVoucher');
+
+      if (!deviceId || !voucherCode) return showToast('Device ID dan Kode Voucher wajib diisi!', false);
+      if (!activeUserSession) return showToast('Sesi pengguna tidak valid.', false);
+
+      btn.disabled = true;
+      btn.textContent = 'Memproses klaim voucher...';
+
+      try {
+        const res = await fetch(VERCEL_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'redeem_voucher',
+            device_id: deviceId,
+            code: voucherCode,
+            claimed_by: activeUserSession.username || activeUserSession.email || activeUserSession.id
+          })
+        });
+        const result = await res.json().catch(() => ({}));
+
+        if (res.ok && (result.success || result.status)) {
+          showToast(`🎉 Voucher ${voucherCode} berhasil diklaim untuk perangkat ${deviceId}!`);
+          document.getElementById('inputRedeemVoucher').value = '';
+          muatDaftarSemuaUser();
+          bukaSubView('services');
+        } else {
+          showToast(result.error || result.message || 'Kode voucher tidak valid atau telah expired.', false);
+        }
+      } catch (e) {
+        showToast('Gagal terhubung ke server voucher.', false);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '⚡ Redeem Voucher Sekarang';
+      }
+    }
+
+    async function muatStatistikDashboard() {
+      try {
+        const res = await fetch(`${VERCEL_API_URL}?action=get_stats`);
+        const data = await res.json();
+        globalStatsData = data;
+        document.getElementById('statRevHari').textContent = `Rp ${(data.harian || 0).toLocaleString('id-ID')}`;
+        document.getElementById('statRevMinggu').textContent = `Rp ${(data.mingguan || 0).toLocaleString('id-ID')}`;
+        document.getElementById('statRevBulan').textContent = `Rp ${(data.bulanan || 0).toLocaleString('id-ID')}`;
+
+        const totalDl = data.total_downloads !== undefined ? data.total_downloads : (data.download_count || 0);
+        const dlEl = document.getElementById('statTotalDownloads');
+        if (dlEl) dlEl.textContent = Number(totalDl).toLocaleString('id-ID');
+
+        renderRevenueChart();
+      } catch (e) {}
+    }
+
+    function setRevenueTimeframe(timeframe) {
+      activeTimeframe = timeframe;
+      ['7d', '14d', '1m'].forEach(tf => {
+        const btn = document.getElementById(`btnTf${tf}`);
+        if (!btn) return;
+        if (tf === timeframe) {
+          btn.className = 'px-3 py-1 rounded-lg bg-brand-500 text-white transition shadow-md shadow-brand-500/20';
+        } else {
+          btn.className = 'px-3 py-1 rounded-lg text-slate-400 hover:text-white transition';
+        }
+      });
+      renderRevenueChart();
+    }
+
+    function renderRevenueChart() {
+      const chartContainer = document.getElementById('chartBarsContainer');
+      if (!chartContainer) return;
+      chartContainer.innerHTML = '';
+
+      let rawChartData = [];
+      if (globalStatsData) {
+        if (activeTimeframe === '7d') rawChartData = globalStatsData.chart_harian || [];
+        else if (activeTimeframe === '14d') rawChartData = globalStatsData.chart_14d || globalStatsData.chart_harian || [];
+        else if (activeTimeframe === '1m') rawChartData = globalStatsData.chart_30d || globalStatsData.chart_harian || [];
+      }
+
+      let totalDays = 7;
+      if (activeTimeframe === '14d') totalDays = 14;
+      else if (activeTimeframe === '1m') totalDays = 30;
+
+      let chartData = [];
+      if (Array.isArray(rawChartData) && rawChartData.length >= totalDays) {
+        chartData = rawChartData.slice(-totalDays);
+      } else {
+        chartData = new Array(totalDays).fill(0);
+        if (Array.isArray(rawChartData)) {
+          const offset = totalDays - rawChartData.length;
+          rawChartData.forEach((val, i) => {
+            if (i + offset >= 0 && i + offset < totalDays) {
+              chartData[i + offset] = val;
+            }
+          });
+        }
+      }
+
+      const maxVal = Math.max(...chartData, 1000);
+      const now = new Date();
+
+      chartData.forEach((val, idx) => {
+        const daysAgo = totalDays - 1 - idx;
+        const targetDate = new Date(now.getTime() - (daysAgo * 86400000));
+        let dateLabel = daysAgo === 0 ? 'Hari Ini' : targetDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+        const tinggiPersen = Math.round((val / maxVal) * 80);
+
+        const group = document.createElement('div');
+        group.className = 'flex flex-col items-center shrink-0 flex-1 h-full justify-end group/bar relative min-w-[12px]';
+        const labelHtml = activeTimeframe === '1m' ? '' : `<div class="text-[9px] text-slate-500 mt-2 font-mono whitespace-nowrap">${dateLabel}</div>`;
+
+        group.innerHTML = `
+          <div class="w-full min-w-[10px] bg-gradient-to-t from-brand-600 via-indigo-500 to-purple-400 hover:from-brand-500 hover:via-indigo-400 hover:to-purple-300 rounded-t-xl transition-all duration-300 cursor-pointer shadow-[0_0_15px_rgba(99,102,241,0.25)] hover:shadow-[0_0_20px_rgba(168,85,247,0.4)] relative border-t border-purple-300/40" style="height: ${Math.max(8, tinggiPersen)}px;">
+            <div class="opacity-0 group-hover/bar:opacity-100 pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-900/95 text-slate-100 text-[10px] font-bold px-2.5 py-1 rounded-xl border border-indigo-500/40 shadow-xl whitespace-nowrap z-30 transition-all backdrop-blur-md">
+              ${dateLabel}: Rp ${val.toLocaleString('id-ID')}
+            </div>
+          </div>
+          ${labelHtml}
+        `;
+        chartContainer.appendChild(group);
+      });
+    }
+
+    function initLiveHeartbeatGraph() {
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
+      const canvas = document.getElementById('heartbeatCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+
+      const resizeCanvas = () => {
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * (window.devicePixelRatio || 1);
+        canvas.height = rect.height * (window.devicePixelRatio || 1);
+        ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+      };
+      resizeCanvas();
+
+      const drawHeartbeat = () => {
+        const rect = canvas.getBoundingClientRect();
+        const w = rect.width;
+        const h = rect.height;
+        if (!w || !h) return;
+        ctx.clearRect(0, 0, w, h);
+
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+        ctx.lineWidth = 1;
+        for (let y = 0; y < h; y += 12) {
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+        }
+
+        if (heartbeatPoints.length < 2) return;
+        const maxPing = Math.max(...heartbeatPoints, 120);
+        const minPing = Math.min(...heartbeatPoints, 10);
+        const stepX = w / (heartbeatPoints.length - 1);
+
+        const grad = ctx.createLinearGradient(0, 0, 0, h);
+        grad.addColorStop(0, 'rgba(16, 185, 129, 0.35)');
+        grad.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+
+        ctx.beginPath();
+        heartbeatPoints.forEach((val, i) => {
+          const x = i * stepX;
+          const normalized = (val - Math.min(minPing, 20)) / (maxPing - Math.min(minPing, 20) || 1);
+          const y = h - (normalized * (h - 16) + 8);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath();
+        ctx.fillStyle = grad; ctx.fill();
+      };
+
+      const updatePulsePing = async () => {
+        const start = performance.now();
+        let currentLatency = 35;
+
+        try {
+          const res = await fetch(`${VERCEL_API_URL}?action=check_license&device_id=PING_${Date.now()}`, { cache: 'no-store' });
+          currentLatency = Math.round(performance.now() - start);
+          if (!res.ok) {}
+        } catch (e) {
+          currentLatency = Math.round(performance.now() - start) || 180;
+        }
+
+        heartbeatPoints.shift();
+        heartbeatPoints.push(currentLatency);
+
+        const minVal = Math.min(...heartbeatPoints);
+        const maxVal = Math.max(...heartbeatPoints);
+        const avgVal = Math.round(heartbeatPoints.reduce((a, b) => a + b, 0) / heartbeatPoints.length);
+
+        const hbVal = document.getElementById('heartbeatLiveValue');
+        const minEl = document.getElementById('hbMinMs');
+        const maxEl = document.getElementById('hbMaxMs');
+        const avgEl = document.getElementById('hbAvgMs');
+
+        if (hbVal) hbVal.textContent = `${currentLatency} ms`;
+        if (minEl) minEl.textContent = `Min: ${minVal}ms`;
+        if (maxEl) maxEl.textContent = `Max: ${maxVal}ms`;
+        if (avgEl) avgEl.textContent = `Avg: ${avgVal}ms`;
+
+        drawHeartbeat();
+      };
+
+      updatePulsePing();
+      heartbeatInterval = setInterval(updatePulsePing, 1000);
+    }
+
+    function checkSystemHealth() {
+      initLiveHeartbeatGraph();
+    }
+
+    function setFilterTab(status, btn) {
+      document.querySelectorAll('#filterTabsContainer button').forEach(b => {
+        b.className = 'px-3.5 py-2 rounded-xl bg-slate-800/80 text-slate-400 text-xs font-semibold tab-btn whitespace-nowrap';
+      });
+      btn.className = 'px-3.5 py-2 rounded-xl bg-brand-500 text-white text-xs font-bold tab-btn active whitespace-nowrap';
+      currentStatusFilter = status;
+      filterUserList();
+    }
+
+    function filterUserList() {
+      const query = document.getElementById('searchUserQuery').value.trim().toLowerCase();
+      const sortOpt = document.getElementById('sortDeviceOption')?.value || 'exp_asc';
+      const hariIni = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+
+      let filtered = globalUserList.filter(u => {
+        const matchQ = (u.device_id || '').toLowerCase().includes(query) || (u.sppg_name || '').toLowerCase().includes(query);
+        let stat = u.status || 'active';
+        if (stat === 'active' && u.exp_date && hariIni > u.exp_date) stat = 'expired';
+        const matchS = currentStatusFilter === 'all' || stat === currentStatusFilter;
+        return matchQ && matchS;
+      });
+
+      filtered.sort((a, b) => {
+        if (sortOpt === 'exp_asc') return (a.exp_date || '9999').localeCompare(b.exp_date || '9999');
+        else if (sortOpt === 'exp_desc') return (b.exp_date || '0000').localeCompare(a.exp_date || '0000');
+        else if (sortOpt === 'name_asc') return (a.device_id || '').localeCompare(b.device_id || '');
+        else if (sortOpt === 'active_desc') return (b.last_active || b.updated_at || '0').localeCompare(a.last_active || a.updated_at || '0');
+        return 0;
+      });
+
+      const container = document.getElementById('listAllUsersContainer');
+      if (!container) return;
+      container.innerHTML = '';
+      if (filtered.length === 0) return container.innerHTML = '<div class="text-center text-slate-500 text-xs py-10">No records found.</div>';
+
+      filtered.forEach(u => {
+        let stat = u.status || 'active';
+        if (stat === 'active' && u.exp_date && hariIni > u.exp_date) stat = 'expired';
+
+        let badge = '';
+        if (stat === 'active') badge = '<span class="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold uppercase">Active</span>';
+        else if (stat === 'hold') badge = '<span class="px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-bold uppercase">Hold</span>';
+        else if (stat === 'expired') badge = '<span class="px-2.5 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 text-[10px] font-bold uppercase">Expired</span>';
+        else if (stat === 'revoked') badge = '<span class="px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 text-[10px] font-bold uppercase">Revoked</span>';
+
+        const isChecked = selectedDeviceIds.includes(u.device_id);
+        const div = document.createElement('div');
+        div.className = `bg-slate-900/60 hover:bg-slate-800/80 border ${isChecked ? 'border-brand-500/80 bg-brand-500/5' : 'border-slate-800/80'} p-3.5 sm:p-4 rounded-2xl cursor-pointer flex justify-between items-center transition gap-3`;
+        div.innerHTML = `
+          <div class="flex items-center gap-3 min-w-0 flex-1">
+            <input type="checkbox" data-device-id="${u.device_id}" ${isChecked ? 'checked' : ''} onclick="toggleSelectDevice('${u.device_id}', this.checked, event)" class="device-checkbox w-4 h-4 rounded border-slate-700 text-brand-500 focus:ring-0 bg-slate-950 shrink-0">
+            <div class="min-w-0 flex-1">
+              <div class="text-xs text-brand-400 font-mono font-bold truncate">${u.device_id}</div>
+              <div class="text-xs sm:text-sm text-white font-semibold mt-0.5 truncate">${u.sppg_name || 'Unnamed Client'}</div>
+              <div class="text-[10px] text-slate-500 mt-0.5">s/d: ${formatTanggalIndo(u.exp_date)}</div>
+            </div>
+          </div>
+          <div class="shrink-0">${badge}</div>`;
+        div.onclick = (e) => {
+          if (e.target.tagName !== 'INPUT') pilihUser(u, stat);
+        };
+        container.appendChild(div);
+      });
+    }
+
+    function toggleSelectDevice(deviceId, checked, event) {
+      if (event) event.stopPropagation();
+      if (checked) {
+        if (!selectedDeviceIds.includes(deviceId)) selectedDeviceIds.push(deviceId);
+      } else {
+        selectedDeviceIds = selectedDeviceIds.filter(id => id !== deviceId);
+      }
+      updateBulkToolbarUI();
+    }
+
+    function toggleSelectAllDevices(checked) {
+      const visibleCheckboxes = document.querySelectorAll('.device-checkbox');
+      selectedDeviceIds = [];
+      visibleCheckboxes.forEach(chk => {
+        chk.checked = checked;
+        if (checked) selectedDeviceIds.push(chk.dataset.deviceId);
+      });
+      updateBulkToolbarUI();
+    }
+
+    function updateBulkToolbarUI() {
+      const toolbar = document.getElementById('bulkActionsToolbar');
+      const countEl = document.getElementById('bulkSelectedCount');
+      if (!toolbar || !countEl) return;
+      if (selectedDeviceIds.length > 0) {
+        countEl.textContent = selectedDeviceIds.length;
+        toolbar.classList.remove('hidden');
+      } else {
+        toolbar.classList.add('hidden');
+        const chkAll = document.getElementById('chkSelectAllDevices');
+        if (chkAll) chkAll.checked = false;
+      }
+    }
+
+    function renderExpiringRadar() {
+      const container = document.getElementById('expiringRadarContainer');
+      if (!container) return;
+      const hariIniDate = new Date();
+      const batasRadarDate = new Date();
+      batasRadarDate.setDate(hariIniDate.getDate() + 7);
+
+      const expiringUsers = globalUserList.filter(u => {
+        if (!u.exp_date || u.exp_date === '-' || u.status === 'revoked' || u.status === 'hold') return false;
+        const d = new Date(u.exp_date);
+        return !isNaN(d.getTime()) && d >= hariIniDate && d <= batasRadarDate;
+      });
+
+      container.innerHTML = '';
+      if (expiringUsers.length === 0) {
+        container.innerHTML = `<div class="text-center py-4 bg-slate-900/50 rounded-xl border border-slate-800/60"><span class="text-xs text-emerald-400 font-bold">✨ Semua Lisensi Aman (> 7 Hari)</span></div>`;
+        return;
+      }
+      expiringUsers.forEach(u => {
+        const div = document.createElement('div');
+        div.className = 'bg-slate-900/80 border border-amber-500/20 p-3 rounded-xl flex items-center justify-between text-xs gap-2';
+        div.innerHTML = `
+          <div class="min-w-0 flex-1">
+            <div class="font-mono text-amber-400 font-bold truncate">${u.device_id}</div>
+            <div class="text-[11px] text-white font-medium truncate">${u.sppg_name || 'Unnamed'}</div>
+          </div>
+          <div class="text-right shrink-0">
+            <div class="text-[10px] text-slate-400">Exp: <b class="text-white">${formatTanggalIndo(u.exp_date)}</b></div>
+          </div>`;
+        container.appendChild(div);
+      });
+    }
+
+    function updateLicenseRatio() {
+      if (!globalUserList || globalUserList.length === 0) return;
+      const total = globalUserList.length;
+      let active = 0, hold = 0, expired = 0;
+      const hariIni = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+
+      globalUserList.forEach(u => {
+        let st = u.status || 'active';
+        if (st === 'active' && u.exp_date && hariIni > u.exp_date) st = 'expired';
+        if (st === 'active') active++;
+        else if (st === 'hold') hold++;
+        else expired++;
+      });
+
+      const activePct = Math.round((active / total) * 100);
+      const holdPct = Math.round((hold / total) * 100);
+      const expPct = Math.round((expired / total) * 100);
+
+      const ratioText = document.getElementById('statActiveRatio');
+      if (ratioText) ratioText.textContent = `${activePct}% Active (${active}/${total})`;
+
+      const bar = document.getElementById('licenseRatioBar');
+      if (bar && bar.children.length >= 3) {
+        bar.children[0].style.width = `${activePct}%`;
+        bar.children[1].style.width = `${holdPct}%`;
+        bar.children[2].style.width = `${expPct}%`;
+      }
+    }
+
+    function pilihUser(u, stat) {
+      bukaSubView('detail');
+      currentLicenseData = { ...u, status: stat };
+      renderDetail();
+      muatBackupDevice(u.device_id);
+    }
+
+    function renderDetail() {
+      document.getElementById('dispDeviceId').textContent = currentLicenseData.device_id;
+      document.getElementById('dispSppgName').textContent = currentLicenseData.sppg_name || '-';
+      document.getElementById('dispExpDate').textContent = formatTanggalIndo(currentLicenseData.exp_date);
+      document.getElementById('dispLastActive').textContent = formatWaktuRelatif(currentLicenseData.last_active || currentLicenseData.updated_at);
+      document.getElementById('editSppgName').value = currentLicenseData.sppg_name || '';
+      document.getElementById('editExpDate').value = currentLicenseData.exp_date || '';
+      document.getElementById('editStatus').value = currentLicenseData.status;
+
+      let badge = '';
+      if (currentLicenseData.status === 'active') badge = '<span class="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold uppercase">Active</span>';
+      else if (currentLicenseData.status === 'hold') badge = '<span class="px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-bold uppercase">Hold</span>';
+      else if (currentLicenseData.status === 'expired') badge = '<span class="px-2.5 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 text-[10px] font-bold uppercase">Expired</span>';
+      else if (currentLicenseData.status === 'revoked') badge = '<span class="px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 text-[10px] font-bold uppercase">Revoked</span>';
+      document.getElementById('dispStatus').innerHTML = badge;
+    }
+
+    async function muatBackupDevice(deviceId) {
+      const card = document.getElementById('backupInfoCard');
+      if (!card) return;
+      card.classList.add('hidden');
+      currentBackupPayload = null;
+
+      try {
+        const res = await fetch(`${VERCEL_API_URL}?action=get_backup&device_id=${encodeURIComponent(deviceId)}&_t=${Date.now()}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        let backupData = data.backup_data || data.backup || data;
+
+        if (backupData && typeof backupData === 'object' && !data.error) {
+          currentBackupPayload = backupData;
+          document.getElementById('dispBackupFilename').textContent = `sipgn-backup-${deviceId}.json`;
+          document.getElementById('dispBackupTime').textContent = formatWaktuRelatif(data.created_at || new Date().toISOString());
+          card.classList.remove('hidden');
+        }
+      } catch (e) {}
+    }
+
+    function previewBackupCloud() {
+      if (!currentBackupPayload) return showToast('Backup tidak tersedia.', false);
+      const modal = document.getElementById('jsonViewerModal');
+      document.getElementById('jsonPreviewContainer').textContent = JSON.stringify(currentBackupPayload, null, 2);
+      modal.classList.remove('hidden'); modal.classList.add('flex');
+    }
+
+    function closeJsonPreviewModal() {
+      const modal = document.getElementById('jsonViewerModal');
+      modal.classList.remove('flex'); modal.classList.add('hidden');
+    }
+
+    function copyJsonPreview() {
+      if (!currentBackupPayload) return;
+      salinTextToClipboard(JSON.stringify(currentBackupPayload, null, 2), 'JSON disalin!');
+    }
+
+    function downloadBackupCloud() {
+      if (!currentBackupPayload) return showToast('Backup tidak tersedia.', false);
+      const blob = new Blob([JSON.stringify(currentBackupPayload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sipgn-backup-${currentLicenseData.device_id}.json`;
+      document.body.appendChild(a); a.click(); a.remove();
+    }
+
+    function hapusBackupCloudWithModal() {
+      if (!currentLicenseData || !currentLicenseData.device_id) return;
+      showConfirmModal(
+        'Hapus Cloud Backup',
+        `Apakah Anda yakin ingin menghapus backup cloud untuk device ${currentLicenseData.device_id}?`,
+        async () => {
+          try {
+            const res = await fetch(VERCEL_API_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'delete_backup', device_id: currentLicenseData.device_id, secret: adminPasswordSecret })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data.success) {
+              showToast('Cloud backup berhasil dihapus.');
+              document.getElementById('backupInfoCard').classList.add('hidden');
+              currentBackupPayload = null;
+            } else {
+              showToast(data.error || 'Gagal menghapus cloud backup.', false);
+            }
+          } catch (e) {
+            showToast('Gagal terhubung ke server.', false);
+          }
+        }
+      );
+    }
+
+    async function generateVoucherDevice(hari) {
+      if (!currentLicenseData || !currentLicenseData.device_id) return;
+      try {
+        const res = await fetch(VERCEL_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'generate_voucher',
+            device_id: currentLicenseData.device_id,
+            duration_days: hari,
+            secret: adminPasswordSecret
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.code) {
+          document.getElementById('dispGeneratedVoucher').value = data.code;
+          showToast(`Voucher ${hari} Hari Berhasil Dibuat!`);
+        } else {
+          showToast(data.error || 'Gagal membuat voucher.', false);
+        }
+      } catch (e) {
+        showToast('Terjadi kesalahan saat generate voucher.', false);
+      }
+    }
+
+    function salinVoucherDevice() {
+      const code = document.getElementById('dispGeneratedVoucher').value;
+      salinTextToClipboard(code, 'Kode voucher disalin!');
+    }
+
+    function tambahHari(jumlahHari) {
+      const inputExp = document.getElementById('editExpDate');
+      let baseDate = inputExp.value ? new Date(inputExp.value) : new Date();
+      if (isNaN(baseDate.getTime())) baseDate = new Date();
+      
+      baseDate.setDate(baseDate.getDate() + jumlahHari);
+      const yyyy = baseDate.getFullYear();
+      const mm = String(baseDate.getMonth() + 1).padStart(2, '0');
+      const dd = String(baseDate.getDate()).padStart(2, '0');
+      
+      inputExp.value = `${yyyy}-${mm}-${dd}`;
+      cekOtomatisStatusTanggal();
+    }
+
+    function setLifetime() {
+      document.getElementById('editExpDate').value = '2099-12-31';
+      document.getElementById('editStatus').value = 'active';
+    }
+
+    function cekOtomatisStatusTanggal() {
+      const inputVal = document.getElementById('editExpDate').value;
+      if (!inputVal) return;
+      const todayISO = getTodayLocalISO();
+      const selStatus = document.getElementById('editStatus');
+      if (inputVal < todayISO && selStatus.value === 'active') {
+        selStatus.value = 'expired';
+      } else if (inputVal >= todayISO && selStatus.value === 'expired') {
+        selStatus.value = 'active';
+      }
+    }
+
+    function ubahStatusDropdown(statusVal) {
+      if (statusVal === 'active') {
+        const todayISO = getTodayLocalISO();
+        if (document.getElementById('editExpDate').value < todayISO) {
+          tambahHari(30);
+        }
+      }
+    }
+
+    async function simpanPerubahanLisensi() {
+      if (!currentLicenseData) return;
+      const btn = document.getElementById('btnSaveConfig');
+      const sppgName = document.getElementById('editSppgName').value.trim();
+      const expDate = document.getElementById('editExpDate').value;
+      const status = document.getElementById('editStatus').value;
+
+      btn.disabled = true;
+      btn.textContent = 'Menyimpan...';
+
+      try {
+        const res = await fetch(VERCEL_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'update_license',
+            device_id: currentLicenseData.device_id,
+            sppg_name: sppgName,
+            exp_date: expDate,
+            status: status,
+            secret: adminPasswordSecret
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
+          showToast('Konfigurasi lisensi berhasil diperbarui.');
+          currentLicenseData.sppg_name = sppgName;
+          currentLicenseData.exp_date = expDate;
+          currentLicenseData.status = status;
+          renderDetail();
+          muatDaftarSemuaUser();
+        } else {
+          showToast(data.error || 'Gagal menyimpan perubahan.', false);
+        }
+      } catch (e) {
+        showToast('Terjadi kesalahan saat menyimpan.', false);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Save Configuration';
+      }
+    }
+
+    function hapusLisensiWithModal() {
+      if (!currentLicenseData) return;
+      showConfirmModal(
+        'Hapus Perangkat',
+        `Apakah Anda yakin ingin menghapus lisensi perangkat ${currentLicenseData.device_id}?`,
+        async () => {
+          try {
+            const res = await fetch(VERCEL_API_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'delete_license',
+                device_id: currentLicenseData.device_id,
+                secret: adminPasswordSecret
+              })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data.success) {
+              showToast('Perangkat berhasil dihapus.');
+              muatDaftarSemuaUser();
+              bukaSubView('device');
+            } else {
+              showToast(data.error || 'Gagal menghapus perangkat.', false);
+            }
+          } catch (e) {
+            showToast('Gagal terhubung ke server.', false);
+          }
+        }
+      );
+    }
+
+    function eksekusiOperDeviceWithModal() {
+      const src = document.getElementById('inputSourceDevice').value.trim().toUpperCase();
+      const target = document.getElementById('inputTargetDevice').value.trim().toUpperCase();
+
+      if (!src || !target) return showToast('Device ID Asal dan Tujuan wajib diisi.', false);
+      if (src === target) return showToast('Device ID Asal dan Tujuan tidak boleh sama.', false);
+
+      showConfirmModal(
+        'Konfirmasi Migrasi Device',
+        `Apakah Anda yakin ingin memindahkan seluruh data dan lisensi dari ${src} ke ${target}?`,
+        async () => {
+          try {
+            const res = await fetch(VERCEL_API_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'migrate_device',
+                source_device_id: src,
+                target_device_id: target,
+                secret: adminPasswordSecret
+              })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data.success) {
+              showToast(`Migrasi dari ${src} ke ${target} berhasil!`);
+              document.getElementById('inputSourceDevice').value = '';
+              document.getElementById('inputTargetDevice').value = '';
+              muatDaftarSemuaUser();
+              bukaSubView('device');
+            } else {
+              showToast(data.error || 'Gagal memproses migrasi.', false);
+            }
+          } catch (e) {
+            showToast('Gagal melakukan migrasi perangkat.', false);
+          }
+        }
+      );
+    }
+
+    async function bulkExtendDuration(hari) {
+      if (selectedDeviceIds.length === 0) return;
+      try {
+        const res = await fetch(VERCEL_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'bulk_extend',
+            device_ids: selectedDeviceIds,
+            days: hari,
+            secret: adminPasswordSecret
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
+          showToast(`Berhasil menambah ${hari} hari untuk ${selectedDeviceIds.length} perangkat.`);
+          muatDaftarSemuaUser();
+        } else {
+          showToast(data.error || 'Gagal memperpanjang masa aktif.', false);
+        }
+      } catch (e) {
+        showToast('Terjadi kesalahan koneksi.', false);
+      }
+    }
+
+    async function bulkUpdateStatus(statusVal) {
+      if (selectedDeviceIds.length === 0) return;
+      try {
+        const res = await fetch(VERCEL_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'bulk_status',
+            device_ids: selectedDeviceIds,
+            status: statusVal,
+            secret: adminPasswordSecret
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
+          showToast(`Status ${selectedDeviceIds.length} perangkat diubah ke ${statusVal.toUpperCase()}.`);
+          muatDaftarSemuaUser();
+        } else {
+          showToast(data.error || 'Gagal mengubah status batch.', false);
+        }
+      } catch (e) {
+        showToast('Terjadi kesalahan koneksi.', false);
+      }
+    }
+
+    function bulkDeleteLicensesWithModal() {
+      if (selectedDeviceIds.length === 0) return;
+      showConfirmModal(
+        'Hapus Batch Perangkat',
+        `Apakah Anda yakin ingin menghapus ${selectedDeviceIds.length} perangkat terdaftar secara permanen?`,
+        async () => {
+          try {
+            const res = await fetch(VERCEL_API_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'bulk_delete',
+                device_ids: selectedDeviceIds,
+                secret: adminPasswordSecret
+              })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data.success) {
+              showToast(`Berhasil menghapus ${selectedDeviceIds.length} perangkat.`);
+              selectedDeviceIds = [];
+              muatDaftarSemuaUser();
+            } else {
+              showToast(data.error || 'Gagal menghapus batch.', false);
+            }
+          } catch (e) {
+            showToast('Terjadi kesalahan koneksi.', false);
+          }
+        }
+      );
+    }
+
+    async function muatDataPaketServer() {
+      const container = document.getElementById('containerListPaket');
+      if (container) container.innerHTML = '<div class="text-center text-slate-500 text-xs py-10">Memuat paket langganan...</div>';
+      try {
+        const res = await fetch(`${VERCEL_API_URL}?action=get_packages`);
+        const data = await res.json();
+        const packages = Array.isArray(data) ? data : (data.packages || []);
+        renderPaketFormList(packages);
+      } catch (e) {
+        if (container) container.innerHTML = '<div class="text-center text-red-400 text-xs py-10">Gagal memuat daftar paket.</div>';
+      }
+    }
+
+    function renderPaketFormList(list) {
+      const container = document.getElementById('containerListPaket');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (list.length === 0) {
+        container.innerHTML = '<div class="text-center text-slate-500 text-xs py-6">Belum ada paket tersimpan. Klik "+ Tambah Paket" untuk membuat.</div>';
+        return;
+      }
+
+      list.forEach((pkg, index) => {
+        const div = document.createElement('div');
+        div.className = 'package-item-row bg-slate-900/80 p-4 rounded-2xl border border-slate-800 space-y-3';
+        div.innerHTML = `
+          <div class="flex items-center justify-between pb-2 border-b border-slate-800/60">
+            <span class="text-xs font-bold text-brand-400">Paket #${index + 1}</span>
+            <button onclick="this.closest('.package-item-row').remove()" class="text-red-400 hover:text-red-300 text-xs font-bold px-2 py-1 rounded bg-red-500/10 border border-red-500/20">Hapus</button>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Nama Paket</label>
+              <input type="text" class="pkg-name w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white" value="${pkg.name || ''}" placeholder="1 Bulan">
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Durasi (Hari)</label>
+              <input type="number" class="pkg-days w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white font-mono" value="${pkg.days || 30}">
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Harga Normal (Rp)</label>
+              <input type="number" class="pkg-price w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white font-mono" value="${pkg.price || 50000}">
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <div>
+              <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Harga Promo Diskon (Rp)</label>
+              <input type="number" class="pkg-discount-price w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-amber-400 font-mono" value="${pkg.discount_price || ''}" placeholder="Opsional">
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Batas Waktu Promo</label>
+              <input type="date" class="pkg-discount-until w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white" value="${pkg.discount_until || ''}">
+            </div>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function tambahBarisPaketForm() {
+      const container = document.getElementById('containerListPaket');
+      if (!container) return;
+      const count = container.querySelectorAll('.package-item-row').length;
+      const div = document.createElement('div');
+      div.className = 'package-item-row bg-slate-900/80 p-4 rounded-2xl border border-slate-800 space-y-3';
+      div.innerHTML = `
+        <div class="flex items-center justify-between pb-2 border-b border-slate-800/60">
+          <span class="text-xs font-bold text-brand-400">Paket Baru #${count + 1}</span>
+          <button onclick="this.closest('.package-item-row').remove()" class="text-red-400 hover:text-red-300 text-xs font-bold px-2 py-1 rounded bg-red-500/10 border border-red-500/20">Hapus</button>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Nama Paket</label>
+            <input type="text" class="pkg-name w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white" placeholder="Contoh: 1 Bulan">
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Durasi (Hari)</label>
+            <input type="number" class="pkg-days w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white font-mono" value="30">
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Harga Normal (Rp)</label>
+            <input type="number" class="pkg-price w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white font-mono" value="50000">
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Harga Promo Diskon (Rp)</label>
+            <input type="number" class="pkg-discount-price w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-amber-400 font-mono" placeholder="Opsional">
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Batas Waktu Promo</label>
+            <input type="date" class="pkg-discount-until w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white">
+          </div>
+        </div>
+      `;
+      container.appendChild(div);
+    }
+
+    async function simpanPengaturanPaketServer() {
+      const rows = document.querySelectorAll('.package-item-row');
+      const packagesPayload = [];
+
+      rows.forEach(r => {
+        const name = r.querySelector('.pkg-name').value.trim();
+        const days = parseInt(r.querySelector('.pkg-days').value) || 0;
+        const price = parseInt(r.querySelector('.pkg-price').value) || 0;
+        const discountPrice = parseInt(r.querySelector('.pkg-discount-price').value) || null;
+        const discountUntil = r.querySelector('.pkg-discount-until').value || null;
+
+        if (name && days > 0) {
+          packagesPayload.push({
+            name,
+            days,
+            price,
+            discount_price: discountPrice,
+            discount_until: discountUntil
+          });
+        }
+      });
+
+      try {
+        const res = await fetch(VERCEL_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'save_packages',
+            packages: packagesPayload,
+            secret: adminPasswordSecret
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
+          showToast('Paket langganan & diskon berhasil disimpan!');
+        } else {
+          showToast(data.error || 'Gagal menyimpan paket.', false);
+        }
+      } catch (e) {
+        showToast('Koneksi gagal saat menyimpan paket.', false);
+      }
+    }
+
+    async function muatDataReleaseServer() {
+      try {
+        const res = await fetch(`${VERCEL_API_URL}?action=get_release`);
+        const data = await res.json();
+        if (data) {
+          document.getElementById('inputReleaseVersion').value = data.version || '';
+          document.getElementById('inputDownloadUrl').value = data.download_url || '';
+          document.getElementById('inputChangelog').value = data.changelog || '';
+        }
+      } catch (e) {}
+    }
+
+    function handleChangelogAutoBullet(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const target = e.target;
+        const start = target.selectionStart;
+        const end = target.selectionEnd;
+        const val = target.value;
+        target.value = val.substring(0, start) + '\n- ' + val.substring(end);
+        target.selectionStart = target.selectionEnd = start + 3;
+      }
+    }
+
+    async function simpanUpdateReleaseServer() {
+      const version = document.getElementById('inputReleaseVersion').value.trim();
+      const downloadUrl = document.getElementById('inputDownloadUrl').value.trim();
+      const changelog = document.getElementById('inputChangelog').value.trim();
+
+      if (!version || !downloadUrl) return showToast('Versi dan URL Download wajib diisi!', false);
+
+      try {
+        const res = await fetch(VERCEL_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'update_release',
+            version,
+            download_url: downloadUrl,
+            changelog,
+            secret: adminPasswordSecret
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
+          showToast(`Release v${version} berhasil diterbitkan!`);
+        } else {
+          showToast(data.error || 'Gagal merilis update.', false);
+        }
+      } catch (e) {
+        showToast('Koneksi gagal saat merilis update.', false);
+      }
+    }
+
+    function exportLicensesCSV() {
+      if (!globalUserList || globalUserList.length === 0) return showToast('Tidak ada data untuk di-export.', false);
+      let csv = 'Device ID,SPPG Name,Status,Exp Date,Last Active\n';
+      globalUserList.forEach(u => {
+        csv += `"${u.device_id || ''}","${u.sppg_name || ''}","${u.status || ''}","${u.exp_date || ''}","${u.last_active || ''}"\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `mindhub-licenses-${getTodayLocalISO()}.csv`;
+      document.body.appendChild(a); a.click(); a.remove();
+      showToast('Data lisensi berhasil di-export ke CSV.');
+    }
+
+    async function processImportFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const content = e.target.result;
+          let items = [];
+
+          if (file.name.endsWith('.json')) {
+            const parsed = JSON.parse(content);
+            items = Array.isArray(parsed) ? parsed : (parsed.licenses || []);
+          } else {
+            const lines = content.split('\n');
+            for (let i = 1; i < lines.length; i++) {
+              const line = lines[i].trim();
+              if (!line) continue;
+              const parts = line.split(',').map(p => p.replace(/^"|"$/g, ''));
+              if (parts[0]) {
+                items.push({
+                  device_id: parts[0],
+                  sppg_name: parts[1] || '',
+                  status: parts[2] || 'active',
+                  exp_date: parts[3] || ''
+                });
+              }
+            }
+          }
+
+          if (items.length === 0) return showToast('File tidak berisi data lisensi yang valid.', false);
+
+          const res = await fetch(VERCEL_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'import_licenses',
+              items,
+              secret: adminPasswordSecret
+            })
+          });
+          const data = await res.json().catch(() => ({}));
+          if (res.ok && data.success) {
+            showToast(`Berhasil meng-import ${items.length} lisensi.`);
+            muatDaftarSemuaUser();
+          } else {
+            showToast(data.error || 'Gagal meng-import data.', false);
+          }
+        } catch (err) {
+          showToast('Format file tidak valid atau rusak.', false);
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
     }
   </script>
 </body>

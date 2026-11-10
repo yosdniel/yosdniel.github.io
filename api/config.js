@@ -1,4 +1,3 @@
-
 /**
  * ============================================================
  * MINDHUB PORTAL - SUPABASE & SMTP API
@@ -63,10 +62,10 @@ function getSmtpConfig() {
 }
 
 // ============================================================
-// SEND VERIFICATION EMAIL
+// GENERIC SMTP MAIL TRANSMITTER
 // ============================================================
 
-async function sendVerificationEmail({ to, code, username }) {
+async function sendSmtpMail({ to, subject, text, html }) {
   const smtp = getSmtpConfig();
 
   const transporter = nodemailer.createTransport({
@@ -89,73 +88,16 @@ async function sendVerificationEmail({ to, code, username }) {
   });
 
   try {
-    // Memeriksa koneksi dan autentikasi SMTP.
     await transporter.verify();
 
-    // Mengirim email verifikasi.
     const result = await transporter.sendMail({
       from: `"MindHUB Portal" <${smtp.sender}>`,
       to: String(to).trim(),
-
-      subject: 'Kode Verifikasi Akun MindHUB Anda',
-
-      text: `
-Halo ${username || 'Pengguna'},
-
-Kode verifikasi akun MindHUB Anda adalah:
-
-${code}
-
-Masukkan kode tersebut untuk menyelesaikan pendaftaran akun.
-
-Jika Anda tidak meminta kode ini, abaikan email ini.
-
-Mindspace Studio © 2026
-      `.trim(),
-
-      html: `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-</head>
-<body style="margin:0;padding:30px;background:#020617;font-family:Arial,sans-serif;color:#f8fafc">
-
-  <div style="max-width:500px;margin:auto;background:#0f172a;border:1px solid #1e293b;padding:25px;border-radius:12px">
-
-    <h2 style="color:#818cf8;margin-top:0">
-      Verifikasi Akun MindHUB
-    </h2>
-
-    <p style="color:#cbd5e1">
-      Halo <b>${escapeHtml(username || 'Pengguna')}</b>,
-    </p>
-
-    <p style="color:#cbd5e1">
-      Gunakan kode 6 digit berikut untuk memverifikasi akun Anda:
-    </p>
-
-    <div style="background:#1e293b;color:#38bdf8;font-size:28px;font-weight:bold;text-align:center;padding:15px;border-radius:8px;letter-spacing:6px;margin:20px 0">
-      ${escapeHtml(code)}
-    </div>
-
-    <p style="color:#94a3b8;font-size:12px;text-align:center">
-      Jika Anda tidak meminta kode ini, abaikan email ini.
-    </p>
-
-    <p style="color:#64748b;font-size:12px;text-align:center">
-      Mindspace Studio &copy; 2026
-    </p>
-
-  </div>
-
-</body>
-</html>
-      `
+      subject,
+      text: text.trim(),
+      html
     });
 
-    // Log lengkap hasil pengiriman SMTP.
     console.log('SMTP SEND RESULT:', {
       messageId: result.messageId,
       accepted: result.accepted,
@@ -165,10 +107,295 @@ Mindspace Studio © 2026
     });
 
     return result;
-
   } finally {
     transporter.close();
   }
+}
+
+// ============================================================
+// EMAIL TEMPLATES (VERIFICATION & RESET PASSWORD)
+// ============================================================
+
+async function sendVerificationEmail({ to, code, username }) {
+  const safeName = escapeHtml(username || 'Pengguna');
+  const safeCode = escapeHtml(code);
+  const logoUrl = 'https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon512.png';
+
+  const subject = 'Kode Verifikasi Akun MindHUB Anda';
+  const text = `
+Halo ${username || 'Pengguna'},
+
+Kode verifikasi akun MindHUB Anda adalah: ${code}
+
+Masukkan kode ini untuk menyelesaikan pendaftaran akun Anda.
+
+Jika Anda tidak mendaftar di MindHUB, abaikan email ini.
+
+Mindspace Studio © 2026
+  `;
+
+  const html = `
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verifikasi Akun MindHUB</title>
+</head>
+<body style="margin:0;padding:0;background-color:#020617;font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+  <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#020617;padding:40px 10px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width:540px;background-color:#0f172a;border:1px solid #1e293b;border-radius:20px;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,0.5);">
+          
+          <!-- Top Accent Bar (Brand Gradient) -->
+          <tr>
+            <td style="background:linear-gradient(90deg, #6366f1 0%, #a855f7 100%);height:4px;width:100%;"></td>
+          </tr>
+
+          <!-- Header Section with Mindspace Logo -->
+          <tr>
+            <td style="padding:32px 32px 20px 32px;text-align:center;">
+              <table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin:0 auto;">
+                <tr>
+                  <td style="padding-right:12px;vertical-align:middle;">
+                    <img src="${logoUrl}" alt="Mindspace Logo" width="44" height="44" style="display:block;border-radius:12px;border:1px solid rgba(99,102,241,0.3);box-shadow:0 4px 12px rgba(99,102,241,0.25);">
+                  </td>
+                  <td style="vertical-align:middle;text-align:left;">
+                    <span style="font-size:20px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;display:block;line-height:1.2;">MindHUB</span>
+                    <span style="font-size:11px;font-weight:700;color:#818cf8;letter-spacing:1px;text-transform:uppercase;display:block;">Mindspace Studio</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Content Section -->
+          <tr>
+            <td style="padding:0 32px 32px 32px;">
+              <div style="background-color:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:12px;padding:6px 14px;display:inline-block;margin-bottom:20px;">
+                <span style="color:#818cf8;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;">📩 Verifikasi Akun Baru</span>
+              </div>
+
+              <h1 style="color:#ffffff;font-size:22px;font-weight:800;margin:0 0 12px 0;letter-spacing:-0.3px;line-height:1.3;">
+                Selamat datang, ${safeName}! 👋
+              </h1>
+
+              <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0 0 24px 0;">
+                Terima kasih telah bergabung di portal <strong style="color:#f8fafc;">MindHUB</strong>. Gunakan 6-digit kode keamanan berikut untuk menyelesaikan verifikasi alamat email Anda:
+              </p>
+
+              <!-- OTP Code Display Box -->
+              <div style="background:#020617;border:1px solid #334155;border-radius:16px;padding:22px 16px;text-align:center;margin-bottom:24px;">
+                <span style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;display:block;margin-bottom:8px;">Kode OTP Verifikasi</span>
+                <span style="font-family:'Courier New',Courier,monospace;font-size:36px;font-weight:800;color:#38bdf8;letter-spacing:10px;display:inline-block;padding-left:10px;">${safeCode}</span>
+                <span style="font-size:11px;color:#94a3b8;display:block;margin-top:10px;">⏱️ Berkas verifikasi aman • Jangan bagikan kode ini kepada siapa pun.</span>
+              </div>
+
+              <p style="color:#64748b;font-size:12px;line-height:1.5;margin:0;">
+                Jika Anda tidak melakukan pendaftaran akun ini, silakan abaikan email ini secara aman.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Divider -->
+          <tr>
+            <td style="padding:0 32px;">
+              <div style="border-top:1px solid #1e293b;"></div>
+            </td>
+          </tr>
+
+          <!-- Footer Section -->
+          <tr>
+            <td style="padding:24px 32px 32px 32px;text-align:center;">
+              <p style="color:#64748b;font-size:11px;line-height:1.6;margin:0 0 6px 0;">
+                Email ini dikirim secara otomatis oleh <strong style="color:#94a3b8;">Mindspace Studio SMTP Gateway</strong>.
+              </p>
+              <p style="color:#475569;font-size:11px;margin:0;">
+                © 2026 <strong style="color:#64748b;">Mindspace Studio</strong>. All rights reserved.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+
+  return await sendSmtpMail({ to, subject, text, html });
+}
+
+async function sendResetPasswordEmail({ to, code, username }) {
+  const safeName = escapeHtml(username || 'Pengguna');
+  const safeCode = escapeHtml(code);
+  const logoUrl = 'https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon512.png';
+
+  const subject = 'Kode Reset Password Akun MindHUB Anda';
+  const text = `
+Halo ${username || 'Pengguna'},
+
+Permintaan reset password akun MindHUB Anda telah diterima.
+
+Kode OTP reset password Anda adalah: ${code}
+
+Masukkan kode tersebut pada portal untuk membuat password baru.
+
+Jika Anda tidak meminta reset password ini, abaikan email ini.
+
+Mindspace Studio © 2026
+  `;
+
+  const html = `
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reset Password Akun MindHUB</title>
+</head>
+<body style="margin:0;padding:0;background-color:#020617;font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+  <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#020617;padding:40px 10px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width:540px;background-color:#0f172a;border:1px solid #1e293b;border-radius:20px;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,0.5);">
+          
+          <!-- Top Accent Bar (Amber Warning Gradient) -->
+          <tr>
+            <td style="background:linear-gradient(90deg, #f59e0b 0%, #ea580c 100%);height:4px;width:100%;"></td>
+          </tr>
+
+          <!-- Header Section with Mindspace Logo -->
+          <tr>
+            <td style="padding:32px 32px 20px 32px;text-align:center;">
+              <table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin:0 auto;">
+                <tr>
+                  <td style="padding-right:12px;vertical-align:middle;">
+                    <img src="${logoUrl}" alt="Mindspace Logo" width="44" height="44" style="display:block;border-radius:12px;border:1px solid rgba(245,158,11,0.3);box-shadow:0 4px 12px rgba(245,158,11,0.25);">
+                  </td>
+                  <td style="vertical-align:middle;text-align:left;">
+                    <span style="font-size:20px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;display:block;line-height:1.2;">MindHUB</span>
+                    <span style="font-size:11px;font-weight:700;color:#f59e0b;letter-spacing:1px;text-transform:uppercase;display:block;">Mindspace Studio</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Content Section -->
+          <tr>
+            <td style="padding:0 32px 32px 32px;">
+              <div style="background-color:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:12px;padding:6px 14px;display:inline-block;margin-bottom:20px;">
+                <span style="color:#fbbf24;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;">🔑 Permintaan Reset Password</span>
+              </div>
+
+              <h1 style="color:#ffffff;font-size:22px;font-weight:800;margin:0 0 12px 0;letter-spacing:-0.3px;line-height:1.3;">
+                Halo, ${safeName}! 🛡️
+              </h1>
+
+              <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0 0 24px 0;">
+                Kami menerima permintaan untuk melakukan pemulihan kata sandi akun <strong style="color:#f8fafc;">MindHUB</strong> Anda. Gunakan kode 6-digit OTP berikut untuk membuat password baru:
+              </p>
+
+              <!-- OTP Code Display Box -->
+              <div style="background:#020617;border:1px solid #334155;border-radius:16px;padding:22px 16px;text-align:center;margin-bottom:24px;">
+                <span style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;display:block;margin-bottom:8px;">Kode OTP Reset Password</span>
+                <span style="font-family:'Courier New',Courier,monospace;font-size:36px;font-weight:800;color:#f59e0b;letter-spacing:10px;display:inline-block;padding-left:10px;">${safeCode}</span>
+                <span style="font-size:11px;color:#94a3b8;display:block;margin-top:10px;">⏱️ Berlaku terbatas • Jangan berikan kode ini kepada siapapun.</span>
+              </div>
+
+              <p style="color:#64748b;font-size:12px;line-height:1.5;margin:0;">
+                Jika Anda tidak merasa meminta reset password ini, tidak perlu khawatir. Abaikan saja email ini dan kata sandi Anda akan tetap aman.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Divider -->
+          <tr>
+            <td style="padding:0 32px;">
+              <div style="border-top:1px solid #1e293b;"></div>
+            </td>
+          </tr>
+
+          <!-- Footer Section -->
+          <tr>
+            <td style="padding:24px 32px 32px 32px;text-align:center;">
+              <p style="color:#64748b;font-size:11px;line-height:1.6;margin:0 0 6px 0;">
+                Email ini dikirim secara otomatis oleh <strong style="color:#94a3b8;">Mindspace Studio Security Gateway</strong>.
+              </p>
+              <p style="color:#475569;font-size:11px;margin:0;">
+                © 2026 <strong style="color:#64748b;">Mindspace Studio</strong>. All rights reserved.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+
+  return await sendSmtpMail({ to, subject, text, html });
+}
+
+async function sendResetPasswordEmail({ to, code, username }) {
+  const safeName = escapeHtml(username || 'Pengguna');
+  const safeCode = escapeHtml(code);
+
+  const subject = 'Kode Reset Password Akun MindHUB Anda';
+  const text = `
+Halo ${username || 'Pengguna'},
+
+Permintaan reset password akun MindHUB Anda telah diterima.
+
+Kode OTP reset password Anda adalah:
+
+${code}
+
+Masukkan kode tersebut pada portal untuk membuat password baru.
+
+Jika Anda tidak meminta reset password ini, abaikan email ini atau amankan kata sandi Anda.
+
+Mindspace Studio © 2026
+  `;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body style="margin:0;padding:30px;background:#020617;font-family:Arial,sans-serif;color:#f8fafc">
+  <div style="max-width:500px;margin:auto;background:#0f172a;border:1px solid #1e293b;padding:25px;border-radius:12px">
+    <h2 style="color:#f59e0b;margin-top:0">
+      Reset Password Akun MindHUB
+    </h2>
+    <p style="color:#cbd5e1">
+      Halo <b>${safeName}</b>,
+    </p>
+    <p style="color:#cbd5e1">
+      Gunakan kode 6 digit OTP berikut untuk melanjutkan proses reset password akun Anda:
+    </p>
+    <div style="background:#1e293b;color:#f59e0b;font-size:28px;font-weight:bold;text-align:center;padding:15px;border-radius:8px;letter-spacing:6px;margin:20px 0">
+      ${safeCode}
+    </div>
+    <p style="color:#94a3b8;font-size:12px;text-align:center">
+      Jika Anda tidak meminta reset password ini, abaikan email ini.
+    </p>
+    <p style="color:#64748b;font-size:12px;text-align:center">
+      Mindspace Studio &copy; 2026
+    </p>
+  </div>
+</body>
+</html>
+  `;
+
+  return await sendSmtpMail({ to, subject, text, html });
 }
 
 // ============================================================
@@ -176,38 +403,20 @@ Mindspace Studio © 2026
 // ============================================================
 
 export default async function handler(req, res) {
-
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader(
-    'Access-Control-Allow-Methods',
-    'GET, POST, OPTIONS'
-  );
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'Content-Type, Accept'
-  );
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
   res.setHeader('Cache-Control', 'no-store');
 
-  // Preflight request
   if (req.method === 'OPTIONS') {
     return res.status(204).end();
   }
 
-  // ==========================================================
   // GET: SUPABASE CONFIGURATION
-  // ==========================================================
-
   if (req.method === 'GET') {
-    const supabaseUrl =
-      process.env.SUPABASE_URL ||
-      process.env.NEXT_PUBLIC_SUPABASE_URL ||
-      '';
-
-    const supabaseAnonKey =
-      process.env.SUPABASE_ANON_KEY ||
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-      '';
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
     if (!supabaseUrl || !supabaseAnonKey) {
       return json(res, 500, {
@@ -220,7 +429,6 @@ export default async function handler(req, res) {
       success: true,
       supabaseUrl,
       supabaseAnonKey,
-
       smtp: {
         host: process.env.SMTP_HOST || 'login.masuk.email',
         port: Number(process.env.SMTP_PORT || 465),
@@ -229,44 +437,29 @@ export default async function handler(req, res) {
     });
   }
 
-  // ==========================================================
-  // METHOD VALIDATION
-  // ==========================================================
-
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'GET, POST, OPTIONS');
-
     return json(res, 405, {
       success: false,
       error: 'Method not allowed.'
     });
   }
 
-  // ==========================================================
-  // POST: SEND VERIFICATION EMAIL
-  // ==========================================================
-
+  // POST HANDLER (SEND EMAILS)
   try {
     const body = req.body || {};
+    const { action, to, code, username } = body;
 
-    const {
-      action,
-      to,
-      code,
-      username
-    } = body;
+    const validActions = ['send_verification_email', 'send_reset_password_email'];
 
-    if (action !== 'send_verification_email') {
+    if (!validActions.includes(action)) {
       return json(res, 400, {
         success: false,
-        error: 'Action API tidak dikenal.'
+        error: 'Action API tidak dikenal. Gunakan "send_verification_email" atau "send_reset_password_email".'
       });
     }
 
-    if (
-      !to ||
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(to).trim())
-    ) {
+    if (!to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(to).trim())) {
       return json(res, 400, {
         success: false,
         error: 'Alamat email tidak valid.'
@@ -280,12 +473,12 @@ export default async function handler(req, res) {
       });
     }
 
-    // Kirim email melalui SMTP Zimbra.
-    const result = await sendVerificationEmail({
-      to,
-      code,
-      username
-    });
+    let result;
+    if (action === 'send_reset_password_email') {
+      result = await sendResetPasswordEmail({ to, code, username });
+    } else {
+      result = await sendVerificationEmail({ to, code, username });
+    }
 
     return json(res, 200, {
       success: true,
@@ -298,7 +491,6 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-
     console.error('SMTP ERROR:', {
       message: error.message,
       code: error.code,
@@ -309,7 +501,7 @@ export default async function handler(req, res) {
 
     return json(res, 500, {
       success: false,
-      error: error.message || 'Gagal mengirim email verifikasi.',
+      error: error.message || 'Gagal mengirim email.',
       smtpCode: error.code || null,
       smtpResponse: error.response || null,
       smtpResponseCode: error.responseCode || null

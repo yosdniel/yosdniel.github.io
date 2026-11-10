@@ -165,6 +165,9 @@
 
       <!-- FORM LOGIN -->
       <div id="formTabLogin" class="auth-tab-content active space-y-4 text-left">
+        <!-- INLINE ERROR MESSAGE CONTAINER -->
+        <div id="loginErrorMsg" class="hidden p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold leading-relaxed"></div>
+        
         <div>
           <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Username / Email</label>
           <input type="text" id="loginUserIdentifier" placeholder="akun@minduniverse.id" oninput="this.value = this.value.toLowerCase()" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition font-mono lowercase">
@@ -176,6 +179,13 @@
           </div>
           <input type="password" id="loginPassword" placeholder="••••••••••••" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition" onkeyup="if(event.key==='Enter') verifikasiUserLogin()">
         </div>
+
+        <!-- INGAT SAYA CHECKBOX -->
+        <div class="flex items-center gap-2 pt-1">
+          <input type="checkbox" id="rememberMeCheckbox" class="w-4 h-4 rounded border-slate-800 bg-slate-900 text-brand-500 focus:ring-0 cursor-pointer">
+          <label for="rememberMeCheckbox" class="text-xs text-slate-400 font-semibold cursor-pointer select-none">Ingat saya</label>
+        </div>
+
         <button id="btnLogin" onclick="verifikasiUserLogin()" class="w-full bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 active:scale-[0.99] text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-xl shadow-brand-500/30 transition duration-200 mt-2">
           Masuk Portal
         </button>
@@ -183,9 +193,10 @@
 
       <!-- FORM REGISTER -->
       <div id="formTabRegister" class="auth-tab-content space-y-3.5 text-left">
+        <div id="registerErrorMsg" class="hidden p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold leading-relaxed"></div>
         <div>
-          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1 tracking-wider">Username (8-16 Karakter)</label>
-          <input type="text" id="regUsername" minlength="8" maxlength="16" placeholder="mindspace" oninput="this.value = this.value.toLowerCase()" class="w-full px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition font-mono lowercase">
+          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1 tracking-wider">Username (6-16 Karakter)</label>
+          <input type="text" id="regUsername" minlength="6" maxlength="16" placeholder="mindspace" oninput="this.value = this.value.toLowerCase()" class="w-full px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition font-mono lowercase">
         </div>
         <div>
           <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1 tracking-wider">Email Address</label>
@@ -193,7 +204,7 @@
         </div>
         <div>
           <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1 tracking-wider">Password</label>
-          <input type="password" id="regPassword" minlength="8" maxlength="16" placeholder="••••••••••••" oninput="validatePasswordStrength(this.value, 'regPasswordStrength')" class="w-full px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
+          <input type="password" id="regPassword" minlength="6" maxlength="16" placeholder="••••••••••••" oninput="validatePasswordStrength(this.value, 'regPasswordStrength')" class="w-full px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
           
           <!-- LIVE PASSWORD STRENGTH INDICATOR -->
           <div id="regPasswordStrength" class="mt-2.5 space-y-1.5 p-3 rounded-2xl bg-slate-900/90 border border-slate-800 text-[11px]">
@@ -227,6 +238,7 @@
           <h3 class="font-extrabold text-white text-sm">Pemulihan Password</h3>
           <p class="text-xs text-slate-400">Masukkan email terdaftar untuk menerima 6-digit kode OTP reset password.</p>
         </div>
+        <div id="forgotErrorMsg" class="hidden p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold leading-relaxed"></div>
         <div>
           <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Email Terdaftar</label>
           <input type="email" id="forgotInputEmail" placeholder="user@domain.com" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
@@ -246,13 +258,14 @@
           <h3 class="font-extrabold text-white text-sm">Buat Password Baru</h3>
           <p class="text-xs text-slate-400">Masukkan kode OTP 6-angka (berlaku 5 menit) dari email <span id="resetTargetEmail" class="text-amber-400 font-mono">user@domain.com</span></p>
         </div>
+        <div id="resetNewErrorMsg" class="hidden p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold leading-relaxed"></div>
         <div>
           <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Kode OTP 6-Digit</label>
           <input type="text" id="resetInputCode" maxlength="6" placeholder="123456" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-center text-xl tracking-[0.4em] font-mono outline-none focus:border-brand-500 transition">
         </div>
         <div>
           <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Password Baru</label>
-          <input type="password" id="resetNewPassword" minlength="8" maxlength="16" placeholder="••••••••••••" oninput="validatePasswordStrength(this.value, 'resetPasswordStrength')" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
+          <input type="password" id="resetNewPassword" minlength="6" maxlength="16" placeholder="••••••••••••" oninput="validatePasswordStrength(this.value, 'resetPasswordStrength')" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
           
           <!-- LIVE PASSWORD STRENGTH INDICATOR -->
           <div id="resetPasswordStrength" class="mt-2.5 space-y-1.5 p-3 rounded-2xl bg-slate-900/90 border border-slate-800 text-[11px]">
@@ -293,6 +306,7 @@
           <h3 class="font-extrabold text-white text-sm">Verifikasi Email Anda</h3>
           <p class="text-xs text-slate-400">Masukkan 6-angka kode verifikasi (berlaku 5 menit) yang dikirimkan via email ke <span id="verifyTargetEmail" class="text-brand-400 font-mono">user@domain.com</span></p>
         </div>
+        <div id="verifyErrorMsg" class="hidden p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold leading-relaxed text-left"></div>
         <div>
           <input type="text" id="verifyInputCode" maxlength="6" placeholder="123456" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-center text-xl sm:text-2xl tracking-[0.5em] font-mono outline-none focus:border-brand-500 transition">
         </div>
@@ -333,9 +347,6 @@
           </button>
           <button onclick="bukaSubView('voucher')" id="navVoucher" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
             <span class="text-base">🎫</span> Klaim Voucher
-          </button>
-          <button onclick="bukaSubView('smtp')" id="navSmtp" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
-            <span class="text-base">📧</span> Config SMTP
           </button>
         </div>
 
@@ -429,55 +440,6 @@
               <button id="btnRedeemVoucher" onclick="prosesKlaimVoucher()" class="w-full bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 active:scale-[0.99] text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-xl shadow-brand-500/30 transition duration-200 mt-2">
                 ⚡ Redeem Voucher Sekarang
               </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- SUBVIEW: CONFIG SMTP (USER) -->
-        <div id="subViewSmtp" class="subview-section space-y-4 max-w-2xl mx-auto">
-          <div class="glass-card p-6 sm:p-8 rounded-3xl space-y-4 border border-slate-800">
-            <div class="flex items-center gap-3 pb-3 border-b border-slate-800">
-              <span class="text-2xl">📧</span>
-              <div>
-                <h3 class="font-extrabold text-sm text-white">Mindspace System SMTP</h3>
-                <p class="text-xs text-slate-400">Konfigurasi Pengiriman Email Otomatis</p>
-              </div>
-            </div>
-
-            <div class="space-y-3 text-xs">
-              <div class="bg-slate-900/80 p-4 rounded-2xl border border-slate-800 space-y-2">
-                <div class="flex justify-between">
-                  <span class="text-slate-400">Sender Address:</span>
-                  <span class="text-emerald-400 font-mono font-bold">EMAIL_ID (Vercel)</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-slate-400">SMTP Host:</span>
-                  <span class="text-white font-mono">login.masuk.email</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-slate-400">SMTP Port (SSL):</span>
-                  <span class="text-white font-mono">465</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-slate-400">IMAP Port:</span>
-                  <span class="text-white font-mono">993</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-slate-400">POP3 Port:</span>
-                  <span class="text-white font-mono">995</span>
-                </div>
-              </div>
-
-              <div class="bg-brand-500/10 p-4 rounded-2xl border border-brand-500/20 space-y-2">
-                <div class="flex justify-between items-center">
-                  <span class="text-slate-300">Username Env:</span>
-                  <code class="bg-slate-900 px-2 py-1 rounded text-brand-400 font-mono">process.env.EMAIL_ID</code>
-                </div>
-                <div class="flex justify-between items-center">
-                  <span class="text-slate-300">Password Env:</span>
-                  <code class="bg-slate-900 px-2 py-1 rounded text-brand-400 font-mono">process.env.EMAIL_PASS</code>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -794,7 +756,9 @@
               <button onclick="tambahBarisPaketForm()" class="bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-bold px-4 py-3.5 rounded-2xl text-xs sm:text-sm transition shadow-lg shadow-brand-500/20 flex items-center justify-center gap-1.5">+ Tambah Paket</button>
             </div>
             
-            <div id="containerListPaket" class="space-y-4 max-h-[550px] overflow-y-auto pr-1"></div>
+            <div id="containerListPaket" class="space-y-4 max-h-[550px] overflow-y-auto pr-1">
+              <div class="text-center text-slate-500 text-xs py-10">Memuat paket dari database API...</div>
+            </div>
             
             <div class="flex gap-3 pt-4 border-t border-slate-800">
               <button onclick="simpanPengaturanPaketServer()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white py-3.5 px-6 rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2">💾 Simpan Paket & Diskon</button>
@@ -859,7 +823,7 @@
     let heartbeatInterval = null;
 
     // COOKIE HELPERS
-    function setCookie(name, value, days = 7) {
+    function setCookie(name, value, days = 1) {
       const d = new Date();
       d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
       const expires = "expires=" + d.toUTCString();
@@ -1011,6 +975,25 @@
       return formatTanggalIndo(dateStr);
     }
 
+    function toggleSidebarMobile(show) {
+      const sidebar = document.getElementById('sidebar');
+      const backdrop = document.getElementById('sidebarBackdrop');
+      if (!sidebar) return;
+      if (show) {
+        sidebar.classList.remove('-translate-x-full');
+        if (backdrop) {
+          backdrop.classList.remove('hidden');
+          setTimeout(() => backdrop.classList.remove('opacity-0'), 10);
+        }
+      } else {
+        sidebar.classList.add('-translate-x-full');
+        if (backdrop) {
+          backdrop.classList.add('opacity-0');
+          setTimeout(() => backdrop.classList.add('hidden'), 300);
+        }
+      }
+    }
+
     function showToast(msg, isSuccess = true) {
       const t = document.getElementById('toast');
       t.textContent = msg;
@@ -1076,149 +1059,93 @@
       const formForgot = document.getElementById('formTabForgot');
       const formResetNew = document.getElementById('formTabResetNew');
 
+      // Clear all inline error boxes on tab switch
+      ['loginErrorMsg', 'registerErrorMsg', 'forgotErrorMsg', 'resetNewErrorMsg', 'verifyErrorMsg'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.textContent = ''; el.classList.add('hidden'); }
+      });
+
       document.querySelectorAll('.auth-tab-content').forEach(el => el.classList.remove('active'));
 
       if (tab === 'login') {
-        tabsContainer.style.display = 'flex';
-        btnLogin.className = 'flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 bg-brand-500 text-white shadow-md shadow-brand-500/20';
-        btnRegister.className = 'flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 text-slate-400 hover:text-white';
-        formLogin.classList.add('active');
+        if (btnLogin) {
+          btnLogin.className = 'flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 bg-brand-500 text-white shadow-md shadow-brand-500/20';
+        }
+        if (btnRegister) {
+          btnRegister.className = 'flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 text-slate-400 hover:text-white';
+        }
+        if (formLogin) formLogin.classList.add('active');
       } else if (tab === 'register') {
-        tabsContainer.style.display = 'flex';
-        btnRegister.className = 'flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 bg-emerald-600 text-white shadow-md shadow-emerald-500/20';
-        btnLogin.className = 'flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 text-slate-400 hover:text-white';
-        formRegister.classList.add('active');
-      } else if (tab === 'verify') {
-        tabsContainer.style.display = 'none';
-        formVerify.classList.add('active');
+        if (btnRegister) {
+          btnRegister.className = 'flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 bg-emerald-600 text-white shadow-md shadow-emerald-500/20';
+        }
+        if (btnLogin) {
+          btnLogin.className = 'flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 text-slate-400 hover:text-white';
+        }
+        if (formRegister) formRegister.classList.add('active');
       } else if (tab === 'forgot') {
-        tabsContainer.style.display = 'none';
-        formForgot.classList.add('active');
+        if (formForgot) formForgot.classList.add('active');
       } else if (tab === 'resetNew') {
-        tabsContainer.style.display = 'none';
-        formResetNew.classList.add('active');
+        if (formResetNew) formResetNew.classList.add('active');
+      } else if (tab === 'verify') {
+        if (formVerify) formVerify.classList.add('active');
       }
     }
 
-    function gantiView(viewId) {
-      document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-      document.getElementById(viewId).classList.add('active');
-    }
-
-    function toggleSidebarMobile(show) {
-      const sidebar = document.getElementById('sidebar');
-      const backdrop = document.getElementById('sidebarBackdrop');
-      if (show) {
-        sidebar.classList.remove('-translate-x-full');
-        backdrop.classList.remove('hidden');
-        setTimeout(() => backdrop.classList.remove('opacity-0'), 10);
-      } else {
-        sidebar.classList.add('-translate-x-full');
-        backdrop.classList.add('opacity-0');
-        setTimeout(() => backdrop.classList.add('hidden'), 300);
-      }
-    }
-
-    function validatePasswordStrength(password, containerId) {
-      const container = document.getElementById(containerId);
+    function validatePasswordStrength(password, elementId) {
+      const container = document.getElementById(elementId);
       if (!container) return;
 
       const rules = {
         length: password.length >= 8,
         uppercase: /[A-Z]/.test(password),
         number: /[0-9]/.test(password),
-        special: /[@$!%*?&]/.test(password)
+        special: /[^A-Za-z0-9]/.test(password)
       };
 
-      Object.keys(rules).forEach(ruleKey => {
-        const row = container.querySelector(`[data-rule="${ruleKey}"]`);
-        if (!row) return;
-        const iconSpan = row.querySelector('.indicator-icon');
-        const isValid = rules[ruleKey];
-
-        if (isValid) {
-          row.className = 'flex items-center gap-2 text-emerald-400 transition-colors font-medium';
-          if (iconSpan) iconSpan.textContent = '✔️';
-        } else {
-          row.className = 'flex items-center gap-2 text-red-400 transition-colors';
-          if (iconSpan) iconSpan.textContent = '❌';
+      for (const [key, isValid] of Object.entries(rules)) {
+        const ruleEl = container.querySelector(`[data-rule="${key}"]`);
+        if (ruleEl) {
+          const icon = ruleEl.querySelector('.indicator-icon');
+          if (isValid) {
+            ruleEl.className = 'flex items-center gap-2 text-emerald-400 transition-colors';
+            if (icon) icon.textContent = '✓';
+          } else {
+            ruleEl.className = 'flex items-center gap-2 text-red-400 transition-colors';
+            if (icon) icon.textContent = '❌';
+          }
         }
-      });
+      }
     }
 
-    function bukaSubView(subId) {
-      document.querySelectorAll('.subview-section').forEach(el => el.classList.remove('active'));
-
-      if (subId !== 'overview' && heartbeatInterval) {
-        clearInterval(heartbeatInterval);
-        heartbeatInterval = null;
-      }
-
-      document.querySelectorAll('.nav-item').forEach(el => {
-        el.className = 'nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent';
-      });
-
-      let activeNavId = 'nav' + subId.charAt(0).toUpperCase() + subId.slice(1);
-      if (subId === 'detail' || subId === 'subViewDeviceDetail') activeNavId = 'navDevice';
-
-      const activeNav = document.getElementById(activeNavId);
-      if (activeNav) {
-        activeNav.className = 'nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-brand-500/15 text-brand-400 text-xs font-bold transition border border-brand-500/30 shadow-sm';
-      }
-
-      if (subId === 'services') {
-        document.getElementById('subViewServices').classList.add('active');
-        document.getElementById('appTitle').textContent = 'Layanan Aktif Saya';
-        if (!globalUserList || globalUserList.length === 0) {
-          muatDaftarSemuaUser();
-        } else {
-          renderUserServicesList();
+    async function sendVerificationEmail(to, code, username, action) {
+      try {
+        const res = await fetch(VERCEL_API_URL.replace('/tokopay', '/config'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action, to, code, username })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.error || 'Gagal mengirim email verifikasi via SMTP.');
         }
-      } else if (subId === 'voucher') {
-        document.getElementById('subViewVoucher').classList.add('active');
-        document.getElementById('appTitle').textContent = 'Klaim Voucher Lisensi';
-      } else if (subId === 'smtp') {
-        document.getElementById('subViewSmtp').classList.add('active');
-        document.getElementById('appTitle').textContent = 'Config SMTP System';
-      } else if (subId === 'overview') {
-        document.getElementById('subViewMainMenu').classList.add('active');
-        document.getElementById('appTitle').textContent = 'Hub Overview';
-        muatStatistikDashboard();
-        checkSystemHealth();
-        muatDaftarSemuaUser();
-      } else if (subId === 'device') {
-        document.getElementById('subViewDeviceCheck').classList.add('active');
-        document.getElementById('appTitle').textContent = 'Client Devices';
-        muatDaftarSemuaUser();
-      } else if (subId === 'transfer') {
-        document.getElementById('subViewTransferDevice').classList.add('active');
-        document.getElementById('appTitle').textContent = 'Migrate Device';
-      } else if (subId === 'packages') {
-        document.getElementById('subViewPackages').classList.add('active');
-        document.getElementById('appTitle').textContent = 'Pricing Plans & Discounts';
-        muatDataPaketServer();
-      } else if (subId === 'release') {
-        document.getElementById('subViewRelease').classList.add('active');
-        document.getElementById('appTitle').textContent = 'Cloud Updater';
-        muatDataReleaseServer();
-      } else if (subId === 'detail' || subId === 'subViewDeviceDetail') {
-        document.getElementById('subViewDeviceDetail').classList.add('active');
-        document.getElementById('appTitle').textContent = 'License Detail';
+        return data;
+      } catch (err) {
+        console.warn('SMTP Direct Notice:', err.message);
+        throw err;
       }
-      toggleSidebarMobile(false);
     }
 
-    async function sendVerificationEmail(email, code, username, action = 'send_verification_email') {
-      const response = await fetch(CONFIG_API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ action, to: email, code, username })
-      });
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || `Pengiriman email gagal (${response.status}).`);
+    function showAuthError(containerId, msg) {
+      const el = document.getElementById(containerId);
+      if (!el) return;
+      if (!msg) {
+        el.textContent = '';
+        el.classList.add('hidden');
+      } else {
+        el.textContent = msg;
+        el.classList.remove('hidden');
       }
-      return result;
     }
 
     async function prosesUserRegister() {
@@ -1227,10 +1154,12 @@
       const pass = document.getElementById('regPassword').value;
       const btn = document.getElementById('btnRegister');
 
-      if (!username || !email || !pass) return showToast('Seluruh kolom registrasi wajib diisi!', false);
-      if (!/^[a-z0-9_]{3,24}$/.test(username)) return showToast('Username 3–24 karakter. Gunakan huruf, angka, atau underscore.', false);
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showToast('Format email tidak valid.', false);
-      if (pass.length < 8) return showToast('Password minimal 8 karakter.', false);
+      showAuthError('registerErrorMsg', '');
+
+      if (!username || !email || !pass) return showAuthError('registerErrorMsg', 'Seluruh kolom registrasi wajib diisi!');
+      if (!/^[a-z0-9_]{3,24}$/.test(username)) return showAuthError('registerErrorMsg', 'Username 3–24 karakter. Gunakan huruf, angka, atau underscore.');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showAuthError('registerErrorMsg', 'Format email tidak valid.');
+      if (pass.length < 8) return showAuthError('registerErrorMsg', 'Password minimal 8 karakter.');
 
       btn.disabled = true;
       btn.textContent = 'Memeriksa ketersediaan akun...';
@@ -1245,7 +1174,7 @@
           .limit(1);
 
         if (existingUsernames && existingUsernames.length > 0) {
-          showToast('Username telah terpakai. Gunakan username lain.', false);
+          showAuthError('registerErrorMsg', 'Username telah terpakai. Gunakan username lain.');
           document.getElementById('regUsername').focus();
           return;
         }
@@ -1257,7 +1186,7 @@
           .limit(1);
 
         if (existingEmails && existingEmails.length > 0) {
-          showToast('Email telah terdaftar. Silakan login atau gunakan fitur Lupa Password.', false);
+          showAuthError('registerErrorMsg', 'Email telah terdaftar. Silakan login atau gunakan fitur Lupa Password.');
           document.getElementById('regEmail').focus();
           return;
         }
@@ -1266,7 +1195,6 @@
         const uuid = randomSixDigitCode();
         const verificationCode = randomSixDigitCode();
         
-        // 5 Minutes Expiry Timestamp
         const expiryDate = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
         btn.textContent = 'Mengirim kode verifikasi (berlaku 5 menit)...';
@@ -1297,7 +1225,7 @@
         showToast('Kode verifikasi (berlaku 5 menit) telah dikirim ke email Anda.');
       } catch (error) {
         console.error('Register error:', error);
-        showToast(error.message || 'Registrasi gagal.', false);
+        showAuthError('registerErrorMsg', error.message || 'Registrasi gagal.');
       } finally {
         btn.disabled = false;
         btn.textContent = 'Kirim Kode Verifikasi SMTP';
@@ -1308,8 +1236,10 @@
       const email = document.getElementById('forgotInputEmail').value.trim().toLowerCase();
       const btn = document.getElementById('btnSendResetCode');
 
-      if (!email) return showToast('Masukkan alamat email terdaftar Anda.', false);
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showToast('Format email tidak valid.', false);
+      showAuthError('forgotErrorMsg', '');
+
+      if (!email) return showAuthError('forgotErrorMsg', 'Masukkan alamat email terdaftar Anda.');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showAuthError('forgotErrorMsg', 'Format email tidak valid.');
 
       btn.disabled = true;
       btn.textContent = 'Memeriksa email...';
@@ -1326,7 +1256,7 @@
 
         if (error) throw new Error('Gagal memeriksa database: ' + error.message);
         if (!userData) {
-          showToast('Alamat email belum terdaftar di sistem kami.', false);
+          showAuthError('forgotErrorMsg', 'Alamat email belum terdaftar di sistem kami.');
           return;
         }
 
@@ -1353,7 +1283,7 @@
         showToast('Kode OTP reset password (berlaku 5 menit) telah dikirim ke email Anda.');
       } catch (error) {
         console.error('Forgot password error:', error);
-        showToast(error.message || 'Gagal memproses pemulihan password.', false);
+        showAuthError('forgotErrorMsg', error.message || 'Gagal memproses pemulihan password.');
       } finally {
         btn.disabled = false;
         btn.textContent = 'Cek Email & Kirim OTP';
@@ -1366,10 +1296,12 @@
       const confirmPass = document.getElementById('resetConfirmPassword').value;
       const btn = document.getElementById('btnSubmitResetPassword');
 
-      if (!pendingResetEmail) return showToast('Sesi reset password tidak ditemukan. Silakan ulangi.', false);
-      if (!/^\d{6}$/.test(code)) return showToast('Masukkan kode verifikasi 6 angka.', false);
-      if (!newPass || newPass.length < 8) return showToast('Password baru minimal 8 karakter.', false);
-      if (newPass !== confirmPass) return showToast('Konfirmasi password baru tidak cocok.', false);
+      showAuthError('resetNewErrorMsg', '');
+
+      if (!pendingResetEmail) return showAuthError('resetNewErrorMsg', 'Sesi reset password tidak ditemukan. Silakan ulangi.');
+      if (!/^\d{6}$/.test(code)) return showAuthError('resetNewErrorMsg', 'Masukkan kode verifikasi 6 angka.');
+      if (!newPass || newPass.length < 8) return showAuthError('resetNewErrorMsg', 'Password baru minimal 8 karakter.');
+      if (newPass !== confirmPass) return showAuthError('resetNewErrorMsg', 'Konfirmasi password baru tidak cocok.');
 
       btn.disabled = true;
       btn.textContent = 'Memperbarui password...';
@@ -1388,7 +1320,6 @@
         if (error) throw new Error(error.message);
         if (!userData) throw new Error('Kode OTP salah atau tidak cocok.');
 
-        // Check 5-minute expiry
         if (userData.verification_expiry && new Date() > new Date(userData.verification_expiry)) {
           throw new Error('Kode OTP telah kadaluarsa (lebih dari 5 menit). Silakan minta kode baru.');
         }
@@ -1406,7 +1337,7 @@
         showToast('Password berhasil diperbarui! Silakan login dengan password baru.');
       } catch (error) {
         console.error('Reset password error:', error);
-        showToast(error.message || 'Gagal memperbarui password.', false);
+        showAuthError('resetNewErrorMsg', error.message || 'Gagal memperbarui password.');
       } finally {
         btn.disabled = false;
         btn.textContent = 'Simpan Password Baru';
@@ -1433,7 +1364,6 @@
         if (error) throw new Error(error.message);
         if (!data) throw new Error('Kode salah atau tidak cocok dengan akun.');
 
-        // Check 5-minute expiry
         if (data.verification_expiry && new Date() > new Date(data.verification_expiry)) {
           throw new Error('Kode verifikasi telah kadaluarsa (lebih dari 5 menit). Silakan daftar ulang.');
         }
@@ -1465,6 +1395,7 @@
       const identifier = document.getElementById('loginUserIdentifier').value.trim();
       const pass = document.getElementById('loginPassword').value;
       const btn = document.getElementById('btnLogin');
+
       if (!identifier || !pass) return showToast('Identifier dan password wajib diisi.', false);
 
       btn.disabled = true;
@@ -1479,12 +1410,11 @@
         const { data: userData, error } = await query.limit(1).maybeSingle();
         
         if (error) {
-          console.error('SUPABASE AUTH ERROR:', error);
-          showToast(`Gagal terhubung ke database autentikasi: ${error.message || 'Unknown error'}`, false);
+          showToast(`Gagal terhubung ke database: ${error.message || 'Unknown error'}`, false);
           return;
         }
         if (!userData) {
-          showToast('Akun belum terdaftar. Silakan pilih tab "Daftar Akun" terlebih dahulu.', false);
+          showToast('Akun belum terdaftar.', false);
           return;
         }
         
@@ -1494,7 +1424,7 @@
           return;
         }
         if (userData.email_verified !== true) {
-          showToast('Email belum diverifikasi. Selesaikan verifikasi email terlebih dahulu.', false);
+          showToast('Email belum diverifikasi. Selesaikan verifikasi email.', false);
           pendingVerificationEmail = userData.email;
           document.getElementById('verifyTargetEmail').textContent = userData.email;
           switchAuthTab('verify');
@@ -1511,23 +1441,78 @@
           role 
         };
 
-        // Save Cookie Session (7 Days)
-        setCookie('mindhub_session', { id: userData.id, uuid: userData.uuid, username: userData.username }, 7);
+        // Simpan sesi ke cookies selama 1 hari HANYA JIKA kotak centang 'Ingat Saya' dicentang. Jika tidak, cookies dihapus.
+        const rememberMe = document.getElementById('rememberMeCheckbox').checked;
+        if (rememberMe) {
+          setCookie('mindhub_session', { id: userData.id, uuid: userData.uuid, username: userData.username }, 1);
+        } else {
+          eraseCookie('mindhub_session');
+        }
         
         document.getElementById('userDisplayName').textContent = userData.username || identifier;
         applyRolePermissions(role);
 
-        const { error: activityError } = await supabase.from('user_accounts')
+        await supabase.from('user_accounts')
           .update({ last_active: new Date().toISOString() }).eq('id', userData.id);
-        if (activityError) console.warn('last_active update:', activityError.message);
 
         showToast(`Selamat datang, ${userData.username || identifier} (${role.toUpperCase()})!`);
       } catch (error) {
-        console.error('Login unhandled exception:', error);
         showToast(`Terjadi kesalahan sistem: ${error.message || 'Koneksi gagal'}`, false);
       } finally {
         btn.disabled = false;
         btn.textContent = 'Masuk Portal';
+      }
+    }
+
+    function gantiView(viewId) {
+      document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+      const target = document.getElementById(viewId);
+      if (target) target.classList.add('active');
+    }
+
+    function bukaSubView(subId) {
+      document.querySelectorAll('.subview-section').forEach(el => el.classList.remove('active'));
+      
+      let targetId = 'subViewMainMenu';
+      if (subId === 'services') targetId = 'subViewServices';
+      else if (subId === 'voucher') targetId = 'subViewVoucher';
+      else if (subId === 'overview') targetId = 'subViewMainMenu';
+      else if (subId === 'device') targetId = 'subViewDeviceCheck';
+      else if (subId === 'detail') targetId = 'subViewDeviceDetail';
+      else if (subId === 'transfer') targetId = 'subViewTransferDevice';
+      else if (subId === 'packages') targetId = 'subViewPackages';
+      else if (subId === 'release') targetId = 'subViewRelease';
+
+      const targetEl = document.getElementById(targetId);
+      if (targetEl) targetEl.classList.add('active');
+
+      const titles = {
+        'services': 'Layanan Aktif Saya',
+        'voucher': 'Klaim Voucher Lisensi',
+        'overview': 'Hub Overview',
+        'device': 'Client Devices',
+        'detail': 'Detail Lisensi & Cloud Backup',
+        'transfer': 'Migrasikan Perangkat',
+        'packages': 'Pricing Plans & Diskon',
+        'release': 'Cloud Updater'
+      };
+      const titleEl = document.getElementById('appTitle');
+      if (titleEl) titleEl.textContent = titles[subId] || 'MindHUB Portal';
+
+      toggleSidebarMobile(false);
+
+      if (subId === 'overview') {
+        muatStatistikDashboard();
+        checkSystemHealth();
+        muatDaftarSemuaUser();
+      } else if (subId === 'device') {
+        muatDaftarSemuaUser();
+      } else if (subId === 'services') {
+        muatDaftarSemuaUser();
+      } else if (subId === 'packages') {
+        muatDataPaketServer();
+      } else if (subId === 'release') {
+        muatDataReleaseServer();
       }
     }
 
@@ -1585,6 +1570,8 @@
       eraseCookie('mindhub_session');
       document.getElementById('loginUserIdentifier').value = '';
       document.getElementById('loginPassword').value = '';
+      const rememberCheckbox = document.getElementById('rememberMeCheckbox');
+      if (rememberCheckbox) rememberCheckbox.checked = false;
       gantiView('viewLandingPage');
       switchAuthTab('login');
       showToast('Berhasil keluar sesi.');
@@ -1613,7 +1600,6 @@
         renderExpiringRadar();
         updateLicenseRatio();
       } catch (e) { 
-        console.error("Sync error:", e);
         globalUserList = [];
         if (container) container.innerHTML = '<div class="text-center text-red-400 text-xs py-10">⚠️ Sync Failed / Server Timeout. Silakan refresh halaman.</div>'; 
       }
@@ -2435,123 +2421,168 @@
       );
     }
 
+    /* ----------------------------------------------------
+       PRICING PLANS & DISCOUNTS API & DATABASE INTEGRATION
+       ---------------------------------------------------- */
     async function muatDataPaketServer() {
       const container = document.getElementById('containerListPaket');
-      if (container) container.innerHTML = '<div class="text-center text-slate-500 text-xs py-10">Memuat paket langganan...</div>';
+      if (container) container.innerHTML = '<div class="text-center text-slate-500 text-xs py-10">⏳ Memuat paket dari database API...</div>';
       try {
-        const res = await fetch(`${VERCEL_API_URL}?action=get_packages`);
+        const res = await fetch(`${VERCEL_API_URL}?action=get_packages`, { method: 'GET', headers: { 'Accept': 'application/json' } });
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
-        const packages = Array.isArray(data) ? data : (data.packages || []);
-        renderPaketFormList(packages);
-      } catch (e) {
-        if (container) container.innerHTML = '<div class="text-center text-red-400 text-xs py-10">Gagal memuat daftar paket.</div>';
+        const list = Array.isArray(data) ? data : (data.packages || data.data || []);
+        
+        container.innerHTML = '';
+        if (!list || list.length === 0) {
+          tambahBarisPaketForm();
+        } else {
+          list.forEach(p => {
+            tambahBarisPaketFormInput(
+              p.name || p.nama || '', 
+              p.days || p.hari || 30, 
+              p.price || p.harga || 50000, 
+              p.discount_type || 'none', 
+              p.discount_value || '', 
+              p.discount_until || ''
+            );
+          });
+        }
+      } catch (err) {
+        console.error('Failed to load packages:', err);
+        if (container) container.innerHTML = '<div class="text-center text-red-400 text-xs py-10">⚠️ Gagal memuat paket dari server. Silakan tambahkan paket baru.</div>';
+        tambahBarisPaketForm();
       }
-    }
-
-    function renderPaketFormList(list) {
-      const container = document.getElementById('containerListPaket');
-      if (!container) return;
-      container.innerHTML = '';
-
-      if (list.length === 0) {
-        container.innerHTML = '<div class="text-center text-slate-500 text-xs py-6">Belum ada paket tersimpan. Klik "+ Tambah Paket" untuk membuat.</div>';
-        return;
-      }
-
-      list.forEach((pkg, index) => {
-        const div = document.createElement('div');
-        div.className = 'package-item-row bg-slate-900/80 p-4 rounded-2xl border border-slate-800 space-y-3';
-        div.innerHTML = `
-          <div class="flex items-center justify-between pb-2 border-b border-slate-800/60">
-            <span class="text-xs font-bold text-brand-400">Paket #${index + 1}</span>
-            <button onclick="this.closest('.package-item-row').remove()" class="text-red-400 hover:text-red-300 text-xs font-bold px-2 py-1 rounded bg-red-500/10 border border-red-500/20">Hapus</button>
-          </div>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Nama Paket</label>
-              <input type="text" class="pkg-name w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white" value="${pkg.name || ''}" placeholder="1 Bulan">
-            </div>
-            <div>
-              <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Durasi (Hari)</label>
-              <input type="number" class="pkg-days w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white font-mono" value="${pkg.days || 30}">
-            </div>
-            <div>
-              <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Harga Normal (Rp)</label>
-              <input type="number" class="pkg-price w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white font-mono" value="${pkg.price || 50000}">
-            </div>
-          </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-            <div>
-              <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Harga Promo Diskon (Rp)</label>
-              <input type="number" class="pkg-discount-price w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-amber-400 font-mono" value="${pkg.discount_price || ''}" placeholder="Opsional">
-            </div>
-            <div>
-              <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Batas Waktu Promo</label>
-              <input type="date" class="pkg-discount-until w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white" value="${pkg.discount_until || ''}">
-            </div>
-          </div>
-        `;
-        container.appendChild(div);
-      });
     }
 
     function tambahBarisPaketForm() {
+      tambahBarisPaketFormInput('', 30, 50000, 'none', '', '');
+    }
+
+    function tambahBarisPaketFormInput(nama = '', hari = 30, harga = 50000, discType = 'none', discVal = '', discUntil = '') {
       const container = document.getElementById('containerListPaket');
       if (!container) return;
-      const count = container.querySelectorAll('.package-item-row').length;
+      if (container.querySelector('.text-center')) container.innerHTML = '';
+
       const div = document.createElement('div');
-      div.className = 'package-item-row bg-slate-900/80 p-4 rounded-2xl border border-slate-800 space-y-3';
+      div.className = 'package-item-row p-4 sm:p-5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3.5 transition hover:border-slate-700 shadow-md';
+      
       div.innerHTML = `
-        <div class="flex items-center justify-between pb-2 border-b border-slate-800/60">
-          <span class="text-xs font-bold text-brand-400">Paket Baru #${count + 1}</span>
-          <button onclick="this.closest('.package-item-row').remove()" class="text-red-400 hover:text-red-300 text-xs font-bold px-2 py-1 rounded bg-red-500/10 border border-red-500/20">Hapus</button>
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+          <div class="sm:col-span-4">
+            <label class="block text-[10px] text-slate-400 font-extrabold uppercase mb-1">Nama Paket</label>
+            <input type="text" class="inp-nama w-full px-3 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-600 font-semibold outline-none focus:border-brand-500 transition" value="${nama}" placeholder="Contoh: Paket Monthly PRO">
+          </div>
+          <div class="sm:col-span-3">
+            <label class="block text-[10px] text-slate-400 font-extrabold uppercase mb-1">Durasi (Hari)</label>
+            <input type="number" class="inp-hari w-full px-3 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-600 font-semibold outline-none focus:border-brand-500 transition" value="${hari}" placeholder="30">
+          </div>
+          <div class="sm:col-span-4">
+            <label class="block text-[10px] text-slate-400 font-extrabold uppercase mb-1">Harga Normal (Rp)</label>
+            <input type="number" oninput="kalkulasiHitungDiskonForm(this)" class="inp-harga w-full px-3 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-brand-400 font-mono font-bold placeholder-slate-600 outline-none focus:border-brand-500 transition" value="${harga}" placeholder="50000">
+          </div>
+          <div class="sm:col-span-1 flex justify-end">
+            <button onclick="this.closest('.package-item-row').remove()" class="w-full h-10 bg-red-500/15 hover:bg-red-500/25 active:scale-95 text-red-400 border border-red-500/20 rounded-xl font-bold flex items-center justify-center text-xs transition" title="Hapus Paket">✕</button>
+          </div>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div>
-            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Nama Paket</label>
-            <input type="text" class="pkg-name w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white" placeholder="Contoh: 1 Bulan">
+
+        <div class="p-3 bg-slate-950/60 rounded-xl border border-slate-800/80 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-extrabold text-brand-400 uppercase tracking-wider flex items-center gap-1.5">
+              <span>🏷️ Promo & Diskon</span>
+            </span>
+            <span class="preview-harga-akhir text-[11px] font-mono font-extrabold text-emerald-400">Harga Akhir: Rp 0</span>
           </div>
-          <div>
-            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Durasi (Hari)</label>
-            <input type="number" class="pkg-days w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white font-mono" value="30">
-          </div>
-          <div>
-            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Harga Normal (Rp)</label>
-            <input type="number" class="pkg-price w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white font-mono" value="50000">
-          </div>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-          <div>
-            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Harga Promo Diskon (Rp)</label>
-            <input type="number" class="pkg-discount-price w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-amber-400 font-mono" placeholder="Opsional">
-          </div>
-          <div>
-            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Batas Waktu Promo</label>
-            <input type="date" class="pkg-discount-until w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white">
+          
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <div>
+              <label class="block text-[9px] text-slate-500 font-bold uppercase mb-1">Tipe Diskon</label>
+              <select onchange="kalkulasiHitungDiskonForm(this)" class="inp-disc-type w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white outline-none focus:border-brand-500 transition font-semibold">
+                <option value="none" ${discType === 'none' ? 'selected' : ''}>Tanpa Diskon</option>
+                <option value="percent" ${discType === 'percent' ? 'selected' : ''}>Persentase (%)</option>
+                <option value="nominal" ${discType === 'nominal' ? 'selected' : ''}>Nominal (Rp)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[9px] text-slate-500 font-bold uppercase mb-1">Nilai Diskon</label>
+              <input type="number" oninput="kalkulasiHitungDiskonForm(this)" class="inp-disc-val w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-amber-400 font-mono font-bold outline-none focus:border-brand-500 transition" value="${discVal}" placeholder="e.g. 20 atau 10000">
+            </div>
+            <div>
+              <label class="block text-[9px] text-slate-500 font-bold uppercase mb-1">Batas Waktu Diskon</label>
+              <input type="date" class="inp-disc-until w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white outline-none focus:border-brand-500 transition" value="${discUntil}">
+            </div>
           </div>
         </div>
       `;
+      
       container.appendChild(div);
+      kalkulasiHitungDiskonForm(div.querySelector('.inp-harga'));
+    }
+
+    function kalkulasiHitungDiskonForm(el) {
+      const row = el.closest('.package-item-row');
+      if (!row) return;
+
+      const hargaNormal = Number(row.querySelector('.inp-harga').value) || 0;
+      const discType = row.querySelector('.inp-disc-type').value;
+      const discValInput = row.querySelector('.inp-disc-val');
+      const discVal = Number(discValInput.value) || 0;
+      const previewEl = row.querySelector('.preview-harga-akhir');
+
+      if (discType === 'none') {
+        discValInput.disabled = true;
+        discValInput.classList.add('opacity-40');
+      } else {
+        discValInput.disabled = false;
+        discValInput.classList.remove('opacity-40');
+      }
+
+      let hargaAkhir = hargaNormal;
+      if (discType === 'percent' && discVal > 0) {
+        const potongan = Math.round((hargaNormal * discVal) / 100);
+        hargaAkhir = Math.max(0, hargaNormal - potongan);
+      } else if (discType === 'nominal' && discVal > 0) {
+        hargaAkhir = Math.max(0, hargaNormal - discVal);
+      }
+
+      if (previewEl) {
+        if (hargaAkhir < hargaNormal) {
+          const hemat = hargaNormal - hargaAkhir;
+          previewEl.innerHTML = `<span class="line-through text-slate-500 mr-1.5">Rp ${hargaNormal.toLocaleString('id-ID')}</span> <span class="text-emerald-400 font-bold">Rp ${hargaAkhir.toLocaleString('id-ID')}</span> <span class="text-[9px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/20 ml-1">Hemat Rp ${hemat.toLocaleString('id-ID')}</span>`;
+        } else {
+          previewEl.textContent = `Harga Akhir: Rp ${hargaNormal.toLocaleString('id-ID')}`;
+        }
+      }
     }
 
     async function simpanPengaturanPaketServer() {
-      const rows = document.querySelectorAll('.package-item-row');
+      const rows = document.querySelectorAll('#containerListPaket > .package-item-row');
       const packagesPayload = [];
 
       rows.forEach(r => {
-        const name = r.querySelector('.pkg-name').value.trim();
-        const days = parseInt(r.querySelector('.pkg-days').value) || 0;
-        const price = parseInt(r.querySelector('.pkg-price').value) || 0;
-        const discountPrice = parseInt(r.querySelector('.pkg-discount-price').value) || null;
-        const discountUntil = r.querySelector('.pkg-discount-until').value || null;
+        const name = r.querySelector('.inp-nama').value.trim();
+        const days = Number(r.querySelector('.inp-hari').value) || 0;
+        const price = Number(r.querySelector('.inp-harga').value) || 0;
+        const discount_type = r.querySelector('.inp-disc-type').value;
+        const discount_value = Number(r.querySelector('.inp-disc-val').value) || 0;
+        const discount_until = r.querySelector('.inp-disc-until').value || '';
+
+        let discount_price = price;
+        if (discount_type === 'percent' && discount_value > 0) {
+          discount_price = Math.max(0, price - Math.round((price * discount_value) / 100));
+        } else if (discount_type === 'nominal' && discount_value > 0) {
+          discount_price = Math.max(0, price - discount_value);
+        }
 
         if (name && days > 0) {
           packagesPayload.push({
             name,
             days,
             price,
-            discount_price: discountPrice,
-            discount_until: discountUntil
+            discount_type,
+            discount_value,
+            discount_until,
+            discount_price
           });
         }
       });
@@ -2567,10 +2598,11 @@
           })
         });
         const data = await res.json().catch(() => ({}));
-        if (res.ok && data.success) {
-          showToast('Paket langganan & diskon berhasil disimpan!');
+        if (res.ok && (data.success || data.status)) {
+          showToast('Paket langganan & diskon berhasil disimpan ke database API!');
+          muatDataPaketServer();
         } else {
-          showToast(data.error || 'Gagal menyimpan paket.', false);
+          showToast(data.error || 'Gagal menyimpan paket server.', false);
         }
       } catch (e) {
         showToast('Koneksi gagal saat menyimpan paket.', false);
@@ -2704,3 +2736,7 @@
   </script>
 </body>
 </html>
+```
+eof
+
+I have successfully generated the updated full script for `user/index.html`.

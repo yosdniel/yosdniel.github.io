@@ -127,7 +127,7 @@ Halo ${username || 'Pengguna'},
 
 Kode verifikasi akun MindHUB Anda adalah: ${code}
 
-Masukkan kode ini untuk menyelesaikan pendaftaran akun Anda.
+Kode ini berlaku selama 5 menit. Masukkan kode ini untuk menyelesaikan pendaftaran akun Anda.
 
 Jika Anda tidak mendaftar di MindHUB, abaikan email ini.
 
@@ -182,12 +182,12 @@ Mindspace Studio © 2026
               </h1>
 
               <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0 0 24px 0;">
-                Terima kasih telah bergabung di portal <strong style="color:#f8fafc;">MindHUB</strong>. Gunakan 6-digit kode keamanan berikut untuk menyelesaikan verifikasi alamat email Anda:
+                Terima kasih telah bergabung di portal <strong style="color:#f8fafc;">MindHUB</strong>. Gunakan 6-digit kode keamanan berikut (berlaku selama <strong style="color:#38bdf8;">5 menit</strong>) untuk menyelesaikan verifikasi alamat email Anda:
               </p>
 
               <!-- OTP Code Display Box -->
               <div style="background:#020617;border:1px solid #334155;border-radius:16px;padding:22px 16px;text-align:center;margin-bottom:24px;">
-                <span style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;display:block;margin-bottom:8px;">Kode OTP Verifikasi</span>
+                <span style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;display:block;margin-bottom:8px;">Kode OTP Verifikasi (Berlaku 5 Menit)</span>
                 <span style="font-family:'Courier New',Courier,monospace;font-size:36px;font-weight:800;color:#38bdf8;letter-spacing:10px;display:inline-block;padding-left:10px;">${safeCode}</span>
                 <span style="font-size:11px;color:#94a3b8;display:block;margin-top:10px;">⏱️ Berkas verifikasi aman • Jangan bagikan kode ini kepada siapa pun.</span>
               </div>
@@ -239,7 +239,7 @@ Halo ${username || 'Pengguna'},
 
 Permintaan reset password akun MindHUB Anda telah diterima.
 
-Kode OTP reset password Anda adalah: ${code}
+Kode OTP reset password Anda adalah: ${code} (Berlaku 5 menit).
 
 Masukkan kode tersebut pada portal untuk membuat password baru.
 
@@ -288,22 +288,21 @@ Mindspace Studio © 2026
           <tr>
             <td style="padding:0 32px 32px 32px;">
               <div style="background-color:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:12px;padding:6px 14px;display:inline-block;margin-bottom:20px;">
-                <span style="color:#fbbf24;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;">🔑 Permintaan Reset Password</span>
+                <span style="color:#fbbf24;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;">🔑 Reset Password</span>
               </div>
 
               <h1 style="color:#ffffff;font-size:22px;font-weight:800;margin:0 0 12px 0;letter-spacing:-0.3px;line-height:1.3;">
-                Halo, ${safeName}! 🛡️
+                Halo, ${safeName}!
               </h1>
 
               <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0 0 24px 0;">
-                Kami menerima permintaan untuk melakukan pemulihan kata sandi akun <strong style="color:#f8fafc;">MindHUB</strong> Anda. Gunakan kode 6-digit OTP berikut untuk membuat password baru:
+                Kami menerima permintaan pemulihan kata sandi akun <strong style="color:#f8fafc;">MindHUB</strong> Anda.</br></br>Gunakan kode 6-digit OTP berikut (berlaku selama <strong style="color:#f59e0b;">5 menit</strong>) untuk membuat password baru:
               </p>
 
               <!-- OTP Code Display Box -->
               <div style="background:#020617;border:1px solid #334155;border-radius:16px;padding:22px 16px;text-align:center;margin-bottom:24px;">
-                <span style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;display:block;margin-bottom:8px;">Kode OTP Reset Password</span>
+                <span style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;display:block;margin-bottom:8px;">Kode OTP Reset Password (Berlaku 5 Menit)</span>
                 <span style="font-family:'Courier New',Courier,monospace;font-size:36px;font-weight:800;color:#f59e0b;letter-spacing:10px;display:inline-block;padding-left:10px;">${safeCode}</span>
-                <span style="font-size:11px;color:#94a3b8;display:block;margin-top:10px;">⏱️ Berlaku terbatas • Jangan berikan kode ini kepada siapapun.</span>
               </div>
 
               <p style="color:#64748b;font-size:12px;line-height:1.5;margin:0;">
@@ -323,10 +322,10 @@ Mindspace Studio © 2026
           <tr>
             <td style="padding:24px 32px 32px 32px;text-align:center;">
               <p style="color:#64748b;font-size:11px;line-height:1.6;margin:0 0 6px 0;">
-                Email ini dikirim secara otomatis oleh <strong style="color:#94a3b8;">Mindspace Studio Security Gateway</strong>.
+                Email ini dikirim secara otomatis.</br><strong style="color:#94a3b8;">Mindspace Studio Security Gateway</strong>.
               </p>
               <p style="color:#475569;font-size:11px;margin:0;">
-                © 2026 <strong style="color:#64748b;">Mindspace Studio</strong>. All rights reserved.
+                ©2026 <strong style="color:#64748b;">Mindspace Studio</strong>. All rights reserved.
               </p>
             </td>
           </tr>

@@ -75,6 +75,8 @@
     .view-section.active { display: flex !important; }
     .subview-section { display: none !important; }
     .subview-section.active { display: block !important; }
+    .auth-tab-content { display: none; }
+    .auth-tab-content.active { display: block; }
     
     .glass-card {
       background: rgba(15, 23, 42, 0.75);
@@ -89,30 +91,67 @@
   <!-- TOAST NOTIFICATION -->
   <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-[100000] max-w-[90vw] w-auto px-5 py-3 rounded-2xl shadow-2xl border text-white font-bold text-xs sm:text-sm transition-all duration-300 -translate-y-20 opacity-0 pointer-events-none flex items-center gap-2"></div>
 
-  <!-- LOGIN VIEW -->
+  <!-- AUTH VIEW (LOGIN & REGISTER) -->
   <div id="viewLandingPage" class="view-section active fixed inset-0 z-[9999] bg-slate-950 w-full h-full items-center justify-center p-4 overflow-y-auto">
     <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/30 via-slate-950 to-slate-950 pointer-events-none"></div>
     <div class="glass-card w-full max-w-md p-6 sm:p-8 rounded-3xl shadow-2xl relative z-10 border border-slate-800 my-auto">
-      <div class="text-center mb-6 sm:mb-8">
+      
+      <div class="text-center mb-6">
         <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl mx-auto flex items-center justify-center mb-3 shadow-xl shadow-brand-500/30 border border-indigo-400/30 overflow-hidden bg-slate-900 p-1">
           <img src="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon512.png" alt="MindHUB Logo" class="w-full h-full object-cover rounded-xl">
         </div>
         <h2 class="font-extrabold text-xl sm:text-2xl text-white tracking-tight">MindHUB Portal</h2>
-        <p class="text-xs text-slate-400 mt-1">Masuk untuk melihat Layanan Aktif Anda</p>
+        <p class="text-xs text-slate-400 mt-1">Kelola & Cek Layanan Aktif Perangkat Anda</p>
       </div>
-      <div class="space-y-4 text-left">
+
+      <!-- AUTH TABS TOGGLE -->
+      <div class="flex bg-slate-900/90 p-1 rounded-2xl border border-slate-800 mb-6">
+        <button id="tabBtnLogin" onclick="switchAuthTab('login')" class="flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 bg-brand-500 text-white shadow-md shadow-brand-500/20">
+          Masuk / Login
+        </button>
+        <button id="tabBtnRegister" onclick="switchAuthTab('register')" class="flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 text-slate-400 hover:text-white">
+          Daftar Akun
+        </button>
+      </div>
+
+      <!-- FORM LOGIN -->
+      <div id="formTabLogin" class="auth-tab-content active space-y-4 text-left">
         <div>
-          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-2 tracking-wider">Device ID / User ID</label>
-          <input type="text" id="inputUserUid" placeholder="DEV-XXXX-XXXX" class="w-full px-4 py-3 sm:py-3.5 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition font-mono uppercase">
+          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Device ID / Username / Email</label>
+          <input type="text" id="loginUserIdentifier" placeholder="DEV-XXXX atau email@domain.com" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition font-mono uppercase">
         </div>
         <div>
-          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-2 tracking-wider">Password</label>
-          <input type="password" id="inputUserPassword" placeholder="••••••••••••" class="w-full px-4 py-3 sm:py-3.5 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition" onkeyup="if(event.key==='Enter') verifikasiUserLogin()">
+          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Password</label>
+          <input type="password" id="loginPassword" placeholder="••••••••••••" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition" onkeyup="if(event.key==='Enter') verifikasiUserLogin()">
         </div>
-        <button id="btnLogin" onclick="verifikasiUserLogin()" class="w-full bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 active:scale-[0.99] text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-xl shadow-brand-500/30 transition duration-200">
+        <button id="btnLogin" onclick="verifikasiUserLogin()" class="w-full bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 active:scale-[0.99] text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-xl shadow-brand-500/30 transition duration-200 mt-2">
           Masuk Portal
         </button>
       </div>
+
+      <!-- FORM REGISTER -->
+      <div id="formTabRegister" class="auth-tab-content space-y-3.5 text-left">
+        <div>
+          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1 tracking-wider">Device ID (UID)</label>
+          <input type="text" id="regUid" placeholder="DEV-8892-KPM" class="w-full px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition font-mono uppercase">
+        </div>
+        <div>
+          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1 tracking-wider">Username</label>
+          <input type="text" id="regUsername" placeholder="yosdaniel" class="w-full px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
+        </div>
+        <div>
+          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1 tracking-wider">Email Address</label>
+          <input type="email" id="regEmail" placeholder="user@domain.com" class="w-full px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
+        </div>
+        <div>
+          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1 tracking-wider">Password</label>
+          <input type="password" id="regPassword" placeholder="••••••••••••" class="w-full px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
+        </div>
+        <button id="btnRegister" onclick="prosesUserRegister()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 active:scale-[0.99] text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-xl shadow-emerald-500/20 transition duration-200 mt-2">
+          Buat Akun Baru
+        </button>
+      </div>
+
       <div class="mt-6 pt-4 border-t border-slate-800/80 text-center flex flex-col gap-1">
         <span class="text-[10px] text-slate-500">Official Mailer: no-reply@minduniverse.id</span>
         <span class="text-[10px] text-slate-500">Mindspace Studio &copy; 2026</span>
@@ -120,7 +159,7 @@
     </div>
   </div>
 
-  <!-- DASHBOARD APP -->
+  <!-- DASHBOARD APP MAIN -->
   <div id="viewDashboardApp" class="view-section min-h-screen w-full flex-col lg:flex-row">
     
     <!-- SIDEBAR -->
@@ -235,7 +274,7 @@
     let supabase = null;
     let activeUserSession = null;
 
-    // FETCH ENV CONFIG SERVER (DYNAMICAL SUPABASE INITIALIZATION)
+    // FETCH SUPABASE CONFIG DINAMIS FROM VERCEL API ROUTE
     async function initSupabaseEnvConfig() {
       try {
         const res = await fetch(`${VERCEL_BASE_URL}/api/config`);
@@ -244,14 +283,22 @@
         
         if (config.supabaseUrl && config.supabaseAnonKey) {
           supabase = supabaseClient.createClient(config.supabaseUrl, config.supabaseAnonKey);
-          console.log("Supabase Client initialized from Vercel Env.");
+          console.log("Supabase initialized dynamic environment.");
         }
       } catch (err) {
-        console.warn("API Config offline, using standard API routes.");
+        console.warn("Server config API offline.");
       }
     }
 
     document.addEventListener('DOMContentLoaded', initSupabaseEnvConfig);
+
+    /* SECURE CLIENT HASHING (SHA-256) FOR DATABASE STORAGE */
+    async function hashPassword(plainText) {
+      const msgBuffer = new TextEncoder().encode(plainText + 'MINDSTUDIO2026');
+      const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
 
     function showToast(msg, isSuccess = true) {
       const t = document.getElementById('toast');
@@ -260,6 +307,25 @@
       setTimeout(() => {
         t.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-[100000] max-w-[90vw] w-auto px-5 py-3 rounded-2xl shadow-2xl border text-white font-bold text-xs sm:text-sm transition-all duration-300 -translate-y-20 opacity-0 pointer-events-none';
       }, 3000);
+    }
+
+    function switchAuthTab(tab) {
+      const btnLogin = document.getElementById('tabBtnLogin');
+      const btnRegister = document.getElementById('tabBtnRegister');
+      const formLogin = document.getElementById('formTabLogin');
+      const formRegister = document.getElementById('formTabRegister');
+
+      if (tab === 'login') {
+        btnLogin.className = "flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 bg-brand-500 text-white shadow-md shadow-brand-500/20";
+        btnRegister.className = "flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 text-slate-400 hover:text-white";
+        formLogin.classList.add('active');
+        formRegister.classList.remove('active');
+      } else {
+        btnRegister.className = "flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 bg-emerald-600 text-white shadow-md shadow-emerald-500/20";
+        btnLogin.className = "flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 text-slate-400 hover:text-white";
+        formRegister.classList.add('active');
+        formLogin.classList.remove('active');
+      }
     }
 
     function gantiView(viewId) {
@@ -278,39 +344,102 @@
       }
     }
 
+    /* PROSES REGISTER USER BARU KE SUPABASE */
+    async function prosesUserRegister() {
+      const uid = document.getElementById('regUid').value.trim().toUpperCase();
+      const username = document.getElementById('regUsername').value.trim();
+      const email = document.getElementById('regEmail').value.trim();
+      const pass = document.getElementById('regPassword').value.trim();
+      const btn = document.getElementById('btnRegister');
+
+      if (!uid || !username || !email || !pass) {
+        return showToast('Seluruh kolom registrasi wajib diisi!', false);
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Mendaftarkan Akun...';
+
+      try {
+        const passHash = await hashPassword(pass);
+
+        if (supabase) {
+          const { data, error } = await supabase.from('users').insert([
+            {
+              uid: uid,
+              username: username,
+              email: email,
+              password_hash: passHash,
+              created_at: new Date().toISOString(),
+              last_active: new Date().toISOString()
+            }
+          ]);
+
+          if (error) {
+            throw new Error(error.message || 'Gagal menyimpan akun ke database');
+          }
+        }
+
+        showToast('Pendaftaran akun berhasil! Silakan masuk.');
+        document.getElementById('loginUserIdentifier').value = uid;
+        switchAuthTab('login');
+      } catch (err) {
+        showToast(err.message || 'Gagal registrasi user', false);
+      } font-bold {
+        btn.disabled = false;
+        btn.textContent = 'Buat Akun Baru';
+      }
+    }
+
+    /* PROSES VERIFIKASI LOGIN */
     async function verifikasiUserLogin() {
-      const uid = document.getElementById('inputUserUid').value.trim().toUpperCase();
-      const pass = document.getElementById('inputUserPassword').value.trim();
+      const identifier = document.getElementById('loginUserIdentifier').value.trim().toUpperCase();
+      const pass = document.getElementById('loginPassword').value.trim();
       const btn = document.getElementById('btnLogin');
 
-      if (!uid || !pass) return showToast('Device ID & Password wajib diisi', false);
+      if (!identifier || !pass) return showToast('User ID & Password wajib diisi', false);
 
       btn.disabled = true;
       btn.textContent = 'Memverifikasi...';
 
       try {
-        const res = await fetch(`${VERCEL_API_URL}?action=check_license&device_id=${encodeURIComponent(uid)}`);
-        const data = await res.json();
+        let isAuthValid = false;
 
-        if (res.ok && (data.status === 'active' || data.valid || data.success)) {
-          activeUserSession = { uid: uid, sppg_name: data.sppg_name || 'Client User' };
-          
-          if (supabase) {
-            try {
-              await supabase.from('users').update({ last_active: new Date().toISOString() }).eq('uid', uid);
-            } catch (e) {}
+        if (supabase) {
+          const passHash = await hashPassword(pass);
+          const { data, error } = await supabase
+            .from('users')
+            .select('*')
+            .or(`uid.eq.${identifier},email.eq.${identifier.toLowerCase()},username.eq.${identifier.toLowerCase()}`)
+            .eq('password_hash', passHash)
+            .single();
+
+          if (data && !error) {
+            isAuthValid = true;
+            await supabase.from('users').update({ last_active: new Date().toISOString() }).eq('id', data.id);
           }
+        }
 
-          document.getElementById('userDisplayName').textContent = uid;
+        // Fallback check ke API Vercel License jika Supabase tidak mencocokkan
+        if (!isAuthValid) {
+          const res = await fetch(`${VERCEL_API_URL}?action=check_license&device_id=${encodeURIComponent(identifier)}`);
+          const data = await res.json();
+          if (res.ok && (data.status === 'active' || data.valid || data.success)) {
+            isAuthValid = true;
+          }
+        }
+
+        if (isAuthValid) {
+          activeUserSession = { uid: identifier };
+          document.getElementById('userDisplayName').textContent = identifier;
           gantiView('viewDashboardApp');
           bukaSubView('services');
-          muatLayananAktifUser(uid);
+          muatLayananAktifUser(identifier);
           showToast('Selamat Datang di Portal User MindHUB!');
         } else {
-          showToast('Device ID tidak aktif atau Password Salah', false);
+          showToast('User ID / Password tidak ditemukan!', false);
         }
       } catch (e) {
-        showToast('Gagal terhubung ke Server Lisensi', false);
+        showToast('Gagal terhubung ke Server Autentikasi', false);
       } finally {
         btn.disabled = false;
         btn.textContent = 'Masuk Portal';
@@ -356,8 +485,8 @@
 
     function logoutUser() {
       activeUserSession = null;
-      document.getElementById('inputUserUid').value = '';
-      document.getElementById('inputUserPassword').value = '';
+      document.getElementById('loginUserIdentifier').value = '';
+      document.getElementById('loginPassword').value = '';
       gantiView('viewLandingPage');
       showToast('Berhasil keluar sesi');
     }

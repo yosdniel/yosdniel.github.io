@@ -1,5 +1,13 @@
 {
+  "name": "mindhub-portal-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node api/config.js"
+  },
   "dependencies": {
+    "nodemailer": "^7.0.10"
     "@supabase/supabase-js": "^2.39.0"
   }
 }

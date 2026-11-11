@@ -91,6 +91,7 @@
       cursor: pointer;
       position: relative;
     }
+    .package-item-row { cursor: default; }
     .package-card.selected {
       border-color: #6366f1 !important;
       background: rgba(99, 102, 241, 0.12) !important;
@@ -980,7 +981,7 @@
     let heartbeatPoints = new Array(30).fill(40);
     let heartbeatInterval = null;
 
-    // Fallback paket default jika API gagal/kosong
+    // Fallback paket default jika API gagal/kosong (hanya dipakai di halaman user)
     const DEFAULT_PACKAGES = [
       { hari: 1, harga: 5000, nama: 'Durasi 1 Hari' },
       { hari: 3, harga: 10000, nama: 'Durasi 3 Hari' },
@@ -2081,16 +2082,23 @@
       document.getElementById('dispStatus').innerHTML = badge;
     }
 
-    // Kalkulator harga bersih & diskon paket
+    // Kalkulator harga bersih & diskon paket (disamakan dengan data dari admin / script 2)
+    // Membaca discount_type, discount_value, discount_until. Diskon otomatis berhenti setelah batas waktu.
     function hitungHargaPaketData(p) {
-      const hargaNormal = Number(p.harga || p.price || 50000);
+      const hargaNormal = Number(p.harga || p.price || 0);
+      const until = p.discount_until || '';
+      const promoAktif = !until || getTodayLocalISO() <= until;
+      const discVal = Number(p.discount_value) || 0;
+
       let hargaFinal = hargaNormal;
-      if (p.final_price !== undefined && p.final_price !== null && Number(p.final_price) > 0) {
-        hargaFinal = Number(p.final_price);
-      } else if (p.discount_type === 'percent' && Number(p.discount_value) > 0) {
-        hargaFinal = Math.max(100, hargaNormal - Math.round((hargaNormal * Number(p.discount_value)) / 100));
-      } else if (p.discount_type === 'nominal' && Number(p.discount_value) > 0) {
-        hargaFinal = Math.max(100, hargaNormal - Number(p.discount_value));
+      if (promoAktif) {
+        if (p.discount_type === 'percent' && discVal > 0) {
+          hargaFinal = Math.max(100, hargaNormal - Math.round((hargaNormal * discVal) / 100));
+        } else if (p.discount_type === 'nominal' && discVal > 0) {
+          hargaFinal = Math.max(100, hargaNormal - discVal);
+        } else if (Number(p.final_price) > 0 && Number(p.final_price) < hargaNormal) {
+          hargaFinal = Number(p.final_price); // data lama / DEFAULT_PACKAGES
+        }
       }
       const hemat = Math.max(0, hargaNormal - hargaFinal);
       return { hargaNormal, hargaFinal, hemat };
@@ -2316,7 +2324,7 @@
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'generate_voucher', device_id: currentLicenseData.device_id, duration_days: hari, secret: adminPasswordSecret })
+          body: JSON.stringify({ action: 'generate_voucher', device_id: currentLicenseData.device_id, duration_days: hari, secret: adminPasswordSecret, admin_secret: adminPasswordSecret })
         });
         const data = await res.json();
         if (res.ok && (data.code || data.voucher)) {
@@ -2366,7 +2374,7 @@
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'save_license', device_id: currentLicenseData.device_id, sppg_name: sppgName, exp_date: expDate, status, secret: adminPasswordSecret })
+          body: JSON.stringify({ action: 'save_license', device_id: currentLicenseData.device_id, sppg_name: sppgName, exp_date: expDate, status, secret: adminPasswordSecret, admin_secret: adminPasswordSecret })
         });
         const data = await res.json();
         if (res.ok && data.success) {
@@ -2385,7 +2393,7 @@
           await fetch(VERCEL_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'delete_license', device_id: currentLicenseData.device_id, secret: adminPasswordSecret })
+            body: JSON.stringify({ action: 'delete_license', device_id: currentLicenseData.device_id, secret: adminPasswordSecret, admin_secret: adminPasswordSecret })
           });
           showToast('Perangkat dihapus.');
           muatDaftarSemuaUser();
@@ -2394,104 +2402,144 @@
       });
     }
 
-    // Perbaikan fungsi render Pricing Plans di Admin View
+    /* ===== PRICING PLANS (disamakan dengan script 2: diskon persen/nominal + batas waktu) ===== */
     async function muatDataPaketServer() {
       const container = document.getElementById('containerListPaket');
       if (!container) return;
       container.innerHTML = '<div class="text-center text-slate-500 text-xs py-6">Memuat daftar paket...</div>';
-
-      let packages = DEFAULT_PACKAGES;
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=get_packages`, { cache: 'no-store' });
-        if (res.ok) {
-          const json = await res.json();
-          const list = json.packages || json.data || json;
-          if (Array.isArray(list) && list.length > 0) packages = list;
-        }
-      } catch(e) {}
-
-      container.innerHTML = '';
-      packages.forEach((p, idx) => {
-        const row = document.createElement('div');
-        row.className = 'glass-card p-4 rounded-2xl border border-slate-800 grid grid-cols-1 sm:grid-cols-4 gap-3 items-center';
-        row.innerHTML = `
-          <div>
-            <label class="block text-[10px] text-slate-400 uppercase font-bold mb-1">Nama Paket</label>
-            <input type="text" value="${p.nama || ''}" class="pkg-nama w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white">
-          </div>
-          <div>
-            <label class="block text-[10px] text-slate-400 uppercase font-bold mb-1">Durasi (Hari)</label>
-            <input type="number" value="${p.hari || 30}" class="pkg-hari w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white font-mono">
-          </div>
-          <div>
-            <label class="block text-[10px] text-slate-400 uppercase font-bold mb-1">Harga Normal (Rp)</label>
-            <input type="number" value="${p.harga || p.price || 50000}" class="pkg-harga w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white font-mono">
-          </div>
-          <div class="flex items-end justify-between gap-2 pt-4 sm:pt-0">
-            <div class="flex-1">
-              <label class="block text-[10px] text-slate-400 uppercase font-bold mb-1">Harga Diskon (Rp)</label>
-              <input type="number" value="${p.final_price || ''}" placeholder="Opsional" class="pkg-final w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-emerald-400 font-mono">
-            </div>
-            <button onclick="this.closest('.glass-card').remove()" class="w-9 h-9 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 flex items-center justify-center font-bold text-xs transition shrink-0">🗑️</button>
-          </div>
-        `;
-        container.appendChild(row);
-      });
+        const data = await res.json();
+        const list = data.packages || [];
+        container.innerHTML = '';
+        if (list.length === 0) tambahBarisPaketForm('Paket 7 Hari', 7, 25000);
+        else list.forEach(p => tambahBarisPaketForm(p.nama, p.hari, p.harga, p.discount_type, p.discount_value, p.discount_until));
+      } catch (err) {
+        container.innerHTML = '<div class="text-center text-red-400 text-xs py-6">Gagal memuat paket.</div>';
+        showToast('Failed to load packages', false);
+      }
     }
 
-    function tambahBarisPaketForm() {
+    function tambahBarisPaketForm(nama = '', hari = '', harga = '', discType = 'none', discVal = '', discUntil = '') {
       const container = document.getElementById('containerListPaket');
       if (!container) return;
-      const row = document.createElement('div');
-      row.className = 'glass-card p-4 rounded-2xl border border-slate-800 grid grid-cols-1 sm:grid-cols-4 gap-3 items-center';
-      row.innerHTML = `
-        <div>
-          <label class="block text-[10px] text-slate-400 uppercase font-bold mb-1">Nama Paket</label>
-          <input type="text" value="Paket Baru" class="pkg-nama w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white">
-        </div>
-        <div>
-          <label class="block text-[10px] text-slate-400 uppercase font-bold mb-1">Durasi (Hari)</label>
-          <input type="number" value="30" class="pkg-hari w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white font-mono">
-        </div>
-        <div>
-          <label class="block text-[10px] text-slate-400 uppercase font-bold mb-1">Harga Normal (Rp)</label>
-          <input type="number" value="50000" class="pkg-harga w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white font-mono">
-        </div>
-        <div class="flex items-end justify-between gap-2 pt-4 sm:pt-0">
-          <div class="flex-1">
-            <label class="block text-[10px] text-slate-400 uppercase font-bold mb-1">Harga Diskon (Rp)</label>
-            <input type="number" placeholder="Opsional" class="pkg-final w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-emerald-400 font-mono">
+      // buang placeholder "Memuat..." bila ada
+      if (!container.querySelector('.package-item-row')) container.innerHTML = '';
+      // onclick="tambahBarisPaketForm()" memanggil tanpa argumen; pastikan tipe string/angka valid
+      if (typeof nama !== 'string') nama = '';
+      discType = discType || 'none';
+      discVal = discVal ?? '';
+      discUntil = discUntil || '';
+
+      const div = document.createElement('div');
+      div.className = 'package-item-row p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3 transition hover:border-slate-700 shadow-md';
+      div.innerHTML = `
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+          <div class="sm:col-span-4">
+            <label class="block text-[10px] text-slate-400 font-extrabold uppercase mb-1">Nama Paket</label>
+            <input type="text" class="inp-nama w-full px-3 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-600 font-semibold outline-none focus:border-brand-500 transition" value="${nama}" placeholder="Contoh: Paket Monthly PRO">
           </div>
-          <button onclick="this.closest('.glass-card').remove()" class="w-9 h-9 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 flex items-center justify-center font-bold text-xs transition shrink-0">🗑️</button>
+          <div class="sm:col-span-3">
+            <label class="block text-[10px] text-slate-400 font-extrabold uppercase mb-1">Durasi (Hari)</label>
+            <input type="number" class="inp-hari w-full px-3 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-600 font-semibold outline-none focus:border-brand-500 transition" value="${hari}" placeholder="30">
+          </div>
+          <div class="sm:col-span-4">
+            <label class="block text-[10px] text-slate-400 font-extrabold uppercase mb-1">Harga Normal (Rp)</label>
+            <input type="number" oninput="kalkulasiHitungDiskonForm(this)" class="inp-harga w-full px-3 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-brand-400 font-mono font-bold placeholder-slate-600 outline-none focus:border-brand-500 transition" value="${harga}" placeholder="50000">
+          </div>
+          <div class="sm:col-span-1 flex justify-end">
+            <button onclick="this.closest('.package-item-row').remove()" class="w-full h-10 bg-red-500/15 hover:bg-red-500/25 active:scale-95 text-red-400 border border-red-500/20 rounded-xl font-bold flex items-center justify-center text-xs transition" title="Hapus Paket">✕</button>
+          </div>
+        </div>
+
+        <div class="p-3 bg-slate-950/60 rounded-xl border border-slate-800/80 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-extrabold text-brand-400 uppercase tracking-wider flex items-center gap-1.5"><span>🏷️ Promo & Diskon</span></span>
+            <span class="preview-harga-akhir text-[11px] font-mono font-extrabold text-emerald-400">Harga Akhir: Rp 0</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <div>
+              <label class="block text-[9px] text-slate-500 font-bold uppercase mb-1">Tipe Diskon</label>
+              <select onchange="kalkulasiHitungDiskonForm(this)" class="inp-disc-type w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white outline-none focus:border-brand-500 transition font-semibold">
+                <option value="none" ${discType === 'none' ? 'selected' : ''}>Tanpa Diskon</option>
+                <option value="percent" ${discType === 'percent' ? 'selected' : ''}>Persentase (%)</option>
+                <option value="nominal" ${discType === 'nominal' ? 'selected' : ''}>Nominal (Rp)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[9px] text-slate-500 font-bold uppercase mb-1">Nilai Diskon</label>
+              <input type="number" oninput="kalkulasiHitungDiskonForm(this)" class="inp-disc-val w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-amber-400 font-mono font-bold outline-none focus:border-brand-500 transition" value="${discVal}" placeholder="e.g. 20 atau 10000">
+            </div>
+            <div>
+              <label class="block text-[9px] text-slate-500 font-bold uppercase mb-1">Batas Waktu Diskon</label>
+              <input type="date" class="inp-disc-until w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white outline-none focus:border-brand-500 transition" value="${discUntil}">
+            </div>
+          </div>
         </div>
       `;
-      container.appendChild(row);
+      container.appendChild(div);
+      kalkulasiHitungDiskonForm(div.querySelector('.inp-harga'));
+    }
+
+    function kalkulasiHitungDiskonForm(el) {
+      const row = el.closest('.package-item-row');
+      if (!row) return;
+      const hargaNormal = Number(row.querySelector('.inp-harga').value) || 0;
+      const discType = row.querySelector('.inp-disc-type').value;
+      const discValInput = row.querySelector('.inp-disc-val');
+      const discVal = Number(discValInput.value) || 0;
+      const previewEl = row.querySelector('.preview-harga-akhir');
+
+      discValInput.disabled = discType === 'none';
+      discValInput.classList.toggle('opacity-40', discType === 'none');
+
+      let hargaAkhir = hargaNormal;
+      if (discType === 'percent' && discVal > 0) hargaAkhir = Math.max(0, hargaNormal - Math.round((hargaNormal * discVal) / 100));
+      else if (discType === 'nominal' && discVal > 0) hargaAkhir = Math.max(0, hargaNormal - discVal);
+
+      if (previewEl) {
+        if (hargaAkhir < hargaNormal) {
+          const hemat = hargaNormal - hargaAkhir;
+          previewEl.innerHTML = `<span class="line-through text-slate-500 mr-1.5">Rp ${hargaNormal.toLocaleString('id-ID')}</span> <span class="text-emerald-400 font-bold">Rp ${hargaAkhir.toLocaleString('id-ID')}</span> <span class="text-[9px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/20 ml-1">Hemat Rp ${hemat.toLocaleString('id-ID')}</span>`;
+        } else {
+          previewEl.textContent = `Harga Akhir: Rp ${hargaNormal.toLocaleString('id-ID')}`;
+        }
+      }
     }
 
     async function simpanPengaturanPaketServer() {
-      const rows = document.querySelectorAll('#containerListPaket .glass-card');
-      const newPackages = [];
+      const rows = document.querySelectorAll('#containerListPaket > .package-item-row');
+      const packages = [];
       rows.forEach(r => {
-        const nama = r.querySelector('.pkg-nama').value.trim();
-        const hari = Number(r.querySelector('.pkg-hari').value) || 30;
-        const harga = Number(r.querySelector('.pkg-harga').value) || 50000;
-        const final_price = Number(r.querySelector('.pkg-final').value) || null;
-        newPackages.push({ nama, hari, harga, final_price });
+        const nama = r.querySelector('.inp-nama').value.trim();
+        const hari = Number(r.querySelector('.inp-hari').value) || 0;
+        const harga = Number(r.querySelector('.inp-harga').value) || 0;
+        const discount_type = r.querySelector('.inp-disc-type').value;
+        const discount_value = Number(r.querySelector('.inp-disc-val').value) || 0;
+        const discount_until = r.querySelector('.inp-disc-until').value;
+
+        let final_price = harga;
+        if (discount_type === 'percent' && discount_value > 0) final_price = Math.max(0, harga - Math.round((harga * discount_value) / 100));
+        else if (discount_type === 'nominal' && discount_value > 0) final_price = Math.max(0, harga - discount_value);
+
+        if (nama) packages.push({ nama, hari, harga, discount_type, discount_value, discount_until, final_price });
       });
 
       try {
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'save_packages', packages: newPackages, secret: adminPasswordSecret })
+          body: JSON.stringify({ action: 'save_packages', packages, admin_secret: adminPasswordSecret, secret: adminPasswordSecret })
         });
-        if (res.ok) {
-          showToast('Daftar paket berhasil disimpan!');
+        const result = await res.json().catch(() => ({}));
+        if (res.ok && (result.success || result.status)) {
+          showToast('Paket langganan & promo diskon berhasil disimpan!');
+          muatDataPaketServer();
         } else {
-          showToast('Gagal menyimpan ke server.', false);
+          showToast(result.error || 'Gagal menyimpan paket server', false);
         }
-      } catch (e) {
-        showToast('Berhasil menyimpan konfigurasi lokal.', true);
+      } catch (err) {
+        showToast('Network Error saat menyimpan paket', false);
       }
     }
 

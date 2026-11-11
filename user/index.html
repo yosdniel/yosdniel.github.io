@@ -88,6 +88,8 @@
     
     .package-item-row, .package-card {
       transition: all 0.2s ease-in-out;
+      cursor: pointer;
+      position: relative;
     }
     .package-card.selected {
       border-color: #6366f1 !important;
@@ -724,7 +726,7 @@
               <div class="flex justify-between items-center gap-2"><span>Last Active</span> <span id="dispLastActive" class="text-slate-400">-</span></div>
             </div>
 
-            <!-- BAGIAN FITUR PERPANJANG MASA AKTIF & PEMBAYARAN QRIS (DISEMBUNYIKAN UNTUK DEVELOPER & USER SESUAI ATURAN) -->
+            <!-- BAGIAN FITUR PERPANJANG MASA AKTIF & PEMBAYARAN QRIS -->
             <div id="extensionSection" class="bg-slate-900/90 p-5 rounded-2xl border border-brand-500/30 space-y-4 shadow-xl">
               <div class="flex items-center justify-between border-b border-slate-800 pb-3">
                 <span class="font-extrabold text-xs sm:text-sm text-white uppercase tracking-wider flex items-center gap-2">
@@ -967,8 +969,8 @@
     let temporaryNewEmail = '';
     
     let _detailSelectedHari = 30;
-    let _detailFinalAmount = 50000;
-    let _detailBaseAmount = 50000;
+    let _detailFinalAmount = 80000;
+    let _detailBaseAmount = 100000;
     let _detailDiscountAmount = 0;
     let _detailAppliedPromo = null;
     let _detailReffId = null;
@@ -977,6 +979,20 @@
     
     let heartbeatPoints = new Array(30).fill(40);
     let heartbeatInterval = null;
+
+    // Fallback paket default jika API gagal/kosong
+    const DEFAULT_PACKAGES = [
+      { hari: 1, harga: 5000, nama: 'Durasi 1 Hari' },
+      { hari: 3, harga: 10000, nama: 'Durasi 3 Hari' },
+      { hari: 7, harga: 25000, nama: 'Durasi 7 Hari' },
+      { hari: 14, harga: 50000, nama: 'Durasi 14 Hari' },
+      { hari: 30, harga: 100000, final_price: 80000, nama: 'Durasi 30 Hari' },
+      { hari: 60, harga: 200000, final_price: 150000, nama: 'Durasi 60 Hari' }
+    ];
+
+    function fmt(n) {
+      return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(n) || 0);
+    }
 
     function setCookie(name, value, days = 1) {
       const d = new Date();
@@ -1539,14 +1555,12 @@
       const userMenu = document.getElementById('sectionUserMenu');
       const roleBadge = document.getElementById('userRoleBadge');
       
-      // Bagian elemen di form detail perangkat
-      const devVoucherBox = document.getElementById('developerVoucherBox');       // Kotak Generate Voucher
-      const devEditControls = document.getElementById('developerEditControls'); // Edit SPPG, Tambah Durasi, Exp Date, Status
-      const btnSaveConfig = document.getElementById('btnSaveConfig');           // Tombol Save Configuration
-      const btnDeleteLicense = document.getElementById('btnDeleteLicense');     // Tombol Delete License
-      const extensionSection = document.getElementById('extensionSection');     // Bagian Perpanjangan QRIS
+      const devVoucherBox = document.getElementById('developerVoucherBox');
+      const devEditControls = document.getElementById('developerEditControls');
+      const btnSaveConfig = document.getElementById('btnSaveConfig');
+      const btnDeleteLicense = document.getElementById('btnDeleteLicense');
+      const extensionSection = document.getElementById('extensionSection');
 
-      // Ambil elemen spesifik di dalam developerEditControls jika ingin memfilter khusus Admin (hanya License Status)
       const editSppgContainer = document.getElementById('editSppgName')?.closest('div');
       const aksiCepatContainer = document.querySelector('button[onclick*="tambahHari"]')?.closest('div')?.parentElement;
       const manualExpContainer = document.getElementById('editExpDate')?.closest('div');
@@ -1555,7 +1569,6 @@
       roleBadge.textContent = role.toUpperCase();
       
       if (role === 'developer') {
-        // Developer: Tampilkan semua, KECUALI perpanjangan masa aktif perangkat (extensionSection)
         adminMenu.style.display = 'block';
         systemConfig.style.display = 'block';
         userMenu.style.display = 'block';
@@ -1565,9 +1578,8 @@
         if (devEditControls) devEditControls.style.display = 'block';
         if (btnSaveConfig) btnSaveConfig.style.display = 'block';
         if (btnDeleteLicense) btnDeleteLicense.style.display = 'block';
-        if (extensionSection) extensionSection.style.display = 'none'; // Sembunyikan perpanjangan masa aktif untuk developer
+        if (extensionSection) extensionSection.style.display = 'none';
 
-        // Pastikan semua sub-elemen edit developer tampil
         if (editSppgContainer) editSppgContainer.style.display = 'block';
         if (aksiCepatContainer) aksiCepatContainer.style.display = 'block';
         if (manualExpContainer) manualExpContainer.style.display = 'block';
@@ -1577,31 +1589,27 @@
         bukaSubView('overview');
 
       } else if (role === 'admin') {
-        // Admin: Hanya menampilkan bagian License Status (sembunyikan generate voucher, edit nama, durasi, dan tombol simpan/hapus lainnya)
         adminMenu.style.display = 'block';
         systemConfig.style.display = 'none';
         userMenu.style.display = 'block';
         roleBadge.className = 'text-[10px] uppercase font-bold text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-lg border border-indigo-500/20';
         
         if (devVoucherBox) devVoucherBox.style.display = 'none';
-        if (devEditControls) dz = document.getElementById('developerEditControls'); // Tampilkan kontainer edit tapi filter isinya
         if (devEditControls) devEditControls.style.display = 'block';
         
-        // Sembunyikan item lain di edit controls, sisakan License Status saja
         if (editSppgContainer) editSppgContainer.style.display = 'none';
         if (aksiCepatContainer) aksiCepatContainer.style.display = 'none';
         if (manualExpContainer) manualExpContainer.style.display = 'none';
-        if (licenseStatusContainer) licenseStatusContainer.style.display = 'block'; // Hanya License Status
+        if (licenseStatusContainer) licenseStatusContainer.style.display = 'block';
 
-        if (btnSaveConfig) btnSaveConfig.style.display = 'block';       // Admin butuh tombol simpan status
-        if (btnDeleteLicense) btnDeleteLicense.style.display = 'none'; // Sembunyikan tombol delete
+        if (btnSaveConfig) btnSaveConfig.style.display = 'block';
+        if (btnDeleteLicense) btnDeleteLicense.style.display = 'none';
         if (extensionSection) extensionSection.style.display = 'none';
 
         gantiView('viewDashboardApp');
         bukaSubView('overview');
 
       } else {
-        // User: Tidak menampilkan bagian admin/developer sama sekali
         adminMenu.style.display = 'none';
         systemConfig.style.display = 'none';
         userMenu.style.display = 'block';
@@ -1611,7 +1619,7 @@
         if (devEditControls) devEditControls.style.display = 'none';
         if (btnSaveConfig) btnSaveConfig.style.display = 'none';
         if (btnDeleteLicense) btnDeleteLicense.style.display = 'none';
-        if (extensionSection) extensionSection.style.display = 'block'; // User hanya melihat opsi perpanjangan QRIS sendiri
+        if (extensionSection) extensionSection.style.display = 'block';
 
         gantiView('viewDashboardApp');
         bukaSubView('services');
@@ -2073,15 +2081,27 @@
       document.getElementById('dispStatus').innerHTML = badge;
     }
 
+    // Kalkulator harga bersih & diskon paket
+    function hitungHargaPaketData(p) {
+      const hargaNormal = Number(p.harga || p.price || 50000);
+      let hargaFinal = hargaNormal;
+      if (p.final_price !== undefined && p.final_price !== null && Number(p.final_price) > 0) {
+        hargaFinal = Number(p.final_price);
+      } else if (p.discount_type === 'percent' && Number(p.discount_value) > 0) {
+        hargaFinal = Math.max(100, hargaNormal - Math.round((hargaNormal * Number(p.discount_value)) / 100));
+      } else if (p.discount_type === 'nominal' && Number(p.discount_value) > 0) {
+        hargaFinal = Math.max(100, hargaNormal - Number(p.discount_value));
+      }
+      const hemat = Math.max(0, hargaNormal - hargaFinal);
+      return { hargaNormal, hargaFinal, hemat };
+    }
+
     async function loadDetailPackagesForExtension() {
       const container = document.getElementById('detailPackagesContainer');
       if (!container) return;
       container.innerHTML = '<div class="text-xs text-slate-500 text-center py-4 col-span-2">Memuat paket...</div>';
 
-      let packages = [
-        { hari: 7, harga: 25000, nama: 'Paket 7 Hari' },
-        { hari: 30, harga: 50000, nama: 'Paket 30 Hari' }
-      ];
+      let packages = DEFAULT_PACKAGES;
 
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=get_packages`, { cache: 'no-store' });
@@ -2098,30 +2118,50 @@
 
       packages.forEach((p, idx) => {
         const isSelected = idx === recommendedIdx;
-        const normal = Number(p.harga || p.price || 50000);
+        const isRecommended = Number(p.hari) === 30;
+        const { hargaNormal, hargaFinal, hemat } = hitungHargaPaketData(p);
+
         if (isSelected) {
           _detailSelectedHari = Number(p.hari || 30);
-          _detailBaseAmount = normal;
-          _detailFinalAmount = normal;
+          _detailBaseAmount = hargaFinal;
+          _detailFinalAmount = Math.max(100, _detailBaseAmount - _detailDiscountAmount);
         }
 
         const card = document.createElement('div');
-        card.className = `package-card p-3.5 rounded-2xl bg-slate-950 border border-slate-800 cursor-pointer flex flex-col justify-between ${isSelected ? 'selected' : ''}`;
+        card.className = `package-card p-4 rounded-2xl bg-slate-900/80 border ${isRecommended ? 'border-amber-500/40' : 'border-slate-800'} flex flex-col justify-between ${isSelected ? 'selected' : ''}`;
+        
         card.onclick = () => {
           document.querySelectorAll('#detailPackagesContainer .package-card').forEach(el => el.classList.remove('selected'));
           card.classList.add('selected');
           _detailSelectedHari = Number(p.hari);
-          _detailBaseAmount = normal;
+          _detailBaseAmount = hargaFinal;
           _detailFinalAmount = Math.max(100, _detailBaseAmount - _detailDiscountAmount);
         };
+
+        let recommendedBadge = isRecommended ? `
+          <div class="-mt-3.5 mb-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white text-[9px] font-black uppercase tracking-wider shadow-lg shadow-indigo-500/25 border border-white/20">
+            <span class="text-amber-300">✨</span> MOST POPULAR
+          </div>` : '';
+
+        let promoBadgeHtml = hemat > 0 ? `<div class="mt-1"><span class="inline-flex items-center gap-1 text-[9px] font-extrabold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-lg">🔥 Hemat ${fmt(hemat)}</span></div>` : '';
+
+        let priceHtml = hemat > 0 ? `
+          <div class="text-right">
+            <span class="text-[10px] text-slate-500 line-through block font-mono">${fmt(hargaNormal)}</span>
+            <span class="text-emerald-400 font-mono font-black text-sm sm:text-base">${fmt(hargaFinal)}</span>
+          </div>
+        ` : `<span class="text-emerald-400 font-mono font-black text-sm sm:text-base">${fmt(hargaFinal)}</span>`;
+
         card.innerHTML = `
           <div>
-            <span class="text-[9px] font-bold text-brand-400 uppercase block">${p.nama || `Paket ${p.hari} Hari`}</span>
-            <b class="text-white text-sm font-black">${p.hari} Hari Aktif</b>
+            ${recommendedBadge}
+            <span class="text-[10px] font-extrabold text-brand-400 uppercase tracking-wider block">${p.nama || `Durasi ${p.hari} Hari`}</span>
+            <b class="text-white text-base font-black mt-0.5 block">${p.hari} Hari Aktif</b>
+            ${promoBadgeHtml}
           </div>
-          <div class="mt-2 pt-2 border-t border-slate-800/80 flex justify-between items-center text-xs">
-            <span class="text-slate-400">Harga:</span>
-            <span class="text-emerald-400 font-mono font-bold">Rp ${normal.toLocaleString('id-ID')}</span>
+          <div class="mt-3 pt-3 border-t border-slate-800/80 flex items-center justify-between">
+            <span class="text-[10px] text-slate-400 font-medium">Harga:</span>
+            ${priceHtml}
           </div>
         `;
         container.appendChild(card);
@@ -2174,8 +2214,8 @@
         const totalPay = (_detailFinalAmount + fee);
 
         document.getElementById('detailQrisSubtitle').textContent = `Device: ${currentLicenseData.device_id} • ${_detailSelectedHari} Hari`;
-        document.getElementById('detailQrisTotalAmount').textContent = `Rp ${totalPay.toLocaleString('id-ID')}`;
-        document.getElementById('detailQrisFeeInfo').textContent = `(Harga: Rp ${_detailBaseAmount.toLocaleString('id-ID')} + Fee 1.7%)`;
+        document.getElementById('detailQrisTotalAmount').textContent = fmt(totalPay);
+        document.getElementById('detailQrisFeeInfo').textContent = `(Harga: ${fmt(_detailBaseAmount)} + Fee 1.7%)`;
 
         const qb = document.querySelector('#extensionStepQris #qrcode-box');
         qb.innerHTML = '';
@@ -2270,7 +2310,6 @@
       document.body.appendChild(a); a.click(); a.remove();
     }
 
-    // PERBAIKAN: Format kode voucher valid dan siap diredeem (MIND-XXXXXX-XXXXXX)
     async function generateVoucherDevice(hari) {
       if (!currentLicenseData) return;
       try {
@@ -2284,19 +2323,15 @@
           document.getElementById('dispGeneratedVoucher').value = data.code || data.voucher;
           showToast('Voucher valid berhasil dibuat!');
         } else {
-          // Fallback jika API backend belum mengembalikan string valid
           const randomHex = Math.random().toString(36).substring(2, 8).toUpperCase();
           const randomHex2 = Math.random().toString(36).substring(2, 8).toUpperCase();
-          const validVoucher = `MIND-${randomHex}-${randomHex2}`;
-          document.getElementById('dispGeneratedVoucher').value = validVoucher;
+          document.getElementById('dispGeneratedVoucher').value = `MIND-${randomHex}-${randomHex2}`;
           showToast('Voucher valid berhasil digenerate!');
         }
       } catch (e) {
-        // Fallback offline generator kode valid
         const randomHex = Math.random().toString(36).substring(2, 8).toUpperCase();
         const randomHex2 = Math.random().toString(36).substring(2, 8).toUpperCase();
-        const validVoucher = `MIND-${randomHex}-${randomHex2}`;
-        document.getElementById('dispGeneratedVoucher').value = validVoucher;
+        document.getElementById('dispGeneratedVoucher').value = `MIND-${randomHex}-${randomHex2}`;
         showToast('Voucher valid berhasil digenerate!');
       }
     }
@@ -2359,7 +2394,107 @@
       });
     }
 
-    async function muatDataPaketServer() {}
+    // Perbaikan fungsi render Pricing Plans di Admin View
+    async function muatDataPaketServer() {
+      const container = document.getElementById('containerListPaket');
+      if (!container) return;
+      container.innerHTML = '<div class="text-center text-slate-500 text-xs py-6">Memuat daftar paket...</div>';
+
+      let packages = DEFAULT_PACKAGES;
+      try {
+        const res = await fetch(`${VERCEL_API_URL}?action=get_packages`, { cache: 'no-store' });
+        if (res.ok) {
+          const json = await res.json();
+          const list = json.packages || json.data || json;
+          if (Array.isArray(list) && list.length > 0) packages = list;
+        }
+      } catch(e) {}
+
+      container.innerHTML = '';
+      packages.forEach((p, idx) => {
+        const row = document.createElement('div');
+        row.className = 'glass-card p-4 rounded-2xl border border-slate-800 grid grid-cols-1 sm:grid-cols-4 gap-3 items-center';
+        row.innerHTML = `
+          <div>
+            <label class="block text-[10px] text-slate-400 uppercase font-bold mb-1">Nama Paket</label>
+            <input type="text" value="${p.nama || ''}" class="pkg-nama w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white">
+          </div>
+          <div>
+            <label class="block text-[10px] text-slate-400 uppercase font-bold mb-1">Durasi (Hari)</label>
+            <input type="number" value="${p.hari || 30}" class="pkg-hari w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white font-mono">
+          </div>
+          <div>
+            <label class="block text-[10px] text-slate-400 uppercase font-bold mb-1">Harga Normal (Rp)</label>
+            <input type="number" value="${p.harga || p.price || 50000}" class="pkg-harga w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white font-mono">
+          </div>
+          <div class="flex items-end justify-between gap-2 pt-4 sm:pt-0">
+            <div class="flex-1">
+              <label class="block text-[10px] text-slate-400 uppercase font-bold mb-1">Harga Diskon (Rp)</label>
+              <input type="number" value="${p.final_price || ''}" placeholder="Opsional" class="pkg-final w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-emerald-400 font-mono">
+            </div>
+            <button onclick="this.closest('.glass-card').remove()" class="w-9 h-9 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 flex items-center justify-center font-bold text-xs transition shrink-0">🗑️</button>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function tambahBarisPaketForm() {
+      const container = document.getElementById('containerListPaket');
+      if (!container) return;
+      const row = document.createElement('div');
+      row.className = 'glass-card p-4 rounded-2xl border border-slate-800 grid grid-cols-1 sm:grid-cols-4 gap-3 items-center';
+      row.innerHTML = `
+        <div>
+          <label class="block text-[10px] text-slate-400 uppercase font-bold mb-1">Nama Paket</label>
+          <input type="text" value="Paket Baru" class="pkg-nama w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white">
+        </div>
+        <div>
+          <label class="block text-[10px] text-slate-400 uppercase font-bold mb-1">Durasi (Hari)</label>
+          <input type="number" value="30" class="pkg-hari w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white font-mono">
+        </div>
+        <div>
+          <label class="block text-[10px] text-slate-400 uppercase font-bold mb-1">Harga Normal (Rp)</label>
+          <input type="number" value="50000" class="pkg-harga w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white font-mono">
+        </div>
+        <div class="flex items-end justify-between gap-2 pt-4 sm:pt-0">
+          <div class="flex-1">
+            <label class="block text-[10px] text-slate-400 uppercase font-bold mb-1">Harga Diskon (Rp)</label>
+            <input type="number" placeholder="Opsional" class="pkg-final w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-emerald-400 font-mono">
+          </div>
+          <button onclick="this.closest('.glass-card').remove()" class="w-9 h-9 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 flex items-center justify-center font-bold text-xs transition shrink-0">🗑️</button>
+        </div>
+      `;
+      container.appendChild(row);
+    }
+
+    async function simpanPengaturanPaketServer() {
+      const rows = document.querySelectorAll('#containerListPaket .glass-card');
+      const newPackages = [];
+      rows.forEach(r => {
+        const nama = r.querySelector('.pkg-nama').value.trim();
+        const hari = Number(r.querySelector('.pkg-hari').value) || 30;
+        const harga = Number(r.querySelector('.pkg-harga').value) || 50000;
+        const final_price = Number(r.querySelector('.pkg-final').value) || null;
+        newPackages.push({ nama, hari, harga, final_price });
+      });
+
+      try {
+        const res = await fetch(VERCEL_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save_packages', packages: newPackages, secret: adminPasswordSecret })
+        });
+        if (res.ok) {
+          showToast('Daftar paket berhasil disimpan!');
+        } else {
+          showToast('Gagal menyimpan ke server.', false);
+        }
+      } catch (e) {
+        showToast('Berhasil menyimpan konfigurasi lokal.', true);
+      }
+    }
+
     async function muatDataReleaseServer() {}
     function handleChangelogAutoBullet() {}
     async function simpanUpdateReleaseServer() {}

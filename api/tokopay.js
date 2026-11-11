@@ -433,7 +433,12 @@ export default async function handler(req, res) {
           })
         });
 
-        if (!insertRes.ok) throw new Error('Gagal menyimpan voucher.');
+        const responseText = await insertRes.text();
+        
+        if (!insertRes.ok) {
+          console.error('[Supabase Voucher Error Response]:', responseText);
+          return res.status(500).json({ error: 'Gagal menyimpan voucher ke database: ' + responseText });
+        }
 
         return res.status(200).json({
           success: true,
@@ -441,7 +446,8 @@ export default async function handler(req, res) {
           message: `Voucher berhasil dibuat untuk perangkat ${targetDevId}`
         });
       } catch (err) {
-        return res.status(500).json({ error: 'Gagal membuat kode voucher.' });
+        console.error('[Generate Voucher Exception]:', err);
+        return res.status(500).json({ error: 'Terjadi kesalahan server saat membuat voucher.' });
       }
     }
 

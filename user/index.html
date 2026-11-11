@@ -344,22 +344,8 @@
 
       <div class="flex-1 overflow-y-auto px-4 py-6 space-y-1.5 scrollbar-none">
         
-        <!-- USER PORTAL MENU SECTION -->
-        <div id="sectionUserMenu" class="space-y-1.5">
-          <div class="text-[10px] font-extrabold text-slate-500 uppercase px-3 mb-2 tracking-wider">User Portal</div>
-          <button onclick="bukaSubView('services')" id="navServices" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-brand-500/15 text-brand-400 text-xs font-bold transition border border-brand-500/30 shadow-sm">
-            <span class="text-base">⚡</span> Layanan Aktif
-          </button>
-          <button onclick="bukaSubView('voucher')" id="navVoucher" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
-            <span class="text-base">🎫</span> Klaim Voucher
-          </button>
-          <button onclick="bukaSubView('profile')" id="navProfile" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
-            <span class="text-base">⚙️</span> Pengaturan Profil
-          </button>
-        </div>
-
         <!-- ADMIN & DEVELOPER MENU SECTION -->
-        <div id="sectionAdminMenu" class="space-y-1.5 pt-4">
+        <div id="sectionAdminMenu" class="space-y-1.5">
           <div class="text-[10px] font-extrabold text-slate-500 uppercase px-3 mb-2 tracking-wider">Admin Navigation</div>
           
           <button onclick="bukaSubView('overview')" id="navOverview" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
@@ -374,8 +360,8 @@
         </div>
 
         <!-- SYSTEM CONFIG SECTION (DEVELOPER ONLY) -->
-        <div id="sectionSystemConfig" class="space-y-1.5">
-          <div class="text-[10px] font-extrabold text-amber-500 uppercase px-3 mt-4 mb-2 tracking-wider">System Config</div>
+        <div id="sectionSystemConfig" class="space-y-1.5 pt-4">
+          <div class="text-[10px] font-extrabold text-amber-500 uppercase px-3 mb-2 tracking-wider">System Config</div>
           <button onclick="bukaSubView('packages')" id="navPackages" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
             <span class="text-base">📦</span> Pricing Plans
           </button>
@@ -384,7 +370,21 @@
           </button>
         </div>
 
-      </div>
+        <!-- USER PORTAL MENU SECTION -->
+        <div id="sectionUserMenu" class="space-y-1.5 pt-4">
+          <div class="text-[10px] font-extrabold text-slate-500 uppercase px-3 mb-2 tracking-wider">User Portal</div>
+          <button onclick="bukaSubView('services')" id="navServices" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-brand-500/15 text-brand-400 text-xs font-bold transition border border-brand-500/30 shadow-sm">
+            <span class="text-base">⚡</span> Layanan Aktif
+          </button>
+          <button onclick="bukaSubView('voucher')" id="navVoucher" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
+            <span class="text-base">🎫</span> Klaim Voucher
+          </button>
+          <button onclick="bukaSubView('profile')" id="navProfile" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
+            <span class="text-base">⚙️</span> Pengaturan Profil
+          </button>
+        </div>
+
+</div>
 
       <div class="p-4 border-t border-slate-800/80">
         <button onclick="logoutUser()" class="w-full bg-red-500/10 hover:bg-red-500/20 active:scale-95 text-red-400 py-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 border border-red-500/20">
@@ -1551,81 +1551,100 @@
     }
 
     function applyRolePermissions(role) {
-      const adminMenu = document.getElementById('sectionAdminMenu');
-      const systemConfig = document.getElementById('sectionSystemConfig');
-      const userMenu = document.getElementById('sectionUserMenu');
-      const roleBadge = document.getElementById('userRoleBadge');
+    const adminMenu = document.getElementById('sectionAdminMenu');
+    const systemConfig = document.getElementById('sectionSystemConfig');
+    const userMenu = document.getElementById('sectionUserMenu');
+    const roleBadge = document.getElementById('userRoleBadge');
+    
+    // Ambil elemen tombol navigasi spesifik di User Portal
+    const navServices = document.getElementById('navServices');
+    const navVoucher = document.getElementById('navVoucher');
+    
+    const devVoucherBox = document.getElementById('developerVoucherBox');
+    const devEditControls = document.getElementById('developerEditControls');
+    const btnSaveConfig = document.getElementById('btnSaveConfig');
+    const btnDeleteLicense = document.getElementById('btnDeleteLicense');
+    const extensionSection = document.getElementById('extensionSection');
+
+    const editSppgContainer = document.getElementById('editSppgName')?.closest('div');
+    const aksiCepatContainer = document.querySelector('button[onclick*="tambahHari"]')?.closest('div')?.parentElement;
+    const manualExpContainer = document.getElementById('editExpDate')?.closest('div');
+    const licenseStatusContainer = document.getElementById('editStatus')?.closest('div');
+
+    roleBadge.textContent = role.toUpperCase();
+    
+    if (role === 'developer') {
+      adminMenu.style.display = 'block';
+      systemConfig.style.display = 'block';
+      userMenu.style.display = 'block';
       
-      const devVoucherBox = document.getElementById('developerVoucherBox');
-      const devEditControls = document.getElementById('developerEditControls');
-      const btnSaveConfig = document.getElementById('btnSaveConfig');
-      const btnDeleteLicense = document.getElementById('btnDeleteLicense');
-      const extensionSection = document.getElementById('extensionSection');
+      // SEMBUNYIKAN menu Layanan Aktif & Klaim Voucher untuk Developer
+      if (navServices) navServices.style.display = 'none';
+      if (navVoucher) navVoucher.style.display = 'none';
 
-      const editSppgContainer = document.getElementById('editSppgName')?.closest('div');
-      const aksiCepatContainer = document.querySelector('button[onclick*="tambahHari"]')?.closest('div')?.parentElement;
-      const manualExpContainer = document.getElementById('editExpDate')?.closest('div');
-      const licenseStatusContainer = document.getElementById('editStatus')?.closest('div');
-
-      roleBadge.textContent = role.toUpperCase();
+      roleBadge.className = 'text-[10px] uppercase font-bold text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20';
       
-      if (role === 'developer') {
-        adminMenu.style.display = 'block';
-        systemConfig.style.display = 'block';
-        userMenu.style.display = 'block';
-        roleBadge.className = 'text-[10px] uppercase font-bold text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20';
-        
-        if (devVoucherBox) devVoucherBox.style.display = 'block';
-        if (devEditControls) devEditControls.style.display = 'block';
-        if (btnSaveConfig) btnSaveConfig.style.display = 'block';
-        if (btnDeleteLicense) btnDeleteLicense.style.display = 'block';
-        if (extensionSection) extensionSection.style.display = 'none';
+      if (devVoucherBox) devVoucherBox.style.display = 'block';
+      if (devEditControls) devEditControls.style.display = 'block';
+      if (btnSaveConfig) btnSaveConfig.style.display = 'block';
+      if (btnDeleteLicense) btnDeleteLicense.style.display = 'block';
+      if (extensionSection) extensionSection.style.display = 'none';
 
-        if (editSppgContainer) editSppgContainer.style.display = 'block';
-        if (aksiCepatContainer) aksiCepatContainer.style.display = 'block';
-        if (manualExpContainer) manualExpContainer.style.display = 'block';
-        if (licenseStatusContainer) licenseStatusContainer.style.display = 'block';
+      if (editSppgContainer) editSppgContainer.style.display = 'block';
+      if (aksiCepatContainer) aksiCepatContainer.style.display = 'block';
+      if (manualExpContainer) manualExpContainer.style.display = 'block';
+      if (licenseStatusContainer) licenseStatusContainer.style.display = 'block';
 
-        gantiView('viewDashboardApp');
-        bukaSubView('overview');
+      gantiView('viewDashboardApp');
+      bukaSubView('overview');
 
-      } else if (role === 'admin') {
-        adminMenu.style.display = 'block';
-        systemConfig.style.display = 'none';
-        userMenu.style.display = 'block';
-        roleBadge.className = 'text-[10px] uppercase font-bold text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-lg border border-indigo-500/20';
-        
-        if (devVoucherBox) devVoucherBox.style.display = 'none';
-        if (devEditControls) devEditControls.style.display = 'block';
-        
-        if (editSppgContainer) editSppgContainer.style.display = 'none';
-        if (aksiCepatContainer) aksiCepatContainer.style.display = 'none';
-        if (manualExpContainer) manualExpContainer.style.display = 'none';
-        if (licenseStatusContainer) licenseStatusContainer.style.display = 'block';
+    } else if (role === 'admin') {
+      adminMenu.style.display = 'block';
+      systemConfig.style.display = 'none';
+      userMenu.style.display = 'block';
+      
+      // SEMBUNYIKAN menu Layanan Aktif & Klaim Voucher untuk Admin
+      if (navServices) navServices.style.display = 'none';
+      if (navVoucher) navVoucher.style.display = 'none';
 
-        if (btnSaveConfig) btnSaveConfig.style.display = 'block';
-        if (btnDeleteLicense) btnDeleteLicense.style.display = 'none';
-        if (extensionSection) extensionSection.style.display = 'none';
+      roleBadge.className = 'text-[10px] uppercase font-bold text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-lg border border-indigo-500/20';
+      
+      if (devVoucherBox) devVoucherBox.style.display = 'none';
+      if (devEditControls) devEditControls.style.display = 'block';
+      
+      if (editSppgContainer) editSppgContainer.style.display = 'none';
+      if (aksiCepatContainer) aksiCepatContainer.style.display = 'none';
+      if (manualExpContainer) manualExpContainer.style.display = 'none';
+      if (licenseStatusContainer) licenseStatusContainer.style.display = 'block';
 
-        gantiView('viewDashboardApp');
-        bukaSubView('overview');
+      if (btnSaveConfig) btnSaveConfig.style.display = 'block';
+      if (btnDeleteLicense) btnDeleteLicense.style.display = 'none';
+      if (extensionSection) extensionSection.style.display = 'none';
 
-      } else {
-        adminMenu.style.display = 'none';
-        systemConfig.style.display = 'none';
-        userMenu.style.display = 'block';
-        roleBadge.className = 'text-[10px] uppercase font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20';
-        
-        if (devVoucherBox) devVoucherBox.style.display = 'none';
-        if (devEditControls) devEditControls.style.display = 'none';
-        if (btnSaveConfig) btnSaveConfig.style.display = 'none';
-        if (btnDeleteLicense) btnDeleteLicense.style.display = 'none';
-        if (extensionSection) extensionSection.style.display = 'block';
+      gantiView('viewDashboardApp');
+      bukaSubView('overview');
 
-        gantiView('viewDashboardApp');
-        bukaSubView('services');
-      }
+    } else {
+      adminMenu.style.display = 'none';
+      systemConfig.style.display = 'none';
+      userMenu.style.display = 'block';
+      
+      // TAMPILKAN kembali menu Layanan Aktif & Klaim Voucher untuk User biasa
+      if (navServices) navServices.style.display = 'flex';
+      if (navVoucher) navVoucher.style.display = 'flex';
+
+      roleBadge.className = 'text-[10px] uppercase font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20';
+      
+      if (devVoucherBox) devVoucherBox.style.display = 'none';
+      if (devEditControls) devEditControls.style.display = 'none';
+      if (btnSaveConfig) btnSaveConfig.style.display = 'none';
+      if (btnDeleteLicense) btnDeleteLicense.style.display = 'none';
+      if (extensionSection) extensionSection.style.display = 'block';
+
+      gantiView('viewDashboardApp');
+      bukaSubView('services');
     }
+  }
 
     function logoutUser() {
       activeUserSession = null;

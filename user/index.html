@@ -193,8 +193,8 @@
       <div id="formTabRegister" class="auth-tab-content space-y-3.5 text-left">
         <div id="registerErrorMsg" class="hidden p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold leading-relaxed"></div>
         <div>
-          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1 tracking-wider">Username (6-16 Karakter)</label>
-          <input type="text" id="regUsername" minlength="6" maxlength="16" placeholder="mindspace" oninput="this.value = this.value.toLowerCase()" class="w-full px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition font-mono lowercase">
+          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1 tracking-wider">Username (3-24 Karakter)</label>
+          <input type="text" id="regUsername" minlength="3" maxlength="24" placeholder="mindspace" oninput="this.value = this.value.toLowerCase()" class="w-full px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition font-mono lowercase">
         </div>
         <div>
           <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1 tracking-wider">Email Address</label>
@@ -202,7 +202,7 @@
         </div>
         <div>
           <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1 tracking-wider">Password</label>
-          <input type="password" id="regPassword" minlength="6" maxlength="16" placeholder="••••••••••••" oninput="validatePasswordStrength(this.value, 'regPasswordStrength')" class="w-full px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
+          <input type="password" id="regPassword" minlength="8" maxlength="32" placeholder="••••••••••••" oninput="validatePasswordStrength(this.value, 'regPasswordStrength')" class="w-full px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
           
           <div id="regPasswordStrength" class="mt-2.5 space-y-1.5 p-3 rounded-2xl bg-slate-900/90 border border-slate-800 text-[11px]">
             <div data-rule="length" class="flex items-center gap-2 text-red-400 transition-colors">
@@ -219,7 +219,7 @@
             </div>
             <div data-rule="special" class="flex items-center gap-2 text-red-400 transition-colors">
               <span class="indicator-icon font-bold">❌</span>
-              <span>Minimal 1 karakter spesial (@$!%*?& dll.)</span>
+              <span>Minimal 1 karakter spesial</span>
             </div>
           </div>
         </div>
@@ -262,7 +262,7 @@
         </div>
         <div>
           <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Password Baru</label>
-          <input type="password" id="resetNewPassword" minlength="6" maxlength="16" placeholder="••••••••••••" oninput="validatePasswordStrength(this.value, 'resetPasswordStrength')" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
+          <input type="password" id="resetNewPassword" minlength="8" maxlength="32" placeholder="••••••••••••" oninput="validatePasswordStrength(this.value, 'resetPasswordStrength')" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
           
           <div id="resetPasswordStrength" class="mt-2.5 space-y-1.5 p-3 rounded-2xl bg-slate-900/90 border border-slate-800 text-[11px]">
             <div data-rule="length" class="flex items-center gap-2 text-red-400 transition-colors">
@@ -285,7 +285,7 @@
         </div>
         <div>
           <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Konfirmasi Password Baru</label>
-          <input type="password" id="resetConfirmPassword" minlength="6" maxlength="16" placeholder="••••••••••••" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
+          <input type="password" id="resetConfirmPassword" minlength="8" maxlength="32" placeholder="••••••••••••" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
         </div>
         <button id="btnSubmitResetPassword" onclick="prosesResetPasswordBaru()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 active:scale-[0.99] text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-xl shadow-emerald-500/20 transition">
           Simpan Password Baru
@@ -334,7 +334,6 @@
       </div>
 
       <div class="flex-1 overflow-y-auto px-4 py-6 space-y-1.5 scrollbar-none">
-        
         <!-- USER PORTAL MENU SECTION -->
         <div id="sectionUserMenu" class="space-y-1.5">
           <div class="text-[10px] font-extrabold text-slate-500 uppercase px-3 mb-2 tracking-wider">User Portal</div>
@@ -349,7 +348,6 @@
         <!-- ADMIN & DEVELOPER MENU SECTION -->
         <div id="sectionAdminMenu" class="space-y-1.5 pt-4">
           <div class="text-[10px] font-extrabold text-slate-500 uppercase px-3 mb-2 tracking-wider">Admin Navigation</div>
-          
           <button onclick="bukaSubView('overview')" id="navOverview" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
             <span class="text-base">⊞</span> Overview
           </button>
@@ -371,7 +369,6 @@
             <span class="text-base">🚀</span> Cloud Updater
           </button>
         </div>
-
       </div>
 
       <div class="p-4 border-t border-slate-800/80">
@@ -405,7 +402,6 @@
             <h2 class="text-xl font-extrabold text-white mb-1">Status Lisensi & System Health</h2>
             <p class="text-slate-400 text-xs max-w-md leading-relaxed">Pantau status aktif lisensi perangkat dan parameter sinkronisasi sistem Anda secara otomatis.</p>
           </div>
-
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="containerUserServices">
             <div class="text-center text-slate-500 text-xs py-10 col-span-2">Memuat data layanan...</div>
           </div>
@@ -421,18 +417,15 @@
                 <p class="text-xs text-slate-400">Aktifkan atau perpanjang masa aktif perangkat Anda.</p>
               </div>
             </div>
-
             <div class="space-y-4 text-left">
               <div>
                 <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Device ID Perangkat</label>
                 <input type="text" id="inputRedeemDeviceId" placeholder="Contoh: DEV-9BE2-DA4E" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm font-mono uppercase outline-none focus:border-brand-500 transition">
               </div>
-
               <div>
                 <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Kode Voucher Lisensi</label>
                 <input type="text" id="inputRedeemVoucher" placeholder="Contoh: MIND-XXXXXX-XXXXXX" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm font-mono uppercase outline-none focus:border-brand-500 transition">
               </div>
-
               <button id="btnRedeemVoucher" onclick="prosesKlaimVoucher()" class="w-full bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 active:scale-[0.99] text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-xl shadow-brand-500/30 transition duration-200 mt-2">
                 ⚡ Redeem Voucher Sekarang
               </button>
@@ -479,7 +472,6 @@
                   <button id="btnTf1m" onclick="setRevenueTimeframe('1m')" class="px-3 py-1 rounded-lg text-slate-400 hover:text-white transition">1m</button>
                 </div>
               </div>
-              
               <div class="w-full bg-slate-900/50 p-3 sm:p-5 rounded-2xl border border-slate-800/80 overflow-x-auto scrollbar-none">
                 <div id="chartBarsContainer" class="w-full min-w-[320px] flex items-end justify-between h-44 sm:h-48 pt-6 border-b border-slate-800/80 px-1 sm:px-2 gap-1 sm:gap-1.5"></div>
               </div>
@@ -498,7 +490,6 @@
                   <span id="heartbeatLiveValue" class="text-[11px] font-mono font-extrabold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-lg">-- ms</span>
                 </div>
                 <p class="text-[11px] text-slate-400 leading-relaxed">Seluruh sistem, database lisensi, dan updater berjalan normal secara otomatis.</p>
-                
                 <div class="w-full bg-slate-950/80 rounded-2xl p-3 border border-slate-800/80 relative">
                   <div class="flex items-center justify-between text-[9px] font-mono text-slate-500 mb-1">
                     <span>LIVE LATENCY MONITOR</span>
@@ -514,7 +505,6 @@
                   </div>
                 </div>
               </div>
-
               <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between">
                 <span class="text-xs font-semibold text-slate-400">System Engine:</span>
                 <span id="systemEngineBadge" class="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold rounded-xl text-xs">Online</span>
@@ -750,11 +740,9 @@
               </div>
               <button onclick="tambahBarisPaketForm()" class="bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-bold px-4 py-3.5 rounded-2xl text-xs sm:text-sm transition shadow-lg shadow-brand-500/20 flex items-center justify-center gap-1.5">+ Tambah Paket</button>
             </div>
-            
             <div id="containerListPaket" class="space-y-4 max-h-[550px] overflow-y-auto pr-1">
               <div class="text-center text-slate-500 text-xs py-10">Memuat paket dari database API...</div>
             </div>
-            
             <div class="flex gap-3 pt-4 border-t border-slate-800">
               <button onclick="simpanPengaturanPaketServer()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white py-3.5 px-6 rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2">💾 Simpan Paket & Diskon</button>
               <button onclick="bukaSubView('overview')" class="w-32 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 py-3.5 px-5 rounded-2xl text-xs sm:text-sm font-bold transition border border-slate-700 flex items-center justify-center gap-2"><span>🏠</span> Menu</button>
@@ -944,26 +932,6 @@
       return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
     }
 
-    function getTodayLocalISO() {
-      const now = new Date();
-      const yyyy = now.getFullYear();
-      const mm = String(now.getMonth() + 1).padStart(2, '0');
-      const dd = String(now.getDate()).padStart(2, '0');
-      return `${yyyy}-${mm}-${dd}`;
-    }
-
-    function formatWaktuRelatif(dateStr) {
-      if (!dateStr) return '-';
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return dateStr;
-      const now = new Date();
-      const diffSec = Math.floor((now - d) / 1000);
-      if (diffSec < 60) return 'Baru saja';
-      if (diffSec < 3600) return `${Math.floor(diffSec / 60)} menit lalu`;
-      if (diffSec < 86400) return `${Math.floor(diffSec / 3600)} jam lalu`;
-      return formatTanggalIndo(dateStr);
-    }
-
     function toggleSidebarMobile(show) {
       const sidebar = document.getElementById('sidebar');
       const backdrop = document.getElementById('sidebarBackdrop');
@@ -1098,20 +1066,14 @@
     }
 
     async function sendVerificationEmail(to, code, username, action) {
-      try {
-        const res = await fetch(VERCEL_API_URL.replace('/tokopay', '/config'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action, to, code, username })
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          throw new Error(data.error || 'Gagal mengirim email verifikasi via SMTP.');
-        }
-        return data;
-      } catch (err) {
-        throw err;
-      }
+      const res = await fetch(VERCEL_API_URL.replace('/tokopay', '/config'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, to, code, username })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Gagal mengirim email verifikasi.');
+      return data;
     }
 
     function showAuthError(containerId, msg) {
@@ -1144,7 +1106,6 @@
 
       try {
         const supabase = await initSupabaseEnvConfig();
-
         const { data: existingUsernames } = await supabase.from('user_accounts').select('id').eq('username', username).limit(1);
         if (existingUsernames && existingUsernames.length > 0) {
           showAuthError('registerErrorMsg', 'Username telah terpakai.');
@@ -1205,7 +1166,6 @@
         const expiryDate = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
         await sendVerificationEmail(email, resetCode, userData.username || 'Pengguna', 'send_reset_password_email');
-
         await supabase.from('user_accounts').update({ verification_code: resetCode, verification_expiry: expiryDate }).eq('id', userData.id);
 
         pendingResetEmail = email;
@@ -1511,7 +1471,7 @@
       const chartData = globalStatsData.chart_harian || [0,0,0,0,0,0,0];
       const maxVal = Math.max(...chartData, 1000);
 
-      chartData.forEach((val, idx) => {
+      chartData.forEach((val) => {
         const group = document.createElement('div');
         group.className = 'flex flex-col items-center shrink-0 flex-1 h-full justify-end group/bar relative min-w-[12px]';
         const tinggi = Math.max(8, Math.round((val / maxVal) * 80));
@@ -1548,7 +1508,7 @@
       container.innerHTML = '';
       filtered.forEach(u => {
         const div = document.createElement('div');
-        div.className = 'bg-slate-900/60 p-4 rounded-2xl flex justify-between items-center cursor-pointer';
+        div.className = 'bg-slate-900/60 p-4 rounded-2xl flex justify-between items-center cursor-pointer hover:border-brand-500/40 border border-slate-800 transition';
         div.innerHTML = `<div><div class="text-xs font-mono text-brand-400">${u.device_id}</div><div class="text-sm font-bold text-white">${u.sppg_name || 'Client'}</div></div>`;
         div.onclick = () => { currentLicenseData = u; bukaSubView('detail'); renderDetail(); };
         container.appendChild(div);
@@ -1637,14 +1597,14 @@
         const data = await res.json();
         const list = data.packages || [];
         container.innerHTML = '';
-        list.forEach(p => tambahBarisPaketFormInput(p.nama, p.hari, p.harga, p.discount_type, p.discount_value, p.discount_until));
+        list.forEach(p => tambahBarisPaketFormInput(p.nama, p.hari, p.harga));
       } catch (e) {
         container.innerHTML = '<div class="text-center py-6 text-xs text-red-400">Gagal memuat paket.</div>';
       }
     }
 
-    function tambahBarisPaketForm() { tambahBarisPaketFormInput('Paket Baru', 30, 50000, 'none', '', ''); }
-    function tambahBarisPaketFormInput(nama, hari, harga, type, val, until) {
+    function tambahBarisPaketForm() { tambahBarisPaketFormInput('Paket Baru', 30, 50000); }
+    function tambahBarisPaketFormInput(nama, hari, harga) {
       const container = document.getElementById('containerListPaket');
       const div = document.createElement('div');
       div.className = 'package-item-row p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-2 text-xs';
@@ -1697,6 +1657,20 @@
     }
     function exportLicensesCSV() { showToast('Export CSV siap.'); }
     function processImportFile() {}
+    function updateBulkToolbarUI() {}
+    function renderExpiringRadar() {}
+    function updateLicenseRatio() {}
+    function previewBackupCloud() {}
+    function downloadBackupCloud() {}
+    function hapusBackupCloudWithModal() {}
+    function closeJsonPreviewModal() {}
+    function copyJsonPreview() {}
+    function bulkExtendDuration() {}
+    function bulkUpdateStatus() {}
+    function bulkDeleteLicensesWithModal() {}
+    function toggleSelectAllDevices() {}
+    function hapusLisensiWithModal() {}
+    function eksekusiOperDeviceWithModal() {}
   </script>
 </body>
 </html>

@@ -2159,7 +2159,12 @@
     }
 
     async function generateVoucherDevice(hari) {
-      if (!currentLicenseData || !currentLicenseData.device_id) return;
+      if (!currentLicenseData || !currentLicenseData.device_id) {
+        return showToast('Pilih perangkat terlebih dahulu!', false);
+      }
+
+      showToast('Membuat kode voucher...', true);
+
       try {
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
@@ -2171,21 +2176,30 @@
             secret: adminPasswordSecret
           })
         });
+
         const data = await res.json().catch(() => ({}));
-        if (res.ok && data.code) {
-          document.getElementById('dispGeneratedVoucher').value = data.code;
+
+        // Perbaiki pengecekan agar mendeteksi data.code atau data.success
+        if (res.ok && (data.code || data.success)) {
+          const voucherCode = data.code || data.voucher || 'MIND-VOUCHER';
+          const inputEl = document.getElementById('dispGeneratedVoucher');
+          if (inputEl) inputEl.value = voucherCode;
           showToast(`Voucher ${hari} Hari Berhasil Dibuat!`);
         } else {
           showToast(data.error || 'Gagal membuat voucher.', false);
         }
       } catch (e) {
-        showToast('Terjadi kesalahan saat generate voucher.', false);
+        console.error('Generate Voucher Error:', e);
+        showToast('Terjadi kesalahan koneksi saat generate voucher.', false);
       }
     }
 
     function salinVoucherDevice() {
-      const code = document.getElementById('dispGeneratedVoucher').value;
-      salinTextToClipboard(code, 'Kode voucher disalin!');
+      const codeInput = document.getElementById('dispGeneratedVoucher');
+      if (!codeInput || !codeInput.value) {
+        return showToast('Belum ada kode voucher yang digenerate.', false);
+      }
+      salinTextToClipboard(codeInput.value, 'Kode voucher disalin!');
     }
 
     function tambahHari(jumlahHari) {

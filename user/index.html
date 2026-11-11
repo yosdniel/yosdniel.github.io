@@ -1928,28 +1928,104 @@
     }
 
     function initLiveHeartbeatGraph() {
-      if (heartbeatInterval) clearInterval(heartbeatInterval);
-      const canvas = document.getElementById('heartbeatCanvas');
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d');
-      const rect = canvas.getBoundingClientRect();
-      canvas.width = rect.width * (window.devicePixelRatio || 1);
-      canvas.height = rect.height * (window.devicePixelRatio || 1);
-      ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
-
-      heartbeatInterval = setInterval(async () => {
-        const start = performance.now();
-        let ping = 35;
-        try {
-          await fetch(`${VERCEL_API_URL}?action=check_license&device_id=PING`, { cache: 'no-store' });
-          ping = Math.round(performance.now() - start);
-        } catch(e) { ping = 120; }
-        heartbeatPoints.shift(); heartbeatPoints.push(ping);
-        const hbVal = document.getElementById('heartbeatLiveValue');
-        if (hbVal) hbVal.textContent = `${ping} ms`;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-      }, 1000);
+    if (heartbeatInterval) clearInterval(heartbeatInterval);
+    const canvas = document.getElementById('heartbeatCanvas');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    
+    // Pastikan canvas memiliki ukuran piksel yang sesuai dengan container-nya
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) {
+      // Jika tab overview masih tersembunyi, tunda inisialisasi sebentar
+      setTimeout(initLiveHeartbeatGraph, 300);
+      return;
     }
+
+    canvas.width = rect.width * (window.devicePixelRatio || 1);
+    canvas.height = rect.height * (window.devicePixelRatio || 1);
+    ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+
+    heartbeatInterval = setInterval(async () => {
+      const start = performance.now();
+      let ping = 35;
+      try {
+        await fetch(`${VERCEL_API_URL}?action=check_license&device_id=PING`, { cache: 'no-store' });
+        ping = Math.round(performance.now() - start);
+      } catch(e) { 
+        ping = 120; // fallback jika timeout/error 
+      }
+
+      heartbeatPoints.shift(); 
+      heartbeatPoints.push(ping);
+
+      // Hitung Min, Avg, Max untuk ditampilkan di bawah grafik
+      const minPing = Math.min(...heartbeatPoints);
+      const maxPing = Math.max(...heartbeatPoints);
+      const avgPing = Math.round(heartbeatPoints.reduce((a, b) => a + b, 0) / heartbeatPoints.length);
+
+      const minEl = document.getElementById('hbMinMs');
+      const avgEl = document.getElementById('hbAvgMs');
+      const maxEl = document.getElementById('hbMaxMs');
+      if (minEl) minEl.textContent = `Min: ${minPing}`;
+      if (avgEl) avgEl.textContent = `Avg: ${avgPing}`;
+      if (maxEl) maxEl.textContent = `Max: ${maxPing}`;
+
+      const hbVal = document.getElementById('heartbeatLiveValue');
+      const dot = document.getElementById('heartbeatDot');
+      const pulseRing = document.getElementById('heartbeatPulseRing');
+
+      if (hbVal) {
+        hbVal.textContent = `${ping} ms`;
+        
+        let colorClass = 'bg-emerald-500';
+        let ringClass = 'bg-emerald-400';
+
+        if (ping >= 100 && ping < 300) {
+          colorClass = 'bg-amber-500';
+          ringClass = 'bg-amber-400';
+        } else if (ping >= 300) {
+          colorClass = 'bg-red-500';
+          ringClass = 'bg-red-400';
+        }
+
+        // Update kelas warna titik dan cincin denyut
+        if (dot) dot.className = `relative inline-flex rounded-full h-3 w-3 ${colorClass}`;
+        if (pulseRing) pulseRing.className = `animate-ping absolute inline-flex h-full w-full rounded-full ${ringClass} opacity-75`;
+
+        // Update warna badge teks
+        if (ping < 100) {
+          hbVal.className = 'text-[11px] font-mono font-extrabold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-lg';
+        } else if (ping < 300) {
+          hbVal.className = 'text-[11px] font-mono font-extrabold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-lg';
+        } else {
+          hbVal.className = 'text-[11px] font-mono font-extrabold text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded-lg';
+        }
+      }
+
+      // Render Visual Grafik ke Canvas
+      const w = rect.width;
+      const h = rect.height;
+      ctx.clearRect(0, 0, w, h);
+
+      const maxLimit = Math.max(200, ...heartbeatPoints);
+      const stepX = w / (heartbeatPoints.length - 1);
+
+      // Gambar Garis Grafik
+      ctx.beginPath();
+      ctx.strokeStyle = '#34d399'; // Warna emerald
+      ctx.lineWidth = 2;
+
+      heartbeatPoints.forEach((val, idx) => {
+        const x = idx * stepX;
+        const y = h - (val / maxLimit) * (h - 10) - 5;
+        if (idx === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+    }, 1000);
+  }
 
     function checkSystemHealth() { initLiveHeartbeatGraph(); }
 

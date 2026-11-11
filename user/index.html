@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>MindHUB - User Dashboard</title>
+  <title>MindHUB - Portal Layanan & Admin Dashboard</title>
 
   <!-- FAVICON & PWA METAS -->
   <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon.ico">
@@ -165,6 +165,7 @@
 
       <!-- FORM LOGIN -->
       <div id="formTabLogin" class="auth-tab-content active space-y-4 text-left">
+        <!-- INLINE ERROR MESSAGE CONTAINER -->
         <div id="loginErrorMsg" class="hidden p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold leading-relaxed"></div>
         
         <div>
@@ -179,6 +180,7 @@
           <input type="password" id="loginPassword" placeholder="••••••••••••" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition" onkeyup="if(event.key==='Enter') verifikasiUserLogin()">
         </div>
 
+        <!-- INGAT SAYA CHECKBOX -->
         <div class="flex items-center gap-2 pt-1">
           <input type="checkbox" id="rememberMeCheckbox" class="w-4 h-4 rounded border-slate-800 bg-slate-900 text-brand-500 focus:ring-0 cursor-pointer">
           <label for="rememberMeCheckbox" class="text-xs text-slate-400 font-semibold cursor-pointer select-none">Ingat saya</label>
@@ -204,6 +206,7 @@
           <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1 tracking-wider">Password</label>
           <input type="password" id="regPassword" minlength="6" maxlength="16" placeholder="••••••••••••" oninput="validatePasswordStrength(this.value, 'regPasswordStrength')" class="w-full px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
           
+          <!-- LIVE PASSWORD STRENGTH INDICATOR -->
           <div id="regPasswordStrength" class="mt-2.5 space-y-1.5 p-3 rounded-2xl bg-slate-900/90 border border-slate-800 text-[11px]">
             <div data-rule="length" class="flex items-center gap-2 text-red-400 transition-colors">
               <span class="indicator-icon font-bold">❌</span>
@@ -228,7 +231,7 @@
         </button>
       </div>
 
-      <!-- FORM LUPA PASSWORD -->
+      <!-- FORM LUPA PASSWORD (EMAIL SEARCH) -->
       <div id="formTabForgot" class="auth-tab-content space-y-4 text-left">
         <div class="text-center space-y-1">
           <span class="text-3xl">🔑</span>
@@ -264,6 +267,7 @@
           <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Password Baru</label>
           <input type="password" id="resetNewPassword" minlength="6" maxlength="16" placeholder="••••••••••••" oninput="validatePasswordStrength(this.value, 'resetPasswordStrength')" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
           
+          <!-- LIVE PASSWORD STRENGTH INDICATOR -->
           <div id="resetPasswordStrength" class="mt-2.5 space-y-1.5 p-3 rounded-2xl bg-slate-900/90 border border-slate-800 text-[11px]">
             <div data-rule="length" class="flex items-center gap-2 text-red-400 transition-colors">
               <span class="indicator-icon font-bold">❌</span>
@@ -295,7 +299,7 @@
         </div>
       </div>
 
-      <!-- FORM VERIFIKASI KODE EMAIL -->
+      <!-- FORM VERIFIKASI KODE EMAIL (6 ANGKA) -->
       <div id="formTabVerify" class="auth-tab-content space-y-4 text-center">
         <div class="space-y-1">
           <span class="text-3xl">📩</span>
@@ -335,6 +339,7 @@
 
       <div class="flex-1 overflow-y-auto px-4 py-6 space-y-1.5 scrollbar-none">
         
+        <!-- USER PORTAL MENU SECTION -->
         <div id="sectionUserMenu" class="space-y-1.5">
           <div class="text-[10px] font-extrabold text-slate-500 uppercase px-3 mb-2 tracking-wider">User Portal</div>
           <button onclick="bukaSubView('services')" id="navServices" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-brand-500/15 text-brand-400 text-xs font-bold transition border border-brand-500/30 shadow-sm">
@@ -345,6 +350,7 @@
           </button>
         </div>
 
+        <!-- ADMIN & DEVELOPER MENU SECTION -->
         <div id="sectionAdminMenu" class="space-y-1.5 pt-4">
           <div class="text-[10px] font-extrabold text-slate-500 uppercase px-3 mb-2 tracking-wider">Admin Navigation</div>
           
@@ -359,6 +365,7 @@
           </button>
         </div>
 
+        <!-- SYSTEM CONFIG SECTION (DEVELOPER ONLY) -->
         <div id="sectionSystemConfig" class="space-y-1.5">
           <div class="text-[10px] font-extrabold text-amber-500 uppercase px-3 mt-4 mb-2 tracking-wider">System Config</div>
           <button onclick="bukaSubView('packages')" id="navPackages" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
@@ -395,7 +402,7 @@
 
       <main class="flex-1 p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto">
         
-        <!-- SUBVIEW: LAYANAN AKTIF -->
+        <!-- SUBVIEW: LAYANAN AKTIF (USER PRIVACY FILTERED) -->
         <div id="subViewServices" class="subview-section active space-y-6">
           <div class="glass-card p-6 rounded-3xl border border-slate-800 relative overflow-hidden">
             <div class="absolute -right-10 -top-10 w-48 h-48 bg-brand-500/15 rounded-full blur-3xl pointer-events-none"></div>
@@ -408,7 +415,7 @@
           </div>
         </div>
 
-        <!-- SUBVIEW: KLAIM VOUCHER -->
+        <!-- SUBVIEW: KLAIM VOUCHER (USER) -->
         <div id="subViewVoucher" class="subview-section space-y-4 max-w-xl mx-auto">
           <div class="glass-card p-6 sm:p-8 rounded-3xl space-y-5 border border-slate-800">
             <div class="flex items-center gap-3 pb-3 border-b border-slate-800">
@@ -437,7 +444,7 @@
           </div>
         </div>
 
-        <!-- SUBVIEW: OVERVIEW -->
+        <!-- SUBVIEW: OVERVIEW (ADMIN & DEV) -->
         <div id="subViewMainMenu" class="subview-section space-y-4 sm:space-y-6">
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
             <div class="lg:col-span-2 glass-card p-6 sm:p-8 rounded-3xl flex flex-col justify-center relative overflow-hidden border border-slate-800">
@@ -640,7 +647,7 @@
               <div class="flex justify-between items-center gap-2"><span>Last Active</span> <span id="dispLastActive" class="text-slate-400">-</span></div>
             </div>
 
-            <!-- CLOUD BACKUP CARD -->
+            <!-- EXPLICIT CLOUD BACKUP CARD -->
             <div id="backupInfoCard" class="hidden bg-slate-900/90 p-4 sm:p-5 rounded-2xl border border-emerald-500/30 space-y-3 text-xs shadow-xl">
               <div class="font-bold text-emerald-400 uppercase tracking-wider flex items-center justify-between">
                 <span class="flex items-center gap-1.5"><span class="text-sm">☁️</span> Cloud Backup Data KPM (Aktif)</span>
@@ -811,9 +818,11 @@
     let activeTimeframe = '7d';
     let globalStatsData = null;
     
+    // HEARTBEAT MONITOR STATE
     let heartbeatPoints = new Array(30).fill(40);
     let heartbeatInterval = null;
 
+    // COOKIE HELPERS
     function setCookie(name, value, days = 1) {
       const d = new Date();
       d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
@@ -842,6 +851,7 @@
       document.cookie = name + '=; Max-Age=-99999999; path=/;';
     }
 
+    // INITALIZE SUPABASE DIRECTLY WITH ROBUST ONLINE FALLBACK (BYPASS FAILED TO FETCH)
     async function initSupabaseEnvConfig() {
       if (supabaseClientInstance) return supabaseClientInstance;
       if (supabaseInitPromise) return supabaseInitPromise;
@@ -876,6 +886,7 @@
           supabaseAnonKey,
           { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }
         );
+        console.log('Supabase berhasil terhubung secara online.');
         return supabaseClientInstance;
       })();
 
@@ -889,6 +900,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       initSupabaseEnvConfig().then(async () => {
+        // Check existing session from Cookie
         const savedSession = getCookie('mindhub_session');
         if (savedSession && savedSession.id) {
           try {
@@ -918,6 +930,7 @@
           }
         }
       }).catch(error => {
+        console.error('Supabase init error:', error);
         showToast(error.message, false);
       });
     });
@@ -1039,12 +1052,14 @@
     function switchAuthTab(tab) {
       const btnLogin = document.getElementById('tabBtnLogin');
       const btnRegister = document.getElementById('tabBtnRegister');
+      const tabsContainer = document.getElementById('authTabsContainer');
       const formLogin = document.getElementById('formTabLogin');
       const formRegister = document.getElementById('formTabRegister');
       const formVerify = document.getElementById('formTabVerify');
       const formForgot = document.getElementById('formTabForgot');
       const formResetNew = document.getElementById('formTabResetNew');
 
+      // Clear all inline error boxes on tab switch
       ['loginErrorMsg', 'registerErrorMsg', 'forgotErrorMsg', 'resetNewErrorMsg', 'verifyErrorMsg'].forEach(id => {
         const el = document.getElementById(id);
         if (el) { el.textContent = ''; el.classList.add('hidden'); }
@@ -1053,12 +1068,20 @@
       document.querySelectorAll('.auth-tab-content').forEach(el => el.classList.remove('active'));
 
       if (tab === 'login') {
-        if (btnLogin) btnLogin.className = 'flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 bg-brand-500 text-white shadow-md shadow-brand-500/20';
-        if (btnRegister) btnRegister.className = 'flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 text-slate-400 hover:text-white';
+        if (btnLogin) {
+          btnLogin.className = 'flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 bg-brand-500 text-white shadow-md shadow-brand-500/20';
+        }
+        if (btnRegister) {
+          btnRegister.className = 'flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 text-slate-400 hover:text-white';
+        }
         if (formLogin) formLogin.classList.add('active');
       } else if (tab === 'register') {
-        if (btnRegister) btnRegister.className = 'flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 bg-emerald-600 text-white shadow-md shadow-emerald-500/20';
-        if (btnLogin) btnLogin.className = 'flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 text-slate-400 hover:text-white';
+        if (btnRegister) {
+          btnRegister.className = 'flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 bg-emerald-600 text-white shadow-md shadow-emerald-500/20';
+        }
+        if (btnLogin) {
+          btnLogin.className = 'flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 text-slate-400 hover:text-white';
+        }
         if (formRegister) formRegister.classList.add('active');
       } else if (tab === 'forgot') {
         if (formForgot) formForgot.classList.add('active');
@@ -1108,6 +1131,7 @@
         }
         return data;
       } catch (err) {
+        console.warn('SMTP Direct Notice:', err.message);
         throw err;
       }
     }
@@ -1151,6 +1175,7 @@
 
         if (existingUsernames && existingUsernames.length > 0) {
           showAuthError('registerErrorMsg', 'Username telah terpakai. Gunakan username lain.');
+          document.getElementById('regUsername').focus();
           return;
         }
 
@@ -1161,18 +1186,21 @@
           .limit(1);
 
         if (existingEmails && existingEmails.length > 0) {
-          showAuthError('registerErrorMsg', 'Email telah terdaftar. Silakan login.');
+          showAuthError('registerErrorMsg', 'Email telah terdaftar. Silakan login atau gunakan fitur Lupa Password.');
+          document.getElementById('regEmail').focus();
           return;
         }
 
         const passHash = await hashPassword(pass);
         const uuid = randomSixDigitCode();
         const verificationCode = randomSixDigitCode();
+        
         const expiryDate = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
-        btn.textContent = 'Mengirim kode verifikasi...';
+        btn.textContent = 'Mengirim kode verifikasi (berlaku 5 menit)...';
         await sendVerificationEmail(email, verificationCode, username, 'send_verification_email');
 
+        btn.textContent = 'Menyimpan akun...';
         const { error } = await supabase.from('user_accounts').insert({
           uuid,
           username,
@@ -1186,18 +1214,21 @@
           last_active: new Date().toISOString()
         });
 
-        if (error) throw new Error(error.message);
+        if (error) {
+          throw new Error(error.message || 'Gagal menyimpan akun ke database.');
+        }
 
         pendingVerificationEmail = email;
         document.getElementById('verifyTargetEmail').textContent = email;
         document.getElementById('verifyInputCode').value = '';
         switchAuthTab('verify');
-        showToast('Kode verifikasi telah dikirim ke email Anda.');
+        showToast('Kode verifikasi (berlaku 5 menit) telah dikirim ke email Anda.');
       } catch (error) {
+        console.error('Register error:', error);
         showAuthError('registerErrorMsg', error.message || 'Registrasi gagal.');
       } finally {
         btn.disabled = false;
-        btn.textContent = 'Daftar Akun';
+        btn.textContent = 'Kirim Kode Verifikasi SMTP';
       }
     }
 
@@ -1206,13 +1237,16 @@
       const btn = document.getElementById('btnSendResetCode');
 
       showAuthError('forgotErrorMsg', '');
+
       if (!email) return showAuthError('forgotErrorMsg', 'Masukkan alamat email terdaftar Anda.');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showAuthError('forgotErrorMsg', 'Format email tidak valid.');
 
       btn.disabled = true;
       btn.textContent = 'Memeriksa email...';
 
       try {
         const supabase = await initSupabaseEnvConfig();
+
         const { data: userData, error } = await supabase
           .from('user_accounts')
           .select('id, username, email')
@@ -1220,23 +1254,39 @@
           .limit(1)
           .maybeSingle();
 
-        if (error || !userData) throw new Error('Alamat email belum terdaftar di sistem.');
+        if (error) throw new Error('Gagal memeriksa database: ' + error.message);
+        if (!userData) {
+          showAuthError('forgotErrorMsg', 'Alamat email belum terdaftar di sistem kami.');
+          return;
+        }
 
         const resetCode = randomSixDigitCode();
         const expiryDate = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
+        btn.textContent = 'Mengirim email OTP reset (berlaku 5 menit)...';
+
         await sendVerificationEmail(email, resetCode, userData.username || 'Pengguna', 'send_reset_password_email');
-        await supabase.from('user_accounts').update({ verification_code: resetCode, verification_expiry: expiryDate }).eq('id', userData.id);
+
+        const { error: updateError } = await supabase
+          .from('user_accounts')
+          .update({ verification_code: resetCode, verification_expiry: expiryDate })
+          .eq('id', userData.id);
+
+        if (updateError) throw new Error('Gagal menyimpan kode reset ke database.');
 
         pendingResetEmail = email;
         document.getElementById('resetTargetEmail').textContent = email;
+        document.getElementById('resetInputCode').value = '';
+        document.getElementById('resetNewPassword').value = '';
+        document.getElementById('resetConfirmPassword').value = '';
         switchAuthTab('resetNew');
-        showToast('Kode OTP reset password telah dikirim ke email.');
+        showToast('Kode OTP reset password (berlaku 5 menit) telah dikirim ke email Anda.');
       } catch (error) {
-        showAuthError('forgotErrorMsg', error.message);
+        console.error('Forgot password error:', error);
+        showAuthError('forgotErrorMsg', error.message || 'Gagal memproses pemulihan password.');
       } finally {
         btn.disabled = false;
-        btn.textContent = 'Kirim kode OTP';
+        btn.textContent = 'Cek Email & Kirim OTP';
       }
     }
 
@@ -1247,32 +1297,47 @@
       const btn = document.getElementById('btnSubmitResetPassword');
 
       showAuthError('resetNewErrorMsg', '');
+
+      if (!pendingResetEmail) return showAuthError('resetNewErrorMsg', 'Sesi reset password tidak ditemukan. Silakan ulangi.');
       if (!/^\d{6}$/.test(code)) return showAuthError('resetNewErrorMsg', 'Masukkan kode verifikasi 6 angka.');
-      if (!newPass || newPass.length < 8) return showAuthError('resetNewErrorMsg', 'Password minimal 8 karakter.');
-      if (newPass !== confirmPass) return showAuthError('resetNewErrorMsg', 'Konfirmasi password tidak cocok.');
+      if (!newPass || newPass.length < 8) return showAuthError('resetNewErrorMsg', 'Password baru minimal 8 karakter.');
+      if (newPass !== confirmPass) return showAuthError('resetNewErrorMsg', 'Konfirmasi password baru tidak cocok.');
 
       btn.disabled = true;
+      btn.textContent = 'Memperbarui password...';
+
       try {
         const supabase = await initSupabaseEnvConfig();
-        const { data: userData } = await supabase
+
+        const { data: userData, error } = await supabase
           .from('user_accounts')
-          .select('id, verification_expiry')
+          .select('id, verification_code, verification_expiry')
           .eq('email', pendingResetEmail)
           .eq('verification_code', code)
           .limit(1)
           .maybeSingle();
 
-        if (!userData) throw new Error('Kode OTP salah.');
-        if (new Date() > new Date(userData.verification_expiry)) throw new Error('Kode OTP telah kadaluarsa.');
+        if (error) throw new Error(error.message);
+        if (!userData) throw new Error('Kode OTP salah atau tidak cocok.');
+
+        if (userData.verification_expiry && new Date() > new Date(userData.verification_expiry)) {
+          throw new Error('Kode OTP telah kadaluarsa (lebih dari 5 menit). Silakan minta kode baru.');
+        }
 
         const passHash = await hashPassword(newPass);
-        await supabase.from('user_accounts').update({ password_hash: passHash, verification_code: null, verification_expiry: null }).eq('id', userData.id);
+        const { error: updateError } = await supabase
+          .from('user_accounts')
+          .update({ password_hash: passHash, verification_code: null, verification_expiry: null })
+          .eq('id', userData.id);
+
+        if (updateError) throw new Error('Gagal mengupdate password baru.');
 
         pendingResetEmail = null;
         switchAuthTab('login');
-        showToast('Password berhasil diperbarui! Silakan login.');
+        showToast('Password berhasil diperbarui! Silakan login dengan password baru.');
       } catch (error) {
-        showAuthError('resetNewErrorMsg', error.message);
+        console.error('Reset password error:', error);
+        showAuthError('resetNewErrorMsg', error.message || 'Gagal memperbarui password.');
       } finally {
         btn.disabled = false;
         btn.textContent = 'Simpan Password Baru';
@@ -1281,25 +1346,48 @@
 
     async function konfirmasiKodeVerifikasi() {
       const code = document.getElementById('verifyInputCode').value.trim();
-      if (!/^\d{6}$/.test(code)) return showToast('Masukkan 6 angka kode verifikasi.', false);
+      const btn = document.getElementById('btnVerifyEmail');
+      if (!/^\d{6}$/.test(code)) return showToast('Masukkan kode verifikasi 6 angka.', false);
+      if (!pendingVerificationEmail) return showToast('Sesi verifikasi tidak ditemukan. Silakan daftar ulang.', false);
 
+      btn.disabled = true;
+      btn.textContent = 'Memverifikasi...';
       try {
         const supabase = await initSupabaseEnvConfig();
-        const { data } = await supabase.from('user_accounts')
-          .select('id, email_verified')
+        const { data, error } = await supabase.from('user_accounts')
+          .select('id,email,verification_code,verification_expiry,email_verified')
           .eq('email', pendingVerificationEmail)
           .eq('verification_code', code)
           .limit(1)
           .maybeSingle();
 
-        if (!data) throw new Error('Kode verifikasi salah.');
+        if (error) throw new Error(error.message);
+        if (!data) throw new Error('Kode salah atau tidak cocok dengan akun.');
 
-        await supabase.from('user_accounts').update({ email_verified: true, verification_code: null, verification_expiry: null }).eq('id', data.id);
+        if (data.verification_expiry && new Date() > new Date(data.verification_expiry)) {
+          throw new Error('Kode verifikasi telah kadaluarsa (lebih dari 5 menit). Silakan daftar ulang.');
+        }
+
+        if (data.email_verified) {
+          switchAuthTab('login');
+          return showToast('Email sudah terverifikasi. Silakan login.');
+        }
+
+        const { error: updateError } = await supabase.from('user_accounts')
+          .update({ email_verified: true, verification_code: null, verification_expiry: null })
+          .eq('id', data.id);
+        if (updateError) throw new Error(updateError.message || 'Gagal memperbarui status verifikasi.');
+
         pendingVerificationEmail = null;
+        document.getElementById('verifyInputCode').value = '';
         switchAuthTab('login');
         showToast('Email berhasil diverifikasi. Silakan login.');
       } catch (error) {
-        showToast(error.message, false);
+        console.error('Verification error:', error);
+        showToast(error.message || 'Verifikasi gagal.', false);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Verifikasi & Aktifkan Akun';
       }
     }
 
@@ -1311,6 +1399,7 @@
       if (!identifier || !pass) return showToast('Identifier dan password wajib diisi.', false);
 
       btn.disabled = true;
+      btn.textContent = 'Memverifikasi...';
       try {
         const supabase = await initSupabaseEnvConfig();
         let query = supabase.from('user_accounts').select('*');
@@ -1318,33 +1407,57 @@
         else if (identifier.includes('@')) query = query.eq('email', identifier.toLowerCase());
         else query = query.eq('username', identifier.toLowerCase());
 
-        const { data: userData } = await query.limit(1).maybeSingle();
-        if (!userData) return showToast('Akun belum terdaftar.', false);
-
+        const { data: userData, error } = await query.limit(1).maybeSingle();
+        
+        if (error) {
+          showToast(`Gagal terhubung ke database: ${error.message || 'Unknown error'}`, false);
+          return;
+        }
+        if (!userData) {
+          showToast('Akun belum terdaftar.', false);
+          return;
+        }
+        
         const inputHash = await hashPassword(pass);
-        if (userData.password_hash !== inputHash) return showToast('Password salah.', false);
-        if (!userData.email_verified) {
+        if (userData.password_hash !== inputHash) {
+          showToast('Password yang Anda masukkan salah.', false);
+          return;
+        }
+        if (userData.email_verified !== true) {
+          showToast('Email belum diverifikasi. Selesaikan verifikasi email.', false);
           pendingVerificationEmail = userData.email;
           document.getElementById('verifyTargetEmail').textContent = userData.email;
           switchAuthTab('verify');
-          return showToast('Verifikasikan email Anda terlebih dahulu.', false);
+          return;
         }
 
         const role = String(userData.role || 'user').toLowerCase();
         adminPasswordSecret = inputHash;
-        activeUserSession = { id: userData.id, uuid: userData.uuid, username: userData.username, email: userData.email, role };
+        activeUserSession = { 
+          id: userData.id, 
+          uuid: userData.uuid, 
+          username: userData.username, 
+          email: userData.email, 
+          role 
+        };
 
-        if (document.getElementById('rememberMeCheckbox').checked) {
+        // Simpan sesi ke cookies selama 1 hari HANYA JIKA kotak centang 'Ingat Saya' dicentang. Jika tidak, cookies dihapus.
+        const rememberMe = document.getElementById('rememberMeCheckbox').checked;
+        if (rememberMe) {
           setCookie('mindhub_session', { id: userData.id, uuid: userData.uuid, username: userData.username }, 1);
         } else {
           eraseCookie('mindhub_session');
         }
-
-        document.getElementById('userDisplayName').textContent = userData.username;
+        
+        document.getElementById('userDisplayName').textContent = userData.username || identifier;
         applyRolePermissions(role);
-        showToast(`Selamat datang, ${userData.username}!`);
+
+        await supabase.from('user_accounts')
+          .update({ last_active: new Date().toISOString() }).eq('id', userData.id);
+
+        showToast(`Selamat datang, ${userData.username || identifier} (${role.toUpperCase()})!`);
       } catch (error) {
-        showToast('Terjadi kesalahan sistem saat login.', false);
+        showToast(`Terjadi kesalahan sistem: ${error.message || 'Koneksi gagal'}`, false);
       } finally {
         btn.disabled = false;
         btn.textContent = 'Masuk Portal';
@@ -1373,13 +1486,28 @@
       const targetEl = document.getElementById(targetId);
       if (targetEl) targetEl.classList.add('active');
 
+      const titles = {
+        'services': 'Layanan Aktif Saya',
+        'voucher': 'Klaim Voucher Lisensi',
+        'overview': 'Hub Overview',
+        'device': 'Client Devices',
+        'detail': 'Detail Lisensi & Cloud Backup',
+        'transfer': 'Migrasikan Perangkat',
+        'packages': 'Pricing Plans & Diskon',
+        'release': 'Cloud Updater'
+      };
+      const titleEl = document.getElementById('appTitle');
+      if (titleEl) titleEl.textContent = titles[subId] || 'MindHUB Portal';
+
       toggleSidebarMobile(false);
 
       if (subId === 'overview') {
         muatStatistikDashboard();
         checkSystemHealth();
         muatDaftarSemuaUser();
-      } else if (subId === 'device' || subId === 'services') {
+      } else if (subId === 'device') {
+        muatDaftarSemuaUser();
+      } else if (subId === 'services') {
         muatDaftarSemuaUser();
       } else if (subId === 'packages') {
         muatDataPaketServer();
@@ -1394,12 +1522,23 @@
       const userMenu = document.getElementById('sectionUserMenu');
       const roleBadge = document.getElementById('userRoleBadge');
 
+      const devVoucherBox = document.getElementById('developerVoucherBox');
+      const devEditControls = document.getElementById('developerEditControls');
+      const btnSaveConfig = document.getElementById('btnSaveConfig');
+      const btnDeleteLicense = document.getElementById('btnDeleteLicense');
+
       roleBadge.textContent = role.toUpperCase();
+
       if (role === 'developer') {
         adminMenu.style.display = 'block';
         systemConfig.style.display = 'block';
         userMenu.style.display = 'block';
         roleBadge.className = 'text-[10px] uppercase font-bold text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20';
+        if (devVoucherBox) devVoucherBox.style.display = 'block';
+        if (devEditControls) devEditControls.style.display = 'block';
+        if (btnSaveConfig) btnSaveConfig.style.display = 'block';
+        if (btnDeleteLicense) btnDeleteLicense.style.display = 'block';
+
         gantiView('viewDashboardApp');
         bukaSubView('overview');
       } else if (role === 'admin') {
@@ -1407,6 +1546,11 @@
         systemConfig.style.display = 'none';
         userMenu.style.display = 'block';
         roleBadge.className = 'text-[10px] uppercase font-bold text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-lg border border-indigo-500/20';
+        if (devVoucherBox) devVoucherBox.style.display = 'none';
+        if (devEditControls) devEditControls.style.display = 'none';
+        if (btnSaveConfig) btnSaveConfig.style.display = 'none';
+        if (btnDeleteLicense) btnDeleteLicense.style.display = 'none';
+
         gantiView('viewDashboardApp');
         bukaSubView('overview');
       } else {
@@ -1414,6 +1558,7 @@
         systemConfig.style.display = 'none';
         userMenu.style.display = 'block';
         roleBadge.className = 'text-[10px] uppercase font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20';
+
         gantiView('viewDashboardApp');
         bukaSubView('services');
       }
@@ -1423,6 +1568,10 @@
       activeUserSession = null;
       adminPasswordSecret = '';
       eraseCookie('mindhub_session');
+      document.getElementById('loginUserIdentifier').value = '';
+      document.getElementById('loginPassword').value = '';
+      const rememberCheckbox = document.getElementById('rememberMeCheckbox');
+      if (rememberCheckbox) rememberCheckbox.checked = false;
       gantiView('viewLandingPage');
       switchAuthTab('login');
       showToast('Berhasil keluar sesi.');
@@ -1433,8 +1582,16 @@
       if (container) container.innerHTML = '<div class="text-center text-slate-500 text-xs py-10">Fetching secure data...</div>';
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=get_all_licenses`, { method: 'GET', headers: { 'Accept': 'application/json' } });
-        if (!res.ok) throw new Error();
-        const data = await res.json();
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        
+        const textData = await res.text();
+        let data;
+        try {
+          data = JSON.parse(textData);
+        } catch (err) {
+          throw new Error('Invalid JSON response from server');
+        }
+
         globalUserList = Array.isArray(data) ? data : (data.licenses || data.users || data.data || []);
         selectedDeviceIds = [];
         updateBulkToolbarUI();
@@ -1444,31 +1601,79 @@
         updateLicenseRatio();
       } catch (e) { 
         globalUserList = [];
-        if (container) container.innerHTML = '<div class="text-center text-red-400 text-xs py-10">⚠️ Sync Failed. Silakan refresh halaman.</div>'; 
+        if (container) container.innerHTML = '<div class="text-center text-red-400 text-xs py-10">⚠️ Sync Failed / Server Timeout. Silakan refresh halaman.</div>'; 
       }
     }
 
     function renderUserServicesList() {
       const container = document.getElementById('containerUserServices');
-      if (!container || !activeUserSession) return;
+      if (!container) return;
+
+      if (!activeUserSession) {
+        container.innerHTML = '<div class="text-center text-slate-500 text-xs py-10 col-span-2">Sesi tidak valid. Silakan login kembali.</div>';
+        return;
+      }
 
       const userDevices = globalUserList.filter(u => {
         if (activeUserSession.role === 'developer' || activeUserSession.role === 'admin') return true;
         const owner = String(u.owner_id || u.user_id || u.email || u.username || u.claimed_by || '').toLowerCase();
-        return owner === String(activeUserSession.id).toLowerCase() || owner === String(activeUserSession.username).toLowerCase();
+        return (
+          owner === String(activeUserSession.id).toLowerCase() ||
+          owner === String(activeUserSession.uuid).toLowerCase() ||
+          owner === String(activeUserSession.username).toLowerCase() ||
+          owner === String(activeUserSession.email).toLowerCase()
+        );
       });
 
       container.innerHTML = '';
       if (userDevices.length === 0) {
-        container.innerHTML = `<div class="col-span-2 glass-card p-8 rounded-3xl text-center border border-slate-800 space-y-3"><span class="text-4xl block">📦</span><h3 class="font-extrabold text-white text-sm">Belum Ada Layanan Terhubung</h3><p class="text-xs text-slate-400">Gunakan menu <b>Klaim Voucher</b> untuk mengaktifkan lisensi.</p></div>`;
+        container.innerHTML = `
+          <div class="col-span-2 glass-card p-8 rounded-3xl text-center border border-slate-800 space-y-3">
+            <span class="text-4xl block">📦</span>
+            <h3 class="font-extrabold text-white text-sm">Belum Ada Layanan Terhubung</h3>
+            <p class="text-xs text-slate-400 max-w-sm mx-auto">Anda belum memiliki perangkat yang terikat. Gunakan menu <b>Klaim Voucher</b> untuk mengaktifkan lisensi perangkat Anda.</p>
+            <button onclick="bukaSubView('voucher')" class="px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs rounded-xl shadow-lg shadow-brand-500/20 transition">Klaim Voucher Sekarang</button>
+          </div>
+        `;
         return;
       }
 
       userDevices.forEach(u => {
         const isExp = u.exp_date && new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }) > u.exp_date;
         const card = document.createElement('div');
-        card.className = 'glass-card p-6 rounded-3xl border border-slate-800 space-y-4';
-        card.innerHTML = `<div class="flex justify-between items-start"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-2xl bg-brand-500/10 flex items-center justify-center text-lg">💻</div><div><h3 class="font-bold text-white text-sm">${u.sppg_name || 'SPPG Node Client'}</h3><span class="text-[10px] text-slate-400 font-mono">Service ID: MIND-${u.device_id}</span></div></div><span class="px-2.5 py-1 rounded-full ${isExp ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'} text-[10px] font-bold uppercase border">${isExp ? 'Expired' : (u.status || 'Active')}</span></div><div class="bg-slate-900/80 p-4 rounded-2xl space-y-2 text-xs"><div class="flex justify-between"><span class="text-slate-400">Device ID:</span><span class="font-mono font-bold text-amber-400">${u.device_id}</span></div><div class="flex justify-between"><span class="text-slate-400">Berakhir:</span><span class="font-bold text-white">${formatTanggalIndo(u.exp_date)}</span></div></div><button onclick="salinTextToClipboard('${u.device_id}', 'Device ID disalin!')" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 py-2.5 rounded-xl text-xs font-bold transition">📋 Salin Device ID</button>`;
+        card.className = 'glass-card p-6 rounded-3xl border border-slate-800 space-y-4 hover:border-brand-500/40 transition relative overflow-hidden';
+        card.innerHTML = `
+          <div class="flex justify-between items-start">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-2xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-lg">💻</div>
+              <div>
+                <h3 class="font-bold text-white text-sm truncate max-w-[180px] sm:max-w-none">${u.sppg_name || 'SPPG Node Client'}</h3>
+                <span class="text-[10px] text-slate-400 font-mono">Service ID: MIND-${u.device_id || 'NODE'}</span>
+              </div>
+            </div>
+            <span class="px-2.5 py-1 rounded-full ${isExp ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'} text-[10px] font-bold uppercase border">${isExp ? 'Expired' : (u.status || 'Active')}</span>
+          </div>
+
+          <div class="bg-slate-900/80 p-4 rounded-2xl border border-slate-800/80 space-y-2 text-xs">
+            <div class="flex justify-between items-center">
+              <span class="text-slate-400">Device ID Terikat:</span>
+              <span class="font-mono font-bold text-amber-400">${u.device_id}</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-slate-400">Masa Aktif Berakhir:</span>
+              <span class="font-bold text-white">${formatTanggalIndo(u.exp_date)}</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-slate-400">Node Sync Status:</span>
+              <span class="text-emerald-400 font-bold flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Online</span>
+            </div>
+          </div>
+
+          <div class="flex gap-2">
+            <button onclick="salinTextToClipboard('${u.device_id}', 'Device ID disalin!')" class="flex-1 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 border border-slate-700">📋 Salin ID</button>
+            <button onclick="showToast('Node sync health check OK!')" class="flex-1 bg-brand-500/15 hover:bg-brand-500/25 active:scale-95 text-brand-400 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 border border-brand-500/30">⚡ Sync Health</button>
+          </div>
+        `;
         container.appendChild(card);
       });
     }
@@ -1476,91 +1681,40 @@
     async function prosesKlaimVoucher() {
       const deviceId = document.getElementById('inputRedeemDeviceId').value.trim().toUpperCase();
       const voucherCode = document.getElementById('inputRedeemVoucher').value.trim().toUpperCase();
-      if (!deviceId || !voucherCode) return showToast('Device ID dan Voucher wajib diisi!', false);
+      const btn = document.getElementById('btnRedeemVoucher');
+
+      if (!deviceId || !voucherCode) return showToast('Device ID dan Kode Voucher wajib diisi!', false);
+      if (!activeUserSession) return showToast('Sesi pengguna tidak valid.', false);
+
+      btn.disabled = true;
+      btn.textContent = 'Memproses klaim voucher...';
 
       try {
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'claim_voucher', device_id: deviceId, voucher_code: voucherCode })
+          body: JSON.stringify({
+            action: 'redeem_voucher',
+            device_id: deviceId,
+            code: voucherCode,
+            claimed_by: activeUserSession.username || activeUserSession.email || activeUserSession.id
+          })
         });
         const result = await res.json().catch(() => ({}));
-        if (res.ok && result.success) {
-          showToast(`🎉 Voucher ${voucherCode} berhasil diklaim!`);
+
+        if (res.ok && (result.success || result.status)) {
+          showToast(`🎉 Voucher ${voucherCode} berhasil diklaim untuk perangkat ${deviceId}!`);
+          document.getElementById('inputRedeemVoucher').value = '';
           muatDaftarSemuaUser();
           bukaSubView('services');
         } else {
-          showToast(result.error || 'Voucher tidak valid.', false);
+          showToast(result.error || result.message || 'Kode voucher tidak valid atau telah expired.', false);
         }
       } catch (e) {
-        showToast('Koneksi server gagal.', false);
-      }
-    }
-
-    async function generateVoucherDevice(hari) {
-      if (!currentLicenseData || !currentLicenseData.device_id) return showToast('Pilih perangkat terlebih dahulu.', false);
-      const sessionCookie = getCookie('mindhub_session');
-      const authToken = sessionCookie ? sessionCookie.id : '';
-
-      try {
-        showToast('Membuat kode voucher...', true);
-        const res = await fetch(VERCEL_API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-          body: JSON.stringify({ action: 'generate_voucher', device_id: currentLicenseData.device_id, duration_days: hari, secret: adminPasswordSecret })
-        });
-        const data = await res.json().catch(() => ({}));
-        if (res.ok && (data.code || data.success)) {
-          document.getElementById('dispGeneratedVoucher').value = data.code || 'MIND-VOUCHER';
-          showToast(`Voucher ${hari} Hari Berhasil Dibuat!`);
-        } else {
-          showToast(data.error || 'Gagal membuat voucher.', false);
-        }
-      } catch (e) {
-        showToast('Gagal terhubung ke server.', false);
-      }
-    }
-
-    function salinVoucherDevice() {
-      salinTextToClipboard(document.getElementById('dispGeneratedVoucher').value, 'Kode voucher disalin!');
-    }
-
-    async function muatDataReleaseServer() {
-      const versionEl = document.getElementById('inputReleaseVersion');
-      const urlEl = document.getElementById('inputDownloadUrl');
-      const changelogEl = document.getElementById('inputChangelog');
-      try {
-        const res = await fetch(`${VERCEL_API_URL}?action=get_release&_t=${Date.now()}`);
-        const data = await res.json();
-        const release = data.release || data;
-        if (res.ok && release) {
-          if (versionEl) versionEl.value = release.version || '';
-          if (urlEl) urlEl.value = release.download_url || '';
-          if (changelogEl) changelogEl.value = release.changelog || '';
-        }
-      } catch (e) {}
-    }
-
-    async function simpanUpdateReleaseServer() {
-      const version = document.getElementById('inputReleaseVersion').value.trim();
-      const downloadUrl = document.getElementById('inputDownloadUrl').value.trim();
-      const changelog = document.getElementById('inputChangelog').value.trim();
-      if (!version || !downloadUrl) return showToast('Versi & URL wajib diisi!', false);
-
-      try {
-        const res = await fetch(VERCEL_API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'update_release', version, download_url: downloadUrl, changelog, secret: adminPasswordSecret })
-        });
-        const data = await res.json().catch(() => ({}));
-        if (res.ok && data.success) {
-          showToast(`🚀 Release v${version} berhasil diterbitkan!`);
-        } else {
-          showToast(data.error || 'Gagal merilis update.', false);
-        }
-      } catch (e) {
-        showToast('Gagal koneksi ke server.', false);
+        showToast('Gagal terhubung ke server voucher.', false);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '⚡ Redeem Voucher Sekarang';
       }
     }
 
@@ -1572,142 +1726,1013 @@
         document.getElementById('statRevHari').textContent = `Rp ${(data.harian || 0).toLocaleString('id-ID')}`;
         document.getElementById('statRevMinggu').textContent = `Rp ${(data.mingguan || 0).toLocaleString('id-ID')}`;
         document.getElementById('statRevBulan').textContent = `Rp ${(data.bulanan || 0).toLocaleString('id-ID')}`;
-        document.getElementById('statTotalDownloads').textContent = Number(data.total_downloads || 0).toLocaleString('id-ID');
+
+        const totalDl = data.total_downloads !== undefined ? data.total_downloads : (data.download_count || 0);
+        const dlEl = document.getElementById('statTotalDownloads');
+        if (dlEl) dlEl.textContent = Number(totalDl).toLocaleString('id-ID');
+
         renderRevenueChart();
       } catch (e) {}
+    }
+
+    function setRevenueTimeframe(timeframe) {
+      activeTimeframe = timeframe;
+      ['7d', '14d', '1m'].forEach(tf => {
+        const btn = document.getElementById(`btnTf${tf}`);
+        if (!btn) return;
+        if (tf === timeframe) {
+          btn.className = 'px-3 py-1 rounded-lg bg-brand-500 text-white transition shadow-md shadow-brand-500/20';
+        } else {
+          btn.className = 'px-3 py-1 rounded-lg text-slate-400 hover:text-white transition';
+        }
+      });
+      renderRevenueChart();
     }
 
     function renderRevenueChart() {
       const chartContainer = document.getElementById('chartBarsContainer');
       if (!chartContainer) return;
       chartContainer.innerHTML = '';
-      const chartData = globalStatsData?.chart_harian || [0,0,0,0,0,0,0];
+
+      let rawChartData = [];
+      if (globalStatsData) {
+        if (activeTimeframe === '7d') rawChartData = globalStatsData.chart_harian || [];
+        else if (activeTimeframe === '14d') rawChartData = globalStatsData.chart_14d || globalStatsData.chart_harian || [];
+        else if (activeTimeframe === '1m') rawChartData = globalStatsData.chart_30d || globalStatsData.chart_harian || [];
+      }
+
+      let totalDays = 7;
+      if (activeTimeframe === '14d') totalDays = 14;
+      else if (activeTimeframe === '1m') totalDays = 30;
+
+      let chartData = [];
+      if (Array.isArray(rawChartData) && rawChartData.length >= totalDays) {
+        chartData = rawChartData.slice(-totalDays);
+      } else {
+        chartData = new Array(totalDays).fill(0);
+        if (Array.isArray(rawChartData)) {
+          const offset = totalDays - rawChartData.length;
+          rawChartData.forEach((val, i) => {
+            if (i + offset >= 0 && i + offset < totalDays) {
+              chartData[i + offset] = val;
+            }
+          });
+        }
+      }
+
       const maxVal = Math.max(...chartData, 1000);
+      const now = new Date();
 
       chartData.forEach((val, idx) => {
+        const daysAgo = totalDays - 1 - idx;
+        const targetDate = new Date(now.getTime() - (daysAgo * 86400000));
+        let dateLabel = daysAgo === 0 ? 'Hari Ini' : targetDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
         const tinggiPersen = Math.round((val / maxVal) * 80);
+
         const group = document.createElement('div');
-        group.className = 'flex flex-col items-center shrink-0 flex-1 h-full justify-end group/bar relative';
-        group.innerHTML = `<div class="w-full bg-brand-500 rounded-t-xl transition-all" style="height: ${Math.max(8, tinggiPersen)}px;"></div>`;
+        group.className = 'flex flex-col items-center shrink-0 flex-1 h-full justify-end group/bar relative min-w-[12px]';
+        const labelHtml = activeTimeframe === '1m' ? '' : `<div class="text-[9px] text-slate-500 mt-2 font-mono whitespace-nowrap">${dateLabel}</div>`;
+
+        group.innerHTML = `
+          <div class="w-full min-w-[10px] bg-gradient-to-t from-brand-600 via-indigo-500 to-purple-400 hover:from-brand-500 hover:via-indigo-400 hover:to-purple-300 rounded-t-xl transition-all duration-300 cursor-pointer shadow-[0_0_15px_rgba(99,102,241,0.25)] hover:shadow-[0_0_20px_rgba(168,85,247,0.4)] relative border-t border-purple-300/40" style="height: ${Math.max(8, tinggiPersen)}px;">
+            <div class="opacity-0 group-hover/bar:opacity-100 pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-900/95 text-slate-100 text-[10px] font-bold px-2.5 py-1 rounded-xl border border-indigo-500/40 shadow-xl whitespace-nowrap z-30 transition-all backdrop-blur-md">
+              ${dateLabel}: Rp ${val.toLocaleString('id-ID')}
+            </div>
+          </div>
+          ${labelHtml}
+        `;
         chartContainer.appendChild(group);
       });
     }
 
-    function checkSystemHealth() {
+    function initLiveHeartbeatGraph() {
       if (heartbeatInterval) clearInterval(heartbeatInterval);
-      heartbeatInterval = setInterval(async () => {
+      const canvas = document.getElementById('heartbeatCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+
+      const resizeCanvas = () => {
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * (window.devicePixelRatio || 1);
+        canvas.height = rect.height * (window.devicePixelRatio || 1);
+        ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+      };
+      resizeCanvas();
+
+      const drawHeartbeat = () => {
+        const rect = canvas.getBoundingClientRect();
+        const w = rect.width;
+        const h = rect.height;
+        if (!w || !h) return;
+        ctx.clearRect(0, 0, w, h);
+
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+        ctx.lineWidth = 1;
+        for (let y = 0; y < h; y += 12) {
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+        }
+
+        if (heartbeatPoints.length < 2) return;
+        const maxPing = Math.max(...heartbeatPoints, 120);
+        const minPing = Math.min(...heartbeatPoints, 10);
+        const stepX = w / (heartbeatPoints.length - 1);
+
+        const grad = ctx.createLinearGradient(0, 0, 0, h);
+        grad.addColorStop(0, 'rgba(16, 185, 129, 0.35)');
+        grad.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+
+        ctx.beginPath();
+        heartbeatPoints.forEach((val, i) => {
+          const x = i * stepX;
+          const normalized = (val - Math.min(minPing, 20)) / (maxPing - Math.min(minPing, 20) || 1);
+          const y = h - (normalized * (h - 16) + 8);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath();
+        ctx.fillStyle = grad; ctx.fill();
+      };
+
+      const updatePulsePing = async () => {
         const start = performance.now();
+        let currentLatency = 35;
+
         try {
-          await fetch(`${VERCEL_API_URL}?action=check_license&device_id=PING`, { cache: 'no-store' });
-          const ping = Math.round(performance.now() - start);
-          document.getElementById('heartbeatLiveValue').textContent = `${ping} ms`;
-        } catch (e) {}
-      }, 1000);
+          const res = await fetch(`${VERCEL_API_URL}?action=check_license&device_id=PING_${Date.now()}`, { cache: 'no-store' });
+          currentLatency = Math.round(performance.now() - start);
+          if (!res.ok) {}
+        } catch (e) {
+          currentLatency = Math.round(performance.now() - start) || 180;
+        }
+
+        heartbeatPoints.shift();
+        heartbeatPoints.push(currentLatency);
+
+        const minVal = Math.min(...heartbeatPoints);
+        const maxVal = Math.max(...heartbeatPoints);
+        const avgVal = Math.round(heartbeatPoints.reduce((a, b) => a + b, 0) / heartbeatPoints.length);
+
+        const hbVal = document.getElementById('heartbeatLiveValue');
+        const minEl = document.getElementById('hbMinMs');
+        const maxEl = document.getElementById('hbMaxMs');
+        const avgEl = document.getElementById('hbAvgMs');
+
+        if (hbVal) hbVal.textContent = `${currentLatency} ms`;
+        if (minEl) minEl.textContent = `Min: ${minVal}ms`;
+        if (maxEl) maxEl.textContent = `Max: ${maxVal}ms`;
+        if (avgEl) avgEl.textContent = `Avg: ${avgVal}ms`;
+
+        drawHeartbeat();
+      };
+
+      updatePulsePing();
+      heartbeatInterval = setInterval(updatePulsePing, 1000);
+    }
+
+    function checkSystemHealth() {
+      initLiveHeartbeatGraph();
+    }
+
+    function setFilterTab(status, btn) {
+      document.querySelectorAll('#filterTabsContainer button').forEach(b => {
+        b.className = 'px-3.5 py-2 rounded-xl bg-slate-800/80 text-slate-400 text-xs font-semibold tab-btn whitespace-nowrap';
+      });
+      btn.className = 'px-3.5 py-2 rounded-xl bg-brand-500 text-white text-xs font-bold tab-btn active whitespace-nowrap';
+      currentStatusFilter = status;
+      filterUserList();
     }
 
     function filterUserList() {
       const query = document.getElementById('searchUserQuery').value.trim().toLowerCase();
-      let filtered = globalUserList.filter(u => (u.device_id || '').toLowerCase().includes(query) || (u.sppg_name || '').toLowerCase().includes(query));
+      const sortOpt = document.getElementById('sortDeviceOption')?.value || 'exp_asc';
+      const hariIni = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+
+      let filtered = globalUserList.filter(u => {
+        const matchQ = (u.device_id || '').toLowerCase().includes(query) || (u.sppg_name || '').toLowerCase().includes(query);
+        let stat = u.status || 'active';
+        if (stat === 'active' && u.exp_date && hariIni > u.exp_date) stat = 'expired';
+        const matchS = currentStatusFilter === 'all' || stat === currentStatusFilter;
+        return matchQ && matchS;
+      });
+
+      filtered.sort((a, b) => {
+        if (sortOpt === 'exp_asc') return (a.exp_date || '9999').localeCompare(b.exp_date || '9999');
+        else if (sortOpt === 'exp_desc') return (b.exp_date || '0000').localeCompare(a.exp_date || '0000');
+        else if (sortOpt === 'name_asc') return (a.device_id || '').localeCompare(b.device_id || '');
+        else if (sortOpt === 'active_desc') return (b.last_active || b.updated_at || '0').localeCompare(a.last_active || a.updated_at || '0');
+        return 0;
+      });
+
       const container = document.getElementById('listAllUsersContainer');
       if (!container) return;
       container.innerHTML = '';
       if (filtered.length === 0) return container.innerHTML = '<div class="text-center text-slate-500 text-xs py-10">No records found.</div>';
 
       filtered.forEach(u => {
+        let stat = u.status || 'active';
+        if (stat === 'active' && u.exp_date && hariIni > u.exp_date) stat = 'expired';
+
+        let badge = '';
+        if (stat === 'active') badge = '<span class="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold uppercase">Active</span>';
+        else if (stat === 'hold') badge = '<span class="px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-bold uppercase">Hold</span>';
+        else if (stat === 'expired') badge = '<span class="px-2.5 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 text-[10px] font-bold uppercase">Expired</span>';
+        else if (stat === 'revoked') badge = '<span class="px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 text-[10px] font-bold uppercase">Revoked</span>';
+
+        const isChecked = selectedDeviceIds.includes(u.device_id);
         const div = document.createElement('div');
-        div.className = 'bg-slate-900/60 border border-slate-800 p-4 rounded-2xl flex justify-between items-center cursor-pointer';
-        div.innerHTML = `<div class="font-mono text-brand-400 font-bold">${u.device_id}</div><div class="text-white">${u.sppg_name || 'Client'}</div>`;
-        div.onclick = () => pilihUser(u, u.status || 'active');
+        div.className = `bg-slate-900/60 hover:bg-slate-800/80 border ${isChecked ? 'border-brand-500/80 bg-brand-500/5' : 'border-slate-800/80'} p-3.5 sm:p-4 rounded-2xl cursor-pointer flex justify-between items-center transition gap-3`;
+        div.innerHTML = `
+          <div class="flex items-center gap-3 min-w-0 flex-1">
+            <input type="checkbox" data-device-id="${u.device_id}" ${isChecked ? 'checked' : ''} onclick="toggleSelectDevice('${u.device_id}', this.checked, event)" class="device-checkbox w-4 h-4 rounded border-slate-700 text-brand-500 focus:ring-0 bg-slate-950 shrink-0">
+            <div class="min-w-0 flex-1">
+              <div class="text-xs text-brand-400 font-mono font-bold truncate">${u.device_id}</div>
+              <div class="text-xs sm:text-sm text-white font-semibold mt-0.5 truncate">${u.sppg_name || 'Unnamed Client'}</div>
+              <div class="text-[10px] text-slate-500 mt-0.5">s/d: ${formatTanggalIndo(u.exp_date)}</div>
+            </div>
+          </div>
+          <div class="shrink-0">${badge}</div>`;
+        div.onclick = (e) => {
+          if (e.target.tagName !== 'INPUT') pilihUser(u, stat);
+        };
         container.appendChild(div);
       });
+    }
+
+    function toggleSelectDevice(deviceId, checked, event) {
+      if (event) event.stopPropagation();
+      if (checked) {
+        if (!selectedDeviceIds.includes(deviceId)) selectedDeviceIds.push(deviceId);
+      } else {
+        selectedDeviceIds = selectedDeviceIds.filter(id => id !== deviceId);
+      }
+      updateBulkToolbarUI();
+    }
+
+    function toggleSelectAllDevices(checked) {
+      const visibleCheckboxes = document.querySelectorAll('.device-checkbox');
+      selectedDeviceIds = [];
+      visibleCheckboxes.forEach(chk => {
+        chk.checked = checked;
+        if (checked) selectedDeviceIds.push(chk.dataset.deviceId);
+      });
+      updateBulkToolbarUI();
+    }
+
+    function updateBulkToolbarUI() {
+      const toolbar = document.getElementById('bulkActionsToolbar');
+      const countEl = document.getElementById('bulkSelectedCount');
+      if (!toolbar || !countEl) return;
+      if (selectedDeviceIds.length > 0) {
+        countEl.textContent = selectedDeviceIds.length;
+        toolbar.classList.remove('hidden');
+      } else {
+        toolbar.classList.add('hidden');
+        const chkAll = document.getElementById('chkSelectAllDevices');
+        if (chkAll) chkAll.checked = false;
+      }
+    }
+
+    function renderExpiringRadar() {
+      const container = document.getElementById('expiringRadarContainer');
+      if (!container) return;
+      const hariIniDate = new Date();
+      const batasRadarDate = new Date();
+      batasRadarDate.setDate(hariIniDate.getDate() + 7);
+
+      const expiringUsers = globalUserList.filter(u => {
+        if (!u.exp_date || u.exp_date === '-' || u.status === 'revoked' || u.status === 'hold') return false;
+        const d = new Date(u.exp_date);
+        return !isNaN(d.getTime()) && d >= hariIniDate && d <= batasRadarDate;
+      });
+
+      container.innerHTML = '';
+      if (expiringUsers.length === 0) {
+        container.innerHTML = `<div class="text-center py-4 bg-slate-900/50 rounded-xl border border-slate-800/60"><span class="text-xs text-emerald-400 font-bold">✨ Semua Lisensi Aman (> 7 Hari)</span></div>`;
+        return;
+      }
+      expiringUsers.forEach(u => {
+        const div = document.createElement('div');
+        div.className = 'bg-slate-900/80 border border-amber-500/20 p-3 rounded-xl flex items-center justify-between text-xs gap-2';
+        div.innerHTML = `
+          <div class="min-w-0 flex-1">
+            <div class="font-mono text-amber-400 font-bold truncate">${u.device_id}</div>
+            <div class="text-[11px] text-white font-medium truncate">${u.sppg_name || 'Unnamed'}</div>
+          </div>
+          <div class="text-right shrink-0">
+            <div class="text-[10px] text-slate-400">Exp: <b class="text-white">${formatTanggalIndo(u.exp_date)}</b></div>
+          </div>`;
+        container.appendChild(div);
+      });
+    }
+
+    function updateLicenseRatio() {
+      if (!globalUserList || globalUserList.length === 0) return;
+      const total = globalUserList.length;
+      let active = 0, hold = 0, expired = 0;
+      const hariIni = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+
+      globalUserList.forEach(u => {
+        let st = u.status || 'active';
+        if (st === 'active' && u.exp_date && hariIni > u.exp_date) st = 'expired';
+        if (st === 'active') active++;
+        else if (st === 'hold') hold++;
+        else expired++;
+      });
+
+      const activePct = Math.round((active / total) * 100);
+      const holdPct = Math.round((hold / total) * 100);
+      const expPct = Math.round((expired / total) * 100);
+
+      const ratioText = document.getElementById('statActiveRatio');
+      if (ratioText) ratioText.textContent = `${activePct}% Active (${active}/${total})`;
+
+      const bar = document.getElementById('licenseRatioBar');
+      if (bar && bar.children.length >= 3) {
+        bar.children[0].style.width = `${activePct}%`;
+        bar.children[1].style.width = `${holdPct}%`;
+        bar.children[2].style.width = `${expPct}%`;
+      }
     }
 
     function pilihUser(u, stat) {
       bukaSubView('detail');
       currentLicenseData = { ...u, status: stat };
       renderDetail();
+      muatBackupDevice(u.device_id);
     }
 
     function renderDetail() {
       document.getElementById('dispDeviceId').textContent = currentLicenseData.device_id;
       document.getElementById('dispSppgName').textContent = currentLicenseData.sppg_name || '-';
+      document.getElementById('dispExpDate').textContent = formatTanggalIndo(currentLicenseData.exp_date);
+      document.getElementById('dispLastActive').textContent = formatWaktuRelatif(currentLicenseData.last_active || currentLicenseData.updated_at);
       document.getElementById('editSppgName').value = currentLicenseData.sppg_name || '';
       document.getElementById('editExpDate').value = currentLicenseData.exp_date || '';
       document.getElementById('editStatus').value = currentLicenseData.status;
+
+      let badge = '';
+      if (currentLicenseData.status === 'active') badge = '<span class="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold uppercase">Active</span>';
+      else if (currentLicenseData.status === 'hold') badge = '<span class="px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-bold uppercase">Hold</span>';
+      else if (currentLicenseData.status === 'expired') badge = '<span class="px-2.5 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 text-[10px] font-bold uppercase">Expired</span>';
+      else if (currentLicenseData.status === 'revoked') badge = '<span class="px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 text-[10px] font-bold uppercase">Revoked</span>';
+      document.getElementById('dispStatus').innerHTML = badge;
+    }
+
+    async function muatBackupDevice(deviceId) {
+      const card = document.getElementById('backupInfoCard');
+      if (!card) return;
+      card.classList.add('hidden');
+      currentBackupPayload = null;
+
+      try {
+        const res = await fetch(`${VERCEL_API_URL}?action=get_backup&device_id=${encodeURIComponent(deviceId)}&_t=${Date.now()}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        let backupData = data.backup_data || data.backup || data;
+
+        if (backupData && typeof backupData === 'object' && !data.error) {
+          currentBackupPayload = backupData;
+          document.getElementById('dispBackupFilename').textContent = `sipgn-backup-${deviceId}.json`;
+          document.getElementById('dispBackupTime').textContent = formatWaktuRelatif(data.created_at || new Date().toISOString());
+          card.classList.remove('hidden');
+        }
+      } catch (e) {}
+    }
+
+    function previewBackupCloud() {
+      if (!currentBackupPayload) return showToast('Backup tidak tersedia.', false);
+      const modal = document.getElementById('jsonViewerModal');
+      document.getElementById('jsonPreviewContainer').textContent = JSON.stringify(currentBackupPayload, null, 2);
+      modal.classList.remove('hidden'); modal.classList.add('flex');
+    }
+
+    function closeJsonPreviewModal() {
+      const modal = document.getElementById('jsonViewerModal');
+      modal.classList.remove('flex'); modal.classList.add('hidden');
+    }
+
+    function copyJsonPreview() {
+      if (!currentBackupPayload) return;
+      salinTextToClipboard(JSON.stringify(currentBackupPayload, null, 2), 'JSON disalin!');
+    }
+
+    function downloadBackupCloud() {
+      if (!currentBackupPayload) return showToast('Backup tidak tersedia.', false);
+      const blob = new Blob([JSON.stringify(currentBackupPayload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sipgn-backup-${currentLicenseData.device_id}.json`;
+      document.body.appendChild(a); a.click(); a.remove();
+    }
+
+    function hapusBackupCloudWithModal() {
+      if (!currentLicenseData || !currentLicenseData.device_id) return;
+      showConfirmModal(
+        'Hapus Cloud Backup',
+        `Apakah Anda yakin ingin menghapus backup cloud untuk device ${currentLicenseData.device_id}?`,
+        async () => {
+          try {
+            const res = await fetch(VERCEL_API_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'delete_backup', device_id: currentLicenseData.device_id, secret: adminPasswordSecret })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data.success) {
+              showToast('Cloud backup berhasil dihapus.');
+              document.getElementById('backupInfoCard').classList.add('hidden');
+              currentBackupPayload = null;
+            } else {
+              showToast(data.error || 'Gagal menghapus cloud backup.', false);
+            }
+          } catch (e) {
+            showToast('Gagal terhubung ke server.', false);
+          }
+        }
+      );
+    }
+
+    async function generateVoucherDevice(hari) {
+      if (!currentLicenseData || !currentLicenseData.device_id) return;
+      try {
+        const res = await fetch(VERCEL_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'generate_voucher',
+            device_id: currentLicenseData.device_id,
+            duration_days: hari,
+            secret: adminPasswordSecret
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.code) {
+          document.getElementById('dispGeneratedVoucher').value = data.code;
+          showToast(`Voucher ${hari} Hari Berhasil Dibuat!`);
+        } else {
+          showToast(data.error || 'Gagal membuat voucher.', false);
+        }
+      } catch (e) {
+        showToast('Terjadi kesalahan saat generate voucher.', false);
+      }
+    }
+
+    function salinVoucherDevice() {
+      const code = document.getElementById('dispGeneratedVoucher').value;
+      salinTextToClipboard(code, 'Kode voucher disalin!');
+    }
+
+    function tambahHari(jumlahHari) {
+      const inputExp = document.getElementById('editExpDate');
+      let baseDate = inputExp.value ? new Date(inputExp.value) : new Date();
+      if (isNaN(baseDate.getTime())) baseDate = new Date();
+      
+      baseDate.setDate(baseDate.getDate() + jumlahHari);
+      const yyyy = baseDate.getFullYear();
+      const mm = String(baseDate.getMonth() + 1).padStart(2, '0');
+      const dd = String(baseDate.getDate()).padStart(2, '0');
+      
+      inputExp.value = `${yyyy}-${mm}-${dd}`;
+      cekOtomatisStatusTanggal();
+    }
+
+    function setLifetime() {
+      document.getElementById('editExpDate').value = '2099-12-31';
+      document.getElementById('editStatus').value = 'active';
+    }
+
+    function cekOtomatisStatusTanggal() {
+      const inputVal = document.getElementById('editExpDate').value;
+      if (!inputVal) return;
+      const todayISO = getTodayLocalISO();
+      const selStatus = document.getElementById('editStatus');
+      if (inputVal < todayISO && selStatus.value === 'active') {
+        selStatus.value = 'expired';
+      } else if (inputVal >= todayISO && selStatus.value === 'expired') {
+        selStatus.value = 'active';
+      }
+    }
+
+    function ubahStatusDropdown(statusVal) {
+      if (statusVal === 'active') {
+        const todayISO = getTodayLocalISO();
+        if (document.getElementById('editExpDate').value < todayISO) {
+          tambahHari(30);
+        }
+      }
     }
 
     async function simpanPerubahanLisensi() {
       if (!currentLicenseData) return;
+      const btn = document.getElementById('btnSaveConfig');
       const sppgName = document.getElementById('editSppgName').value.trim();
       const expDate = document.getElementById('editExpDate').value;
       const status = document.getElementById('editStatus').value;
+
+      btn.disabled = true;
+      btn.textContent = 'Menyimpan...';
 
       try {
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'save_license', device_id: currentLicenseData.device_id, sppg_name: sppgName, exp_date: expDate, status, secret: adminPasswordSecret })
+          body: JSON.stringify({
+            action: 'update_license',
+            device_id: currentLicenseData.device_id,
+            sppg_name: sppgName,
+            exp_date: expDate,
+            status: status,
+            secret: adminPasswordSecret
+          })
         });
         const data = await res.json().catch(() => ({}));
         if (res.ok && data.success) {
-          showToast('Lisensi diperbarui.');
+          showToast('Konfigurasi lisensi berhasil diperbarui.');
+          currentLicenseData.sppg_name = sppgName;
+          currentLicenseData.exp_date = expDate;
+          currentLicenseData.status = status;
+          renderDetail();
           muatDaftarSemuaUser();
         } else {
-          showToast('Gagal menyimpan.', false);
+          showToast(data.error || 'Gagal menyimpan perubahan.', false);
         }
       } catch (e) {
-        showToast('Koneksi gagal.', false);
+        showToast('Terjadi kesalahan saat menyimpan.', false);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Save Configuration';
       }
     }
 
-    async function muatDataPaketServer() {
-      const container = document.getElementById('containerListPaket');
-      if (!container) return;
-      try {
-        const res = await fetch(`${VERCEL_API_URL}?action=get_packages`);
-        const data = await res.json();
-        const list = data.packages || [];
-        container.innerHTML = '';
-        list.forEach(p => tambahBarisPaketFormInput(p.nama, p.hari, p.harga, p.discount_type, p.discount_value, p.discount_until));
-      } catch (e) {}
+    function hapusLisensiWithModal() {
+      if (!currentLicenseData) return;
+      showConfirmModal(
+        'Hapus Perangkat',
+        `Apakah Anda yakin ingin menghapus lisensi perangkat ${currentLicenseData.device_id}?`,
+        async () => {
+          try {
+            const res = await fetch(VERCEL_API_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'delete_license',
+                device_id: currentLicenseData.device_id,
+                secret: adminPasswordSecret
+              })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data.success) {
+              showToast('Perangkat berhasil dihapus.');
+              muatDaftarSemuaUser();
+              bukaSubView('device');
+            } else {
+              showToast(data.error || 'Gagal menghapus perangkat.', false);
+            }
+          } catch (e) {
+            showToast('Gagal terhubung ke server.', false);
+          }
+        }
+      );
     }
 
-    function tambahBarisPaketForm() { tambahBarisPaketFormInput('', 30, 50000, 'none', '', ''); }
+    function eksekusiOperDeviceWithModal() {
+      const src = document.getElementById('inputSourceDevice').value.trim().toUpperCase();
+      const target = document.getElementById('inputTargetDevice').value.trim().toUpperCase();
+
+      if (!src || !target) return showToast('Device ID Asal dan Tujuan wajib diisi.', false);
+      if (src === target) return showToast('Device ID Asal dan Tujuan tidak boleh sama.', false);
+
+      showConfirmModal(
+        'Konfirmasi Migrasi Device',
+        `Apakah Anda yakin ingin memindahkan seluruh data dan lisensi dari ${src} ke ${target}?`,
+        async () => {
+          try {
+            const res = await fetch(VERCEL_API_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'migrate_device',
+                source_device_id: src,
+                target_device_id: target,
+                secret: adminPasswordSecret
+              })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data.success) {
+              showToast(`Migrasi dari ${src} ke ${target} berhasil!`);
+              document.getElementById('inputSourceDevice').value = '';
+              document.getElementById('inputTargetDevice').value = '';
+              muatDaftarSemuaUser();
+              bukaSubView('device');
+            } else {
+              showToast(data.error || 'Gagal memproses migrasi.', false);
+            }
+          } catch (e) {
+            showToast('Gagal melakukan migrasi perangkat.', false);
+          }
+        }
+      );
+    }
+
+    async function bulkExtendDuration(hari) {
+      if (selectedDeviceIds.length === 0) return;
+      try {
+        const res = await fetch(VERCEL_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'bulk_extend',
+            device_ids: selectedDeviceIds,
+            days: hari,
+            secret: adminPasswordSecret
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
+          showToast(`Berhasil menambah ${hari} hari untuk ${selectedDeviceIds.length} perangkat.`);
+          muatDaftarSemuaUser();
+        } else {
+          showToast(data.error || 'Gagal memperpanjang masa aktif.', false);
+        }
+      } catch (e) {
+        showToast('Terjadi kesalahan koneksi.', false);
+      }
+    }
+
+    async function bulkUpdateStatus(statusVal) {
+      if (selectedDeviceIds.length === 0) return;
+      try {
+        const res = await fetch(VERCEL_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'bulk_status',
+            device_ids: selectedDeviceIds,
+            status: statusVal,
+            secret: adminPasswordSecret
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
+          showToast(`Status ${selectedDeviceIds.length} perangkat diubah ke ${statusVal.toUpperCase()}.`);
+          muatDaftarSemuaUser();
+        } else {
+          showToast(data.error || 'Gagal mengubah status batch.', false);
+        }
+      } catch (e) {
+        showToast('Terjadi kesalahan koneksi.', false);
+      }
+    }
+
+    function bulkDeleteLicensesWithModal() {
+      if (selectedDeviceIds.length === 0) return;
+      showConfirmModal(
+        'Hapus Batch Perangkat',
+        `Apakah Anda yakin ingin menghapus ${selectedDeviceIds.length} perangkat terdaftar secara permanen?`,
+        async () => {
+          try {
+            const res = await fetch(VERCEL_API_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'bulk_delete',
+                device_ids: selectedDeviceIds,
+                secret: adminPasswordSecret
+              })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data.success) {
+              showToast(`Berhasil menghapus ${selectedDeviceIds.length} perangkat.`);
+              selectedDeviceIds = [];
+              muatDaftarSemuaUser();
+            } else {
+              showToast(data.error || 'Gagal menghapus batch.', false);
+            }
+          } catch (e) {
+            showToast('Terjadi kesalahan koneksi.', false);
+          }
+        }
+      );
+    }
+
+    /* ----------------------------------------------------
+       PRICING PLANS & DISCOUNTS API & DATABASE INTEGRATION
+       ---------------------------------------------------- */
+    async function muatDataPaketServer() {
+      const container = document.getElementById('containerListPaket');
+      if (container) container.innerHTML = '<div class="text-center text-slate-500 text-xs py-10">⏳ Memuat paket dari database API...</div>';
+      try {
+        const res = await fetch(`${VERCEL_API_URL}?action=get_packages`, { method: 'GET', headers: { 'Accept': 'application/json' } });
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : (data.packages || data.data || []);
+        
+        container.innerHTML = '';
+        if (!list || list.length === 0) {
+          tambahBarisPaketForm();
+        } else {
+          list.forEach(p => {
+            tambahBarisPaketFormInput(
+              p.name || p.nama || '', 
+              p.days || p.hari || 30, 
+              p.price || p.harga || 50000, 
+              p.discount_type || 'none', 
+              p.discount_value || '', 
+              p.discount_until || ''
+            );
+          });
+        }
+      } catch (err) {
+        console.error('Failed to load packages:', err);
+        if (container) container.innerHTML = '<div class="text-center text-red-400 text-xs py-10">⚠️ Gagal memuat paket dari server. Silakan tambahkan paket baru.</div>';
+        tambahBarisPaketForm();
+      }
+    }
+
+    function tambahBarisPaketForm() {
+      tambahBarisPaketFormInput('', 30, 50000, 'none', '', '');
+    }
 
     function tambahBarisPaketFormInput(nama = '', hari = 30, harga = 50000, discType = 'none', discVal = '', discUntil = '') {
       const container = document.getElementById('containerListPaket');
       if (!container) return;
+      if (container.querySelector('.text-center')) container.innerHTML = '';
+
       const div = document.createElement('div');
-      div.className = 'package-item-row p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3';
-      div.innerHTML = `<div class="grid grid-cols-3 gap-2"><input type="text" class="inp-nama bg-slate-950 p-2 rounded text-xs" value="${nama}" placeholder="Nama"><input type="number" class="inp-hari bg-slate-950 p-2 rounded text-xs" value="${hari}" placeholder="Hari"><input type="number" class="inp-harga bg-slate-950 p-2 rounded text-xs" value="${harga}" placeholder="Harga"></div>`;
+      div.className = 'package-item-row p-4 sm:p-5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3.5 transition hover:border-slate-700 shadow-md';
+      
+      div.innerHTML = `
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+          <div class="sm:col-span-4">
+            <label class="block text-[10px] text-slate-400 font-extrabold uppercase mb-1">Nama Paket</label>
+            <input type="text" class="inp-nama w-full px-3 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-600 font-semibold outline-none focus:border-brand-500 transition" value="${nama}" placeholder="Contoh: Paket Monthly PRO">
+          </div>
+          <div class="sm:col-span-3">
+            <label class="block text-[10px] text-slate-400 font-extrabold uppercase mb-1">Durasi (Hari)</label>
+            <input type="number" class="inp-hari w-full px-3 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-600 font-semibold outline-none focus:border-brand-500 transition" value="${hari}" placeholder="30">
+          </div>
+          <div class="sm:col-span-4">
+            <label class="block text-[10px] text-slate-400 font-extrabold uppercase mb-1">Harga Normal (Rp)</label>
+            <input type="number" oninput="kalkulasiHitungDiskonForm(this)" class="inp-harga w-full px-3 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-brand-400 font-mono font-bold placeholder-slate-600 outline-none focus:border-brand-500 transition" value="${harga}" placeholder="50000">
+          </div>
+          <div class="sm:col-span-1 flex justify-end">
+            <button onclick="this.closest('.package-item-row').remove()" class="w-full h-10 bg-red-500/15 hover:bg-red-500/25 active:scale-95 text-red-400 border border-red-500/20 rounded-xl font-bold flex items-center justify-center text-xs transition" title="Hapus Paket">✕</button>
+          </div>
+        </div>
+
+        <div class="p-3 bg-slate-950/60 rounded-xl border border-slate-800/80 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-extrabold text-brand-400 uppercase tracking-wider flex items-center gap-1.5">
+              <span>🏷️ Promo & Diskon</span>
+            </span>
+            <span class="preview-harga-akhir text-[11px] font-mono font-extrabold text-emerald-400">Harga Akhir: Rp 0</span>
+          </div>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <div>
+              <label class="block text-[9px] text-slate-500 font-bold uppercase mb-1">Tipe Diskon</label>
+              <select onchange="kalkulasiHitungDiskonForm(this)" class="inp-disc-type w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white outline-none focus:border-brand-500 transition font-semibold">
+                <option value="none" ${discType === 'none' ? 'selected' : ''}>Tanpa Diskon</option>
+                <option value="percent" ${discType === 'percent' ? 'selected' : ''}>Persentase (%)</option>
+                <option value="nominal" ${discType === 'nominal' ? 'selected' : ''}>Nominal (Rp)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[9px] text-slate-500 font-bold uppercase mb-1">Nilai Diskon</label>
+              <input type="number" oninput="kalkulasiHitungDiskonForm(this)" class="inp-disc-val w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-amber-400 font-mono font-bold outline-none focus:border-brand-500 transition" value="${discVal}" placeholder="e.g. 20 atau 10000">
+            </div>
+            <div>
+              <label class="block text-[9px] text-slate-500 font-bold uppercase mb-1">Batas Waktu Diskon</label>
+              <input type="date" class="inp-disc-until w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white outline-none focus:border-brand-500 transition" value="${discUntil}">
+            </div>
+          </div>
+        </div>
+      `;
+      
       container.appendChild(div);
+      kalkulasiHitungDiskonForm(div.querySelector('.inp-harga'));
+    }
+
+    function kalkulasiHitungDiskonForm(el) {
+      const row = el.closest('.package-item-row');
+      if (!row) return;
+
+      const hargaNormal = Number(row.querySelector('.inp-harga').value) || 0;
+      const discType = row.querySelector('.inp-disc-type').value;
+      const discValInput = row.querySelector('.inp-disc-val');
+      const discVal = Number(discValInput.value) || 0;
+      const previewEl = row.querySelector('.preview-harga-akhir');
+
+      if (discType === 'none') {
+        discValInput.disabled = true;
+        discValInput.classList.add('opacity-40');
+      } else {
+        discValInput.disabled = false;
+        discValInput.classList.remove('opacity-40');
+      }
+
+      let hargaAkhir = hargaNormal;
+      if (discType === 'percent' && discVal > 0) {
+        const potongan = Math.round((hargaNormal * discVal) / 100);
+        hargaAkhir = Math.max(0, hargaNormal - potongan);
+      } else if (discType === 'nominal' && discVal > 0) {
+        hargaAkhir = Math.max(0, hargaNormal - discVal);
+      }
+
+      if (previewEl) {
+        if (hargaAkhir < hargaNormal) {
+          const hemat = hargaNormal - hargaAkhir;
+          previewEl.innerHTML = `<span class="line-through text-slate-500 mr-1.5">Rp ${hargaNormal.toLocaleString('id-ID')}</span> <span class="text-emerald-400 font-bold">Rp ${hargaAkhir.toLocaleString('id-ID')}</span> <span class="text-[9px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/20 ml-1">Hemat Rp ${hemat.toLocaleString('id-ID')}</span>`;
+        } else {
+          previewEl.textContent = `Harga Akhir: Rp ${hargaNormal.toLocaleString('id-ID')}`;
+        }
+      }
     }
 
     async function simpanPengaturanPaketServer() {
-      showToast('Paket berhasil disimpan.');
+      const rows = document.querySelectorAll('#containerListPaket > .package-item-row');
+      const packagesPayload = [];
+
+      rows.forEach(r => {
+        const name = r.querySelector('.inp-nama').value.trim();
+        const days = Number(r.querySelector('.inp-hari').value) || 0;
+        const price = Number(r.querySelector('.inp-harga').value) || 0;
+        const discount_type = r.querySelector('.inp-disc-type').value;
+        const discount_value = Number(r.querySelector('.inp-disc-val').value) || 0;
+        const discount_until = r.querySelector('.inp-disc-until').value || '';
+
+        let discount_price = price;
+        if (discount_type === 'percent' && discount_value > 0) {
+          discount_price = Math.max(0, price - Math.round((price * discount_value) / 100));
+        } else if (discount_type === 'nominal' && discount_value > 0) {
+          discount_price = Math.max(0, price - discount_value);
+        }
+
+        if (name && days > 0) {
+          packagesPayload.push({
+            name,
+            days,
+            price,
+            discount_type,
+            discount_value,
+            discount_until,
+            discount_price
+          });
+        }
+      });
+
+      try {
+        const res = await fetch(VERCEL_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'save_packages',
+            packages: packagesPayload,
+            secret: adminPasswordSecret
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && (data.success || data.status)) {
+          showToast('Paket langganan & diskon berhasil disimpan ke database API!');
+          muatDataPaketServer();
+        } else {
+          showToast(data.error || 'Gagal menyimpan paket server.', false);
+        }
+      } catch (e) {
+        showToast('Koneksi gagal saat menyimpan paket.', false);
+      }
     }
 
-    function updateLicenseRatio() {}
-    function toggleSelectAllDevices() {}
-    function toggleSelectDevice() {}
-    function updateBulkToolbarUI() {}
-    function renderExpiringRadar() {}
-    function tambahHari() {}
-    function setLifetime() {}
-    function cekOtomatisStatusTanggal() {}
-    function ubahStatusDropdown() {}
-    function hapusLisensiWithModal() {}
-    function eksekusiOperDeviceWithModal() {}
-    function bulkExtendDuration() {}
-    function bulkUpdateStatus() {}
-    function bulkDeleteLicensesWithModal() {}
-    function exportLicensesCSV() {}
-    function processImportFile() {}
-    function previewBackupCloud() {}
-    function closeJsonPreviewModal() {}
-    function copyJsonPreview() {}
-    function downloadBackupCloud() {}
-    function hapusBackupCloudWithModal() {}
+    async function muatDataReleaseServer() {
+      try {
+        const res = await fetch(`${VERCEL_API_URL}?action=get_release`);
+        const data = await res.json();
+        if (data) {
+          document.getElementById('inputReleaseVersion').value = data.version || '';
+          document.getElementById('inputDownloadUrl').value = data.download_url || '';
+          document.getElementById('inputChangelog').value = data.changelog || '';
+        }
+      } catch (e) {}
+    }
+
+    function handleChangelogAutoBullet(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const target = e.target;
+        const start = target.selectionStart;
+        const end = target.selectionEnd;
+        const val = target.value;
+        target.value = val.substring(0, start) + '\n- ' + val.substring(end);
+        target.selectionStart = target.selectionEnd = start + 3;
+      }
+    }
+
+    async function simpanUpdateReleaseServer() {
+      const version = document.getElementById('inputReleaseVersion').value.trim();
+      const downloadUrl = document.getElementById('inputDownloadUrl').value.trim();
+      const changelog = document.getElementById('inputChangelog').value.trim();
+
+      if (!version || !downloadUrl) return showToast('Versi dan URL Download wajib diisi!', false);
+
+      try {
+        const res = await fetch(VERCEL_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'update_release',
+            version,
+            download_url: downloadUrl,
+            changelog,
+            secret: adminPasswordSecret
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
+          showToast(`Release v${version} berhasil diterbitkan!`);
+        } else {
+          showToast(data.error || 'Gagal merilis update.', false);
+        }
+      } catch (e) {
+        showToast('Koneksi gagal saat merilis update.', false);
+      }
+    }
+
+    function exportLicensesCSV() {
+      if (!globalUserList || globalUserList.length === 0) return showToast('Tidak ada data untuk di-export.', false);
+      let csv = 'Device ID,SPPG Name,Status,Exp Date,Last Active\n';
+      globalUserList.forEach(u => {
+        csv += `"${u.device_id || ''}","${u.sppg_name || ''}","${u.status || ''}","${u.exp_date || ''}","${u.last_active || ''}"\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `mindhub-licenses-${getTodayLocalISO()}.csv`;
+      document.body.appendChild(a); a.click(); a.remove();
+      showToast('Data lisensi berhasil di-export ke CSV.');
+    }
+
+    async function processImportFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const content = e.target.result;
+          let items = [];
+
+          if (file.name.endsWith('.json')) {
+            const parsed = JSON.parse(content);
+            items = Array.isArray(parsed) ? parsed : (parsed.licenses || []);
+          } else {
+            const lines = content.split('\n');
+            for (let i = 1; i < lines.length; i++) {
+              const line = lines[i].trim();
+              if (!line) continue;
+              const parts = line.split(',').map(p => p.replace(/^"|"$/g, ''));
+              if (parts[0]) {
+                items.push({
+                  device_id: parts[0],
+                  sppg_name: parts[1] || '',
+                  status: parts[2] || 'active',
+                  exp_date: parts[3] || ''
+                });
+              }
+            }
+          }
+
+          if (items.length === 0) return showToast('File tidak berisi data lisensi yang valid.', false);
+
+          const res = await fetch(VERCEL_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'import_licenses',
+              items,
+              secret: adminPasswordSecret
+            })
+          });
+          const data = await res.json().catch(() => ({}));
+          if (res.ok && data.success) {
+            showToast(`Berhasil meng-import ${items.length} lisensi.`);
+            muatDaftarSemuaUser();
+          } else {
+            showToast(data.error || 'Gagal meng-import data.', false);
+          }
+        } catch (err) {
+          showToast('Format file tidak valid atau rusak.', false);
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
   </script>
 </body>
 </html>

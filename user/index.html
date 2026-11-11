@@ -2543,10 +2543,125 @@
       }
     }
 
-    async function muatDataReleaseServer() {}
-    function handleChangelogAutoBullet() {}
-    async function simpanUpdateReleaseServer() {}
-    function exportLicensesCSV() {}
+    async function muatDataReleaseServer() {
+  const inputVersion = document.getElementById('inputReleaseVersion');
+  const inputUrl = document.getElementById('inputDownloadUrl');
+  const inputChangelog = document.getElementById('inputChangelog');
+
+  if (!inputVersion) return;
+
+  // Set placeholder loading
+  inputVersion.value = 'Memuat...';
+  inputUrl.value = '';
+  inputChangelog.value = '';
+
+  try {
+    const res = await fetch(`${VERCEL_API_URL}?action=get_release`, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-store'
+    });
+    
+    if (!res.ok) throw new Error('Gagal mengambil data release dari server.');
+    
+    const json = await res.json();
+    // Menyesuaikan dengan struktur response backend (misal: json.release atau json.data)
+    const releaseData = json.release || json.data || json;
+
+    if (releaseData) {
+      inputVersion.value = releaseData.version || releaseData.versi || '';
+      inputUrl.value = releaseData.download_url || releaseData.url || '';
+      inputChangelog.value = releaseData.changelog || releaseData.catatan || '';
+    }
+  } catch (err) {
+    console.warn('Gagal memuat Cloud Updater:', err.message);
+    inputVersion.value = '';
+    showToast('Gagal memuat data release terbaru.', false);
+  }
+}
+
+// Lengkapi juga fungsi simpan rilis ke server
+async function simpanUpdateReleaseServer() {
+  const version = document.getElementById('inputReleaseVersion').value.trim();
+  const download_url = document.getElementById('inputDownloadUrl').value.trim();
+  const changelog = document.getElementById('inputChangelog').value.trim();
+
+  if (!version || !download_url) {
+    return showToast('Versi dan URL Download wajib diisi!', false);
+  }
+
+  try {
+    const res = await fetch(VERCEL_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'save_release',
+        version,
+        download_url,
+        changelog,
+        secret: adminPasswordSecret,
+        admin_secret: adminPasswordSecret
+      })
+    });
+
+    const result = await res.json().catch(() => ({}));
+    if (res.ok && (result.success || result.status)) {
+      showToast('Update rilis berhasil dipublikasikan!');
+      muatDataReleaseServer();
+    } else {
+      showToast(result.error || 'Gagal merilis update.', false);
+    }
+  } catch (err) {
+    showToast('Network error saat menyimpan rilis.', false);
+  }
+}
+// 1. Otomatis menambahkan tanda strip (-) untuk baris baru pada textarea Changelog
+function handleChangelogAutoBullet(event) {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    const textarea = event.target;
+    const cursorPos = textarea.selectionStart;
+    const textBefore = textarea.value.substring(0, cursorPos);
+    const textAfter = textarea.value.substring(cursorPos);
+    
+    textarea.value = textBefore + '\n- ' + textAfter;
+    textarea.selectionStart = textarea.selectionEnd = cursorPos + 3;
+  }
+}
+
+// 3. Mengunduh data seluruh lisensi/perangkat saat ini ke dalam format file .csv
+function exportLicensesCSV() {
+  if (!globalUserList || globalUserList.length === 0) {
+    return showToast('Tidak ada data lisensi untuk diexport.', false);
+  }
+
+  // Definisikan kolom CSV
+  const headers = ['device_id', 'sppg_name', 'status', 'exp_date', 'last_active'];
+  let csvContent = headers.join(',') + '\n';
+
+  globalUserList.forEach(u => {
+    const row = [
+      `"${u.device_id || ''}"`,
+      `"${(u.sppg_name || '').replace(/"/g, '""')}"`,
+      `"${u.status || 'active'}"`,
+      `"${u.exp_date || ''}"`,
+      `"${u.last_active || ''}"`
+    ];
+    csvContent += row.join(',') + '\n';
+  });
+
+  // Buat file blob dan jalankan proses download otomatis
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `mindhub-licenses-export-${getTodayLocalISO()}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  
+  showToast('File CSV berhasil diexport!');
+}
   </script>
 </body>
 </html>

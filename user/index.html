@@ -1538,47 +1538,81 @@
       const systemConfig = document.getElementById('sectionSystemConfig');
       const userMenu = document.getElementById('sectionUserMenu');
       const roleBadge = document.getElementById('userRoleBadge');
-      const devVoucherBox = document.getElementById('developerVoucherBox');
-      const devEditControls = document.getElementById('developerEditControls');
-      const btnSaveConfig = document.getElementById('btnSaveConfig');
-      const btnDeleteLicense = document.getElementById('btnDeleteLicense');
-      const extensionSection = document.getElementById('extensionSection');
+      
+      // Bagian elemen di form detail perangkat
+      const devVoucherBox = document.getElementById('developerVoucherBox');       // Kotak Generate Voucher
+      const devEditControls = document.getElementById('developerEditControls'); // Edit SPPG, Tambah Durasi, Exp Date, Status
+      const btnSaveConfig = document.getElementById('btnSaveConfig');           // Tombol Save Configuration
+      const btnDeleteLicense = document.getElementById('btnDeleteLicense');     // Tombol Delete License
+      const extensionSection = document.getElementById('extensionSection');     // Bagian Perpanjangan QRIS
+
+      // Ambil elemen spesifik di dalam developerEditControls jika ingin memfilter khusus Admin (hanya License Status)
+      const editSppgContainer = document.getElementById('editSppgName')?.closest('div');
+      const aksiCepatContainer = document.querySelector('button[onclick*="tambahHari"]')?.closest('div')?.parentElement;
+      const manualExpContainer = document.getElementById('editExpDate')?.closest('div');
+      const licenseStatusContainer = document.getElementById('editStatus')?.closest('div');
 
       roleBadge.textContent = role.toUpperCase();
       
       if (role === 'developer') {
-        // Developer melihat semuanya, namun TIDAK dengan perpanjangan masa aktif perangkat (extensionSection disembunyikan/disabled)
+        // Developer: Tampilkan semua, KECUALI perpanjangan masa aktif perangkat (extensionSection)
         adminMenu.style.display = 'block';
         systemConfig.style.display = 'block';
         userMenu.style.display = 'block';
         roleBadge.className = 'text-[10px] uppercase font-bold text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20';
+        
         if (devVoucherBox) devVoucherBox.style.display = 'block';
         if (devEditControls) devEditControls.style.display = 'block';
         if (btnSaveConfig) btnSaveConfig.style.display = 'block';
         if (btnDeleteLicense) btnDeleteLicense.style.display = 'block';
-        if (extensionSection) extensionSection.style.display = 'none'; // Sesuai permintaan: developer menampilkan semua kecuali perpanjangan masa aktif perangkat
+        if (extensionSection) extensionSection.style.display = 'none'; // Sembunyikan perpanjangan masa aktif untuk developer
+
+        // Pastikan semua sub-elemen edit developer tampil
+        if (editSppgContainer) editSppgContainer.style.display = 'block';
+        if (aksiCepatContainer) aksiCepatContainer.style.display = 'block';
+        if (manualExpContainer) manualExpContainer.style.display = 'block';
+        if (licenseStatusContainer) licenseStatusContainer.style.display = 'block';
+
         gantiView('viewDashboardApp');
         bukaSubView('overview');
+
       } else if (role === 'admin') {
-        // Admin hanya menampilkan license status saja
+        // Admin: Hanya menampilkan bagian License Status (sembunyikan generate voucher, edit nama, durasi, dan tombol simpan/hapus lainnya)
         adminMenu.style.display = 'block';
         systemConfig.style.display = 'none';
         userMenu.style.display = 'block';
         roleBadge.className = 'text-[10px] uppercase font-bold text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-lg border border-indigo-500/20';
+        
         if (devVoucherBox) devVoucherBox.style.display = 'none';
-        if (devEditControls) devEditControls.style.display = 'none';
-        if (btnSaveConfig) btnSaveConfig.style.display = 'none';
-        if (btnDeleteLicense) btnDeleteLicense.style.display = 'none';
+        if (devEditControls) dz = document.getElementById('developerEditControls'); // Tampilkan kontainer edit tapi filter isinya
+        if (devEditControls) devEditControls.style.display = 'block';
+        
+        // Sembunyikan item lain di edit controls, sisakan License Status saja
+        if (editSppgContainer) editSppgContainer.style.display = 'none';
+        if (aksiCepatContainer) aksiCepatContainer.style.display = 'none';
+        if (manualExpContainer) manualExpContainer.style.display = 'none';
+        if (licenseStatusContainer) licenseStatusContainer.style.display = 'block'; // Hanya License Status
+
+        if (btnSaveConfig) btnSaveConfig.style.display = 'block';       // Admin butuh tombol simpan status
+        if (btnDeleteLicense) btnDeleteLicense.style.display = 'none'; // Sembunyikan tombol delete
         if (extensionSection) extensionSection.style.display = 'none';
+
         gantiView('viewDashboardApp');
         bukaSubView('overview');
+
       } else {
-        // Role user tidak menampilkan bagian admin/dev menu sama sekali
+        // User: Tidak menampilkan bagian admin/developer sama sekali
         adminMenu.style.display = 'none';
         systemConfig.style.display = 'none';
         userMenu.style.display = 'block';
         roleBadge.className = 'text-[10px] uppercase font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20';
-        if (extensionSection) extensionSection.style.display = 'block';
+        
+        if (devVoucherBox) devVoucherBox.style.display = 'none';
+        if (devEditControls) devEditControls.style.display = 'none';
+        if (btnSaveConfig) btnSaveConfig.style.display = 'none';
+        if (btnDeleteLicense) btnDeleteLicense.style.display = 'none';
+        if (extensionSection) extensionSection.style.display = 'block'; // User hanya melihat opsi perpanjangan QRIS sendiri
+
         gantiView('viewDashboardApp');
         bukaSubView('services');
       }

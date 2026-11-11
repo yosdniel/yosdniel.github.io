@@ -165,7 +165,6 @@
 
       <!-- FORM LOGIN -->
       <div id="formTabLogin" class="auth-tab-content active space-y-4 text-left">
-        <!-- INLINE ERROR MESSAGE CONTAINER -->
         <div id="loginErrorMsg" class="hidden p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold leading-relaxed"></div>
         
         <div>
@@ -180,7 +179,6 @@
           <input type="password" id="loginPassword" placeholder="••••••••••••" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition" onkeyup="if(event.key==='Enter') verifikasiUserLogin()">
         </div>
 
-        <!-- INGAT SAYA CHECKBOX -->
         <div class="flex items-center gap-2 pt-1">
           <input type="checkbox" id="rememberMeCheckbox" class="w-4 h-4 rounded border-slate-800 bg-slate-900 text-brand-500 focus:ring-0 cursor-pointer">
           <label for="rememberMeCheckbox" class="text-xs text-slate-400 font-semibold cursor-pointer select-none">Ingat saya</label>
@@ -206,7 +204,6 @@
           <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1 tracking-wider">Password</label>
           <input type="password" id="regPassword" minlength="6" maxlength="16" placeholder="••••••••••••" oninput="validatePasswordStrength(this.value, 'regPasswordStrength')" class="w-full px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
           
-          <!-- LIVE PASSWORD STRENGTH INDICATOR -->
           <div id="regPasswordStrength" class="mt-2.5 space-y-1.5 p-3 rounded-2xl bg-slate-900/90 border border-slate-800 text-[11px]">
             <div data-rule="length" class="flex items-center gap-2 text-red-400 transition-colors">
               <span class="indicator-icon font-bold">❌</span>
@@ -267,7 +264,6 @@
           <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Password Baru</label>
           <input type="password" id="resetNewPassword" minlength="6" maxlength="16" placeholder="••••••••••••" oninput="validatePasswordStrength(this.value, 'resetPasswordStrength')" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
           
-          <!-- LIVE PASSWORD STRENGTH INDICATOR -->
           <div id="resetPasswordStrength" class="mt-2.5 space-y-1.5 p-3 rounded-2xl bg-slate-900/90 border border-slate-800 text-[11px]">
             <div data-rule="length" class="flex items-center gap-2 text-red-400 transition-colors">
               <span class="indicator-icon font-bold">❌</span>
@@ -851,14 +847,14 @@
       document.cookie = name + '=; Max-Age=-99999999; path=/;';
     }
 
-    // INITALIZE SUPABASE DIRECTLY WITH ROBUST ONLINE FALLBACK (BYPASS FAILED TO FETCH)
+    // INITIALIZE SUPABASE SECURELY FROM VERCEL ENV CONFIG ENDPOINT
     async function initSupabaseEnvConfig() {
       if (supabaseClientInstance) return supabaseClientInstance;
       if (supabaseInitPromise) return supabaseInitPromise;
 
       supabaseInitPromise = (async () => {
-        let supabaseUrl = 'https://wzfqcuyxowhmyghpylvq.supabase.co';
-        let supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6ZnFjdXl4b3dobXlnaHB5bHZxIiqicm9sZSI6ImFub24iLCJpYXQiOjE3NDAzNjYwOTMsImV4cCI6MjA1NTk0MjA5M30.K9xZt9Q4X9Q4X9Q4X9Q4X9Q4X9Q4X9Q4X9Q4X9Q4X9Q';
+        let supabaseUrl = '';
+        let supabaseAnonKey = '';
 
         try {
           const response = await fetch(CONFIG_API_URL, {
@@ -868,13 +864,15 @@
           });
           if (response.ok) {
             const config = await response.json().catch(() => ({}));
-            if (config.supabaseUrl && config.supabaseAnonKey) {
-              supabaseUrl = config.supabaseUrl;
-              supabaseAnonKey = config.supabaseAnonKey;
-            }
+            supabaseUrl = config.supabaseUrl || config.SUPABASE_URL || '';
+            supabaseAnonKey = config.supabaseAnonKey || config.SUPABASE_ANON_KEY || '';
           }
         } catch (err) {
-          console.warn('Network fetch config bypassed, using direct online Supabase connection.');
+          console.warn('Gagal memuat konfigurasi environment dari server.');
+        }
+
+        if (!supabaseUrl || !supabaseAnonKey) {
+          throw new Error('Gagal memuat konfigurasi Supabase dari Environment Variables Vercel. Pastikan endpoint /api/config aktif.');
         }
 
         if (!window.supabase || typeof window.supabase.createClient !== 'function') {
@@ -886,7 +884,7 @@
           supabaseAnonKey,
           { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }
         );
-        console.log('Supabase berhasil terhubung secara online.');
+        console.log('Supabase berhasil terhubung menggunakan Vercel Environment Variables.');
         return supabaseClientInstance;
       })();
 
@@ -1052,14 +1050,12 @@
     function switchAuthTab(tab) {
       const btnLogin = document.getElementById('tabBtnLogin');
       const btnRegister = document.getElementById('tabBtnRegister');
-      const tabsContainer = document.getElementById('authTabsContainer');
       const formLogin = document.getElementById('formTabLogin');
       const formRegister = document.getElementById('formTabRegister');
       const formVerify = document.getElementById('formTabVerify');
       const formForgot = document.getElementById('formTabForgot');
       const formResetNew = document.getElementById('formTabResetNew');
 
-      // Clear all inline error boxes on tab switch
       ['loginErrorMsg', 'registerErrorMsg', 'forgotErrorMsg', 'resetNewErrorMsg', 'verifyErrorMsg'].forEach(id => {
         const el = document.getElementById(id);
         if (el) { el.textContent = ''; el.classList.add('hidden'); }
@@ -1068,20 +1064,12 @@
       document.querySelectorAll('.auth-tab-content').forEach(el => el.classList.remove('active'));
 
       if (tab === 'login') {
-        if (btnLogin) {
-          btnLogin.className = 'flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 bg-brand-500 text-white shadow-md shadow-brand-500/20';
-        }
-        if (btnRegister) {
-          btnRegister.className = 'flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 text-slate-400 hover:text-white';
-        }
+        if (btnLogin) btnLogin.className = 'flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 bg-brand-500 text-white shadow-md shadow-brand-500/20';
+        if (btnRegister) btnRegister.className = 'flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 text-slate-400 hover:text-white';
         if (formLogin) formLogin.classList.add('active');
       } else if (tab === 'register') {
-        if (btnRegister) {
-          btnRegister.className = 'flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 bg-emerald-600 text-white shadow-md shadow-emerald-500/20';
-        }
-        if (btnLogin) {
-          btnLogin.className = 'flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 text-slate-400 hover:text-white';
-        }
+        if (btnRegister) btnRegister.className = 'flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 bg-emerald-600 text-white shadow-md shadow-emerald-500/20';
+        if (btnLogin) btnLogin.className = 'flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 text-slate-400 hover:text-white';
         if (formRegister) formRegister.classList.add('active');
       } else if (tab === 'forgot') {
         if (formForgot) formForgot.classList.add('active');
@@ -1120,7 +1108,7 @@
 
     async function sendVerificationEmail(to, code, username, action) {
       try {
-        const res = await fetch(VERCEL_API_URL.replace('/tokopay', '/config'), {
+        const res = await fetch(CONFIG_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action, to, code, username })
@@ -1441,7 +1429,6 @@
           role 
         };
 
-        // Simpan sesi ke cookies selama 1 hari HANYA JIKA kotak centang 'Ingat Saya' dicentang. Jika tidak, cookies dihapus.
         const rememberMe = document.getElementById('rememberMeCheckbox').checked;
         if (rememberMe) {
           setCookie('mindhub_session', { id: userData.id, uuid: userData.uuid, username: userData.username }, 1);
@@ -2179,7 +2166,6 @@
 
         const data = await res.json().catch(() => ({}));
 
-        // Perbaiki pengecekan agar mendeteksi data.code atau data.success
         if (res.ok && (data.code || data.success)) {
           const voucherCode = data.code || data.voucher || 'MIND-VOUCHER';
           const inputEl = document.getElementById('dispGeneratedVoucher');
@@ -2257,7 +2243,7 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            action: 'save_license', // <-- Diubah dari update_license menjadi save_license
+            action: 'save_license',
             device_id: currentLicenseData.device_id,
             sppg_name: sppgName,
             exp_date: expDate,
@@ -2437,9 +2423,6 @@
       );
     }
 
-    /* ----------------------------------------------------
-       PRICING PLANS & DISCOUNTS API & DATABASE INTEGRATION
-       ---------------------------------------------------- */
     async function muatDataPaketServer() {
       const container = document.getElementById('containerListPaket');
       if (container) container.innerHTML = '<div class="text-center text-slate-500 text-xs py-10">⏳ Memuat paket dari database API...</div>';
@@ -2634,7 +2617,6 @@
         const res = await fetch(`${VERCEL_API_URL}?action=get_release&_t=${Date.now()}`);
         const data = await res.json();
         
-        // Ambil objek release dari properti pembungkus, atau fallback langsung ke data
         const releaseObj = data.release || data;
         
         if (res.ok && releaseObj) {

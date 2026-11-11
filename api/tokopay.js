@@ -485,6 +485,7 @@ export default async function handler(req, res) {
         usedDevices.push(devIdTarget);
         const newUsedCount = voucher.used_count + 1;
 
+        // Update kuota voucher
         await fetch(`${SUPABASE_URL}/rest/v1/vouchers?id=eq.${voucher.id}`, {
           method: 'PATCH',
           headers: {
@@ -498,6 +499,7 @@ export default async function handler(req, res) {
           })
         });
 
+        // Catat transaksi dengan nominal 0 (agar tidak merusak laporan pendapatan) dan perpanjang lisensi
         const savedInfo = await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, devIdTarget, voucher.days_value, 0, 'Voucher Claim');
 
         return res.status(200).json({
@@ -506,45 +508,106 @@ export default async function handler(req, res) {
           exp_date: savedInfo?.exp_date
         });
       } catch (err) {
+        console.error('[Claim Voucher Error]:', err);
         return res.status(500).json({ error: 'Gagal memproses klaim voucher.' });
       }
     }
 
     // 4. SAVE LICENSE (ADMIN MANUAL)
     if (body.action === 'save_license') {
+      const targetDevId = body.device_id;
       const sppgTarget = body.sppg_name || sppg_name || '';
-      await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, body.device_id, body.paket_hari || 7, body.nominal || 0, 'Admin Manual', sppgTarget);
+      const customExpDate = body.exp_date;
+      const newStatus = body.status || 'active';
+      const customLicenseKey = body.license_key;
 
-      const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
-      const patchPayload = {
-        exp_date: body.exp_date,
-        status: body.status,
-        license_key: body.license_key,
-        updated_at: timestampWIB
-      };
-      if (sppgTarget) patchPayload.sppg_name = sppgTarget;
+      if (!targetDevId) {
+        return res.status(400).json({ error: 'Device ID wajib disertakan.' });
+      }
 
-      await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(body.device_id)}`, {
-        method: 'PATCH',
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(patchPayload)
-      });
-      return res.status(200).json({ success: true });
+      try {
+        const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
+
+        // Siapkan payload update lisensi
+        const patchPayload = {
+          status: newStatus,
+          updated_at: timestampWIB
+        };
+
+        if (customExpDate) {
+          patchPayload.exp_date = customExpDate;
+        }
+
+        if (sppgTarget) {
+          patchPayload.sppg_name = sppgTarget;
+        }
+
+        if (customLicenseKey) {
+          patchPayload.license_key = customLicenseKey;
+        }
+
+        // Lakukan update langsung ke tabel licenses
+        const updateRes = await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(targetDevId)}`, {
+          method: 'PATCH',
+          headers: { 
+            'apikey': SUPABASE_KEY, 
+            'Authorization': `Bearer ${SUPABASE_KEY}`, 
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify(patchPayload)
+        });
+
+        const updateData = await updateRes.json().catch(() => ([]));
+
+        if (!updateRes.ok) {
+          throw new Error('Gagal memperbarui lisensi di database.');
+        }
+
+        // Opsional: Catat sebagai aktivitas admin manual di tabel transactions jika ada nominal/paket hari
+        if (body.paket_hari && Number(body.paket_hari) > 0) {
+          await fetch(`${SUPABASE_URL}/rest/v1/transactions`, {
+            method: 'POST',
+            headers: {
+              'apikey': SUPABASE_KEY,
+              'Authorization': `Bearer ${SUPABASE_KEY}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              device_id: targetDevId,
+              amount: Number(body.nominal || 0),
+              paket_hari: Number(body.paket_hari),
+              status: 'success'
+            })
+          });
+        }
+
+        return res.status(200).json({ 
+          success: true, 
+          message: 'Konfigurasi lisensi berhasil diperbarui.',
+          data: Array.isArray(updateData) ? updateData[0] : null
+        });
+      } catch (err) {
+        console.error('[Save License Error]:', err);
+        return res.status(500).json({ error: 'Gagal menyimpan perubahan lisensi.' });
+      }
     }
 
     // 5. TOKOPAY WEBHOOK / PAYMENT GATEWAY ORDER
     const merchantId = process.env.TOKOPAY_MERCHANT_ID;
     const secretKey = process.env.TOKOPAY_SECRET_KEY;
-    const isWebhookTokopay = body && (body.tr_id || (body.status && !body.paket_hari));
+    
+    // Deteksi webhook diperluas agar mendeteksi reff_id / ref_id dari callback Tokopay
+    const isWebhookTokopay = body && (body.tr_id || body.trx_id || body.status_bayar || (body.status && !body.paket_hari && !body.action));
 
     if (isWebhookTokopay) {
-      const statusCallback = String(body.status || body.raw_status || '').toLowerCase();
+      const statusCallback = String(body.status || body.status_bayar || body.raw_status || '').toLowerCase();
       const refIdCallback = body.reff_id || body.ref_id || body.custom_int;
-      const isLunasCallback = statusCallback === 'success' || statusCallback === 'paid' || statusCallback === 'completed';
+      const isLunasCallback = statusCallback === 'success' || statusCallback === 'paid' || statusCallback === 'completed' || statusCallback === '1';
 
       if (isLunasCallback && refIdCallback) {
         const { deviceId: targetDevId, paketHari: targetPaketHari } = parseReffId(refIdCallback);
-        let nominalBayar = Number(body.total_bayar || body.nominal || 0);
+        let nominalBayar = Number(body.total_bayar || body.nominal || body.amount || 0);
 
         if (targetDevId) {
           await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, targetDevId, targetPaketHari, nominalBayar);
@@ -600,52 +663,6 @@ export default async function handler(req, res) {
         raw: tokopayData
       });
     } catch (err) {
+      console.error('[Tokopay Order Error]:', err);
       return res.status(500).json({ error: 'Gagal membuat order ke Tokopay.' });
     }
-  }
-
-  // ==========================================
-  // POLLING STATUS PEMBAYARAN TOKOPAY
-  // ==========================================
-  if (reff_id) {
-    const merchantId = process.env.TOKOPAY_MERCHANT_ID;
-    const secretKey = process.env.TOKOPAY_SECRET_KEY;
-    if (!merchantId || !secretKey) return res.status(200).json({ is_paid: false, error: 'Kunci Tokopay belum diatur.' });
-
-    const signature = crypto.createHash('md5').update(`${merchantId}${secretKey}${reff_id}`).digest('hex');
-
-    try {
-      const tokopayRes = await fetch(`https://api.tokopay.id/v1/order/status?merchant=${merchantId}&secret=${secretKey}&reff_id=${encodeURIComponent(reff_id)}&ref_id=${encodeURIComponent(reff_id)}&signature=${signature}`, { cache: 'no-store' });
-      const tokopayData = await tokopayRes.json();
-
-      const innerData = tokopayData?.data?.data || tokopayData?.data || tokopayData;
-      const statusTransaksi = String(innerData?.status || innerData?.raw_status || tokopayData?.status || '').toLowerCase();
-
-      const isLunas = statusTransaksi === 'success' || statusTransaksi === 'paid' || statusTransaksi === 'completed' || tokopayData?.is_paid === true;
-
-      if (isLunas) {
-        let { deviceId: targetDevId, paketHari: targetPaketHari } = parseReffId(reff_id);
-        if (!targetDevId) targetDevId = device_id;
-        if (!paket_hari && targetPaketHari) paket_hari = targetPaketHari;
-
-        let nominalBayar = Number(innerData?.total_bayar || innerData?.nominal || 0);
-
-        if (!targetDevId) return res.status(200).json({ is_paid: false, error: 'Device ID tidak terdeteksi.' });
-
-        const savedInfo = await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, targetDevId, targetPaketHari, nominalBayar);
-
-        return res.status(200).json({
-          is_paid: true,
-          status: 'Success',
-          exp_date: savedInfo?.exp_date || null
-        });
-      }
-
-      return res.status(200).json({ is_paid: false, raw_status: innerData?.status || 'Unpaid' });
-    } catch (err) {
-      return res.status(200).json({ is_paid: false, error: 'Gagal mengecek status Tokopay.' });
-    }
-  }
-
-  return res.status(400).json({ error: 'Permintaan tidak valid.' });
-}

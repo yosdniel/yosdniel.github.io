@@ -2159,29 +2159,56 @@
     }
 
     async function generateVoucherDevice(hari) {
-      if (!currentLicenseData || !currentLicenseData.device_id) return;
-      try {
-        const res = await fetch(VERCEL_API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'generate_voucher',
-            device_id: currentLicenseData.device_id,
-            duration_days: hari,
-            secret: adminPasswordSecret
-          })
-        });
-        const data = await res.json().catch(() => ({}));
-        if (res.ok && data.code) {
-          document.getElementById('dispGeneratedVoucher').value = data.code;
-          showToast(`Voucher ${hari} Hari Berhasil Dibuat!`);
-        } else {
-          showToast(data.error || 'Gagal membuat voucher.', false);
-        }
-      } catch (e) {
-        showToast('Terjadi kesalahan saat generate voucher.', false);
-      }
+  if (!currentLicenseData || !currentLicenseData.device_id) {
+    return showToast('Pilih perangkat terlebih dahulu.', false);
+  }
+
+  // Ambil token sesi atau secret key yang valid
+  const sessionCookie = getCookie('mindhub_session');
+  const authToken = sessionCookie ? sessionCookie.id : '';
+
+  try {
+    showToast('Membuat kode voucher...', true);
+    
+    const res = await fetch(VERCEL_API_URL, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({
+        action: 'generate_voucher',
+        device_id: currentLicenseData.device_id,
+        duration_days: hari,
+        secret: adminPasswordSecret
+      })
+    });
+
+    // Tangkap respons meskipun bukan JSON (misal HTML error 500 dari Vercel)
+    const responseText = await res.text();
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseErr) {
+      console.error('Server Response Raw:', responseText);
+      throw new Error(`Server merespons dengan error (${res.status}): Format JSON tidak valid.`);
     }
+
+    if (res.ok && (data.code || data.success)) {
+      const voucherCode = data.code || data.voucher || 'MIND-XXXXXX';
+      const inputEl = document.getElementById('dispGeneratedVoucher');
+      if (inputEl) inputEl.value = voucherCode;
+      showToast(`Voucher ${hari} Hari Berhasil Dibuat!`);
+    } else {
+      const errorMsg = data.error || data.message || `Gagal membuat voucher (Status ${res.status}).`;
+      showToast(errorMsg, false);
+    }
+  } catch (e) {
+    console.error('generateVoucherDevice Error:', e);
+    showToast(e.message || 'Terjadi kesalahan jaringan saat membuat voucher.', false);
+  }
+}
 
     function salinVoucherDevice() {
       const code = document.getElementById('dispGeneratedVoucher').value;

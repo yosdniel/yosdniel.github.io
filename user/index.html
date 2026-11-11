@@ -2257,7 +2257,7 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            action: 'update_license',
+            action: 'save_license', // <-- Diubah dari update_license menjadi save_license
             device_id: currentLicenseData.device_id,
             sppg_name: sppgName,
             exp_date: expDate,
@@ -2279,8 +2279,10 @@
       } catch (e) {
         showToast('Terjadi kesalahan saat menyimpan.', false);
       } finally {
-        btn.disabled = false;
-        btn.textContent = 'Save Configuration';
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Save Configuration';
+        }
       }
     }
 

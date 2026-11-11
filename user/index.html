@@ -2637,58 +2637,98 @@
     }
 
     async function muatDataReleaseServer() {
-      try {
-        const res = await fetch(`${VERCEL_API_URL}?action=get_release`);
-        const data = await res.json();
-        if (data) {
-          document.getElementById('inputReleaseVersion').value = data.version || '';
-          document.getElementById('inputDownloadUrl').value = data.download_url || '';
-          document.getElementById('inputChangelog').value = data.changelog || '';
-        }
-      } catch (e) {}
+  const versionEl = document.getElementById('inputReleaseVersion');
+  const urlEl = document.getElementById('inputDownloadUrl');
+  const changelogEl = document.getElementById('inputChangelog');
+
+  if (versionEl) versionEl.value = 'Memuat...';
+
+  try {
+    // Menggunakan endpoint config atau tokopay sesuai routing API backend Anda
+    const res = await fetch(`${VERCEL_API_URL}?action=get_release&_t=${Date.now()}`, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-store'
+    });
+
+    const responseText = await res.text();
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseErr) {
+      console.warn('Response bukan JSON valid:', responseText);
+      throw new Error('Format data rilis dari server tidak valid.');
     }
 
-    function handleChangelogAutoBullet(e) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        const target = e.target;
-        const start = target.selectionStart;
-        const end = target.selectionEnd;
-        const val = target.value;
-        target.value = val.substring(0, start) + '\n- ' + val.substring(end);
-        target.selectionStart = target.selectionEnd = start + 3;
-      }
+    // Mendukung berbagai struktur respons backend (langsung object atau terbungkus di dalam .release / .data)
+    const release = data.release || data.data || data;
+
+    if (res.ok && release) {
+      if (versionEl) versionEl.value = release.version || release.tag_name || '';
+      if (urlEl) urlEl.value = release.download_url || release.url || '';
+      if (changelogEl) changelogEl.value = release.changelog || release.notes || '';
+    } else {
+      throw new Error(data.error || 'Gagal memuat metadata rilis.');
+    }
+  } catch (e) {
+    console.error('muatDataReleaseServer Error:', e);
+    if (versionEl) versionEl.value = '';
+    if (urlEl) urlEl.value = '';
+    if (changelogEl) changelogEl.value = '';
+    showToast('Gagal memuat data cloud updater dari server.', false);
+  }
+}
+
+async function simpanUpdateReleaseServer() {
+  const version = document.getElementById('inputReleaseVersion').value.trim();
+  const downloadUrl = document.getElementById('inputDownloadUrl').value.trim();
+  const changelog = document.getElementById('inputChangelog').value.trim();
+
+  if (!version || !downloadUrl) {
+    return showToast('Versi dan URL Download wajib diisi!', false);
+  }
+
+  const sessionCookie = getCookie('mindhub_session');
+  const authToken = sessionCookie ? sessionCookie.id : '';
+
+  try {
+    showToast('Menerbitkan rilis baru...', true);
+
+    const res = await fetch(VERCEL_API_URL, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({
+        action: 'update_release',
+        version,
+        download_url: downloadUrl,
+        changelog,
+        secret: adminPasswordSecret
+      })
+    });
+
+    const responseText = await res.text();
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseErr) {
+      throw new Error(`Server error (${res.status}): Format respons tidak valid.`);
     }
 
-    async function simpanUpdateReleaseServer() {
-      const version = document.getElementById('inputReleaseVersion').value.trim();
-      const downloadUrl = document.getElementById('inputDownloadUrl').value.trim();
-      const changelog = document.getElementById('inputChangelog').value.trim();
-
-      if (!version || !downloadUrl) return showToast('Versi dan URL Download wajib diisi!', false);
-
-      try {
-        const res = await fetch(VERCEL_API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'update_release',
-            version,
-            download_url: downloadUrl,
-            changelog,
-            secret: adminPasswordSecret
-          })
-        });
-        const data = await res.json().catch(() => ({}));
-        if (res.ok && data.success) {
-          showToast(`Release v${version} berhasil diterbitkan!`);
-        } else {
-          showToast(data.error || 'Gagal merilis update.', false);
-        }
-      } catch (e) {
-        showToast('Koneksi gagal saat merilis update.', false);
-      }
+    if (res.ok && (data.success || data.status)) {
+      showToast(`🚀 Release v${version} berhasil diterbitkan ke cloud!`);
+      muatDataReleaseServer();
+    } else {
+      showToast(data.error || data.message || 'Gagal merilis update.', false);
     }
+  } catch (e) {
+    console.error('simpanUpdateReleaseServer Error:', e);
+    showToast(e.message || 'Koneksi gagal saat merilis update.', false);
+  }
+}
 
     function exportLicensesCSV() {
       if (!globalUserList || globalUserList.length === 0) return showToast('Tidak ada data untuk di-export.', false);

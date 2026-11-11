@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>MindHUB - User Dashboard</title>
+  <title>MindHUB - Portal Layanan & Admin Dashboard</title>
 
   <!-- FAVICON & PWA METAS -->
   <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon.ico">
@@ -140,7 +140,7 @@
 
   <div id="sidebarBackdrop" onclick="toggleSidebarMobile(false)" class="fixed inset-0 z-30 bg-slate-950/70 backdrop-blur-sm hidden lg:hidden transition-opacity duration-300 opacity-0"></div>
 
-  <!-- AUTH VIEW (LOGIN, PIN VERIFICATION) -->
+  <!-- AUTH VIEW (LOGIN, REGISTER, VERIFY, FORGOT PASSWORD) -->
   <div id="viewLandingPage" class="view-section active fixed inset-0 z-[9999] bg-slate-950 w-full h-full items-center justify-center p-4 overflow-y-auto">
     <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/30 via-slate-950 to-slate-950 pointer-events-none"></div>
     <div class="glass-card w-full max-w-md p-6 sm:p-8 rounded-3xl shadow-2xl relative z-10 border border-slate-800 my-auto">
@@ -150,21 +150,165 @@
           <img src="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon512.png" alt="MindHUB Logo" class="w-full h-full object-cover rounded-xl">
         </div>
         <h2 class="font-extrabold text-xl sm:text-2xl text-white tracking-tight">MindHUB Portal</h2>
-        <p class="text-xs text-slate-400 mt-1">Masukkan 6-Digit PIN Akses Anda ✨</p>
+        <p class="text-xs text-slate-400 mt-1">Masuk ke akun MindHUB kamu di sini ✨</p>
       </div>
 
-      <!-- FORM LOGIN PIN -->
+      <!-- AUTH TABS TOGGLE -->
+      <div id="authTabsContainer" class="flex bg-slate-900/90 p-1 rounded-2xl border border-slate-800 mb-6">
+        <button id="tabBtnLogin" onclick="switchAuthTab('login')" class="flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 bg-brand-500 text-white shadow-md shadow-brand-500/20">
+          Masuk / Login
+        </button>
+        <button id="tabBtnRegister" onclick="switchAuthTab('register')" class="flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 text-slate-400 hover:text-white">
+          Daftar Akun
+        </button>
+      </div>
+
+      <!-- FORM LOGIN -->
       <div id="formTabLogin" class="auth-tab-content active space-y-4 text-left">
         <div id="loginErrorMsg" class="hidden p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold leading-relaxed"></div>
-        
         <div>
-          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider text-center">PIN Akses (6 Digit)</label>
-          <input type="password" id="loginUserPin" maxlength="6" placeholder="••••••" class="w-full px-4 py-3.5 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-center text-xl tracking-[0.5em] font-mono outline-none focus:border-brand-500 transition" onkeyup="if(event.key==='Enter') verifikasiUserLogin()">
+          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Username / Email</label>
+          <input type="text" id="loginUserIdentifier" placeholder="akun@minduniverse.id" oninput="this.value = this.value.toLowerCase()" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition font-mono lowercase">
+        </div>
+        <div>
+          <div class="flex justify-between items-center mb-1.5">
+            <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Password</label>
+            <button type="button" onclick="switchAuthTab('forgot')" class="text-[11px] text-brand-400 hover:text-brand-300 font-bold hover:underline">Lupa Password?</button>
+          </div>
+          <input type="password" id="loginPassword" placeholder="••••••••••••" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition" onkeyup="if(event.key==='Enter') verifikasiUserLogin()">
+        </div>
+
+        <div class="flex items-center gap-2 pt-1">
+          <input type="checkbox" id="rememberMeCheckbox" class="w-4 h-4 rounded border-slate-800 bg-slate-900 text-brand-500 focus:ring-0 cursor-pointer">
+          <label for="rememberMeCheckbox" class="text-xs text-slate-400 font-semibold cursor-pointer select-none">Ingat saya</label>
         </div>
 
         <button id="btnLogin" onclick="verifikasiUserLogin()" class="w-full bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 active:scale-[0.99] text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-xl shadow-brand-500/30 transition duration-200 mt-2">
           Masuk Portal
         </button>
+      </div>
+
+      <!-- FORM REGISTER -->
+      <div id="formTabRegister" class="auth-tab-content space-y-3.5 text-left">
+        <div id="registerErrorMsg" class="hidden p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold leading-relaxed"></div>
+        <div>
+          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1 tracking-wider">Username (6-16 Karakter)</label>
+          <input type="text" id="regUsername" minlength="6" maxlength="16" placeholder="mindspace" oninput="this.value = this.value.toLowerCase()" class="w-full px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition font-mono lowercase">
+        </div>
+        <div>
+          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1 tracking-wider">Email Address</label>
+          <input type="email" id="regEmail" placeholder="akun@minduniverse.id" class="w-full px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
+        </div>
+        <div>
+          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1 tracking-wider">Password</label>
+          <input type="password" id="regPassword" minlength="6" maxlength="16" placeholder="••••••••••••" oninput="validatePasswordStrength(this.value, 'regPasswordStrength')" class="w-full px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
+          
+          <div id="regPasswordStrength" class="mt-2.5 space-y-1.5 p-3 rounded-2xl bg-slate-900/90 border border-slate-800 text-[11px]">
+            <div data-rule="length" class="flex items-center gap-2 text-red-400 transition-colors">
+              <span class="indicator-icon font-bold">❌</span>
+              <span>Minimal 8 karakter</span>
+            </div>
+            <div data-rule="uppercase" class="flex items-center gap-2 text-red-400 transition-colors">
+              <span class="indicator-icon font-bold">❌</span>
+              <span>Minimal 1 huruf besar (A-Z)</span>
+            </div>
+            <div data-rule="number" class="flex items-center gap-2 text-red-400 transition-colors">
+              <span class="indicator-icon font-bold">❌</span>
+              <span>Minimal 1 angka (0-9)</span>
+            </div>
+            <div data-rule="special" class="flex items-center gap-2 text-red-400 transition-colors">
+              <span class="indicator-icon font-bold">❌</span>
+              <span>Minimal 1 karakter spesial (@$!%*?& dll.)</span>
+            </div>
+          </div>
+        </div>
+        <button id="btnRegister" onclick="prosesUserRegister()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 active:scale-[0.99] text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-xl shadow-emerald-500/20 transition duration-200 mt-2">
+          Daftar Akun
+        </button>
+      </div>
+
+      <!-- FORM LUPA PASSWORD -->
+      <div id="formTabForgot" class="auth-tab-content space-y-4 text-left">
+        <div class="text-center space-y-1">
+          <span class="text-3xl">🔑</span>
+          <h3 class="font-extrabold text-white text-sm">Pemulihan Password</h3>
+          <p class="text-xs text-slate-400">Masukkan email terdaftar untuk menerima 6-digit kode OTP reset password.</p>
+        </div>
+        <div id="forgotErrorMsg" class="hidden p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold leading-relaxed"></div>
+        <div>
+          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Email Terdaftar</label>
+          <input type="email" id="forgotInputEmail" placeholder="user@domain.com" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
+        </div>
+        <button id="btnSendResetCode" onclick="prosesCekEmailLupaPassword()" class="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 active:scale-[0.99] text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-xl shadow-amber-500/20 transition">
+          Kirim kode OTP
+        </button>
+        <div class="text-center">
+          <button type="button" onclick="switchAuthTab('login')" class="text-xs text-slate-500 hover:text-slate-300 underline">Batal & Kembali ke Login</button>
+        </div>
+      </div>
+
+      <!-- FORM RESET PASSWORD BARU -->
+      <div id="formTabResetNew" class="auth-tab-content space-y-4 text-left">
+        <div class="text-center space-y-1">
+          <span class="text-3xl">🛡️</span>
+          <h3 class="font-extrabold text-white text-sm">Buat Password Baru</h3>
+          <p class="text-xs text-slate-400">Masukkan kode OTP 6-angka (berlaku 5 menit) dari email <span id="resetTargetEmail" class="text-amber-400 font-mono">user@domain.com</span></p>
+        </div>
+        <div id="resetNewErrorMsg" class="hidden p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold leading-relaxed"></div>
+        <div>
+          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Kode OTP 6-Digit</label>
+          <input type="text" id="resetInputCode" maxlength="6" placeholder="123456" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-center text-xl tracking-[0.4em] font-mono outline-none focus:border-brand-500 transition">
+        </div>
+        <div>
+          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Password Baru</label>
+          <input type="password" id="resetNewPassword" minlength="6" maxlength="16" placeholder="••••••••••••" oninput="validatePasswordStrength(this.value, 'resetPasswordStrength')" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
+          
+          <div id="resetPasswordStrength" class="mt-2.5 space-y-1.5 p-3 rounded-2xl bg-slate-900/90 border border-slate-800 text-[11px]">
+            <div data-rule="length" class="flex items-center gap-2 text-red-400 transition-colors">
+              <span class="indicator-icon font-bold">❌</span>
+              <span>Minimal 8 karakter</span>
+            </div>
+            <div data-rule="uppercase" class="flex items-center gap-2 text-red-400 transition-colors">
+              <span class="indicator-icon font-bold">❌</span>
+              <span>Minimal 1 huruf besar (A-Z)</span>
+            </div>
+            <div data-rule="number" class="flex items-center gap-2 text-red-400 transition-colors">
+              <span class="indicator-icon font-bold">❌</span>
+              <span>Minimal 1 angka (0-9)</span>
+            </div>
+            <div data-rule="special" class="flex items-center gap-2 text-red-400 transition-colors">
+              <span class="indicator-icon font-bold">❌</span>
+              <span>Minimal 1 karakter spesial (@$!%*?& dll.)</span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Konfirmasi Password Baru</label>
+          <input type="password" id="resetConfirmPassword" minlength="6" maxlength="16" placeholder="••••••••••••" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
+        </div>
+        <button id="btnSubmitResetPassword" onclick="prosesResetPasswordBaru()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 active:scale-[0.99] text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-xl shadow-emerald-500/20 transition">
+          Simpan Password Baru
+        </button>
+        <div class="text-center">
+          <button type="button" onclick="switchAuthTab('login')" class="text-xs text-slate-500 hover:text-slate-300 underline">Kembali ke Login</button>
+        </div>
+      </div>
+
+      <!-- FORM VERIFIKASI KODE EMAIL -->
+      <div id="formTabVerify" class="auth-tab-content space-y-4 text-center">
+        <div class="space-y-1">
+          <span class="text-3xl">📩</span>
+          <h3 class="font-extrabold text-white text-sm">Verifikasi Email Anda</h3>
+          <p class="text-xs text-slate-400">Masukkan 6-angka kode verifikasi (berlaku 5 menit) yang dikirimkan via email ke <span id="verifyTargetEmail" class="text-brand-400 font-mono">user@domain.com</span></p>
+        </div>
+        <div id="verifyErrorMsg" class="hidden p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold leading-relaxed text-left"></div>
+        <div>
+          <input type="text" id="verifyInputCode" maxlength="6" placeholder="123456" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-center text-xl sm:text-2xl tracking-[0.5em] font-mono outline-none focus:border-brand-500 transition">
+        </div>
+        <button id="btnVerifyEmail" onclick="konfirmasiKodeVerifikasi()" class="w-full bg-gradient-to-r from-brand-500 to-indigo-600 text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-xl shadow-brand-500/30 transition">
+          Verifikasi & Aktifkan Akun
+        </button>
+        <button onclick="switchAuthTab('login')" class="text-xs text-slate-500 hover:text-slate-300 underline">Kembali ke Login</button>
       </div>
 
       <div class="mt-6 pt-4 border-t border-slate-800/80 text-center flex flex-col gap-1">
@@ -216,7 +360,7 @@
           </button>
         </div>
 
-        <!-- SYSTEM CONFIG SECTION (DEVELOPER ONLY) -->
+        <!-- SYSTEM CONFIG SECTION -->
         <div id="sectionSystemConfig" class="space-y-1.5">
           <div class="text-[10px] font-extrabold text-amber-500 uppercase px-3 mt-4 mb-2 tracking-wider">System Config</div>
           <button onclick="bukaSubView('packages')" id="navPackages" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
@@ -295,7 +439,7 @@
           </div>
         </div>
 
-        <!-- SUBVIEW: OVERVIEW (ADMIN & DEV) -->
+        <!-- SUBVIEW: OVERVIEW -->
         <div id="subViewMainMenu" class="subview-section space-y-4 sm:space-y-6">
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
             <div class="lg:col-span-2 glass-card p-6 sm:p-8 rounded-3xl flex flex-col justify-center relative overflow-hidden border border-slate-800">
@@ -515,6 +659,7 @@
               </div>
             </div>
 
+            <!-- GENERATE VOUCHER PANEL (FIXED) -->
             <div id="developerVoucherBox" class="bg-brand-500/10 p-4 sm:p-5 rounded-2xl border border-brand-500/20 space-y-3">
               <div class="font-bold text-brand-400 text-xs uppercase tracking-wider flex items-center justify-between flex-wrap gap-1">
                 <span>🎫 Generate Voucher Device Ini</span>
@@ -618,11 +763,11 @@
           </div>
         </div>
 
-        <!-- CLOUD UPDATER VIEW -->
+        <!-- CLOUD UPDATER VIEW (FIXED) -->
         <div id="subViewRelease" class="subview-section max-w-xl mx-auto space-y-4">
           <div class="glass-card p-5 sm:p-8 rounded-3xl space-y-4 border border-slate-800">
             <div class="bg-indigo-500/10 border border-indigo-500/20 p-4 rounded-2xl text-xs text-slate-300">
-              In-app userscript release metadata updater.
+              In-app userscript release metadata updater (Cloud Updater).
             </div>
             <div>
               <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Versi Terbaru</label>
@@ -650,8 +795,16 @@
   <script>
     const VERCEL_BASE_URL = 'https://mindspace-id.vercel.app';
     const VERCEL_API_URL = `${VERCEL_BASE_URL}/api/tokopay`;
+    const CONFIG_API_URL = `${VERCEL_BASE_URL}/api/config`;
+    const SECRET_SALT = 'MINDSTUDIO2026';
 
+    let supabaseClientInstance = null;
+    let supabaseInitPromise = null;
     let activeUserSession = null;
+    let pendingVerificationEmail = null;
+    let pendingResetEmail = null;
+
+    let adminPasswordSecret = '';
     let globalUserList = [];
     let selectedDeviceIds = [];
     let currentStatusFilter = 'all';
@@ -661,28 +814,129 @@
     let activeTimeframe = '7d';
     let globalStatsData = null;
     
-    // HEARTBEAT MONITOR STATE
     let heartbeatPoints = new Array(30).fill(40);
     let heartbeatInterval = null;
 
-    document.addEventListener('DOMContentLoaded', () => {
-      checkInitialAuth();
-    });
+    function setCookie(name, value, days = 1) {
+      const d = new Date();
+      d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+      const expires = "expires=" + d.toUTCString();
+      document.cookie = name + "=" + encodeURIComponent(JSON.stringify(value)) + ";" + expires + ";path=/;SameSite=Strict";
+    }
 
-    async function checkInitialAuth() {
-      try {
-        const res = await fetch(`${VERCEL_API_URL}?action=check-auth`, { credentials: 'include' });
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.authenticated && data.user) {
-            activeUserSession = data.user;
-            document.getElementById('userDisplayName').textContent = data.user.username;
-            applyRolePermissions(String(data.user.role || 'user').toLowerCase());
+    function getCookie(name) {
+      const nameEQ = name + "=";
+      const ca = document.cookie.split(';');
+      for(let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+        if (c.indexOf(nameEQ) === 0) {
+          try {
+            return JSON.parse(decodeURIComponent(c.substring(nameEQ.length, c.length)));
+          } catch(e) {
+            return null;
           }
         }
-      } catch(e) {
-        console.warn('Auth check skipped:', e);
       }
+      return null;
+    }
+
+    function eraseCookie(name) {
+      document.cookie = name + '=; Max-Age=-99999999; path=/;';
+    }
+
+    async function initSupabaseEnvConfig() {
+      if (supabaseClientInstance) return supabaseClientInstance;
+      if (supabaseInitPromise) return supabaseInitPromise;
+
+      supabaseInitPromise = (async () => {
+        let supabaseUrl = 'https://wzfqcuyxowhmyghpylvq.supabase.co';
+        let supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6ZnFjdXl4b3dobXlnaHB5bHZxIiqicm9sZSI6ImFub24iLCJpYXQiOjE3NDAzNjYwOTMsImV4cCI6MjA1NTk0MjA5M30.K9xZt9Q4X9Q4X9Q4X9Q4X9Q4X9Q4X9Q4X9Q4X9Q4X9Q';
+
+        try {
+          const response = await fetch(CONFIG_API_URL, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' },
+            cache: 'no-store'
+          });
+          if (response.ok) {
+            const config = await response.json().catch(() => ({}));
+            if (config.supabaseUrl && config.supabaseAnonKey) {
+              supabaseUrl = config.supabaseUrl;
+              supabaseAnonKey = config.supabaseAnonKey;
+            }
+          }
+        } catch (err) {
+          console.warn('Network fetch config bypassed, using direct online Supabase connection.');
+        }
+
+        if (!window.supabase || typeof window.supabase.createClient !== 'function') {
+          throw new Error('Library Supabase gagal dimuat dari CDN.');
+        }
+
+        supabaseClientInstance = window.supabase.createClient(
+          supabaseUrl,
+          supabaseAnonKey,
+          { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }
+        );
+        return supabaseClientInstance;
+      })();
+
+      try {
+        return await supabaseInitPromise;
+      } catch (error) {
+        supabaseInitPromise = null;
+        throw error;
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initSupabaseEnvConfig().then(async () => {
+        const savedSession = getCookie('mindhub_session');
+        if (savedSession && savedSession.id) {
+          try {
+            const supabase = await initSupabaseEnvConfig();
+            const { data: userData } = await supabase.from('user_accounts')
+              .select('*')
+              .eq('id', savedSession.id)
+              .limit(1)
+              .maybeSingle();
+
+            if (userData && userData.email_verified) {
+              activeUserSession = {
+                id: userData.id,
+                uuid: userData.uuid,
+                username: userData.username,
+                email: userData.email,
+                role: String(userData.role || 'user').toLowerCase()
+              };
+              adminPasswordSecret = userData.password_hash;
+              document.getElementById('userDisplayName').textContent = userData.username;
+              applyRolePermissions(activeUserSession.role);
+            } else {
+              eraseCookie('mindhub_session');
+            }
+          } catch(e) {
+            eraseCookie('mindhub_session');
+          }
+        }
+      }).catch(error => {
+        console.error('Supabase init error:', error);
+        showToast(error.message, false);
+      });
+    });
+
+    async function hashPassword(plainText) {
+      const msgBuffer = new TextEncoder().encode(plainText + SECRET_SALT);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+      return Array.from(new Uint8Array(hashBuffer))
+        .map(byte => byte.toString(16).padStart(2, '0')).join('');
+    }
+
+    function randomSixDigitCode() {
+      const array = new Uint32Array(1);
+      crypto.getRandomValues(array);
+      return String(100000 + (array[0] % 900000));
     }
 
     function formatTanggalIndo(dateStr) {
@@ -786,6 +1040,83 @@
       document.getElementById('customConfirmModal').classList.add('hidden');
     };
 
+    function switchAuthTab(tab) {
+      const btnLogin = document.getElementById('tabBtnLogin');
+      const btnRegister = document.getElementById('tabBtnRegister');
+      const formLogin = document.getElementById('formTabLogin');
+      const formRegister = document.getElementById('formTabRegister');
+      const formVerify = document.getElementById('formTabVerify');
+      const formForgot = document.getElementById('formTabForgot');
+      const formResetNew = document.getElementById('formTabResetNew');
+
+      ['loginErrorMsg', 'registerErrorMsg', 'forgotErrorMsg', 'resetNewErrorMsg', 'verifyErrorMsg'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.textContent = ''; el.classList.add('hidden'); }
+      });
+
+      document.querySelectorAll('.auth-tab-content').forEach(el => el.classList.remove('active'));
+
+      if (tab === 'login') {
+        if (btnLogin) btnLogin.className = 'flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 bg-brand-500 text-white shadow-md shadow-brand-500/20';
+        if (btnRegister) btnRegister.className = 'flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 text-slate-400 hover:text-white';
+        if (formLogin) formLogin.classList.add('active');
+      } else if (tab === 'register') {
+        if (btnRegister) btnRegister.className = 'flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 bg-emerald-600 text-white shadow-md shadow-emerald-500/20';
+        if (btnLogin) btnLogin.className = 'flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 text-slate-400 hover:text-white';
+        if (formRegister) formRegister.classList.add('active');
+      } else if (tab === 'forgot') {
+        if (formForgot) formForgot.classList.add('active');
+      } else if (tab === 'resetNew') {
+        if (formResetNew) formResetNew.classList.add('active');
+      } else if (tab === 'verify') {
+        if (formVerify) formVerify.classList.add('active');
+      }
+    }
+
+    function validatePasswordStrength(password, elementId) {
+      const container = document.getElementById(elementId);
+      if (!container) return;
+
+      const rules = {
+        length: password.length >= 8,
+        uppercase: /[A-Z]/.test(password),
+        number: /[0-9]/.test(password),
+        special: /[^A-Za-z0-9]/.test(password)
+      };
+
+      for (const [key, isValid] of Object.entries(rules)) {
+        const ruleEl = container.querySelector(`[data-rule="${key}"]`);
+        if (ruleEl) {
+          const icon = ruleEl.querySelector('.indicator-icon');
+          if (isValid) {
+            ruleEl.className = 'flex items-center gap-2 text-emerald-400 transition-colors';
+            if (icon) icon.textContent = '✓';
+          } else {
+            ruleEl.className = 'flex items-center gap-2 text-red-400 transition-colors';
+            if (icon) icon.textContent = '❌';
+          }
+        }
+      }
+    }
+
+    async function sendVerificationEmail(to, code, username, action) {
+      try {
+        const res = await fetch(VERCEL_API_URL.replace('/tokopay', '/config'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action, to, code, username })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.error || 'Gagal mengirim email verifikasi via SMTP.');
+        }
+        return data;
+      } catch (err) {
+        console.warn('SMTP Direct Notice:', err.message);
+        throw err;
+      }
+    }
+
     function showAuthError(containerId, msg) {
       const el = document.getElementById(containerId);
       if (!el) return;
@@ -798,34 +1129,282 @@
       }
     }
 
-    async function verifikasiUserLogin() {
-      const pin = document.getElementById('loginUserPin').value.trim();
-      const btn = document.getElementById('btnLogin');
+    async function prosesUserRegister() {
+      const username = document.getElementById('regUsername').value.trim().toLowerCase();
+      const email = document.getElementById('regEmail').value.trim().toLowerCase();
+      const pass = document.getElementById('regPassword').value;
+      const btn = document.getElementById('btnRegister');
 
-      showAuthError('loginErrorMsg', '');
-      if (!pin || pin.length !== 6) return showAuthError('loginErrorMsg', 'Masukkan 6-digit PIN akses yang valid.');
+      showAuthError('registerErrorMsg', '');
+
+      if (!username || !email || !pass) return showAuthError('registerErrorMsg', 'Seluruh kolom registrasi wajib diisi!');
+      if (!/^[a-z0-9_]{3,24}$/.test(username)) return showAuthError('registerErrorMsg', 'Username 3–24 karakter. Gunakan huruf, angka, atau underscore.');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showAuthError('registerErrorMsg', 'Format email tidak valid.');
+      if (pass.length < 8) return showAuthError('registerErrorMsg', 'Password minimal 8 karakter.');
 
       btn.disabled = true;
-      btn.textContent = 'Memverifikasi PIN...';
+      btn.textContent = 'Memeriksa ketersediaan akun...';
+
       try {
-        const res = await fetch(`${VERCEL_API_URL}?action=login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ pin }),
-          credentials: 'include'
-        });
-        const data = await res.json().catch(() => ({}));
-        
-        if (!res.ok || !data.ok) {
-          throw new Error(data.message || 'PIN tidak terdaftar atau akses ditolak.');
+        const supabase = await initSupabaseEnvConfig();
+
+        const { data: existingUsernames } = await supabase
+          .from('user_accounts')
+          .select('id')
+          .eq('username', username)
+          .limit(1);
+
+        if (existingUsernames && existingUsernames.length > 0) {
+          showAuthError('registerErrorMsg', 'Username telah terpakai. Gunakan username lain.');
+          document.getElementById('regUsername').focus();
+          return;
         }
 
-        activeUserSession = data.user;
-        document.getElementById('userDisplayName').textContent = data.user.username;
-        applyRolePermissions(String(data.user.role || 'user').toLowerCase());
-        showToast(`Selamat datang, ${data.user.username} (${data.user.role.toUpperCase()})!`);
+        const { data: existingEmails } = await supabase
+          .from('user_accounts')
+          .select('id')
+          .eq('email', email)
+          .limit(1);
+
+        if (existingEmails && existingEmails.length > 0) {
+          showAuthError('registerErrorMsg', 'Email telah terdaftar. Silakan login atau gunakan fitur Lupa Password.');
+          document.getElementById('regEmail').focus();
+          return;
+        }
+
+        const passHash = await hashPassword(pass);
+        const uuid = randomSixDigitCode();
+        const verificationCode = randomSixDigitCode();
+        const expiryDate = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+
+        btn.textContent = 'Mengirim kode verifikasi...';
+        await sendVerificationEmail(email, verificationCode, username, 'send_verification_email');
+
+        btn.textContent = 'Menyimpan akun...';
+        const { error } = await supabase.from('user_accounts').insert({
+          uuid,
+          username,
+          email,
+          password_hash: passHash,
+          role: 'user',
+          email_verified: false,
+          verification_code: verificationCode,
+          verification_expiry: expiryDate,
+          created_at: new Date().toISOString(),
+          last_active: new Date().toISOString()
+        });
+
+        if (error) throw new Error(error.message || 'Gagal menyimpan akun ke database.');
+
+        pendingVerificationEmail = email;
+        document.getElementById('verifyTargetEmail').textContent = email;
+        document.getElementById('verifyInputCode').value = '';
+        switchAuthTab('verify');
+        showToast('Kode verifikasi (berlaku 5 menit) telah dikirim ke email Anda.');
       } catch (error) {
-        showAuthError('loginErrorMsg', error.message || 'Login gagal.');
+        showAuthError('registerErrorMsg', error.message || 'Registrasi gagal.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Daftar Akun';
+      }
+    }
+
+    async function prosesCekEmailLupaPassword() {
+      const email = document.getElementById('forgotInputEmail').value.trim().toLowerCase();
+      const btn = document.getElementById('btnSendResetCode');
+
+      showAuthError('forgotErrorMsg', '');
+
+      if (!email) return showAuthError('forgotErrorMsg', 'Masukkan alamat email terdaftar Anda.');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showAuthError('forgotErrorMsg', 'Format email tidak valid.');
+
+      btn.disabled = true;
+      btn.textContent = 'Memeriksa email...';
+
+      try {
+        const supabase = await initSupabaseEnvConfig();
+        const { data: userData, error } = await supabase
+          .from('user_accounts')
+          .select('id, username, email')
+          .eq('email', email)
+          .limit(1)
+          .maybeSingle();
+
+        if (error) throw new Error('Gagal memeriksa database: ' + error.message);
+        if (!userData) {
+          showAuthError('forgotErrorMsg', 'Alamat email belum terdaftar di sistem kami.');
+          return;
+        }
+
+        const resetCode = randomSixDigitCode();
+        const expiryDate = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+
+        btn.textContent = 'Mengirim email OTP reset...';
+        await sendVerificationEmail(email, resetCode, userData.username || 'Pengguna', 'send_reset_password_email');
+
+        await supabase
+          .from('user_accounts')
+          .update({ verification_code: resetCode, verification_expiry: expiryDate })
+          .eq('id', userData.id);
+
+        pendingResetEmail = email;
+        document.getElementById('resetTargetEmail').textContent = email;
+        document.getElementById('resetInputCode').value = '';
+        document.getElementById('resetNewPassword').value = '';
+        document.getElementById('resetConfirmPassword').value = '';
+        switchAuthTab('resetNew');
+        showToast('Kode OTP reset password telah dikirim ke email Anda.');
+      } catch (error) {
+        showAuthError('forgotErrorMsg', error.message || 'Gagal memproses pemulihan password.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Kirim kode OTP';
+      }
+    }
+
+    async function prosesResetPasswordBaru() {
+      const code = document.getElementById('resetInputCode').value.trim();
+      const newPass = document.getElementById('resetNewPassword').value;
+      const confirmPass = document.getElementById('resetConfirmPassword').value;
+      const btn = document.getElementById('btnSubmitResetPassword');
+
+      showAuthError('resetNewErrorMsg', '');
+
+      if (!pendingResetEmail) return showAuthError('resetNewErrorMsg', 'Sesi reset password tidak ditemukan.');
+      if (!/^\d{6}$/.test(code)) return showAuthError('resetNewErrorMsg', 'Masukkan kode verifikasi 6 angka.');
+      if (!newPass || newPass.length < 8) return showAuthError('resetNewErrorMsg', 'Password baru minimal 8 karakter.');
+      if (newPass !== confirmPass) return showAuthError('resetNewErrorMsg', 'Konfirmasi password baru tidak cocok.');
+
+      btn.disabled = true;
+      btn.textContent = 'Memperbarui password...';
+
+      try {
+        const supabase = await initSupabaseEnvConfig();
+        const { data: userData, error } = await supabase
+          .from('user_accounts')
+          .select('id, verification_code, verification_expiry')
+          .eq('email', pendingResetEmail)
+          .eq('verification_code', code)
+          .limit(1)
+          .maybeSingle();
+
+        if (error) throw new Error(error.message);
+        if (!userData) throw new Error('Kode OTP salah atau tidak cocok.');
+
+        if (userData.verification_expiry && new Date() > new Date(userData.verification_expiry)) {
+          throw new Error('Kode OTP telah kadaluarsa.');
+        }
+
+        const passHash = await hashPassword(newPass);
+        await supabase
+          .from('user_accounts')
+          .update({ password_hash: passHash, verification_code: null, verification_expiry: null })
+          .eq('id', userData.id);
+
+        pendingResetEmail = null;
+        switchAuthTab('login');
+        showToast('Password berhasil diperbarui! Silakan login.');
+      } catch (error) {
+        showAuthError('resetNewErrorMsg', error.message || 'Gagal memperbarui password.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Simpan Password Baru';
+      }
+    }
+
+    async function konfirmasiKodeVerifikasi() {
+      const code = document.getElementById('verifyInputCode').value.trim();
+      const btn = document.getElementById('btnVerifyEmail');
+      if (!/^\d{6}$/.test(code)) return showToast('Masukkan kode verifikasi 6 angka.', false);
+      if (!pendingVerificationEmail) return showToast('Sesi verifikasi tidak ditemukan.', false);
+
+      btn.disabled = true;
+      btn.textContent = 'Memverifikasi...';
+      try {
+        const supabase = await initSupabaseEnvConfig();
+        const { data, error } = await supabase.from('user_accounts')
+          .select('id,email,verification_code,verification_expiry,email_verified')
+          .eq('email', pendingVerificationEmail)
+          .eq('verification_code', code)
+          .limit(1)
+          .maybeSingle();
+
+        if (error) throw new Error(error.message);
+        if (!data) throw new Error('Kode salah atau tidak cocok.');
+
+        if (data.verification_expiry && new Date() > new Date(data.verification_expiry)) {
+          throw new Error('Kode verifikasi telah kadaluarsa.');
+        }
+
+        await supabase.from('user_accounts')
+          .update({ email_verified: true, verification_code: null, verification_expiry: null })
+          .eq('id', data.id);
+
+        pendingVerificationEmail = null;
+        document.getElementById('verifyInputCode').value = '';
+        switchAuthTab('login');
+        showToast('Email berhasil diverifikasi. Silakan login.');
+      } catch (error) {
+        showToast(error.message || 'Verifikasi gagal.', false);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Verifikasi & Aktifkan Akun';
+      }
+    }
+
+    async function verifikasiUserLogin() {
+      const identifier = document.getElementById('loginUserIdentifier').value.trim();
+      const pass = document.getElementById('loginPassword').value;
+      const btn = document.getElementById('btnLogin');
+
+      if (!identifier || !pass) return showToast('Identifier dan password wajib diisi.', false);
+
+      btn.disabled = true;
+      btn.textContent = 'Memverifikasi...';
+      try {
+        const supabase = await initSupabaseEnvConfig();
+        let query = supabase.from('user_accounts').select('*');
+        if (/^\d{6}$/.test(identifier)) query = query.eq('uuid', identifier);
+        else if (identifier.includes('@')) query = query.eq('email', identifier.toLowerCase());
+        else query = query.eq('username', identifier.toLowerCase());
+
+        const { data: userData, error } = await query.limit(1).maybeSingle();
+        
+        if (error || !userData) {
+          showToast('Akun belum terdaftar atau salah.', false);
+          return;
+        }
+        
+        const inputHash = await hashPassword(pass);
+        if (userData.password_hash !== inputHash) {
+          showToast('Password yang Anda masukkan salah.', false);
+          return;
+        }
+        if (userData.email_verified !== true) {
+          showToast('Email belum diverifikasi.', false);
+          pendingVerificationEmail = userData.email;
+          document.getElementById('verifyTargetEmail').textContent = userData.email;
+          switchAuthTab('verify');
+          return;
+        }
+
+        const role = String(userData.role || 'user').toLowerCase();
+        adminPasswordSecret = inputHash;
+        activeUserSession = { id: userData.id, uuid: userData.uuid, username: userData.username, email: userData.email, role };
+
+        if (document.getElementById('rememberMeCheckbox').checked) {
+          setCookie('mindhub_session', { id: userData.id, uuid: userData.uuid, username: userData.username }, 1);
+        } else {
+          eraseCookie('mindhub_session');
+        }
+        
+        document.getElementById('userDisplayName').textContent = userData.username || identifier;
+        applyRolePermissions(role);
+
+        await supabase.from('user_accounts').update({ last_active: new Date().toISOString() }).eq('id', userData.id);
+        showToast(`Selamat datang, ${userData.username || identifier} (${role.toUpperCase()})!`);
+      } catch (error) {
+        showToast(`Terjadi kesalahan sistem: ${error.message || 'Koneksi gagal'}`, false);
       } finally {
         btn.disabled = false;
         btn.textContent = 'Masuk Portal';
@@ -873,9 +1452,7 @@
         muatStatistikDashboard();
         checkSystemHealth();
         muatDaftarSemuaUser();
-      } else if (subId === 'device') {
-        muatDaftarSemuaUser();
-      } else if (subId === 'services') {
+      } else if (subId === 'device' || subId === 'services') {
         muatDaftarSemuaUser();
       } else if (subId === 'packages') {
         muatDataPaketServer();
@@ -897,7 +1474,7 @@
 
       roleBadge.textContent = role.toUpperCase();
 
-      if (role === 'admin') {
+      if (role === 'developer') {
         adminMenu.style.display = 'block';
         systemConfig.style.display = 'block';
         userMenu.style.display = 'block';
@@ -906,6 +1483,18 @@
         if (devEditControls) devEditControls.style.display = 'block';
         if (btnSaveConfig) btnSaveConfig.style.display = 'block';
         if (btnDeleteLicense) btnDeleteLicense.style.display = 'block';
+
+        gantiView('viewDashboardApp');
+        bukaSubView('overview');
+      } else if (role === 'admin') {
+        adminMenu.style.display = 'block';
+        systemConfig.style.display = 'none';
+        userMenu.style.display = 'block';
+        roleBadge.className = 'text-[10px] uppercase font-bold text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-lg border border-indigo-500/20';
+        if (devVoucherBox) devVoucherBox.style.display = 'none';
+        if (devEditControls) devEditControls.style.display = 'none';
+        if (btnSaveConfig) btnSaveConfig.style.display = 'none';
+        if (btnDeleteLicense) btnDeleteLicense.style.display = 'none';
 
         gantiView('viewDashboardApp');
         bukaSubView('overview');
@@ -920,13 +1509,16 @@
       }
     }
 
-    async function logoutUser() {
-      try {
-        await fetch(`${VERCEL_API_URL}?action=logout`, { credentials: 'include' });
-      } catch(e) {}
+    function logoutUser() {
       activeUserSession = null;
-      document.getElementById('loginUserPin').value = '';
+      adminPasswordSecret = '';
+      eraseCookie('mindhub_session');
+      document.getElementById('loginUserIdentifier').value = '';
+      document.getElementById('loginPassword').value = '';
+      const rememberCheckbox = document.getElementById('rememberMeCheckbox');
+      if (rememberCheckbox) rememberCheckbox.checked = false;
       gantiView('viewLandingPage');
+      switchAuthTab('login');
       showToast('Berhasil keluar sesi.');
     }
 
@@ -934,10 +1526,17 @@
       const container = document.getElementById('listAllUsersContainer');
       if (container) container.innerHTML = '<div class="text-center text-slate-500 text-xs py-10">Fetching secure data...</div>';
       try {
-        const res = await fetch(`${VERCEL_API_URL}?action=get_all_licenses`, { method: 'GET', headers: { 'Accept': 'application/json' }, credentials: 'include' });
+        const res = await fetch(`${VERCEL_API_URL}?action=get_all_licenses`, { method: 'GET', headers: { 'Accept': 'application/json' } });
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         
-        const data = await res.json();
+        const textData = await res.text();
+        let data;
+        try {
+          data = JSON.parse(textData);
+        } catch (err) {
+          throw new Error('Invalid JSON response from server');
+        }
+
         globalUserList = Array.isArray(data) ? data : (data.licenses || data.users || data.data || []);
         selectedDeviceIds = [];
         updateBulkToolbarUI();
@@ -961,11 +1560,13 @@
       }
 
       const userDevices = globalUserList.filter(u => {
-        if (activeUserSession.role === 'admin') return true;
+        if (activeUserSession.role === 'developer' || activeUserSession.role === 'admin') return true;
         const owner = String(u.owner_id || u.user_id || u.email || u.username || u.claimed_by || '').toLowerCase();
         return (
           owner === String(activeUserSession.id).toLowerCase() ||
-          owner === String(activeUserSession.username).toLowerCase()
+          owner === String(activeUserSession.uuid).toLowerCase() ||
+          owner === String(activeUserSession.username).toLowerCase() ||
+          owner === String(activeUserSession.email).toLowerCase()
         );
       });
 
@@ -1037,12 +1638,11 @@
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
           body: JSON.stringify({
             action: 'redeem_voucher',
             device_id: deviceId,
             code: voucherCode,
-            claimed_by: activeUserSession.username || activeUserSession.id
+            claimed_by: activeUserSession.username || activeUserSession.email || activeUserSession.id
           })
         });
         const result = await res.json().catch(() => ({}));
@@ -1065,7 +1665,7 @@
 
     async function muatStatistikDashboard() {
       try {
-        const res = await fetch(`${VERCEL_API_URL}?action=get_stats`, { credentials: 'include' });
+        const res = await fetch(`${VERCEL_API_URL}?action=get_stats`);
         const data = await res.json();
         globalStatsData = data;
         document.getElementById('statRevHari').textContent = `Rp ${(data.harian || 0).toLocaleString('id-ID')}`;
@@ -1110,16 +1710,19 @@
       if (activeTimeframe === '14d') totalDays = 14;
       else if (activeTimeframe === '1m') totalDays = 30;
 
-      let chartData = new Array(totalDays).fill(0);
+      let chartData = [];
       if (Array.isArray(rawChartData) && rawChartData.length >= totalDays) {
         chartData = rawChartData.slice(-totalDays);
-      } else if (Array.isArray(rawChartData)) {
-        const offset = totalDays - rawChartData.length;
-        rawChartData.forEach((val, i) => {
-          if (i + offset >= 0 && i + offset < totalDays) {
-            chartData[i + offset] = val;
-          }
-        });
+      } else {
+        chartData = new Array(totalDays).fill(0);
+        if (Array.isArray(rawChartData)) {
+          const offset = totalDays - rawChartData.length;
+          rawChartData.forEach((val, i) => {
+            if (i + offset >= 0 && i + offset < totalDays) {
+              chartData[i + offset] = val;
+            }
+          });
+        }
       }
 
       const maxVal = Math.max(...chartData, 1000);
@@ -1432,7 +2035,7 @@
       currentBackupPayload = null;
 
       try {
-        const res = await fetch(`${VERCEL_API_URL}?action=get_backup&device_id=${encodeURIComponent(deviceId)}&_t=${Date.now()}`, { credentials: 'include' });
+        const res = await fetch(`${VERCEL_API_URL}?action=get_backup&device_id=${encodeURIComponent(deviceId)}&_t=${Date.now()}`);
         if (!res.ok) return;
         const data = await res.json();
         let backupData = data.backup_data || data.backup || data;
@@ -1483,8 +2086,7 @@
             const res = await fetch(VERCEL_API_URL, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              credentials: 'include',
-              body: JSON.stringify({ action: 'delete_backup', device_id: currentLicenseData.device_id })
+              body: JSON.stringify({ action: 'delete_backup', device_id: currentLicenseData.device_id, secret: adminPasswordSecret })
             });
             const data = await res.json().catch(() => ({}));
             if (res.ok && data.success) {
@@ -1501,25 +2103,30 @@
       );
     }
 
+    /* --- FIXED: GENERATE VOUCHER FUNCTION --- */
     async function generateVoucherDevice(hari) {
-      if (!currentLicenseData || !currentLicenseData.device_id) return;
+      if (!currentLicenseData || !currentLicenseData.device_id) {
+        return showToast('Pilih perangkat terlebih dahulu.', false);
+      }
       try {
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
           body: JSON.stringify({
             action: 'generate_voucher',
             device_id: currentLicenseData.device_id,
-            duration_days: hari
+            duration_days: hari,
+            days: hari,
+            secret: adminPasswordSecret
           })
         });
         const data = await res.json().catch(() => ({}));
-        if (res.ok && data.code) {
-          document.getElementById('dispGeneratedVoucher').value = data.code;
+        const voucherCode = data.code || data.voucher || data.voucher_code;
+        if (res.ok && voucherCode) {
+          document.getElementById('dispGeneratedVoucher').value = voucherCode;
           showToast(`Voucher ${hari} Hari Berhasil Dibuat!`);
         } else {
-          showToast(data.error || 'Gagal membuat voucher.', false);
+          showToast(data.error || data.message || 'Gagal membuat voucher.', false);
         }
       } catch (e) {
         showToast('Terjadi kesalahan saat generate voucher.', false);
@@ -1585,13 +2192,13 @@
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
           body: JSON.stringify({
             action: 'update_license',
             device_id: currentLicenseData.device_id,
             sppg_name: sppgName,
             exp_date: expDate,
-            status: status
+            status: status,
+            secret: adminPasswordSecret
           })
         });
         const data = await res.json().catch(() => ({}));
@@ -1623,10 +2230,10 @@
             const res = await fetch(VERCEL_API_URL, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              credentials: 'include',
               body: JSON.stringify({
                 action: 'delete_license',
-                device_id: currentLicenseData.device_id
+                device_id: currentLicenseData.device_id,
+                secret: adminPasswordSecret
               })
             });
             const data = await res.json().catch(() => ({}));
@@ -1659,11 +2266,11 @@
             const res = await fetch(VERCEL_API_URL, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              credentials: 'include',
               body: JSON.stringify({
                 action: 'migrate_device',
                 source_device_id: src,
-                target_device_id: target
+                target_device_id: target,
+                secret: adminPasswordSecret
               })
             });
             const data = await res.json().catch(() => ({}));
@@ -1689,11 +2296,11 @@
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
           body: JSON.stringify({
             action: 'bulk_extend',
             device_ids: selectedDeviceIds,
-            days: hari
+            days: hari,
+            secret: adminPasswordSecret
           })
         });
         const data = await res.json().catch(() => ({}));
@@ -1714,11 +2321,11 @@
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
           body: JSON.stringify({
             action: 'bulk_status',
             device_ids: selectedDeviceIds,
-            status: statusVal
+            status: statusVal,
+            secret: adminPasswordSecret
           })
         });
         const data = await res.json().catch(() => ({}));
@@ -1743,10 +2350,10 @@
             const res = await fetch(VERCEL_API_URL, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              credentials: 'include',
               body: JSON.stringify({
                 action: 'bulk_delete',
-                device_ids: selectedDeviceIds
+                device_ids: selectedDeviceIds,
+                secret: adminPasswordSecret
               })
             });
             const data = await res.json().catch(() => ({}));
@@ -1764,14 +2371,11 @@
       );
     }
 
-    /* ----------------------------------------------------
-       PRICING PLANS & DISCOUNTS API & DATABASE INTEGRATION
-       ---------------------------------------------------- */
     async function muatDataPaketServer() {
       const container = document.getElementById('containerListPaket');
       if (container) container.innerHTML = '<div class="text-center text-slate-500 text-xs py-10">⏳ Memuat paket dari database API...</div>';
       try {
-        const res = await fetch(`${VERCEL_API_URL}?action=get_packages`, { method: 'GET', headers: { 'Accept': 'application/json' }, credentials: 'include' });
+        const res = await fetch(`${VERCEL_API_URL}?action=get_packages`, { method: 'GET', headers: { 'Accept': 'application/json' } });
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
         const list = Array.isArray(data) ? data : (data.packages || data.data || []);
@@ -1792,7 +2396,6 @@
           });
         }
       } catch (err) {
-        console.error('Failed to load packages:', err);
         if (container) container.innerHTML = '<div class="text-center text-red-400 text-xs py-10">⚠️ Gagal memuat paket dari server. Silakan tambahkan paket baru.</div>';
         tambahBarisPaketForm();
       }
@@ -1918,15 +2521,7 @@
         }
 
         if (name && days > 0) {
-          packagesPayload.push({
-            name,
-            days,
-            price,
-            discount_type,
-            discount_value,
-            discount_until,
-            discount_price
-          });
+          packagesPayload.push({ name, days, price, discount_type, discount_value, discount_until, discount_price });
         }
       });
 
@@ -1934,10 +2529,10 @@
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
           body: JSON.stringify({
             action: 'save_packages',
-            packages: packagesPayload
+            packages: packagesPayload,
+            secret: adminPasswordSecret
           })
         });
         const data = await res.json().catch(() => ({}));
@@ -1952,16 +2547,19 @@
       }
     }
 
+    /* --- FIXED: CLOUD UPDATER FUNCTIONS --- */
     async function muatDataReleaseServer() {
       try {
-        const res = await fetch(`${VERCEL_API_URL}?action=get_release`, { credentials: 'include' });
+        const res = await fetch(`${CONFIG_API_URL}?action=get_release`, { cache: 'no-store' });
         const data = await res.json();
-        if (data) {
-          document.getElementById('inputReleaseVersion').value = data.version || '';
+        if (data && !data.error) {
+          document.getElementById('inputReleaseVersion').value = data.version || data.release_version || '';
           document.getElementById('inputDownloadUrl').value = data.download_url || '';
           document.getElementById('inputChangelog').value = data.changelog || '';
         }
-      } catch (e) {}
+      } catch (e) {
+        console.warn('Gagal memuat data rilis cloud updater:', e);
+      }
     }
 
     function handleChangelogAutoBullet(e) {
@@ -1984,22 +2582,22 @@
       if (!version || !downloadUrl) return showToast('Versi dan URL Download wajib diisi!', false);
 
       try {
-        const res = await fetch(VERCEL_API_URL, {
+        const res = await fetch(CONFIG_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
           body: JSON.stringify({
             action: 'update_release',
             version,
             download_url: downloadUrl,
-            changelog
+            changelog,
+            secret: adminPasswordSecret
           })
         });
         const data = await res.json().catch(() => ({}));
-        if (res.ok && data.success) {
+        if (res.ok && (data.success || data.status)) {
           showToast(`Release v${version} berhasil diterbitkan!`);
         } else {
-          showToast(data.error || 'Gagal merilis update.', false);
+          showToast(data.error || data.message || 'Gagal merilis update.', false);
         }
       } catch (e) {
         showToast('Koneksi gagal saat merilis update.', false);
@@ -2056,10 +2654,10 @@
           const res = await fetch(VERCEL_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
             body: JSON.stringify({
               action: 'import_licenses',
-              items
+              items,
+              secret: adminPasswordSecret
             })
           });
           const data = await res.json().catch(() => ({}));

@@ -25,10 +25,9 @@ function calculateExpiryDate(currentExpStr, daysToAdd) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-// Helper perhitungan harga bersih paket berdasarkan diskon yang aktif
 function hitungHargaFinalPaket(pkg) {
   if (!pkg) return 0;
-  const hargaNormal = Number(pkg.harga || 0);
+  const hargaNormal = Number(pkg.harga || pkg.price || 0);
   const discType = pkg.discount_type || 'none';
   const discVal = Number(pkg.discount_value || 0);
   const discUntil = pkg.discount_until || null;
@@ -66,7 +65,7 @@ async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, pake
       if (Array.isArray(pData) && pData.length > 0) {
         finalNominal = hitungHargaFinalPaket(pData[0]);
       } else {
-        finalNominal = Number(paketHari) === 30 ? 50000 : 100;
+        finalNominal = Number(paketHari) === 30 ? 50000 : 25000;
       }
     }
 
@@ -100,7 +99,6 @@ async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, pake
     const nonce = Math.floor(Math.random() * 16777215).toString(16).toUpperCase();
     const payload = `${expDateNew}|${deviceId}|AutoPayment|MINDSTUDIO2026|${nonce}`;
     const licenseKeyNew = `MIND-${btoa(payload).split('').reverse().join('')}`;
-
     const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
 
     const bodyPayload = {
@@ -181,8 +179,6 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
-  res.setHeader('Surrogate-Control', 'no-store');
-
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -193,6 +189,10 @@ export default async function handler(req, res) {
   const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
+    return res.status(500).json({ error: 'Konfigurasi Supabase URL atau Service Key belum diatur di server Vercel.' });
+  }
+
   const { query, body = {} } = req;
   const action = query.action || body?.action;
   const reff_id = query.reff_id || query.ref_id || body?.reff_id || body?.ref_id;
@@ -201,7 +201,7 @@ export default async function handler(req, res) {
   let paket_hari = query.paket_hari || body?.paket_hari;
 
   // ==========================================
-  // GET RELEASE METADATA (CLOUD UPDATER)
+  // GET RELEASE METADATA
   // ==========================================
   if (action === 'get_release') {
     try {
@@ -210,24 +210,15 @@ export default async function handler(req, res) {
         cache: 'no-store'
       });
       const relData = await relRes.json();
-
       if (Array.isArray(relData) && relData.length > 0) {
-        return res.status(200).json({
-          success: true,
-          release: relData[0]
-        });
+        return res.status(200).json({ success: true, release: relData[0] });
       }
-    } catch (e) {
-      console.error('[Get Release Error]:', e);
-    }
-    return res.status(200).json({
-      success: true,
-      release: globalReleaseCache
-    });
+    } catch (e) {}
+    return res.status(200).json({ success: true, release: globalReleaseCache });
   }
 
   // ==========================================
-  // GET ALL LICENSES (DASHBOARD ADMIN)
+  // GET ALL LICENSES
   // ==========================================
   if (action === 'get_all_licenses') {
     try {
@@ -259,22 +250,23 @@ export default async function handler(req, res) {
       const dbPackages = await pkgRes.json();
 
       if (Array.isArray(dbPackages) && dbPackages.length > 0) {
-        dbPackages.sort((a, b) => Number(a.hari || 0) - Number(b.hari || 0));
+        dbPackages.sort((a, b) => Number(a.hari || a.days || 0) - Number(b.hari || b.days || 0));
         const formattedPkgs = dbPackages.map(p => ({
           ...p,
+          hari: p.hari || p.days,
+          harga: p.harga || p.price,
+          nama: p.nama || p.name,
           final_price: hitungHargaFinalPaket(p)
         }));
         return res.status(200).json({ packages: formattedPkgs });
       }
-    } catch (e) {
-      console.error('[Get Packages Error]:', e);
-    }
+    } catch (e) {}
 
     return res.status(200).json({ packages: defaultPackages });
   }
 
   // ==========================================
-  // STATISTIK PENDAPATAN
+  // GET STATS
   // ==========================================
   if (action === 'get_stats') {
     try {
@@ -288,9 +280,7 @@ export default async function handler(req, res) {
       const nowWIB = new Date();
       const hariIniStr = nowWIB.toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
 
-      let harian = 0;
-      let mingguan = 0;
-      let bulanan = 0;
+      let harian = 0, mingguan = 0, bulanan = 0;
       let chartHarian = [0, 0, 0, 0, 0, 0, 0];
 
       const datesArray = [];
@@ -314,12 +304,7 @@ export default async function handler(req, res) {
         }
       });
 
-      return res.status(200).json({
-        harian: harian,
-        mingguan: mingguan,
-        bulanan: bulanan,
-        chart_harian: chartHarian
-      });
+      return res.status(200).json({ harian, mingguan, bulanan, chart_harian: chartHarian });
     } catch (e) {
       return res.status(200).json({ harian: 0, mingguan: 0, bulanan: 0, chart_harian: [0,0,0,0,0,0,0] });
     }
@@ -359,8 +344,8 @@ export default async function handler(req, res) {
   // POST REQUEST HANDLERS
   // ==========================================
   if (req.method === 'POST') {
-
-    // 1. UPDATE RELEASE (CLOUD UPDATER)
+    
+    // 1. UPDATE RELEASE
     if (body.action === 'update_release') {
       const { version, download_url, changelog } = body;
       if (!version || !download_url) {
@@ -405,23 +390,16 @@ export default async function handler(req, res) {
       const targetDevId = body.device_id;
       const durationDays = Number(body.duration_days || 7);
 
-      if (!targetDevId) {
-        return res.status(400).json({ error: 'Device ID wajib disertakan.' });
-      }
+      if (!targetDevId) return res.status(400).json({ error: 'Device ID wajib disertakan.' });
 
       const randomCodePart = Math.random().toString(36).substring(2, 8).toUpperCase();
       const voucherCode = `MIND-${durationDays}D-${randomCodePart}`;
       const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
 
       try {
-        const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/vouchers`, {
+        await fetch(`${SUPABASE_URL}/rest/v1/vouchers`, {
           method: 'POST',
-          headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=representation'
-          },
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
             code: voucherCode,
             days_value: durationDays,
@@ -433,26 +411,19 @@ export default async function handler(req, res) {
           })
         });
 
-        if (!insertRes.ok) throw new Error('Gagal menyimpan voucher.');
-
-        return res.status(200).json({
-          success: true,
-          code: voucherCode,
-          message: `Voucher berhasil dibuat untuk perangkat ${targetDevId}`
-        });
+        return res.status(200).json({ success: true, code: voucherCode, message: `Voucher berhasil dibuat` });
       } catch (err) {
         return res.status(500).json({ error: 'Gagal membuat kode voucher.' });
       }
     }
 
     // 3. CLAIM VOUCHER
-    if (body.action === 'claim_voucher') {
-      const { voucher_code, device_id: devIdTarget } = body;
-      const cleanVoucher = (voucher_code || '').trim().toUpperCase();
+    if (body.action === 'claim_voucher' || body.action === 'redeem_voucher') {
+      const voucherCode = body.code || body.voucher_code;
+      const devIdTarget = body.device_id;
+      const cleanVoucher = (voucherCode || '').trim().toUpperCase();
 
-      if (!cleanVoucher || !devIdTarget) {
-        return res.status(400).json({ error: 'Kode voucher dan Device ID wajib diisi.' });
-      }
+      if (!cleanVoucher || !devIdTarget) return res.status(400).json({ error: 'Kode voucher dan Device ID wajib diisi.' });
 
       try {
         const vRes = await fetch(`${SUPABASE_URL}/rest/v1/vouchers?code=eq.${encodeURIComponent(cleanVoucher)}&select=*`, {
@@ -461,50 +432,28 @@ export default async function handler(req, res) {
         });
         const vData = await vRes.json();
 
-        if (!Array.isArray(vData) || vData.length === 0) {
-          return res.status(400).json({ error: 'Kode voucher tidak valid.' });
-        }
+        if (!Array.isArray(vData) || vData.length === 0) return res.status(400).json({ error: 'Kode voucher tidak valid.' });
 
         const voucher = vData[0];
         const usedDevices = Array.isArray(voucher.used_devices) ? voucher.used_devices : [];
 
-        if (usedDevices.includes(devIdTarget)) {
-          return res.status(400).json({ error: 'Device ID Anda sudah pernah menggunakan voucher ini.' });
-        }
-
-        if (voucher.used_count >= voucher.max_uses) {
-          return res.status(400).json({ error: 'Kuota penggunaan voucher sudah habis.' });
-        }
+        if (usedDevices.includes(devIdTarget)) return res.status(400).json({ error: 'Device ID Anda sudah pernah menggunakan voucher ini.' });
 
         usedDevices.push(devIdTarget);
-        const newUsedCount = voucher.used_count + 1;
-
         await fetch(`${SUPABASE_URL}/rest/v1/vouchers?id=eq.${voucher.id}`, {
           method: 'PATCH',
-          headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            used_count: newUsedCount,
-            used_devices: usedDevices
-          })
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ used_count: (voucher.used_count || 0) + 1, used_devices: usedDevices })
         });
 
         const savedInfo = await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, devIdTarget, voucher.days_value, 0, 'Voucher Claim');
-
-        return res.status(200).json({
-          success: true,
-          message: `Voucher berhasil diklaim! Durasi aktif ditambah ${voucher.days_value} hari.`,
-          exp_date: savedInfo?.exp_date
-        });
+        return res.status(200).json({ success: true, message: 'Voucher berhasil diklaim!', exp_date: savedInfo?.exp_date });
       } catch (err) {
         return res.status(500).json({ error: 'Gagal memproses klaim voucher.' });
       }
     }
 
-    // 4. SAVE LICENSE (ADMIN MANUAL) - DIPERBAIKI AGAR TIDAK BENTROK
+    // 4. SAVE LICENSE (ADMIN MANUAL)
     if (body.action === 'save_license') {
       const sppgTarget = body.sppg_name || sppg_name || '';
       const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
@@ -512,9 +461,9 @@ export default async function handler(req, res) {
       const patchPayload = {
         exp_date: body.exp_date,
         status: body.status,
-        license_key: body.license_key,
         updated_at: timestampWIB
       };
+      if (body.license_key) patchPayload.license_key = body.license_key;
       if (sppgTarget) patchPayload.sppg_name = sppgTarget;
 
       const updateRes = await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(body.device_id)}`, {
@@ -524,13 +473,44 @@ export default async function handler(req, res) {
       });
 
       if (!updateRes.ok) {
-        return res.status(500).json({ error: 'Gagal memperbarui lisensi di database.' });
+        return res.status(500).json({ success: false, error: 'Gagal memperbarui lisensi di database.' });
       }
 
       return res.status(200).json({ success: true, message: 'Lisensi berhasil diperbarui.' });
     }
 
-    // 5. TOKOPAY WEBHOOK / PAYMENT GATEWAY ORDER
+    // 5. SAVE PACKAGES (PRICING PLANS)
+    if (body.action === 'save_packages') {
+      const pkgs = body.packages;
+      if (!Array.isArray(pkgs)) return res.status(400).json({ error: 'Data paket tidak valid.' });
+
+      try {
+        await fetch(`${SUPABASE_URL}/rest/v1/packages`, {
+          method: 'DELETE',
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Prefer': 'return=minimal' }
+        });
+
+        for (const p of pkgs) {
+          await fetch(`${SUPABASE_URL}/rest/v1/packages`, {
+            method: 'POST',
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: p.name,
+              hari: p.days,
+              harga: p.price,
+              discount_type: p.discount_type,
+              discount_value: p.discount_value,
+              discount_until: p.discount_until || null
+            })
+          });
+        }
+        return res.status(200).json({ success: true, message: 'Paket berhasil disimpan.' });
+      } catch (err) {
+        return res.status(500).json({ error: 'Gagal menyimpan paket ke database.' });
+      }
+    }
+
+    // 6. TOKOPAY / PAYMENT GATEWAY ORDER
     const merchantId = process.env.TOKOPAY_MERCHANT_ID;
     const secretKey = process.env.TOKOPAY_SECRET_KEY;
     const isWebhookTokopay = body && (body.tr_id || (body.status && !body.paket_hari));
@@ -572,7 +552,7 @@ export default async function handler(req, res) {
     }
 
     if (!nominal || nominal <= 0) {
-      nominal = paketHariFix === 30 ? 50000 : 100;
+      nominal = paketHariFix === 30 ? 50000 : 25000;
     }
 
     const refIdOrder = reff_id || `SIPGN__${cleanDevId}__${paketHariFix}__${Date.now()}`;

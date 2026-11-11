@@ -2142,19 +2142,48 @@
     }
 
     function updateLicenseRatio() {
-      if (!globalUserList || globalUserList.length === 0) return;
-      const total = globalUserList.length;
-      let active = 0, hold = 0, expired = 0;
-      const hariIni = getTodayLocalISO();
-      globalUserList.forEach(u => {
-        let st = u.status || 'active';
-        if (st === 'active' && u.exp_date && hariIni > u.exp_date) st = 'expired';
-        if (st === 'active') active++; else if (st === 'hold') hold++; else expired++;
-      });
-      const activePct = Math.round((active / total) * 100);
-      const ratioText = document.getElementById('statActiveRatio');
-      if (ratioText) ratioText.textContent = `${activePct}% Active (${active}/${total})`;
+    const ratioBar = document.getElementById('licenseRatioBar');
+    const ratioText = document.getElementById('statActiveRatio');
+    
+    if (!globalUserList || globalUserList.length === 0) {
+      if (ratioText) ratioText.textContent = `0% Active (0/0)`;
+      if (ratioBar) {
+        ratioBar.innerHTML = `<div class="bg-slate-700 h-full" style="width: 100%"></div>`;
+      }
+      return;
     }
+
+    const total = globalUserList.length;
+    let active = 0, hold = 0, expired = 0;
+    const hariIni = getTodayLocalISO();
+
+    globalUserList.forEach(u => {
+      let st = u.status || 'active';
+      if (st === 'active' && u.exp_date && hariIni > u.exp_date) st = 'expired';
+      
+      if (st === 'active') active++;
+      else if (st === 'hold') hold++;
+      else expired++;
+    });
+
+    const activePct = Math.round((active / total) * 100);
+    const holdPct = Math.round((hold / total) * 100);
+    const expiredPct = Math.max(0, 100 - activePct - holdPct); // Sisa untuk expired agar pas 100%
+
+    // Update Teks Persentase
+    if (ratioText) {
+      ratioText.textContent = `${activePct}% Active (${active}/${total})`;
+    }
+
+    // Update Lebar Progress Bar secara Dinamis
+    if (ratioBar) {
+      ratioBar.innerHTML = `
+        <div class="bg-emerald-500 h-full transition-all duration-500" style="width: ${activePct}%" title="Active: ${active}"></div>
+        <div class="bg-amber-500 h-full transition-all duration-500" style="width: ${holdPct}%" title="Hold: ${hold}"></div>
+        <div class="bg-red-500 h-full transition-all duration-500" style="width: ${expiredPct}%" title="Expired: ${expired}"></div>
+      `;
+    }
+  }
 
     function pilihUser(u, stat) {
       bukaSubView('detail');

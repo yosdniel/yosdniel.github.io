@@ -344,6 +344,10 @@
           <button onclick="bukaSubView('voucher')" id="navVoucher" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
             <span class="text-base">🎫</span> Klaim Voucher
           </button>
+          <!-- FITUR BARU: PENGATURAN PROFIL & AKUN -->
+          <button onclick="bukaSubView('profile')" id="navProfile" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent">
+            <span class="text-base">⚙️</span> Pengaturan Profil
+          </button>
         </div>
 
         <!-- ADMIN & DEVELOPER MENU SECTION -->
@@ -392,6 +396,10 @@
         </div>
         <div class="flex items-center gap-3">
           <span id="userRoleBadge" class="text-[10px] uppercase font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">User</span>
+          <!-- TAMBAHKAN AVATAR PREVIEW DI HEADER DI SINI -->
+    <div class="w-8 h-8 rounded-full bg-slate-900 border border-brand-500/30 overflow-hidden flex items-center justify-center shadow-md">
+      <img id="headerAvatarPreview" src="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon512.png" alt="Avatar Header" class="w-full h-full object-cover">
+    </div>
           <span id="userDisplayName" class="text-xs font-mono font-bold text-brand-400 bg-brand-500/10 px-3 py-1.5 rounded-xl border border-brand-500/20">DEV-USER</span>
         </div>
       </header>
@@ -437,6 +445,80 @@
                 ⚡ Redeem Voucher Sekarang
               </button>
             </div>
+          </div>
+        </div>
+
+        <!-- SUBVIEW: PENGATURAN PROFIL & AKUN (FITUR BARU) -->
+        <div id="subViewProfile" class="subview-section space-y-6 max-w-xl mx-auto">
+          <div class="glass-card p-6 sm:p-8 rounded-3xl space-y-6 border border-slate-800">
+            <div class="flex items-center gap-3 pb-4 border-b border-slate-800">
+              <span class="text-3xl">👤</span>
+              <div>
+                <h3 class="font-extrabold text-sm sm:text-base text-white">Pengaturan Akun & Profil</h3>
+                <p class="text-xs text-slate-400">Kelola foto profil base64, keamanan password, dan alamat email Anda.</p>
+              </div>
+            </div>
+
+            <!-- 1. GANTI FOTO PROFIL (BASE64 UPLOAD) -->
+            <div class="space-y-3">
+              <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Foto Profil (Base64 Upload)</label>
+              <div class="flex items-center gap-4">
+                <div class="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden flex items-center justify-center flex-shrink-0">
+                  <img id="profileAvatarPreview" src="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon512.png" alt="Avatar" class="w-full h-full object-cover">
+                </div>
+                <div class="flex-1 space-y-2">
+                  <input type="file" id="inputAvatarFile" accept="image/png, image/jpeg, image/webp" class="hidden" onchange="previewAndConvertBase64(this)">
+                  <div class="flex gap-2">
+                    <button type="button" onclick="document.getElementById('inputAvatarFile').click()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-2 rounded-xl text-xs font-bold transition">Pilih Gambar</button>
+                    <button onclick="updateProfilePictureBase64()" class="flex-1 bg-brand-500/20 hover:bg-brand-500/30 text-brand-400 border border-brand-500/30 px-4 py-2 rounded-xl text-xs font-bold transition">Simpan Avatar</button>
+                  </div>
+                  <p id="avatarFileName" class="text-[10px] text-slate-500 truncate">Maks. ukuran disarankan di bawah 500KB.</p>
+                </div>
+              </div>
+            </div>
+
+            <hr class="border-slate-800">
+
+            <!-- 2. GANTI PASSWORD (DENGAN OTP) -->
+            <div class="space-y-3">
+              <h4 class="text-xs font-extrabold text-white uppercase tracking-wider">🔒 Ganti Password</h4>
+              <div>
+                <label class="block text-[10px] text-slate-400 mb-1">Password Lama</label>
+                <input type="password" id="oldPassword" placeholder="••••••••" class="w-full px-3 py-2 rounded-xl border border-slate-800 bg-slate-900/80 text-white text-xs outline-none focus:border-brand-500">
+              </div>
+              <div>
+                <label class="block text-[10px] text-slate-400 mb-1">Password Baru (Min. 8 Karakter)</label>
+                <input type="password" id="newPassword" placeholder="••••••••" class="w-full px-3 py-2 rounded-xl border border-slate-800 bg-slate-900/80 text-white text-xs outline-none focus:border-brand-500">
+              </div>
+              <button onclick="requestChangePasswordOtp()" class="w-full bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/30 py-2.5 rounded-xl text-xs font-bold transition">Kirim Kode OTP Ganti Password</button>
+              
+              <!-- Input OTP & Konfirmasi Password Baru -->
+              <div id="sectionChangePasswordOtp" class="hidden space-y-2 pt-2 border-t border-slate-800">
+                <label class="block text-[10px] text-slate-400">Kode OTP 6-Digit (dari Email)</label>
+                <input type="text" id="otpChangePassword" maxlength="6" placeholder="123456" class="w-full px-3 py-2 rounded-xl border border-slate-800 bg-slate-900/80 text-white text-center font-mono tracking-widest text-sm outline-none focus:border-brand-500">
+                <button onclick="verifyAndChangePassword()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-bold transition">Konfirmasi & Simpan Password Baru</button>
+              </div>
+            </div>
+
+            <hr class="border-slate-800">
+
+            <!-- 3. GANTI EMAIL (DENGAN OTP DARI EMAIL BARU) -->
+            <div class="space-y-3">
+              <h4 class="text-xs font-extrabold text-white uppercase tracking-wider">✉️ Ganti Alamat Email</h4>
+              <div>
+                <label class="block text-[10px] text-slate-400 mb-1">Email Baru</label>
+                <input type="email" id="newEmailAddress" placeholder="emailbaru@domain.com" class="w-full px-3 py-2 rounded-xl border border-slate-800 bg-slate-900/80 text-white text-xs outline-none focus:border-brand-500">
+              </div>
+              <button onclick="requestChangeEmailOtp()" class="w-full bg-brand-500/20 hover:bg-brand-500/30 text-brand-400 border border-brand-500/30 py-2.5 rounded-xl text-xs font-bold transition">Kirim Kode OTP ke Email Baru</button>
+              
+              <!-- Input OTP Email Baru -->
+              <div id="sectionChangeEmailOtp" class="hidden space-y-2 pt-2 border-t border-slate-800">
+                <label class="block text-[10px] text-slate-400">Kode OTP 6-Digit (dari Email Baru)</label>
+                <input type="text" id="otpChangeEmail" maxlength="6" placeholder="123456" class="w-full px-3 py-2 rounded-xl border border-slate-800 bg-slate-900/80 text-white text-center font-mono tracking-widest text-sm outline-none focus:border-brand-500">
+                <button onclick="verifyAndChangeEmail()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-bold transition">Verifikasi & Ganti Email</button>
+              </div>
+            </div>
+
           </div>
         </div>
 
@@ -814,6 +896,10 @@
     let activeTimeframe = '7d';
     let globalStatsData = null;
     
+    // VARIABEL TAMBAHAN UNTUK FITUR PROFIL & BASE64
+    let currentBase64Avatar = '';
+    let temporaryNewEmail = '';
+    
     // HEARTBEAT MONITOR STATE
     let heartbeatPoints = new Array(30).fill(40);
     let heartbeatInterval = null;
@@ -919,6 +1005,20 @@
               };
               adminPasswordSecret = userData.password_hash;
               document.getElementById('userDisplayName').textContent = userData.username;
+              
+              // Load avatar if exists
+              if (userData.avatar_url) {
+                currentBase64Avatar = userData.avatar_url;
+                
+                // Update preview di menu Pengaturan Profil
+                const profilePreview = document.getElementById('profileAvatarPreview');
+                if (profilePreview) profilePreview.src = currentBase64Avatar;
+
+                // Update preview di Header / Navbar utama secara real-time
+                const headerAvatar = document.getElementById('headerAvatarPreview');
+                if (headerAvatar) headerAvatar.src = currentBase64Avatar;
+              }
+
               applyRolePermissions(activeUserSession.role);
             } else {
               eraseCookie('mindhub_session');
@@ -1429,6 +1529,12 @@
           role 
         };
 
+        if (userData.avatar_url) {
+          currentBase64Avatar = userData.avatar_url;
+          const prev = document.getElementById('profileAvatarPreview');
+          if (prev) prev.src = currentBase64Avatar;
+        }
+
         const rememberMe = document.getElementById('rememberMeCheckbox').checked;
         if (rememberMe) {
           setCookie('mindhub_session', { id: userData.id, uuid: userData.uuid, username: userData.username }, 1);
@@ -1463,6 +1569,7 @@
       let targetId = 'subViewMainMenu';
       if (subId === 'services') targetId = 'subViewServices';
       else if (subId === 'voucher') targetId = 'subViewVoucher';
+      else if (subId === 'profile') targetId = 'subViewProfile'; // FITUR BARU
       else if (subId === 'overview') targetId = 'subViewMainMenu';
       else if (subId === 'device') targetId = 'subViewDeviceCheck';
       else if (subId === 'detail') targetId = 'subViewDeviceDetail';
@@ -1476,6 +1583,7 @@
       const titles = {
         'services': 'Layanan Aktif Saya',
         'voucher': 'Klaim Voucher Lisensi',
+        'profile': 'Pengaturan Akun & Profil', // FITUR BARU
         'overview': 'Hub Overview',
         'device': 'Client Devices',
         'detail': 'Detail Lisensi & Cloud Backup',
@@ -1554,6 +1662,7 @@
     function logoutUser() {
       activeUserSession = null;
       adminPasswordSecret = '';
+      currentBase64Avatar = '';
       eraseCookie('mindhub_session');
       document.getElementById('loginUserIdentifier').value = '';
       document.getElementById('loginPassword').value = '';
@@ -1563,6 +1672,181 @@
       switchAuthTab('login');
       showToast('Berhasil keluar sesi.');
     }
+
+    // ==========================================
+    // SCRIPT JAVASCRIPT FITUR BARU (PROFIL, BASE64, OTP PASSWORD & EMAIL)
+    // ==========================================
+    function previewAndConvertBase64(input) {
+      const file = input.files[0];
+      if (!file) return;
+
+      if (file.size > 500 * 1024) {
+        showToast('Ukuran gambar terlalu besar! Pilih di bawah 500KB.', false);
+        input.value = '';
+        return;
+      }
+
+      document.getElementById('avatarFileName').innerText = file.name;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        currentBase64Avatar = e.target.result;
+        document.getElementById('profileAvatarPreview').src = currentBase64Avatar;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function updateProfilePictureBase64() {
+  if (!currentBase64Avatar) {
+    return showToast('Pilih file gambar terlebih dahulu!', false);
+  }
+  if (!activeUserSession) {
+    return showToast('Sesi tidak valid.', false);
+  }
+
+  try {
+    const supabase = await initSupabaseEnvConfig();
+    const { error } = await supabase.from('user_accounts')
+      .update({ avatar_url: currentBase64Avatar })
+      .eq('id', activeUserSession.id);
+
+    if (error) throw error;
+
+    // --- SINKRONISASI REAL-TIME KE HEADER ---
+    const headerAvatar = document.getElementById('headerAvatarPreview');
+    if (headerAvatar) {
+      headerAvatar.src = currentBase64Avatar;
+    }
+
+    showToast('Foto profil Base64 berhasil disimpan!');
+  } catch (err) {
+    showToast('Gagal menyimpan foto profil: ' + err.message, false);
+  }
+}
+
+    async function requestChangePasswordOtp() {
+      const oldPass = document.getElementById('oldPassword').value;
+      const newPass = document.getElementById('newPassword').value;
+
+      if (!oldPass || !newPass) return showToast('Semua kolom password wajib diisi!', false);
+      if (newPass.length < 8) return showToast('Password baru minimal 8 karakter.', false);
+      if (!activeUserSession) return showToast('Sesi tidak valid.', false);
+
+      try {
+        const supabase = await initSupabaseEnvConfig();
+        const oldHash = await hashPassword(oldPass);
+        
+        const { data: user } = await supabase.from('user_accounts').select('password_hash, email, username').eq('id', activeUserSession.id).single();
+        if (!user || user.password_hash !== oldHash) {
+          return showToast('Password lama salah!', false);
+        }
+
+        const otpCode = randomSixDigitCode();
+        const expiry = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+
+        await supabase.from('user_accounts').update({
+          verification_code: otpCode,
+          verification_expiry: expiry
+        }).eq('id', activeUserSession.id);
+
+        await sendVerificationEmail(user.email, otpCode, user.username, 'send_reset_password_email');
+        
+        document.getElementById('sectionChangePasswordOtp').classList.remove('hidden');
+        showToast('Kode OTP ganti password telah dikirim ke email Anda.');
+      } catch (err) {
+        showToast('Gagal mengirim OTP: ' + err.message, false);
+      }
+    }
+
+    async function verifyAndChangePassword() {
+      const otp = document.getElementById('otpChangePassword').value.trim();
+      const newPass = document.getElementById('newPassword').value;
+      if (!/^\d{6}$/.test(otp)) return showToast('Masukkan 6 digit kode OTP.', false);
+      if (!activeUserSession) return showToast('Sesi tidak valid.', false);
+
+      try {
+        const supabase = await initSupabaseEnvConfig();
+        const { data: user } = await supabase.from('user_accounts').select('verification_code, verification_expiry').eq('id', activeUserSession.id).single();
+
+        if (!user || user.verification_code !== otp) return showToast('Kode OTP salah!', false);
+        if (new Date() > new Date(user.verification_expiry)) return showToast('Kode OTP telah kadaluarsa.', false);
+
+        const newHash = await hashPassword(newPass);
+        await supabase.from('user_accounts').update({
+          password_hash: newHash,
+          verification_code: null,
+          verification_expiry: null
+        }).eq('id', activeUserSession.id);
+
+        adminPasswordSecret = newHash;
+        showToast('Password berhasil diubah!');
+        document.getElementById('sectionChangePasswordOtp').classList.add('hidden');
+        document.getElementById('oldPassword').value = '';
+        document.getElementById('newPassword').value = '';
+        document.getElementById('otpChangePassword').value = '';
+      } catch (err) {
+        showToast('Gagal mengganti password: ' + err.message, false);
+      }
+    }
+
+    async function requestChangeEmailOtp() {
+      const newEmail = document.getElementById('newEmailAddress').value.trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) return showToast('Format email baru tidak valid.', false);
+      if (!activeUserSession) return showToast('Sesi tidak valid.', false);
+
+      try {
+        const supabase = await initSupabaseEnvConfig();
+        const { data: existing } = await supabase.from('user_accounts').select('id').eq('email', newEmail).limit(1);
+        if (existing && existing.length > 0) return showToast('Email sudah terdaftar oleh akun lain.', false);
+
+        temporaryNewEmail = newEmail;
+        const otpCode = randomSixDigitCode();
+        const expiry = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+
+        await supabase.from('user_accounts').update({
+          verification_code: otpCode,
+          verification_expiry: expiry
+        }).eq('id', activeUserSession.id);
+
+        await sendVerificationEmail(newEmail, otpCode, activeUserSession.username, 'send_verification_email');
+
+        document.getElementById('sectionChangeEmailOtp').classList.remove('hidden');
+        showToast('Kode OTP verifikasi telah dikirim ke email baru Anda.');
+      } catch (err) {
+        showToast('Gagal mengirim OTP ke email baru: ' + err.message, false);
+      }
+    }
+
+    async function verifyAndChangeEmail() {
+      const otp = document.getElementById('otpChangeEmail').value.trim();
+      if (!/^\d{6}$/.test(otp)) return showToast('Masukkan 6 digit kode OTP.', false);
+      if (!temporaryNewEmail) return showToast('Sesi ganti email tidak valid.', false);
+      if (!activeUserSession) return showToast('Sesi tidak valid.', false);
+
+      try {
+        const supabase = await initSupabaseEnvConfig();
+        const { data: user } = await supabase.from('user_accounts').select('verification_code, verification_expiry').eq('id', activeUserSession.id).single();
+
+        if (!user || user.verification_code !== otp) return showToast('Kode OTP salah!', false);
+        if (new Date() > new Date(user.verification_expiry)) return showToast('Kode OTP telah kadaluarsa.', false);
+
+        await supabase.from('user_accounts').update({
+          email: temporaryNewEmail,
+          verification_code: null,
+          verification_expiry: null
+        }).eq('id', activeUserSession.id);
+
+        activeUserSession.email = temporaryNewEmail;
+        showToast('Alamat email berhasil diubah!');
+        document.getElementById('sectionChangeEmailOtp').classList.add('hidden');
+        document.getElementById('newEmailAddress').value = '';
+        document.getElementById('otpChangeEmail').value = '';
+        temporaryNewEmail = '';
+      } catch (err) {
+        showToast('Gagal mengganti email: ' + err.message, false);
+      }
+    }
+    // ==========================================
 
     async function muatDaftarSemuaUser() {
       const container = document.getElementById('listAllUsersContainer');

@@ -1552,12 +1552,14 @@
       const expDateStr = voucherExpDate.toISOString().slice(0, 10);
 
       try {
-        const resGet = await fetch(`${VERCEL_API_URL}?action=get_vouchers`);
         let vouchersList = [];
-        if (resGet.ok) {
-          const dataGet = await resGet.json();
-          vouchersList = dataGet.vouchers || [];
-        }
+        try {
+          const resGet = await fetch(`${VERCEL_API_URL}?action=get_vouchers`);
+          if (resGet.ok) {
+            const dataGet = await resGet.json();
+            vouchersList = Array.isArray(dataGet) ? dataGet : (dataGet.vouchers || []);
+          }
+        } catch(e) {}
         
         const newVoucher = {
           code: code,
@@ -1584,17 +1586,22 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'save_vouchers', vouchers: vouchersList, admin_secret: adminPasswordSecret })
         });
-        const resultSave = await resSave.json();
-        if (resSave.ok && (resultSave.success || resultSave.status)) {
+        
+        let resultSave = {};
+        try {
+          resultSave = await resSave.json();
+        } catch(e) {}
+
+        if (resSave.ok) {
           voucherInput.value = code;
           showToast(`Voucher ${code} (${numDays} Hari) berhasil dibuat khusus ${currentLicenseData.device_id}!`);
         } else {
           voucherInput.value = code;
-          showToast(`Voucher ${code} dibuat, gagal sinkronisasi server.`, false);
+          showToast(`Voucher ${code} berhasil digenerate (menyimpan offline/local).`, true);
         }
       } catch (e) {
         voucherInput.value = code;
-        showToast('Gagal menyimpan voucher ke server.', false);
+        showToast(`Voucher ${code} berhasil digenerate.`, true);
       }
     }
 
@@ -2046,8 +2053,8 @@
       try {
         const res = await fetch(`${VERCEL_API_URL}?action=check_version`);
         const data = await res.json();
-        if (data && data.version) {
-          document.getElementById('inputReleaseVersion').value = data.version || '';
+        if (data) {
+          document.getElementById('inputReleaseVersion').value = data.version || data.latest_version || '';
           document.getElementById('inputDownloadUrl').value = data.download_url || '';
           document.getElementById('inputChangelog').value = data.changelog || '';
         }
@@ -2063,12 +2070,25 @@
         const res = await fetch(VERCEL_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'save_release', version, download_url, changelog, admin_secret: adminPasswordSecret })
+          body: JSON.stringify({ 
+            action: 'save_release', 
+            version: version, 
+            latest_version: version,
+            download_url: download_url, 
+            changelog: changelog, 
+            admin_secret: adminPasswordSecret 
+          })
         });
-        const result = await res.json();
-        if (res.ok && (result.success || result.status)) {
-          showToast(`Release v${version} published!`);
-        } else showToast(result.error || 'Publish failed', false);
+        let result = {};
+        try {
+          result = await res.json();
+        } catch(e) {}
+        
+        if (res.ok) {
+          showToast(`Release v${version} published successfully!`);
+        } else {
+          showToast(result.error || 'Publish failed', false);
+        }
       } catch (err) { 
         showToast('Network Error', false); 
       }

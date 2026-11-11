@@ -2610,15 +2610,25 @@
     }
 
     async function muatDataReleaseServer() {
+      const versionEl = document.getElementById('inputReleaseVersion');
+      const urlEl = document.getElementById('inputDownloadUrl');
+      const changelogEl = document.getElementById('inputChangelog');
+      
       try {
-        const res = await fetch(`${VERCEL_API_URL}?action=get_release`);
+        const res = await fetch(`${VERCEL_API_URL}?action=get_release&_t=${Date.now()}`);
         const data = await res.json();
-        if (data) {
-          document.getElementById('inputReleaseVersion').value = data.version || '';
-          document.getElementById('inputDownloadUrl').value = data.download_url || '';
-          document.getElementById('inputChangelog').value = data.changelog || '';
+        
+        // Ambil objek release dari properti pembungkus, atau fallback langsung ke data
+        const releaseObj = data.release || data;
+        
+        if (res.ok && releaseObj) {
+          if (versionEl) versionEl.value = releaseObj.version || '';
+          if (urlEl) urlEl.value = releaseObj.download_url || '';
+          if (changelogEl) changelogEl.value = releaseObj.changelog || '';
         }
-      } catch (e) {}
+      } catch (e) {
+        console.error('Gagal memuat data release:', e);
+      }
     }
 
     function handleChangelogAutoBullet(e) {

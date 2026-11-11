@@ -296,7 +296,7 @@ Mindspace Studio © 2026
               </h1>
 
               <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0 0 24px 0;">
-                Kami menerima permintaan pemulihan kata sandi akun <strong style="color:#f8fafc;">MindHUB</strong> Anda.</br></br>Gunakan kode 6-digit OTP berikut (berlaku selama <strong style="color:#f59e0b;">5 menit</strong>) untuk membuat password baru:
+                Kami menerima permintaan pemulihan kata sandi akun <strong style="color:#f8fafc;">MindHUB</strong> Anda.<br><br>Gunakan kode 6-digit OTP berikut (berlaku selama <strong style="color:#f59e0b;">5 menit</strong>) untuk membuat password baru:
               </p>
 
               <!-- OTP Code Display Box -->
@@ -322,7 +322,7 @@ Mindspace Studio © 2026
           <tr>
             <td style="padding:24px 32px 32px 32px;text-align:center;">
               <p style="color:#64748b;font-size:11px;line-height:1.6;margin:0 0 6px 0;">
-                Email ini dikirim secara otomatis.</br><strong style="color:#94a3b8;">Mindspace Studio Security Gateway</strong>.
+                Email ini dikirim secara otomatis.<br><strong style="color:#94a3b8;">Mindspace Studio Security Gateway</strong>.
               </p>
               <p style="color:#475569;font-size:11px;margin:0;">
                 ©2026 <strong style="color:#64748b;">Mindspace Studio</strong>. All rights reserved.

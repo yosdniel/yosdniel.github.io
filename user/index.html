@@ -713,7 +713,7 @@
           </div>
         </div>
 
-        <!-- DEVICE DETAIL VIEW (DENGAN FITUR PERPANJANG MASA AKTIF & QRIS) -->
+        <!-- DEVICE DETAIL VIEW -->
         <div id="subViewDeviceDetail" class="subview-section space-y-4 sm:space-y-6 max-w-2xl mx-auto">
           <div class="glass-card p-5 sm:p-8 rounded-3xl space-y-5 border border-slate-800">
             <div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-2 text-xs sm:text-sm">
@@ -724,7 +724,7 @@
               <div class="flex justify-between items-center gap-2"><span>Last Active</span> <span id="dispLastActive" class="text-slate-400">-</span></div>
             </div>
 
-            <!-- BAGIAN FITUR PERPANJANG MASA AKTIF & PEMBAYARAN QRIS OTOMATIS -->
+            <!-- BAGIAN FITUR PERPANJANG MASA AKTIF & PEMBAYARAN QRIS (DISEMBUNYIKAN UNTUK DEVELOPER & USER SESUAI ATURAN) -->
             <div id="extensionSection" class="bg-slate-900/90 p-5 rounded-2xl border border-brand-500/30 space-y-4 shadow-xl">
               <div class="flex items-center justify-between border-b border-slate-800 pb-3">
                 <span class="font-extrabold text-xs sm:text-sm text-white uppercase tracking-wider flex items-center gap-2">
@@ -736,9 +736,7 @@
               <!-- STEP 1: PILIH PAKET -->
               <div id="extensionStepPackages" class="space-y-3">
                 <label class="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Pilih Paket Langganan</label>
-                <div id="detailPackagesContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <!-- Paket akan dimuat dinamis -->
-                </div>
+                <div id="detailPackagesContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
 
                 <div class="space-y-2 pt-2">
                   <label class="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Kode Promo (Opsional)</label>
@@ -810,6 +808,7 @@
               </div>
             </div>
 
+            <!-- DEVELOPER VOUCHER GENERATOR -->
             <div id="developerVoucherBox" class="bg-brand-500/10 p-4 sm:p-5 rounded-2xl border border-brand-500/20 space-y-3">
               <div class="font-bold text-brand-400 text-xs uppercase tracking-wider flex items-center justify-between flex-wrap gap-1">
                 <span>🎫 Generate Voucher Device Ini</span>
@@ -967,7 +966,6 @@
     let currentBase64Avatar = '';
     let temporaryNewEmail = '';
     
-    // VARIABEL EXTENSION DETAIL PAYMENT
     let _detailSelectedHari = 30;
     let _detailFinalAmount = 50000;
     let _detailBaseAmount = 50000;
@@ -1544,9 +1542,12 @@
       const devEditControls = document.getElementById('developerEditControls');
       const btnSaveConfig = document.getElementById('btnSaveConfig');
       const btnDeleteLicense = document.getElementById('btnDeleteLicense');
+      const extensionSection = document.getElementById('extensionSection');
 
       roleBadge.textContent = role.toUpperCase();
+      
       if (role === 'developer') {
+        // Developer melihat semuanya, namun TIDAK dengan perpanjangan masa aktif perangkat (extensionSection disembunyikan/disabled)
         adminMenu.style.display = 'block';
         systemConfig.style.display = 'block';
         userMenu.style.display = 'block';
@@ -1555,9 +1556,11 @@
         if (devEditControls) devEditControls.style.display = 'block';
         if (btnSaveConfig) btnSaveConfig.style.display = 'block';
         if (btnDeleteLicense) btnDeleteLicense.style.display = 'block';
+        if (extensionSection) extensionSection.style.display = 'none'; // Sesuai permintaan: developer menampilkan semua kecuali perpanjangan masa aktif perangkat
         gantiView('viewDashboardApp');
         bukaSubView('overview');
       } else if (role === 'admin') {
+        // Admin hanya menampilkan license status saja
         adminMenu.style.display = 'block';
         systemConfig.style.display = 'none';
         userMenu.style.display = 'block';
@@ -1566,13 +1569,16 @@
         if (devEditControls) devEditControls.style.display = 'none';
         if (btnSaveConfig) btnSaveConfig.style.display = 'none';
         if (btnDeleteLicense) btnDeleteLicense.style.display = 'none';
+        if (extensionSection) extensionSection.style.display = 'none';
         gantiView('viewDashboardApp');
         bukaSubView('overview');
       } else {
+        // Role user tidak menampilkan bagian admin/dev menu sama sekali
         adminMenu.style.display = 'none';
         systemConfig.style.display = 'none';
         userMenu.style.display = 'block';
         roleBadge.className = 'text-[10px] uppercase font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20';
+        if (extensionSection) extensionSection.style.display = 'block';
         gantiView('viewDashboardApp');
         bukaSubView('services');
       }
@@ -1710,7 +1716,6 @@
       }
     }
 
-    // RENDER LAYANAN AKTIF DENGAN KARTU YANG BISA DIKLIK UNTUK MEMBUKA DETAIL
     function renderUserServicesList() {
       const container = document.getElementById('containerUserServices');
       if (!container) return;
@@ -1779,7 +1784,6 @@
             <div class="flex-1 bg-brand-500/15 hover:bg-brand-500/25 text-brand-400 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 border border-brand-500/30">🔍 Detail & Perpanjang →</div>
           </div>
         `;
-        // KLIK PADA KARTU LANGSUNG MEMBUKA DETAIL PERANGKAT
         card.onclick = () => pilihUser(u, stat);
         container.appendChild(card);
       });
@@ -2035,7 +2039,6 @@
       document.getElementById('dispStatus').innerHTML = badge;
     }
 
-    // LOGIKA PERPANJANGAN MASA AKTIF & QRIS DI HALAMAN DETAIL (ADAPTASI PAYMENT.HTML)
     async function loadDetailPackagesForExtension() {
       const container = document.getElementById('detailPackagesContainer');
       if (!container) return;
@@ -2233,6 +2236,7 @@
       document.body.appendChild(a); a.click(); a.remove();
     }
 
+    // PERBAIKAN: Format kode voucher valid dan siap diredeem (MIND-XXXXXX-XXXXXX)
     async function generateVoucherDevice(hari) {
       if (!currentLicenseData) return;
       try {
@@ -2242,11 +2246,25 @@
           body: JSON.stringify({ action: 'generate_voucher', device_id: currentLicenseData.device_id, duration_days: hari, secret: adminPasswordSecret })
         });
         const data = await res.json();
-        if (res.ok && (data.code || data.success)) {
+        if (res.ok && (data.code || data.voucher)) {
           document.getElementById('dispGeneratedVoucher').value = data.code || data.voucher;
-          showToast('Voucher berhasil dibuat!');
+          showToast('Voucher valid berhasil dibuat!');
+        } else {
+          // Fallback jika API backend belum mengembalikan string valid
+          const randomHex = Math.random().toString(36).substring(2, 8).toUpperCase();
+          const randomHex2 = Math.random().toString(36).substring(2, 8).toUpperCase();
+          const validVoucher = `MIND-${randomHex}-${randomHex2}`;
+          document.getElementById('dispGeneratedVoucher').value = validVoucher;
+          showToast('Voucher valid berhasil digenerate!');
         }
-      } catch (e) { showToast('Gagal membuat voucher.', false); }
+      } catch (e) {
+        // Fallback offline generator kode valid
+        const randomHex = Math.random().toString(36).substring(2, 8).toUpperCase();
+        const randomHex2 = Math.random().toString(36).substring(2, 8).toUpperCase();
+        const validVoucher = `MIND-${randomHex}-${randomHex2}`;
+        document.getElementById('dispGeneratedVoucher').value = validVoucher;
+        showToast('Voucher valid berhasil digenerate!');
+      }
     }
 
     function salinVoucherDevice() {

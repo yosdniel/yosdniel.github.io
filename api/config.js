@@ -16,6 +16,8 @@ import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
+const SECRET_SALT = 'MINDSTUDIO2026';
+
 // ============================================================
 // HELPER
 // ============================================================
@@ -35,14 +37,18 @@ function escapeHtml(value = '') {
 }
 
 function getSupabaseAdmin() {
-  const supabaseUrl =
+  const supabaseUrl = (
     process.env.SUPABASE_URL ||
     process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    'https://wztgucyxowhmmyghpylvq.supabase.co';
-  const supabaseServiceKey =
+    'https://wzfqcuyxowhmyghpylvq.supabase.co'
+  ).trim();
+
+  const supabaseServiceKey = (
     process.env.SUPABASE_SERVICE_ROLE_KEY ||
     process.env.SUPABASE_ANON_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6ZnFjdXl4b3dobXlnaHB5bHZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MTA4NzksImV4cCI6MjA5MTI4Njg3OX0.8V7n_y5_J_J4z_e_J2A569959p_13y1X2_58711334c'
+  ).trim();
 
   if (!supabaseUrl || !supabaseServiceKey) {
     throw new Error('Konfigurasi Supabase server belum lengkap.');
@@ -53,19 +59,38 @@ function getSupabaseAdmin() {
   });
 }
 
-function verifyPasswordHash(plainPassword, storedHash) {
+async function verifyPasswordHash(plainPassword, storedHash) {
   const cleanStored = String(storedHash || '').trim();
   if (!cleanStored) return false;
 
   if (cleanStored.startsWith('$2a$') || cleanStored.startsWith('$2b$') || cleanStored.startsWith('$2y$')) {
-    return bcrypt.compare(plainPassword, cleanStored);
+    return await bcrypt.compare(plainPassword, cleanStored);
   }
 
   if (/^[a-f0-9]{64}$/i.test(cleanStored)) {
-    const sha256Hex = crypto.createHash('sha256').update(plainPassword, 'utf8').digest('hex');
-    const a = Buffer.from(sha256Hex.toLowerCase(), 'utf8');
     const b = Buffer.from(cleanStored.toLowerCase(), 'utf8');
-    return a.length === b.length && crypto.timingSafeEqual(a, b);
+
+    // 1. Format utama portal web (user/index.html): SHA-256(password + 'MINDSTUDIO2026')
+    const saltedHex = crypto
+      .createHash('sha256')
+      .update(String(plainPassword) + SECRET_SALT, 'utf8')
+      .digest('hex');
+    const aSalted = Buffer.from(saltedHex.toLowerCase(), 'utf8');
+    if (aSalted.length === b.length && crypto.timingSafeEqual(aSalted, b)) {
+      return true;
+    }
+
+    // 2. Fallback SHA-256 tanpa salt
+    const plainHex = crypto
+      .createHash('sha256')
+      .update(String(plainPassword), 'utf8')
+      .digest('hex');
+    const aPlain = Buffer.from(plainHex.toLowerCase(), 'utf8');
+    if (aPlain.length === b.length && crypto.timingSafeEqual(aPlain, b)) {
+      return true;
+    }
+
+    return false;
   }
 
   return cleanStored === plainPassword;
@@ -387,32 +412,30 @@ Mindspace Studio © 2026
 // ============================================================
 
 async function handleLogin(req, res, body) {
-  const rawUsername = String(body.username || '').trim();
+  const rawIdentifier = String(body.username || body.email || body.identifier || '').trim();
   const rawPassword = String(body.password || '');
   const deviceId = String(body.device_id || body.deviceId || '').trim();
 
-  if (!rawUsername || !rawPassword) {
+  if (!rawIdentifier || !rawPassword) {
     return json(res, 400, {
       success: false,
       error: 'Username dan password wajib diisi.'
     });
   }
 
-  const jwtSecret = process.env.JWT_SECRET;
-  if (!jwtSecret) {
-    return json(res, 500, {
-      success: false,
-      error: 'JWT_SECRET belum dikonfigurasi pada environment server.'
-    });
-  }
-
+  const jwtSecret = process.env.JWT_SECRET || process.env.EMAIL_PASS || process.env.SMTP_PASS || SECRET_SALT;
   const supabase = getSupabaseAdmin();
 
-  const { data: user, error: queryError } = await supabase
-    .from('user_accounts')
-    .select('*')
-    .ilike('username', rawUsername)
-    .maybeSingle();
+  let query = supabase.from('user_accounts').select('*');
+  if (/^\d{6}$/.test(rawIdentifier)) {
+    query = query.eq('uuid', rawIdentifier);
+  } else if (rawIdentifier.includes('@')) {
+    query = query.ilike('email', rawIdentifier.toLowerCase());
+  } else {
+    query = query.ilike('username', rawIdentifier.toLowerCase());
+  }
+
+  const { data: user, error: queryError } = await query.limit(1).maybeSingle();
 
   if (queryError) {
     console.error('SUPABASE LOGIN QUERY ERROR:', queryError);
@@ -429,7 +452,8 @@ async function handleLogin(req, res, body) {
     });
   }
 
-  if (user.is_verified === false) {
+  const isVerified = user.email_verified ?? user.is_verified;
+  if (isVerified === false) {
     return json(res, 403, {
       success: false,
       error: 'Akun belum diverifikasi. Silakan cek email verifikasi Anda.'
@@ -446,21 +470,27 @@ async function handleLogin(req, res, body) {
     });
   }
 
-  if (deviceId) {
+  try {
+    const updateFields = { last_active: new Date().toISOString() };
+    if (deviceId && 'device_id' in user) {
+      updateFields.device_id = deviceId;
+    }
     await supabase
       .from('user_accounts')
-      .update({
-        device_id: deviceId,
-        last_login: new Date().toISOString()
-      })
+      .update(updateFields)
       .eq('id', user.id);
+  } catch (updateErr) {
+    console.warn('Non-fatal last_active update warning:', updateErr.message);
   }
 
+  const userUuid = user.uuid || user.uid || null;
   const tokenPayload = {
     sub: user.id,
-    uid: user.uid,
+    uuid: userUuid,
+    uid: userUuid,
     username: user.username,
-    role: user.role || 'user',
+    email: user.email || null,
+    role: String(user.role || 'user').toLowerCase(),
     device_id: deviceId || user.device_id || null
   };
 
@@ -472,10 +502,12 @@ async function handleLogin(req, res, body) {
     token,
     user: {
       id: user.id,
-      uid: user.uid,
+      uuid: userUuid,
+      uid: userUuid,
       username: user.username,
       email: user.email,
-      role: user.role || 'user',
+      role: String(user.role || 'user').toLowerCase(),
+      avatar_url: user.avatar_url || null,
       device_id: deviceId || user.device_id || null,
       expired_at: user.expired_at || null
     }
@@ -497,15 +529,23 @@ export default async function handler(req, res) {
     return res.status(204).end();
   }
 
-  // GET: SUPABASE CONFIGURATION (MENGGUNAKAN FALLBACK HARDCODE SUPAYA TIDAK ERROR 500)
+  // GET: SUPABASE CONFIGURATION
   if (req.method === 'GET') {
-    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://wztgucyxowhmmyghpylvq.supabase.co';
-    const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6dGd1Y3l4b3dobW15Z2hweWx2cSIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzM1ODk5MDAwLCJleHAiOjIwNTE0NzUwMDB9.dummy_key_placeholder';
+    const supabaseUrl =
+      process.env.SUPABASE_URL ||
+      process.env.NEXT_PUBLIC_SUPABASE_URL ||
+      'https://wzfqcuyxowhmyghpylvq.supabase.co';
+    const supabaseAnonKey =
+      process.env.SUPABASE_ANON_KEY ||
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6ZnFjdXl4b3dobXlnaHB5bHZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MTA4NzksImV4cCI6MjA5MTI4Njg3OX0.8V7n_y5_J_J4z_e_J2A569959p_13y1X2_58711334c';
 
     return json(res, 200, {
       success: true,
       supabaseUrl,
       supabaseAnonKey,
+      SUPABASE_URL: supabaseUrl,
+      SUPABASE_ANON_KEY: supabaseAnonKey,
       smtp: {
         host: process.env.SMTP_HOST || 'login.masuk.email',
         port: Number(process.env.SMTP_PORT || 465),

@@ -10,6 +10,7 @@
  * npm install nodemailer @supabase/supabase-js bcryptjs jsonwebtoken
  */
 
+import crypto from 'node:crypto';
 import nodemailer from 'nodemailer';
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
@@ -50,6 +51,24 @@ function getSupabaseAdmin() {
   return createClient(supabaseUrl, supabaseServiceKey, {
     auth: { persistSession: false, autoRefreshToken: false }
   });
+}
+
+function verifyPasswordHash(plainPassword, storedHash) {
+  const cleanStored = String(storedHash || '').trim();
+  if (!cleanStored) return false;
+
+  if (cleanStored.startsWith('$2a$') || cleanStored.startsWith('$2b$') || cleanStored.startsWith('$2y$')) {
+    return bcrypt.compare(plainPassword, cleanStored);
+  }
+
+  if (/^[a-f0-9]{64}$/i.test(cleanStored)) {
+    const sha256Hex = crypto.createHash('sha256').update(plainPassword, 'utf8').digest('hex');
+    const a = Buffer.from(sha256Hex.toLowerCase(), 'utf8');
+    const b = Buffer.from(cleanStored.toLowerCase(), 'utf8');
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+  }
+
+  return cleanStored === plainPassword;
 }
 
 // ============================================================
@@ -418,13 +437,7 @@ async function handleLogin(req, res, body) {
   }
 
   const storedHash = String(user.password_hash || user.password || '');
-  let isPasswordValid = false;
-
-  if (storedHash.startsWith('$2a$') || storedHash.startsWith('$2b$') || storedHash.startsWith('$2y$')) {
-    isPasswordValid = await bcrypt.compare(rawPassword, storedHash);
-  } else {
-    isPasswordValid = storedHash === rawPassword;
-  }
+  const isPasswordValid = await verifyPasswordHash(rawPassword, storedHash);
 
   if (!isPasswordValid) {
     return json(res, 401, {

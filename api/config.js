@@ -7,10 +7,13 @@
  * File     : api/config.js
  *
  * Dependencies:
- * npm install nodemailer
+ * npm install nodemailer @supabase/supabase-js bcryptjs jsonwebtoken
  */
 
 import nodemailer from 'nodemailer';
+import { createClient } from '@supabase/supabase-js';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
 // ============================================================
 // HELPER
@@ -28,6 +31,25 @@ function escapeHtml(value = '') {
     '"': '&quot;',
     "'": '&#39;'
   }[char]));
+}
+
+function getSupabaseAdmin() {
+  const supabaseUrl =
+    process.env.SUPABASE_URL ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    'https://wztgucyxowhmmyghpylvq.supabase.co';
+  const supabaseServiceKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Konfigurasi Supabase server belum lengkap.');
+  }
+
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
 }
 
 // ============================================================
@@ -342,6 +364,112 @@ Mindspace Studio © 2026
 }
 
 // ============================================================
+// AUTHENTICATION HANDLER (LOGIN)
+// ============================================================
+
+async function handleLogin(req, res, body) {
+  const rawUsername = String(body.username || '').trim();
+  const rawPassword = String(body.password || '');
+  const deviceId = String(body.device_id || body.deviceId || '').trim();
+
+  if (!rawUsername || !rawPassword) {
+    return json(res, 400, {
+      success: false,
+      error: 'Username dan password wajib diisi.'
+    });
+  }
+
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) {
+    return json(res, 500, {
+      success: false,
+      error: 'JWT_SECRET belum dikonfigurasi pada environment server.'
+    });
+  }
+
+  const supabase = getSupabaseAdmin();
+
+  const { data: user, error: queryError } = await supabase
+    .from('user_accounts')
+    .select('*')
+    .ilike('username', rawUsername)
+    .maybeSingle();
+
+  if (queryError) {
+    console.error('SUPABASE LOGIN QUERY ERROR:', queryError);
+    return json(res, 500, {
+      success: false,
+      error: 'Gagal memverifikasi akun ke database.'
+    });
+  }
+
+  if (!user) {
+    return json(res, 401, {
+      success: false,
+      error: 'Username atau password salah.'
+    });
+  }
+
+  if (user.is_verified === false) {
+    return json(res, 403, {
+      success: false,
+      error: 'Akun belum diverifikasi. Silakan cek email verifikasi Anda.'
+    });
+  }
+
+  const storedHash = String(user.password_hash || user.password || '');
+  let isPasswordValid = false;
+
+  if (storedHash.startsWith('$2a$') || storedHash.startsWith('$2b$') || storedHash.startsWith('$2y$')) {
+    isPasswordValid = await bcrypt.compare(rawPassword, storedHash);
+  } else {
+    isPasswordValid = storedHash === rawPassword;
+  }
+
+  if (!isPasswordValid) {
+    return json(res, 401, {
+      success: false,
+      error: 'Username atau password salah.'
+    });
+  }
+
+  if (deviceId) {
+    await supabase
+      .from('user_accounts')
+      .update({
+        device_id: deviceId,
+        last_login: new Date().toISOString()
+      })
+      .eq('id', user.id);
+  }
+
+  const tokenPayload = {
+    sub: user.id,
+    uid: user.uid,
+    username: user.username,
+    role: user.role || 'user',
+    device_id: deviceId || user.device_id || null
+  };
+
+  const token = jwt.sign(tokenPayload, jwtSecret, { expiresIn: '7d' });
+
+  return json(res, 200, {
+    success: true,
+    message: 'Login berhasil.',
+    token,
+    user: {
+      id: user.id,
+      uid: user.uid,
+      username: user.username,
+      email: user.email,
+      role: user.role || 'user',
+      device_id: deviceId || user.device_id || null,
+      expired_at: user.expired_at || null
+    }
+  });
+}
+
+// ============================================================
 // VERCEL SERVERLESS HANDLER
 // ============================================================
 
@@ -349,7 +477,7 @@ export default async function handler(req, res) {
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization');
   res.setHeader('Cache-Control', 'no-store');
 
   if (req.method === 'OPTIONS') {
@@ -381,17 +509,21 @@ export default async function handler(req, res) {
     });
   }
 
-  // POST HANDLER (SEND EMAILS)
+  // POST HANDLER (LOGIN & SEND EMAILS)
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
     const { action, to, code, username } = body;
 
-    const validActions = ['send_verification_email', 'send_reset_password_email'];
+    if (action === 'login') {
+      return await handleLogin(req, res, body);
+    }
+
+    const validActions = ['send_verification_email', 'send_reset_password_email', 'login'];
 
     if (!validActions.includes(action)) {
       return json(res, 400, {
         success: false,
-        error: 'Action API tidak dikenal. Gunakan "send_verification_email" atau "send_reset_password_email".'
+        error: 'Action API tidak dikenal. Gunakan "login", "send_verification_email", atau "send_reset_password_email".'
       });
     }
 
@@ -427,7 +559,7 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('SMTP ERROR:', {
+    console.error('API ERROR:', {
       message: error.message,
       code: error.code,
       command: error.command,
@@ -437,7 +569,7 @@ export default async function handler(req, res) {
 
     return json(res, 500, {
       success: false,
-      error: error.message || 'Gagal mengirim email.',
+      error: error.message || 'Terjadi kesalahan pada server.',
       smtpCode: error.code || null,
       smtpResponse: error.response || null,
       smtpResponseCode: error.responseCode || null

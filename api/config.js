@@ -17,6 +17,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 const SECRET_SALT = 'MINDSTUDIO2026';
+const MAX_DEVICES_PER_ACCOUNT = 3;
 
 // ============================================================
 // HELPER
@@ -34,6 +35,24 @@ function escapeHtml(value = '') {
     '"': '&quot;',
     "'": '&#39;'
   }[char]));
+}
+
+function normalizeDeviceIds(raw) {
+  let list = [];
+  if (Array.isArray(raw)) {
+    list = raw;
+  } else if (typeof raw === 'string' && raw.trim()) {
+    try {
+      const parsed = JSON.parse(raw);
+      list = Array.isArray(parsed) ? parsed : [raw];
+    } catch {
+      list = [raw];
+    }
+  }
+  const clean = list
+    .map(item => String(item || '').trim().toUpperCase())
+    .filter(Boolean);
+  return [...new Set(clean)].slice(0, MAX_DEVICES_PER_ACCOUNT);
 }
 
 function getSupabaseAdmin() {
@@ -414,7 +433,7 @@ Mindspace Studio © 2026
 async function handleLogin(req, res, body) {
   const rawIdentifier = String(body.username || body.email || body.identifier || '').trim();
   const rawPassword = String(body.password || '');
-  const deviceId = String(body.device_id || body.deviceId || '').trim();
+  const deviceId = String(body.device_id || body.deviceId || '').trim().toUpperCase();
 
   if (!rawIdentifier || !rawPassword) {
     return json(res, 400, {
@@ -470,10 +489,18 @@ async function handleLogin(req, res, body) {
     });
   }
 
+  let deviceIds = normalizeDeviceIds(user.device_ids ?? user.device_id);
+  if (deviceId && !deviceIds.includes(deviceId) && deviceIds.length < MAX_DEVICES_PER_ACCOUNT) {
+    deviceIds = [...deviceIds, deviceId];
+  }
+
   try {
     const updateFields = { last_active: new Date().toISOString() };
-    if (deviceId && 'device_id' in user) {
-      updateFields.device_id = deviceId;
+    if ('device_ids' in user) {
+      updateFields.device_ids = deviceIds;
+    }
+    if ('device_id' in user) {
+      updateFields.device_id = deviceIds[0] || null;
     }
     await supabase
       .from('user_accounts')
@@ -491,7 +518,7 @@ async function handleLogin(req, res, body) {
     username: user.username,
     email: user.email || null,
     role: String(user.role || 'user').toLowerCase(),
-    device_id: deviceId || user.device_id || null
+    device_ids: deviceIds
   };
 
   const token = jwt.sign(tokenPayload, jwtSecret, { expiresIn: '7d' });
@@ -508,9 +535,130 @@ async function handleLogin(req, res, body) {
       email: user.email,
       role: String(user.role || 'user').toLowerCase(),
       avatar_url: user.avatar_url || null,
-      device_id: deviceId || user.device_id || null,
+      device_ids: deviceIds,
+      max_devices: MAX_DEVICES_PER_ACCOUNT,
       expired_at: user.expired_at || null
     }
+  });
+}
+
+// ============================================================
+// MULTI-DEVICE LINK / UNLINK HANDLER (MAX 3 DEVICES)
+// ============================================================
+
+async function handleDeviceBinding(req, res, body) {
+  const authHeader = String(req.headers.authorization || '');
+  const token = authHeader.startsWith('Bearer ')
+    ? authHeader.slice(7).trim()
+    : String(body.token || '').trim();
+  const action = String(body.action || '').trim().toLowerCase(); // 'link_device' | 'unlink_device'
+  const deviceId = String(body.device_id || body.deviceId || '').trim().toUpperCase();
+
+  if (!token) {
+    return json(res, 401, { success: false, error: 'Sesi token tidak ditemukan. Silakan login ulang.' });
+  }
+
+  const jwtSecret = process.env.JWT_SECRET || process.env.EMAIL_PASS || process.env.SMTP_PASS || SECRET_SALT;
+  let decoded;
+  try {
+    decoded = jwt.verify(token, jwtSecret);
+  } catch (err) {
+    return json(res, 401, { success: false, error: 'Token sesi tidak valid atau sudah kadaluarsa.' });
+  }
+
+  if (!deviceId) {
+    return json(res, 400, {
+      success: false,
+      error: `Device ID wajib diisi untuk proses ${action === 'unlink_device' ? 'unlink' : 'link'}.`
+    });
+  }
+
+  const supabase = getSupabaseAdmin();
+
+  const { data: currentUser, error: fetchErr } = await supabase
+    .from('user_accounts')
+    .select('*')
+    .eq('id', decoded.sub)
+    .maybeSingle();
+
+  if (fetchErr || !currentUser) {
+    return json(res, 404, { success: false, error: 'Akun pengguna tidak ditemukan.' });
+  }
+
+  let deviceIds = normalizeDeviceIds(currentUser.device_ids ?? currentUser.device_id);
+  const isUnlink = action === 'unlink_device';
+
+  if (isUnlink) {
+    if (!deviceIds.includes(deviceId)) {
+      return json(res, 400, {
+        success: false,
+        error: `Device ID ${deviceId} tidak terdaftar pada akun ini.`,
+        device_ids: deviceIds
+      });
+    }
+    deviceIds = deviceIds.filter(id => id !== deviceId);
+  } else {
+    if (!deviceIds.includes(deviceId)) {
+      if (deviceIds.length >= MAX_DEVICES_PER_ACCOUNT) {
+        return json(res, 400, {
+          success: false,
+          error: `Batas maksimal ${MAX_DEVICES_PER_ACCOUNT} Device ID telah tercapai (${deviceIds.join(', ')}). Unlink salah satu perangkat terlebih dahulu.`,
+          device_ids: deviceIds,
+          max_devices: MAX_DEVICES_PER_ACCOUNT
+        });
+      }
+      deviceIds.push(deviceId);
+    }
+  }
+
+  const updatePayload = {
+    last_active: new Date().toISOString()
+  };
+  if ('device_ids' in currentUser) {
+    updatePayload.device_ids = deviceIds;
+  }
+  if ('device_id' in currentUser) {
+    updatePayload.device_id = deviceIds[0] || null;
+  }
+
+  const { data: updatedUser, error: updateErr } = await supabase
+    .from('user_accounts')
+    .update(updatePayload)
+    .eq('id', decoded.sub)
+    .select('id, uuid, username, email, role, device_ids')
+    .maybeSingle();
+
+  if (updateErr) {
+    return json(res, 500, {
+      success: false,
+      error: 'Gagal memperbarui daftar perangkat: ' + updateErr.message
+    });
+  }
+
+  // Sinkronkan kepemilikan pada tabel licenses agar tampil di Layanan Aktif portal web
+  const ownerIdentifier = String(currentUser.uuid || currentUser.id);
+  try {
+    await supabase
+      .from('licenses')
+      .update({
+        user_id: isUnlink ? null : ownerIdentifier,
+        owner_id: isUnlink ? null : ownerIdentifier,
+        claimed_by: isUnlink ? null : currentUser.username
+      })
+      .eq('device_id', deviceId);
+  } catch (licErr) {
+    console.warn('Non-fatal license sync warning:', licErr.message);
+  }
+
+  return json(res, 200, {
+    success: true,
+    message: isUnlink
+      ? `Device ID ${deviceId} berhasil dilepas (${deviceIds.length}/${MAX_DEVICES_PER_ACCOUNT} slot terpakai).`
+      : `Device ID ${deviceId} berhasil ditautkan (${deviceIds.length}/${MAX_DEVICES_PER_ACCOUNT} slot terpakai).`,
+    device_id: deviceId,
+    device_ids: deviceIds,
+    max_devices: MAX_DEVICES_PER_ACCOUNT,
+    user: updatedUser
   });
 }
 
@@ -562,7 +710,7 @@ export default async function handler(req, res) {
     });
   }
 
-  // POST HANDLER (LOGIN & SEND EMAILS)
+  // POST HANDLER (LOGIN, DEVICE BINDING & SEND EMAILS)
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
     const { action, to, code, username } = body;
@@ -571,12 +719,16 @@ export default async function handler(req, res) {
       return await handleLogin(req, res, body);
     }
 
-    const validActions = ['send_verification_email', 'send_reset_password_email', 'login'];
+    if (action === 'link_device' || action === 'unlink_device') {
+      return await handleDeviceBinding(req, res, body);
+    }
+
+    const validActions = ['send_verification_email', 'send_reset_password_email', 'login', 'link_device', 'unlink_device'];
 
     if (!validActions.includes(action)) {
       return json(res, 400, {
         success: false,
-        error: 'Action API tidak dikenal. Gunakan "login", "send_verification_email", atau "send_reset_password_email".'
+        error: 'Action API tidak dikenal. Gunakan "login", "link_device", "unlink_device", "send_verification_email", atau "send_reset_password_email".'
       });
     }
 

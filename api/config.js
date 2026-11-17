@@ -78,6 +78,60 @@ function getSupabaseAdmin() {
   });
 }
 
+async function syncLicenseUserId(supabase, { deviceId, userAccountId, username, isUnlink = false }) {
+  const targetUserId = isUnlink ? null : userAccountId;
+  const nowIso = new Date().toISOString();
+
+  const { data: existingLicense, error: findErr } = await supabase
+    .from('licenses')
+    .select('id, device_id, user_id, status, exp_date')
+    .eq('device_id', deviceId)
+    .maybeSingle();
+
+  if (findErr) {
+    throw new Error('Gagal memeriksa tabel licenses: ' + findErr.message);
+  }
+
+  if (existingLicense) {
+    const { data: updatedLic, error: updErr } = await supabase
+      .from('licenses')
+      .update({
+        user_id: targetUserId,
+        updated_at: nowIso
+      })
+      .eq('id', existingLicense.id)
+      .select('id, device_id, user_id, status, exp_date')
+      .maybeSingle();
+
+    if (updErr) {
+      throw new Error('Gagal memperbarui licenses.user_id: ' + updErr.message);
+    }
+    return updatedLic;
+  }
+
+  if (!isUnlink && targetUserId) {
+    const { data: insertedLic, error: insErr } = await supabase
+      .from('licenses')
+      .insert({
+        device_id: deviceId,
+        user_id: targetUserId,
+        client_name: username || null,
+        status: 'inactive',
+        created_at: nowIso,
+        updated_at: nowIso
+      })
+      .select('id, device_id, user_id, status, exp_date')
+      .maybeSingle();
+
+    if (insErr) {
+      throw new Error('Gagal mendaftarkan device_id ke licenses: ' + insErr.message);
+    }
+    return insertedLic;
+  }
+
+  return null;
+}
+
 async function verifyPasswordHash(plainPassword, storedHash) {
   const cleanStored = String(storedHash || '').trim();
   if (!cleanStored) return false;
@@ -506,6 +560,15 @@ async function handleLogin(req, res, body) {
       .from('user_accounts')
       .update(updateFields)
       .eq('id', user.id);
+
+    if (deviceId && deviceIds.includes(deviceId)) {
+      await syncLicenseUserId(supabase, {
+        deviceId,
+        userAccountId: user.id,
+        username: user.username,
+        isUnlink: false
+      });
+    }
   } catch (updateErr) {
     console.warn('Non-fatal last_active update warning:', updateErr.message);
   }
@@ -625,7 +688,7 @@ async function handleDeviceBinding(req, res, body) {
     .from('user_accounts')
     .update(updatePayload)
     .eq('id', decoded.sub)
-    .select('id, uuid, username, email, role, device_ids')
+    .select('id, uid, uuid, username, email, role, device_ids')
     .maybeSingle();
 
   if (updateErr) {
@@ -635,19 +698,20 @@ async function handleDeviceBinding(req, res, body) {
     });
   }
 
-  // Sinkronkan kepemilikan pada tabel licenses agar tampil di Layanan Aktif portal web
-  const ownerIdentifier = String(currentUser.uuid || currentUser.id);
+  // Sinkronkan kepemilikan pada tabel licenses (licenses.user_id -> user_accounts.id)
+  let syncedLicense = null;
   try {
-    await supabase
-      .from('licenses')
-      .update({
-        user_id: isUnlink ? null : ownerIdentifier,
-        owner_id: isUnlink ? null : ownerIdentifier,
-        claimed_by: isUnlink ? null : currentUser.username
-      })
-      .eq('device_id', deviceId);
+    syncedLicense = await syncLicenseUserId(supabase, {
+      deviceId,
+      userAccountId: currentUser.id,
+      username: currentUser.username,
+      isUnlink
+    });
   } catch (licErr) {
-    console.warn('Non-fatal license sync warning:', licErr.message);
+    return json(res, 500, {
+      success: false,
+      error: licErr.message
+    });
   }
 
   return json(res, 200, {
@@ -657,8 +721,11 @@ async function handleDeviceBinding(req, res, body) {
       : `Device ID ${deviceId} berhasil ditautkan (${deviceIds.length}/${MAX_DEVICES_PER_ACCOUNT} slot terpakai).`,
     device_id: deviceId,
     device_ids: deviceIds,
+    is_linked: !isUnlink,
+    user_id: isUnlink ? null : currentUser.id,
     max_devices: MAX_DEVICES_PER_ACCOUNT,
-    user: updatedUser
+    user: updatedUser,
+    license: syncedLicense
   });
 }
 

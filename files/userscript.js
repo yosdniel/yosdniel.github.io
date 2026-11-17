@@ -1,49 +1,302 @@
 // ==UserScript==
-// @name        SIPGN Autofill - POP
-// @namespace   sipgn-autofill
-// @version     1.5.45
-// @description Isi otomatis form Tugas Pengiriman & Klaim Voucher Durasi Custom Baru
-// @match       https://pop-sipgn.bgn.go.id/distribution/*
-// @grant       GM_setValue
-// @grant       GM_getValue
-// @grant       GM_xmlhttpRequest
-// @connect     mindspace-id.vercel.app
-// @connect     api.qrserver.com
-// @connect     chart.googleapis.com
-// @updateURL   https://mindspace-id.vercel.app/sipgn-autofill.user.js
-// @downloadURL https://mindspace-id.vercel.app/sipgn-autofill.user.js
+// @name         SIPGN Autofill POP - Mindspace Studio
+// @namespace    sipgn-autofill
+// @version      1.5.56
+// @description  Isi otomatis form Tugas Pengiriman & Klaim Voucher Durasi Custom Baru (dengan Fake Camera & Adaptif Mobile Bottom Sheet & Floating FAB)
+// @match        https://pop-sipgn.bgn.go.id/distribution*
+// @match        https://pop-sipgn.bgn.go.id/*
+// @run-at       document-start
+// @grant        GM_setValue
+// @grant        GM_getValue
+// @grant        GM_xmlhttpRequest
+// @connect      mindspace-id.vercel.app
+// @updateURL    https://mindspace-id.vercel.app/files/sipgn-autofill.user.js
+// @downloadURL  https://mindspace-id.vercel.app/files/sipgn-autofill.user.js
 // ==/UserScript==
 
 (function () {
   'use strict';
 
-  // ------------------------------------------------------------------
-  // KONFIGURASI API VERCEL & STORAGE
-  // ------------------------------------------------------------------
+  (function inisialisasiFakeCamera() {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1280;
+      canvas.height = 720;
+      const ctx = canvas.getContext('2d');
+      let img = null;
+
+      setInterval(() => {
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        if (!img) return;
+        const r = Math.max(canvas.width / img.width, canvas.height / img.height);
+        const w = img.width * r, h = img.height * r;
+        ctx.drawImage(img, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
+      }, 100);
+
+      function pilihFile() {
+        return new Promise((resolve, reject) => {
+          const input = document.createElement('input');
+          input.type = 'file';
+          input.accept = 'image/*';
+          input.onchange = () => {
+            const f = input.files[0];
+            if (!f) return reject(new DOMException('Batal', 'NotAllowedError'));
+            const i = new Image();
+            i.onload = () => { img = i; resolve(); };
+            i.src = URL.createObjectURL(f);
+          };
+          input.oncancel = () =>
+            reject(new DOMException('Batal', 'NotAllowedError'));
+          input.click();
+        });
+      }
+
+      if (navigator.mediaDevices) {
+        navigator.mediaDevices.getUserMedia = async () => {
+          await pilihFile();
+          return canvas.captureStream(15);
+        };
+
+        navigator.mediaDevices.enumerateDevices = async () => [
+          { kind: 'videoinput', deviceId: 'fake', label: 'Kamera File', groupId: 'fake' }
+        ];
+      }
+    } catch (e) {
+      console.warn('[Autofill] Gagal menginisialisasi Fake Camera:', e);
+    }
+  })();
+
   const CURRENT_VERSION = (typeof GM_info !== 'undefined' && GM_info.script)
     ? GM_info.script.version
-    : '1.5.48';
+    : '1.5.57';
 
   const VERCEL_API_URL = 'https://mindspace-id.vercel.app/api/tokopay';
-
   const SECRET_SALT = 'MINDSTUDIO2026';
   const LICENSE_STORAGE_KEY = 'sipgn_license_key';
   const DEVICE_STORAGE_KEY = 'sipgn_device_id';
   const SPPG_NAME_KEY = 'sipgn_sppg_name';
   const STORAGE_KEY = 'sipgnAutofillData';
+  const AUTO_KURIR_KEY = 'sipgn_auto_kurir_mbg';
+  const MINIMIZE_KEY = 'sipgn_panel_minimized';
+  const TYPING_SPEED_KEY = 'sipgn_typing_speed_level';
 
   let currentDatabaseExpDate = null;
   let statusLisensiTerakhir = null;
-  let cachedServerStatus = null; // Cache untuk mempercepat pembukaan modal status perangkat
+  let cachedServerStatus = null;
   let intervalMonitorLisensi = null;
-  let isPaymentModalOpen = false;
-  let isPaymentSuccess = false;
   let daftarVouchersGlobal = [];
   let kodeVoucherTerpakai = null;
 
-  // ------------------------------------------------------------------
-  // HELPER STORAGE & SINKRONISASI NAMA SPPG KE SERVER
-  // ------------------------------------------------------------------
+  let mobilePanelOpen = false;
+
+  function tampilkanLoadingScreen(onLanjutkan) {
+    const splashLama = document.getElementById('sipgn-splash-loading');
+    if (splashLama) splashLama.remove();
+
+    const namaSppgLama = dapatkanNamaSPPG();
+    const sapaanTeks = namaSppgLama ? `Hi, ${namaSppgLama}! 👋` : 'Selamat Datang! 👋';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'sipgn-splash-loading';
+    overlay.style.cssText = `
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      z-index: 2147483647; display: flex; align-items: center; justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      transition: opacity 0.5s ease, visibility 0.5s ease;
+    `;
+
+    overlay.innerHTML = `
+      <style>
+        @keyframes sipgnPulseGlow {
+          0%, 100% { transform: scale(1); box-shadow: 0 0 25px rgba(56, 189, 248, 0.25); }
+          50% { transform: scale(1.06); box-shadow: 0 0 45px rgba(56, 189, 248, 0.5); }
+        }
+        @keyframes sipgnRotateRing {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        .sipgn-fade-out {
+          opacity: 0 !important;
+          visibility: hidden !important;
+        }
+      </style>
+      <div style="position: relative; background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(56, 189, 248, 0.3); backdrop-filter: blur(16px); color: #f8fafc; padding: 36px 30px; border-radius: 24px; width: 380px; max-width: 90vw; text-align: center; box-shadow: 0 30px 60px -15px rgba(0,0,0,0.8);">
+
+        <div style="position: relative; width: 80px; height: 80px; margin: 0 auto 20px auto;">
+          <div style="position: absolute; inset: 0; border: 3px solid rgba(56, 189, 248, 0.15); border-top-color: #38bdf8; border-radius: 50%; animation: sipgnRotateRing 1.2s linear infinite;"></div>
+          <div style="width: 100%; height: 100%; background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(37, 99, 235, 0.3)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 34px; animation: sipgnPulseGlow 2.5s infinite;">
+            ⚡
+          </div>
+        </div>
+
+        <h3 style="margin: 0 0 2px 0; font-size: 20px; font-weight: 800; background: linear-gradient(135deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">SIPGN Autofill POP</h3>
+        <div style="font-size: 11px; color: #94a3b8; font-weight: 600; margin-bottom: 15px;">v${CURRENT_VERSION}</div>
+        <div style="font-size: 13px; font-weight: 700; color: #38bdf8; margin-bottom: 10px; letter-spacing: 0.3px;">${escapeHtml(sapaanTeks)}</div>
+
+        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(51, 65, 85, 0.6); border-radius: 12px; padding: 12px; margin-bottom: 20px;">
+          <div id="sipgn-splash-status" style="font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 8px;">Memeriksa Sistem & Lisensi...</div>
+          <div style="width: 100%; height: 6px; background: rgba(51, 65, 85, 0.8); border-radius: 99px; overflow: hidden;">
+            <div id="sipgn-splash-bar" style="width: 10%; height: 100%; background: linear-gradient(90deg, #38bdf8, #2563eb); border-radius: 99px; transition: width 0.3s ease;"></div>
+          </div>
+        </div>
+
+        <button id="sipgn-btn-splash-lanjutkan" style="display: none; width: 100%; padding: 13px; border: none; border-radius: 12px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; font-weight: 700; cursor: pointer; font-size: 14px; box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45); transition: all 0.2s;">
+          🚀 Lanjutkan
+        </button>
+
+        <button id="sipgn-btn-splash-retry" style="display: none; width: 100%; padding: 13px; border: none; border-radius: 12px; background: linear-gradient(135deg, #dc2626, #991b1b); color: white; font-weight: 700; cursor: pointer; font-size: 14px; box-shadow: 0 6px 20px rgba(220, 38, 38, 0.45); transition: all 0.2s;">
+          🔄 Coba Lagi
+        </button>
+
+        <div style="margin-top: 18px; font-size: 10px; color: #64748b;">Powered by <b style="color: #94a3b8;">Mindspace Studio</b></div>
+      </div>
+    `;
+
+    bantuAppendKeBody(overlay);
+
+    const statusEl = document.getElementById('sipgn-splash-status');
+    const barEl = document.getElementById('sipgn-splash-bar');
+    const btnLanjutkan = document.getElementById('sipgn-btn-splash-lanjutkan');
+    const btnRetry = document.getElementById('sipgn-btn-splash-retry');
+
+    return {
+      updateProgress: (persen, pesan) => {
+        if (barEl) barEl.style.width = `${persen}%`;
+        if (statusEl) statusEl.textContent = pesan;
+      },
+      siapLanjut: () => {
+        if (barEl) barEl.style.width = '100%';
+        if (statusEl) {
+          statusEl.textContent = 'Sistem Siap Digunakan!';
+          statusEl.style.color = '#34d399';
+        }
+        if (btnLanjutkan) {
+          btnLanjutkan.style.display = 'block';
+          btnLanjutkan.onclick = () => {
+            overlay.classList.add('sipgn-fade-out');
+            setTimeout(() => {
+              overlay.remove();
+              if (onLanjutkan) onLanjutkan();
+            }, 500);
+          };
+        }
+      },
+      tampilkanGagal: (pesanError) => {
+        if (barEl) {
+          barEl.style.width = '100%';
+          barEl.style.background = '#ef4444';
+        }
+        if (statusEl) {
+          statusEl.textContent = pesanError || 'Gagal Terhubung ke Server!';
+          statusEl.style.color = '#ef4444';
+        }
+        if (btnRetry) {
+          btnRetry.style.display = 'block';
+          btnRetry.onclick = () => {
+            overlay.remove();
+            inialisasiSistem();
+          };
+        }
+      }
+    };
+  }
+
+  function isMobileDevice() {
+    return window.innerWidth <= 640 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  }
+
+  function dapatkanTopZIndex() {
+    let highest = 2147483640;
+    document.querySelectorAll('body *').forEach((el) => {
+      const z = parseInt(window.getComputedStyle(el).zIndex, 10);
+      if (!isNaN(z) && z > highest) {
+        highest = z;
+      }
+    });
+    return highest + 10;
+  }
+
+  function cegahCopyTeks(element) {
+    if (!element) return;
+    element.addEventListener('copy', (e) => {
+      const targetTag = e.target ? e.target.tagName.toLowerCase() : '';
+      if (targetTag !== 'input' && targetTag !== 'textarea') {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }, true);
+
+    element.addEventListener('selectstart', (e) => {
+      const targetTag = e.target ? e.target.tagName.toLowerCase() : '';
+      if (targetTag !== 'input' && targetTag !== 'textarea') {
+        e.preventDefault();
+      }
+    }, true);
+  }
+
+  function bantuAppendKeBody(element) {
+    if (!element) return;
+    cegahCopyTeks(element);
+    if (document.body) {
+      document.body.appendChild(element);
+    } else {
+      document.addEventListener('DOMContentLoaded', () => {
+        if (document.body) document.body.appendChild(element);
+      });
+    }
+  }
+
+  function dapatkanTypingSpeedLevel() {
+    try {
+      const val = GM_getValue(TYPING_SPEED_KEY, '50');
+      return String(val || '50');
+    } catch (e) {
+      return localStorage.getItem(TYPING_SPEED_KEY) || '50';
+    }
+  }
+
+  function simpanTypingSpeedLevel(val) {
+    try {
+      GM_setValue(TYPING_SPEED_KEY, String(val));
+    } catch (e) {}
+    localStorage.setItem(TYPING_SPEED_KEY, String(val));
+  }
+
+  function dapatkanAutoKurirMBG() {
+    try {
+      const val = GM_getValue(AUTO_KURIR_KEY, true);
+      return val === true || val === 'true';
+    } catch (e) {
+      const val = localStorage.getItem(AUTO_KURIR_KEY);
+      return val === null ? true : val === 'true';
+    }
+  }
+
+  function simpanAutoKurirMBG(val) {
+    try {
+      GM_setValue(AUTO_KURIR_KEY, val);
+    } catch (e) {}
+    localStorage.setItem(AUTO_KURIR_KEY, String(val));
+  }
+
+  function dapatkanPanelMinimized() {
+    try {
+      const val = GM_getValue(MINIMIZE_KEY, false);
+      return val === true || val === 'true';
+    } catch (e) {
+      return localStorage.getItem(MINIMIZE_KEY) === 'true';
+    }
+  }
+
+  function simpanPanelMinimized(val) {
+    try {
+      GM_setValue(MINIMIZE_KEY, val);
+    } catch (e) {}
+    localStorage.setItem(MINIMIZE_KEY, String(val));
+  }
+
   function dapatkanNamaSPPG() {
     try {
       return GM_getValue(SPPG_NAME_KEY, '') || localStorage.getItem(SPPG_NAME_KEY) || '';
@@ -71,32 +324,79 @@
         device_id: devId,
         sppg_name: nama
       }),
-      onload: function (res) {
-        try {
-          console.log('[Autofill] Sinkronisasi nama SPPG ke database berhasil.');
-        } catch (e) {}
-      },
+      onload: function (res) {},
       onerror: function () {
         console.warn('[Autofill] Gagal meng-upload nama SPPG ke database server.');
       }
     });
   }
 
-  // ------------------------------------------------------------------
-  // FITUR SMART DELAY (HUMAN-LIKE SIMULATION AUTOMATIC)
-  // ------------------------------------------------------------------
-  function getRandomDelay(min = 300, max = 700) {
+  function aturCheckboxKurirMBG() {
+    const isAuto = dapatkanAutoKurirMBG();
+
+    const semuaCheckbox = [...document.querySelectorAll('input[type="checkbox"]')].filter(
+      (cb) => !cb.closest('#sipgn-autofill-panel')
+    );
+
+    const checkboxKurir = semuaCheckbox.find((cb) => {
+      const parentText = (cb.closest('label') || cb.parentElement || document.body).innerText || '';
+      return parentText.includes('Kirim tugas pengiriman ke Aplikasi Kurir MBG') || parentText.includes('Kurir MBG');
+    }) || semuaCheckbox[0];
+
+    if (checkboxKurir) {
+      if (isAuto && !checkboxKurir.checked) {
+        checkboxKurir.checked = true;
+        checkboxKurir.dispatchEvent(new Event('change', { bubbles: true }));
+        checkboxKurir.dispatchEvent(new Event('input', { bubbles: true }));
+      } else if (!isAuto && checkboxKurir.checked) {
+        checkboxKurir.checked = false;
+        checkboxKurir.dispatchEvent(new Event('change', { bubbles: true }));
+        checkboxKurir.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      return isAuto;
+    }
+    return false;
+  }
+
+  function getRandomDelay(min = 350, max = 800) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
 
-  async function smartWait(minMs = 300, maxMs = 700) {
-    const delay = getRandomDelay(minMs, maxMs);
+  async function smartWait(minMs = 350, maxMs = 800) {
+    const level = dapatkanTypingSpeedLevel();
+    if (level === '0') {
+      await wait(50);
+      return;
+    }
+    const factor = level === '25' ? 0.5 : level === '75' ? 1.5 : 1.0;
+    const delay = getRandomDelay(Math.floor(minMs * factor), Math.floor(maxMs * factor));
     await wait(delay);
   }
 
-  // ------------------------------------------------------------------
-  // FITUR IN-APP UPDATE CHECKER & POP-UP NOTIFICATION (2 KOLOM)
-  // ------------------------------------------------------------------
+  function escapeHtml(text) {
+    if (!text) return '';
+    return String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function isNewerVersion(latest, current) {
+    if (!latest || !current) return false;
+    const p1 = String(latest).split('.').map((n) => parseInt(n, 10) || 0);
+    const p2 = String(current).split('.').map((n) => parseInt(n, 10) || 0);
+    const maxLen = Math.max(p1.length, p2.length);
+    for (let i = 0; i < maxLen; i++) {
+      const v1 = p1[i] || 0;
+      const v2 = p2[i] || 0;
+      if (v1 > v2) return true;
+      if (v1 < v2) return false;
+    }
+    return false;
+  }
+
   function cekUpdateSkrip() {
     GM_xmlhttpRequest({
       method: 'GET',
@@ -109,7 +409,7 @@
           const downloadUrl = data.download_url || 'https://mindspace-id.vercel.app/files/sipgn-autofill.user.js';
           const changelog = data.changelog || 'Tidak ada catatan perubahan.';
 
-          if (latestVersion && latestVersion !== CURRENT_VERSION) {
+          if (latestVersion && isNewerVersion(latestVersion, CURRENT_VERSION)) {
             tampilkanNotifikasiUpdate(latestVersion, downloadUrl, changelog);
           }
         } catch (e) {
@@ -126,48 +426,34 @@
     const modalLama = document.getElementById('sipgn-update-modal');
     if (modalLama) modalLama.remove();
 
+    const isMob = isMobileDevice();
+    const topZ = dapatkanTopZIndex();
     const overlay = document.createElement('div');
     overlay.id = 'sipgn-update-modal';
     overlay.style.cssText = `
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);
-      z-index: 1000000; display: flex; align-items: center; justify-content: center;
+      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      z-index: ${topZ}; display: flex; align-items: center; justify-content: center;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     `;
 
     overlay.innerHTML = `
       <style>
-        #sipgn-changelog-box::-webkit-scrollbar {
-          width: 8px;
-        }
-        #sipgn-changelog-box::-webkit-scrollbar-track {
-          background: rgba(15, 23, 42, 0.6);
-          border-radius: 8px;
-        }
-        #sipgn-changelog-box::-webkit-scrollbar-thumb {
-          background: #334155;
-          border-radius: 8px;
-          border: 2px solid rgba(15, 23, 42, 0.6);
-        }
-        #sipgn-changelog-box::-webkit-scrollbar-thumb:hover {
-          background: #475569;
-        }
-        #sipgn-changelog-box {
-          scrollbar-width: thin;
-          scrollbar-color: #334155 rgba(15, 23, 42, 0.6);
-        }
+        #sipgn-changelog-box::-webkit-scrollbar { width: 6px; }
+        #sipgn-changelog-box::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); border-radius: 6px; }
+        #sipgn-changelog-box::-webkit-scrollbar-thumb { background: #334155; border-radius: 6px; }
+        #sipgn-changelog-box::-webkit-scrollbar-thumb:hover { background: #38bdf8; }
+        #sipgn-changelog-box { scrollbar-width: thin; scrollbar-color: #334155 rgba(15, 23, 42, 0.5); }
       </style>
-      <div style="position: relative; background: #1e293b; border: 1px solid rgba(234, 179, 8, 0.4); color: #f8fafc; padding: 28px; border-radius: 20px; width: 680px; max-width: 92vw; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); text-align: left;">
-        <button id="sipgn-btn-close-update" style="position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,0.05); border: none; color: #94a3b8; width: 30px; height: 30px; border-radius: 50%; font-size: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s;">✕</button>
+      <div style="position: relative; background: #1e293b; border: 1px solid rgba(234, 179, 8, 0.4); color: #f8fafc; padding: ${isMob ? '18px 16px' : '24px'}; border-radius: 20px; width: ${isMob ? '94vw' : '780px'}; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); text-align: left;">
+        <button id="sipgn-btn-close-update" style="position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,0.05); border: none; color: #94a3b8; width: 28px; height: 28px; border-radius: 50%; font-size: 13px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s;">✕</button>
 
-        <div style="display: grid; grid-template-columns: 240px 1fr; gap: 24px; align-items: start;">
-
-          <!-- KOLOM KIRI: INFORMASI UPDATE & TOMBOL -->
-          <div style="display: flex; flex-direction: column; align-items: center; text-align: center; border-right: 1px solid rgba(51, 65, 85, 0.6); padding-right: 20px;">
-            <div style="width: 56px; height: 56px; background: rgba(234, 179, 8, 0.1); color: #eab308; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 28px; margin-bottom: 14px;">🚀</div>
+        <div style="display: grid; grid-template-columns: ${isMob ? '1fr' : '250px 1fr'}; gap: ${isMob ? '16px' : '24px'}; align-items: start;">
+          <div style="display: flex; flex-direction: column; align-items: center; text-align: center; border-right: ${isMob ? 'none' : '1px solid rgba(51, 65, 85, 0.6)'}; border-bottom: ${isMob ? '1px solid rgba(51, 65, 85, 0.6)' : 'none'}; padding-right: ${isMob ? '0' : '20px'}; padding-bottom: ${isMob ? '16px' : '0'};">
+            <div style="width: 52px; height: 52px; background: rgba(234, 179, 8, 0.1); color: #eab308; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 26px; margin-bottom: 12px;">🚀</div>
             <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #fef08a; line-height: 1.3;">Update Versi Baru Tersedia!</h3>
 
-            <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(51, 65, 85, 0.6); border-radius: 10px; padding: 10px 14px; margin: 14px 0; width: 100%; box-sizing: border-box;">
+            <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(51, 65, 85, 0.6); border-radius: 12px; padding: 10px 14px; margin: 14px 0; width: 100%; box-sizing: border-box;">
               <div style="font-size: 11px; color: #94a3b8; margin-bottom: 4px;">Versi Saat Ini: <b style="color: #ef4444;">v${CURRENT_VERSION}</b></div>
               <div style="font-size: 11px; color: #94a3b8;">Versi Terbaru: <b style="color: #4ade80;">v${versiBaru}</b></div>
             </div>
@@ -175,28 +461,26 @@
             <a href="${urlDownload}" target="_blank" id="sipgn-link-update" style="display: block; width: 100%; box-sizing: border-box; padding: 10px; background: #eab308; color: #0f172a; font-weight: 700; border-radius: 10px; text-decoration: none; font-size: 12px; margin-bottom: 8px; text-align: center; transition: 0.2s;">
               📥 Download & Install
             </a>
-            <button id="sipgn-btn-later-update" style="width: 100%; padding: 9px; border: 1px solid #334155; border-radius: 10px; background: transparent; color: #cbd5e1; font-weight: 600; cursor: pointer; font-size: 12px; transition: 0.2s;">
+            <button id="sipgn-btn-later-update" style="width: 100%; padding: 8px; border: 1px solid #334155; border-radius: 10px; background: transparent; color: #cbd5e1; font-weight: 600; cursor: pointer; font-size: 11px; transition: 0.2s;">
               Nanti Saja
             </button>
           </div>
 
-          <!-- KOLOM KANAN: CHANGELOGS LENGKAP -->
           <div style="display: flex; flex-direction: column; height: 100%;">
             <div style="font-size: 11px; font-weight: 700; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
               <span>📋</span> Catatan Perubahan (Changelogs)
             </div>
-            <div id="sipgn-changelog-box" style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(51, 65, 85, 0.8); border-radius: 12px; padding: 14px; height: 260px; overflow-y: auto; font-size: 12px; color: #cbd5e1; line-height: 1.6; white-space: pre-wrap; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);">
-${changelog}
+            <div id="sipgn-changelog-box" style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(51, 65, 85, 0.8); border-radius: 12px; padding: 14px; height: ${isMob ? '180px' : '280px'}; overflow-y: auto; font-size: 12px; color: #cbd5e1; line-height: 1.6; white-space: pre-wrap; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);">
+${escapeHtml(changelog)}
             </div>
           </div>
-
         </div>
 
-        <div style="margin-top: 18px; padding-top: 4px; text-align: center; font-size: 10px; color: #64748b;">© 2026 - <b>Mindspace Studio</b></div>
+        <div style="margin-top: 14px; text-align: center; font-size: 10px; color: #64748b;">© 2026 - <b>Mindspace Studio</b></div>
       </div>
     `;
 
-    document.body.appendChild(overlay);
+    bantuAppendKeBody(overlay);
 
     const tutupModal = () => overlay.remove();
     document.getElementById('sipgn-btn-close-update').onclick = tutupModal;
@@ -243,9 +527,9 @@ ${changelog}
 
   function dapatkanWarnaMasaAktif(sisaHari) {
     if (sisaHari === null) return '#facc15';
-    if (sisaHari > 7) return '#34d399'; // Hijau
-    if (sisaHari <= 7 && sisaHari >= 3) return '#facc15'; // Kuning
-    return '#ef4444'; // Merah (< 3 hari)
+    if (sisaHari > 7) return '#34d399';
+    if (sisaHari <= 7 && sisaHari >= 3) return '#facc15';
+    return '#ef4444';
   }
 
   function dapatkanDeviceID() {
@@ -272,44 +556,71 @@ ${changelog}
     return `MIND-${reversed}`;
   }
 
-  // ------------------------------------------------------------------
-  // FUNGSI MODAL DIALOG WELCOME / INPUT NAMA SPPG WAJIB (USER BARU)
-  // ------------------------------------------------------------------
   function tampilkanModalWelcomeSPPG(onSelesai) {
     const modalLama = document.getElementById('sipgn-welcome-sppg-modal');
     if (modalLama) modalLama.remove();
 
+    const topZ = dapatkanTopZIndex();
     const overlay = document.createElement('div');
     overlay.id = 'sipgn-welcome-sppg-modal';
     overlay.style.cssText = `
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(10px);
-      z-index: 1000010; display: flex; align-items: center; justify-content: center;
+      background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      z-index: ${topZ}; display: flex; align-items: center; justify-content: center;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     `;
 
     overlay.innerHTML = `
-      <div style="background: #1e293b; border: 1px solid rgba(56, 189, 248, 0.4); color: #f8fafc; padding: 28px; border-radius: 20px; width: 380px; text-align: center; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);">
-        <div style="width: 56px; height: 56px; background: rgba(56, 189, 248, 0.1); color: #38bdf8; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 16px auto;">👋</div>
-        <h3 style="margin: 0 0 6px 0; font-size: 18px; font-weight: 700; color: #f8fafc;">Selamat Datang!</h3>
-        <p style="font-size: 12px; color: #94a3b8; margin: 0 0 20px 0; line-height: 1.5;">
-          Sebelum memulai, silakan masukkan <b>Nama SPPG</b> Anda. Nama ini akan ditampilkan pada header panel utama.
-        </p>
+      <style>
+        @keyframes sipgnPopWelcome {
+          0% { opacity: 0; transform: scale(0.88) translateY(18px); }
+          100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes sipgnGlowWelcome {
+          0%, 100% { box-shadow: 0 0 25px rgba(56, 189, 248, 0.25); }
+          50% { box-shadow: 0 0 45px rgba(56, 189, 248, 0.5); }
+        }
+        #sipgn-welcome-card {
+          animation: sipgnPopWelcome 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+        }
+      </style>
+      <div id="sipgn-welcome-card" style="position: relative; background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid rgba(56, 189, 248, 0.35); color: #f8fafc; padding: 32px 28px; border-radius: 24px; width: 480px; max-width: 92vw; text-align: center; box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.8);">
 
-        <div style="text-align: left; margin-bottom: 18px;">
-          <label style="display: block; font-size: 11px; font-weight: 600; color: #cbd5e1; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Nama SPPG <span style="color: #ef4444;">*</span></label>
-          <input type="text" id="sipgn-input-nama-sppg" placeholder="Contoh: SPPG MEDAN KOTA" style="width: 100%; box-sizing: border-box; padding: 10px 14px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 13px; font-weight: 600; outline: none; transition: 0.2s;" />
-          <div id="sipgn-sppg-error" style="color: #ef4444; font-size: 11px; margin-top: 4px; display: none;">Nama SPPG wajib diisi!</div>
+        <div style="width: 68px; height: 68px; background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(37, 99, 235, 0.3)); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 34px; margin: 0 auto 18px auto; animation: sipgnGlowWelcome 3s infinite;">
+          👋
         </div>
 
-        <button id="sipgn-btn-save-sppg" style="width: 100%; padding: 12px; border: none; border-radius: 10px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; font-weight: 700; cursor: pointer; font-size: 13px; transition: 0.2s; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);">
-          Lanjutkan 🚀
+        <span style="font-size: 10px; font-weight: 700; letter-spacing: 1px; color: #38bdf8; text-transform: uppercase; background: rgba(56, 189, 248, 0.12); padding: 4px 10px; border-radius: 99px; border: 1px solid rgba(56, 189, 248, 0.25);">
+          Registrasi Awal
+        </span>
+
+        <h3 style="margin: 12px 0 6px 0; font-size: 22px; font-weight: 800; color: #f8fafc; letter-spacing: -0.3px;">Selamat Datang di SIPGN!</h3>
+        <p style="font-size: 13px; color: #94a3b8; margin: 0 0 22px 0; line-height: 1.5;">
+          Sebelum memulai otomatisasi pengisian form, silakan tentukan <b>Nama SPPG</b> Anda untuk keperluan sinkronisasi data.
+        </p>
+
+        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(51, 65, 85, 0.7); border-radius: 14px; padding: 12px 16px; margin-bottom: 20px; text-align: left; font-size: 11px; color: #cbd5e1; line-height: 1.8;">
+          <div style="display: flex; align-items: center; gap: 8px;">✨ <span>Otomatisasi Tugas Pengiriman KPM Sekolah & Posyandu</span></div>
+          <div style="display: flex; align-items: center; gap: 8px;">📦 <span>Pengelolaan Jadwal Ompreng & Pencucian Otomatis</span></div>
+          <div style="display: flex; align-items: center; gap: 8px;">🛵 <span>Sinkronisasi Otomatis Aplikasi Kurir MBG</span></div>
+        </div>
+
+        <div style="text-align: left; margin-bottom: 22px;">
+          <label style="display: block; font-size: 11px; font-weight: 700; color: #cbd5e1; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
+            Nama SPPG <span style="color: #ef4444;">*</span>
+          </label>
+          <input type="text" id="sipgn-input-nama-sppg" placeholder="Contoh: SPPG MEDAN KOTA" style="width: 100%; box-sizing: border-box; padding: 12px 16px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.15); background: #0f172a; color: white; font-size: 14px; font-weight: 600; outline: none; transition: all 0.2s ease;" />
+          <div id="sipgn-sppg-error" style="color: #ef4444; font-size: 11px; margin-top: 6px; display: none;">Nama SPPG wajib diisi untuk melanjutkan.</div>
+        </div>
+
+        <button id="sipgn-btn-save-sppg" style="width: 100%; padding: 14px; border: none; border-radius: 12px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; font-weight: 700; cursor: pointer; font-size: 14px; transition: all 0.2s; box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45);">
+          Simpan & Lanjutkan 🚀
         </button>
-        <div style="margin-top: 16px; font-size: 10px; color: #64748b;">© 2026 - <b>Mindspace Studio</b></div>
+        <div style="margin-top: 18px; font-size: 11px; color: #64748b;">Powered by <b style="color: #94a3b8;">Mindspace Studio</b></div>
       </div>
     `;
 
-    document.body.appendChild(overlay);
+    bantuAppendKeBody(overlay);
 
     const inputSPPG = document.getElementById('sipgn-input-nama-sppg');
     const errText = document.getElementById('sipgn-sppg-error');
@@ -333,29 +644,27 @@ ${changelog}
     inputSPPG.oninput = () => {
       if (inputSPPG.value.trim()) {
         errText.style.display = 'none';
-        inputSPPG.style.borderColor = '#334155';
+        inputSPPG.style.borderColor = 'rgba(255, 255, 255, 0.15)';
       }
     };
   }
 
-  // ------------------------------------------------------------------
-  // FUNGSI MODAL DIALOG MODERN UNTUK KONFIRMASI & NOTIFIKASI SUKSES
-  // ------------------------------------------------------------------
   function tampilkanModalKonfirmasiModern(judulText, pesanText, onKonfirmasi) {
     const modalLama = document.getElementById('sipgn-confirm-modal');
     if (modalLama) modalLama.remove();
 
+    const topZ = dapatkanTopZIndex();
     const overlay = document.createElement('div');
     overlay.id = 'sipgn-confirm-modal';
     overlay.style.cssText = `
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);
-      z-index: 1000004; display: flex; align-items: center; justify-content: center;
+      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      z-index: ${topZ}; display: flex; align-items: center; justify-content: center;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     `;
 
     overlay.innerHTML = `
-      <div style="background: #1e293b; border: 1px solid rgba(234, 179, 8, 0.3); color: #f8fafc; padding: 24px; border-radius: 16px; width: 340px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+      <div style="background: #1e293b; border: 1px solid rgba(234, 179, 8, 0.3); color: #f8fafc; padding: 24px; border-radius: 16px; width: 340px; max-width: 90vw; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
         <div style="width: 48px; height: 48px; background: rgba(234, 179, 8, 0.1); color: #eab308; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin: 0 auto 14px auto;">⚠️</div>
         <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #fef08a;">${judulText}</h3>
         <p style="font-size: 12px; color: #94a3b8; margin: 8px 0 16px 0; line-height: 1.5;">${pesanText}</p>
@@ -371,7 +680,7 @@ ${changelog}
       </div>
     `;
 
-    document.body.appendChild(overlay);
+    bantuAppendKeBody(overlay);
 
     document.getElementById('sipgn-btn-conf-yes').onclick = () => {
       overlay.remove();
@@ -391,17 +700,18 @@ ${changelog}
     const iconSym = isBerhasil ? '✅' : '❌';
     const borderColor = isBerhasil ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)';
 
+    const topZ = dapatkanTopZIndex();
     const overlay = document.createElement('div');
     overlay.id = 'sipgn-alert-modal';
     overlay.style.cssText = `
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);
-      z-index: 1000005; display: flex; align-items: center; justify-content: center;
+      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      z-index: ${topZ}; display: flex; align-items: center; justify-content: center;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     `;
 
     overlay.innerHTML = `
-      <div style="background: #1e293b; border: 1px solid ${borderColor}; color: #f8fafc; padding: 24px; border-radius: 16px; width: 340px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+      <div style="background: #1e293b; border: 1px solid ${borderColor}; color: #f8fafc; padding: 24px; border-radius: 16px; width: 340px; max-width: 90vw; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
         <div style="width: 48px; height: 48px; background: ${bgIcon}; color: ${warnaTema}; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin: 0 auto 14px auto;">${iconSym}</div>
         <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: ${warnaTema};">${judulText}</h3>
         <p style="font-size: 12px; color: #94a3b8; margin: 8px 0 16px 0; line-height: 1.5;">${pesanText}</p>
@@ -412,7 +722,7 @@ ${changelog}
       </div>
     `;
 
-    document.body.appendChild(overlay);
+    bantuAppendKeBody(overlay);
 
     document.getElementById('sipgn-btn-alert-ok').onclick = () => {
       overlay.remove();
@@ -420,9 +730,6 @@ ${changelog}
     };
   }
 
-  // ------------------------------------------------------------------
-  // FUNGSI KOMUNIKASI API VERCEL <-> TOKOPAY & VOUCHER KLAIM
-  // ------------------------------------------------------------------
   function ambilDaftarPaketDanVercel() {
     return new Promise((resolve, reject) => {
       GM_xmlhttpRequest({
@@ -521,118 +828,63 @@ ${changelog}
     });
   }
 
-  function buatOrderVercel(paketHari, refId) {
-    return new Promise((resolve, reject) => {
-      GM_xmlhttpRequest({
-        method: 'POST',
-        url: VERCEL_API_URL,
-        headers: { 'Content-Type': 'application/json' },
-        data: JSON.stringify({
-          paket_hari: paketHari,
-          reff_id: refId,
-          ref_id: refId,
-          device_id: dapatkanDeviceID(),
-          metode: 'QRISREALTIME',
-          produk: 'Topup Lisensi SIPGN'
-        }),
-        onload: function (res) {
-          try {
-            const data = JSON.parse(res.responseText);
-            resolve(data);
-          } catch (e) {
-            reject('Respon dari Vercel tidak valid.');
-          }
-        },
-        onerror: function () {
-          reject('Gagal menghubungi server Vercel.');
-        }
-      });
-    });
-  }
+  function ubahTombolKameraKeGaleri() {
+    const inputsFile = document.querySelectorAll('input[type="file"]');
 
-  function cekStatusVercel(refId, paketHari = 7) {
-    const devId = dapatkanDeviceID();
-    return new Promise((resolve, reject) => {
-      GM_xmlhttpRequest({
-        method: 'GET',
-        url: `${VERCEL_API_URL}?reff_id=${encodeURIComponent(refId)}&ref_id=${encodeURIComponent(refId)}&device_id=${encodeURIComponent(devId)}&paket_hari=${encodeURIComponent(paketHari)}&metode=QRISREALTIME&_t=${Date.now()}`,
-        headers: { 'Cache-Control': 'no-cache, no-store' },
-        onload: function (res) {
-          try {
-            const data = typeof res.responseText === 'string' ? JSON.parse(res.responseText) : res.responseText;
-            resolve(data);
-          } catch (e) {
-            reject('Gagal cek status dari Vercel.');
-          }
-        },
-        onerror: function (err) {
-          reject(err);
-        }
-      });
-    });
-  }
-
-  let intervalPollingPembayaran = null;
-  let intervalTimerCountdown = null;
-  let intervalCancelCountdown = null;
-
-  function hentikanTimerDanPolling() {
-    if (intervalPollingPembayaran) { clearInterval(intervalPollingPembayaran); intervalPollingPembayaran = null; }
-    if (intervalTimerCountdown) { clearInterval(intervalTimerCountdown); intervalTimerCountdown = null; }
-    if (intervalCancelCountdown) { clearInterval(intervalCancelCountdown); intervalCancelCountdown = null; }
-  }
-
-  function batalkanPembayaranLangsung() {
-    hentikanTimerDanPolling();
-    isPaymentModalOpen = false;
-    isPaymentSuccess = false;
-    const btnBeli = document.getElementById('sipgn-btn-buy-qris');
-    const qrContainer = document.getElementById('sipgn-qris-container');
-    const wrapperPaket = document.getElementById('sipgn-wrapper-paket');
-    const voucherSection = document.getElementById('sipgn-voucher-section');
-    const infoPerangkatSec = document.getElementById('sipgn-info-perangkat-sec');
-    const backupImportSec = document.getElementById('sipgn-backup-import-sec');
-
-    if (qrContainer) { qrContainer.style.display = 'none'; qrContainer.innerHTML = ''; }
-    if (wrapperPaket) wrapperPaket.style.display = 'block';
-    if (voucherSection) voucherSection.style.display = 'block';
-    if (infoPerangkatSec) infoPerangkatSec.style.display = 'block';
-    if (backupImportSec) backupImportSec.style.display = 'block';
-    if (btnBeli) { btnBeli.style.display = 'block'; btnBeli.disabled = false; btnBeli.textContent = '💳 Bayar via QRIS'; }
-  }
-
-  function prosesMulaiBatalWithCountdown() {
-    const btnCancel = document.getElementById('sipgn-btn-cancel-qris');
-    if (!btnCancel || intervalCancelCountdown) return;
-
-    let sisaBatal = 3;
-    btnCancel.disabled = true;
-    btnCancel.style.background = '#ea580c';
-    btnCancel.style.color = '#ffffff';
-    btnCancel.textContent = `⏳ Membatalkan dalam (${sisaBatal}s)...`;
-
-    intervalCancelCountdown = setInterval(() => {
-      sisaBatal--;
-      if (sisaBatal > 0) {
-        btnCancel.textContent = `⏳ Membatalkan dalam (${sisaBatal}s)...`;
-      } else {
-        clearInterval(intervalCancelCountdown);
-        intervalCancelCountdown = null;
-        batalkanPembayaranLangsung();
+    inputsFile.forEach((input) => {
+      if (input.hasAttribute('capture')) {
+        input.removeAttribute('capture');
       }
-    }, 1000);
+
+      const acceptAttr = input.getAttribute('accept');
+      if (!acceptAttr || acceptAttr.includes('camera')) {
+        input.setAttribute('accept', 'image/*');
+      }
+    });
+  }
+
+  function aktifkanPengubahKameraKeGaleri() {
+    ubahTombolKameraKeGaleri();
+
+    const observerKamera = new MutationObserver((mutations) => {
+      let perluUbah = false;
+
+      for (const mutation of mutations) {
+        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+          perluUbah = true;
+          break;
+        }
+        if (mutation.type === 'attributes' && (mutation.attributeName === 'capture' || mutation.attributeName === 'accept')) {
+          perluUbah = true;
+          break;
+        }
+      }
+
+      if (perluUbah) {
+        ubahTombolKameraKeGaleri();
+      }
+    });
+
+    const targetNode = document.body || document.documentElement;
+    if (targetNode) {
+      observerKamera.observe(targetNode, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['capture', 'accept']
+      });
+    }
   }
 
   function mulaiJalankanSkrip() {
+    aktifkanPengubahKameraKeGaleri();
+
     pasangDetektorNavigasiSPA();
     renderPanel();
     pasangDetektorPerubahanForm();
     cekUpdateSkrip();
   }
 
-  // ------------------------------------------------------------------
-  // MODAL INDEPENDEN UNTUK TRANSAKSI SUKSES
-  // ------------------------------------------------------------------
   function tampilkanModalSukses(expDateTarget, pesanSuksesCustom = 'PEMBAYARAN BERHASIL!') {
     const modalAktivasiLama = document.getElementById('sipgn-license-modal');
     if (modalAktivasiLama) modalAktivasiLama.remove();
@@ -640,12 +892,16 @@ ${changelog}
     const modalSuksesLama = document.getElementById('sipgn-success-modal');
     if (modalSuksesLama) modalSuksesLama.remove();
 
+    const modalStatusLama = document.getElementById('sipgn-status-modal');
+    if (modalStatusLama) modalStatusLama.remove();
+
+    const topZ = dapatkanTopZIndex();
     const overlay = document.createElement('div');
     overlay.id = 'sipgn-success-modal';
     overlay.style.cssText = `
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);
-      z-index: 1000001; display: flex; align-items: center; justify-content: center;
+      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      z-index: ${topZ}; display: flex; align-items: center; justify-content: center;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     `;
 
@@ -654,7 +910,7 @@ ${changelog}
     const warnaMasaAktifSukses = dapatkanWarnaMasaAktif(sisaHariSukses);
 
     overlay.innerHTML = `
-      <div style="position: relative; background: #1e293b; border: 1px solid rgba(16, 185, 129, 0.3); color: #f8fafc; padding: 28px; border-radius: 16px; width: 340px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+      <div style="position: relative; background: #1e293b; border: 1px solid rgba(16, 185, 129, 0.3); color: #f8fafc; padding: 28px; border-radius: 16px; width: 340px; max-width: 90vw; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
         <div style="width: 56px; height: 56px; background: rgba(16, 185, 129, 0.1); color: #34d399; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 26px; margin: 0 auto 16px auto;">🎉</div>
         <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: #34d399;">${pesanSuksesCustom}</h3>
         <p style="font-size: 12px; color: #94a3b8; margin: 6px 0 16px 0;">Akses sistem Anda telah diperbarui.</p>
@@ -672,20 +928,15 @@ ${changelog}
       </div>
     `;
 
-    document.body.appendChild(overlay);
+    bantuAppendKeBody(overlay);
 
     document.getElementById('sipgn-btn-close-success').onclick = () => {
-      isPaymentSuccess = false;
-      isPaymentModalOpen = false;
       overlay.remove();
       mulaiJalankanSkrip();
     };
   }
 
   function eksekusiSuksesPembayaran(jumlahHari, devId, expDateFromBackend = null, nominalBayarTrx = 0) {
-    hentikanTimerDanPolling();
-    isPaymentSuccess = true;
-
     let expDateTarget = expDateFromBackend;
 
     if (!expDateTarget) {
@@ -709,270 +960,15 @@ ${changelog}
     const autoKey = buatLicenseKey(expDateTarget, devId, 'AutoPayment');
     GM_setValue(LICENSE_STORAGE_KEY, autoKey);
 
-    if (nominalBayarTrx > 0) {
-      GM_xmlhttpRequest({
-        method: 'POST',
-        url: VERCEL_API_URL,
-        headers: { 'Content-Type': 'application/json' },
-        data: JSON.stringify({
-          action: 'record_successful_payment',
-          device_id: devId,
-          amount: Number(nominalBayarTrx),
-          paket_hari: jumlahHari
-        }),
-        onload: function() {},
-        onerror: function() {}
-      });
-    }
-
     tampilkanModalSukses(expDateTarget);
   }
 
-  function cekApakahLunas(obj) {
-    if (!obj) return false;
-    const subData = obj.data || obj.result || obj;
-    const innerSubData = subData?.data || subData;
-    const listStatusSukses = ['success', 'paid', 'completed', 'lunas', 'berhasil', '200', '1'];
-
-    const isPaidFlag =
-      subData.is_paid === true || subData.paid === true ||
-      innerSubData.is_paid === true || innerSubData.paid === true ||
-      obj.is_paid === true || obj.paid === true;
-
-    const statusVal = String(
-      innerSubData.status || innerSubData.raw_status || innerSubData.transaction_status ||
-      subData.status || subData.raw_status || subData.transaction_status ||
-      obj.status || ''
-    ).toLowerCase().trim();
-
-    if (isPaidFlag || listStatusSukses.includes(statusVal)) {
-      return true;
-    }
-    return false;
-  }
-
-  // ------------------------------------------------------------------
-  // PROSES PEMBAYARAN OTOMATIS & VOUCHER KLAIM
-  // ------------------------------------------------------------------
-  async function prosesPembayaranOtomatis(jumlahHari) {
-    const devId = dapatkanDeviceID();
-    const cleanDevId = devId.replace(/[^a-zA-Z0-9]/g, '');
-    const refIdAwal = `SIPGN__${cleanDevId}__${jumlahHari}__${Date.now()}`;
-
-    const btnBeli = document.getElementById('sipgn-btn-buy-qris');
-    const qrContainer = document.getElementById('sipgn-qris-container');
-    const wrapperPaket = document.getElementById('sipgn-wrapper-paket');
-    const voucherSection = document.getElementById('sipgn-voucher-section');
-    const infoPerangkatSec = document.getElementById('sipgn-info-perangkat-sec');
-    const backupImportSec = document.getElementById('sipgn-backup-import-sec');
-
-    hentikanTimerDanPolling();
-    isPaymentModalOpen = true;
-    isPaymentSuccess = false;
-
-    try {
-      if (btnBeli) {
-        btnBeli.disabled = true;
-        btnBeli.textContent = '⏳ Memproses QRIS...';
-      }
-
-      const resOrder = await buatOrderVercel(jumlahHari, refIdAwal);
-      console.log('[Autofill] Respon Buat Order Vercel:', resOrder);
-
-      if (resOrder.error) {
-        tampilkanModalAlertModern('Gagal dari Server', resOrder.error, false);
-        isPaymentModalOpen = false;
-        if (btnBeli) { btnBeli.disabled = false; btnBeli.textContent = '💳 Bayar via QRIS'; }
-        return;
-      }
-
-      const refIdFix = resOrder.reff_id || resOrder.ref_id || resOrder.data?.reff_id || resOrder.data?.ref_id || refIdAwal;
-      const orderData = resOrder.data?.data?.data || resOrder.data?.data || resOrder.data || resOrder;
-
-      const qrStringRaw = resOrder.qr_string || orderData.qr_string || orderData.qr_code || orderData.qr_content || null;
-      const qrLinkRaw = resOrder.qr_link || orderData.qr_link || orderData.qr_url || null;
-      const nominalPembayaran = resOrder.total_bayar || orderData.total_bayar || orderData.jumlah_bayar || orderData.nominal || orderData.price || orderData.total || null;
-
-      let finalQrImageUrl = null;
-
-      if (qrStringRaw && typeof qrStringRaw === 'string' && qrStringRaw.trim().length > 10) {
-        finalQrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrStringRaw.trim())}`;
-      } else if (qrLinkRaw && typeof qrLinkRaw === 'string' && (qrLinkRaw.includes('.png') || qrLinkRaw.includes('.jpg') || qrLinkRaw.includes('qr'))) {
-        finalQrImageUrl = qrLinkRaw;
-      } else if (orderData.pay_url) {
-        finalQrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(orderData.pay_url)}`;
-      }
-
-      if (!finalQrImageUrl) {
-        const pesanErrorMsg = resOrder.data?.error_msg || resOrder.data?.message || orderData.error_msg || orderData.message || 'Data QRIS tidak ditemukan dari Tokopay.';
-        tampilkanModalAlertModern('Gagal QRIS', pesanErrorMsg, false);
-        isPaymentModalOpen = false;
-        if (btnBeli) {
-          btnBeli.disabled = false;
-          btnBeli.textContent = '💳 Bayar via QRIS';
-        }
-        return;
-      }
-
-      if (wrapperPaket) wrapperPaket.style.display = 'none';
-      if (voucherSection) voucherSection.style.display = 'none';
-      if (infoPerangkatSec) infoPerangkatSec.style.display = 'none';
-      if (backupImportSec) backupImportSec.style.display = 'none';
-      if (btnBeli) btnBeli.style.display = 'none';
-
-      if (qrContainer) {
-        const teksNominal = nominalPembayaran ? `Rp ${Number(nominalPembayaran).toLocaleString('id-ID')}` : '-';
-
-        qrContainer.style.display = 'block';
-        qrContainer.innerHTML = `
-          <div style="background: white; padding: 12px; border-radius: 12px; display: inline-block; margin: 10px 0; border: 2px solid rgba(16, 185, 129, 0.4);">
-            <img id="sipgn-qr-img-element" src="${finalQrImageUrl}" alt="QRIS Tokopay" style="width: 200px; height: 200px; display: block; margin: 0 auto; image-rendering: pixelated;" />
-          </div>
-          <div style="font-size: 11px; color: #94a3b8; margin-bottom: 12px;">
-            Total Pembayaran:<br><b style="color: #4ade80; font-size: 18px; font-weight: 700;">${teksNominal}</b>
-          </div>
-          <div style="font-size: 11px; color: #facc15; font-weight: 600; margin-top: 4px;">
-            Selesaikan pembayaran dalam waktu:
-          </div>
-          <div id="sipgn-timer-display" style="font-size: 20px; font-weight: 700; color: #ef4444; margin-top: 2px; margin-bottom: 12px;">
-            10:00
-          </div>
-          <button id="sipgn-btn-cancel-qris" style="width: 100%; padding: 9px; border: none; border-radius: 10px; background: rgba(153, 27, 27, 0.2); color: #fecaca; border: 1px solid rgba(153, 27, 27, 0.4); font-weight: 600; cursor: pointer; font-size: 12px; transition: 0.2s;">
-            ❌ Batalkan Pembayaran
-          </button>
-        `;
-
-        const imgEl = document.getElementById('sipgn-qr-img-element');
-        if (imgEl && qrStringRaw) {
-          imgEl.onerror = function () {
-            this.src = `https://chart.googleapis.com/chart?cht=qr&chs=250x250&chl=${encodeURIComponent(qrStringRaw.trim())}`;
-          };
-        }
-
-        const btnCancel = document.getElementById('sipgn-btn-cancel-qris');
-        if (btnCancel) btnCancel.onclick = prosesMulaiBatalWithCountdown;
-      }
-
-      let sisaWaktu = 600;
-      const timerDisplay = document.getElementById('sipgn-timer-display');
-
-      intervalTimerCountdown = setInterval(() => {
-        sisaWaktu--;
-        const menit = String(Math.floor(sisaWaktu / 60)).padStart(2, '0');
-        const detik = String(sisaWaktu % 60).padStart(2, '0');
-
-        if (timerDisplay) timerDisplay.textContent = `${menit}:${detik}`;
-
-        if (sisaWaktu <= 0) {
-          hentikanTimerDanPolling();
-          isPaymentModalOpen = false;
-          if (wrapperPaket) wrapperPaket.style.display = 'block';
-          if (voucherSection) voucherSection.style.display = 'block';
-          if (infoPerangkatSec) infoPerangkatSec.style.display = 'block';
-          if (backupImportSec) backupImportSec.style.display = 'block';
-          if (qrContainer) {
-            qrContainer.innerHTML = `
-              <div style="background: rgba(127, 29, 29, 0.2); color: #fecaca; padding: 12px; border-radius: 10px; font-size: 12px; margin-top: 10px; border: 1px solid rgba(153, 27, 27, 0.4);">
-                ⏰ <b>WAKTU PEMBAYARAN HABIS!</b><br>Silakan buat tagihan QRIS baru.
-              </div>
-            `;
-          }
-          if (btnBeli) {
-            btnBeli.style.display = 'block';
-            btnBeli.disabled = false;
-            btnBeli.textContent = '💳 Bayar via QRIS';
-          }
-        }
-      }, 1000);
-
-      let isPollingBusy = false;
-      intervalPollingPembayaran = setInterval(async () => {
-        if (isPollingBusy) return;
-        isPollingBusy = true;
-
-        try {
-          const resStatus = await cekStatusVercel(refIdFix, jumlahHari);
-          const isLunas = cekApakahLunas(resStatus);
-
-          if (isLunas) {
-            const innerData = resStatus?.data || resStatus;
-            const expDateFromBackend = innerData?.exp_date || resStatus?.exp_date || null;
-            eksekusiSuksesPembayaran(jumlahHari, devId, expDateFromBackend, Number(nominalPembayaran || 0));
-          }
-        } catch (e) {
-          console.warn('[Autofill] Polling status terganggu:', e);
-        } finally {
-          isPollingBusy = false;
-        }
-      }, 3000);
-
-    } catch (err) {
-      tampilkanModalAlertModern('Error Transaksi', err, false);
-      isPaymentModalOpen = false;
-      if (wrapperPaket) wrapperPaket.style.display = 'block';
-      if (voucherSection) voucherSection.style.display = 'block';
-      if (infoPerangkatSec) infoPerangkatSec.style.display = 'block';
-      if (backupImportSec) backupImportSec.style.display = 'block';
-      if (btnBeli) {
-        btnBeli.disabled = false;
-        btnBeli.textContent = '💳 Bayar via QRIS';
-      }
-    }
-  }
-
-  // ------------------------------------------------------------------
-  // FUNGSI MUAT DAFTAR PAKET KE SELECT
-  // ------------------------------------------------------------------
-  function muatDaftarPaketKeSelect(selectEl, btnBeliEl) {
-    if (!selectEl) return;
-    selectEl.innerHTML = '<option value="">⏳ Memuat paket...</option>';
-    if (btnBeliEl) btnBeliEl.disabled = true;
-
-    ambilDaftarPaketDanVercel()
-      .then((resData) => {
-        let listPaket = [];
-
-        if (resData && Array.isArray(resData.packages)) {
-          listPaket = resData.packages;
-        } else if (Array.isArray(resData)) {
-          listPaket = resData;
-        } else if (resData && Array.isArray(resData.data)) {
-          listPaket = resData.data;
-        }
-
-        if (!listPaket || listPaket.length === 0) {
-          listPaket = [
-            { hari: 7, harga: 100, nama: 'Paket 7 Hari' },
-            { hari: 30, harga: 50000, nama: 'Paket 30 Hari' }
-          ];
-        }
-
-        selectEl.innerHTML = '';
-        listPaket.forEach((p, idx) => {
-          const opt = document.createElement('option');
-          const hari = p.hari ?? p.paket_hari ?? p.days ?? p.value ?? 7;
-          const harga = p.harga ?? p.price ?? p.formatted_price ?? p.nominal ?? p.total ?? 0;
-          const nama = p.nama ?? p.label ?? p.name ?? `Paket ${hari} Hari`;
-
-          opt.value = hari;
-          opt.textContent = Number(harga) > 0
-            ? `${nama} - Rp ${Number(harga).toLocaleString('id-ID')}`
-            : nama;
-
-          if (p.selected || idx === 0) opt.selected = true;
-          selectEl.appendChild(opt);
-        });
-
-        if (btnBeliEl) btnBeliEl.disabled = false;
-      })
-      .catch((err) => {
-        console.warn('[Autofill] Gagal muat paket Vercel, menggunakan opsi bawaan:', err);
-        selectEl.innerHTML = `
-          <option value="7">Paket 7 Hari - Rp 100</option>
-          <option value="30">Paket 30 Hari - Rp 50.000</option>
-        `;
-        if (btnBeliEl) btnBeliEl.disabled = false;
-      });
+  function formatSpeedText(value) {
+    const val = String(value);
+    if (val === '0') return '⚡ Instant (Langsung Terisi)';
+    if (val === '25') return '🚀 Cepat (Delay Minimal)';
+    if (val === '75') return '👤 Human Realistis (Mengetik Manual)';
+    return '⚖️ Sedang (Pengetikan Alami)';
   }
 
   async function tampilkanModalAktivasi(pesanPeringatan = '', bisaDitutup = true, isBerhasil = false) {
@@ -981,8 +977,9 @@ ${changelog}
       if (modalLama) modalLama.remove();
 
       const currentDevId = dapatkanDeviceID();
+      const currentSpeedLevel = dapatkanTypingSpeedLevel();
 
-      let serverStatusData = cachedServerStatus || { status: 'unregistered', valid: false, exp_date: null, msg: '', qris_enabled: true };
+      let serverStatusData = cachedServerStatus || { status: 'unregistered', valid: false, exp_date: null, msg: '' };
 
       if (!cachedServerStatus) {
         try {
@@ -992,18 +989,15 @@ ${changelog}
               url: `${VERCEL_API_URL}?action=check_license&device_id=${encodeURIComponent(currentDevId)}&_t=${Date.now()}`,
               headers: { 'Cache-Control': 'no-cache, no-store' },
               onload: (res) => {
-                try { resolve(JSON.parse(res.responseText)); } catch(e) { resolve({ valid: false, qris_enabled: true }); }
+                try { resolve(JSON.parse(res.responseText)); } catch(e) { resolve({ valid: false }); }
               },
-              onerror: () => resolve({ valid: false, qris_enabled: true })
+              onerror: () => resolve({ valid: false })
             });
           });
           serverStatusData = checkRes;
           cachedServerStatus = checkRes;
         } catch(e) {}
       }
-
-      // PERIKSA SAKLAR PEMBAYARAN QRIS DARI AKUN/SETTINGS ADMIN DARD-BOARD
-      const isQrisEnabled = serverStatusData.qris_enabled !== false;
 
       const isUserBaru = serverStatusData.status && serverStatusData.status === 'unregistered';
       const rawStatus = serverStatusData.status || (serverStatusData.valid ? 'active' : 'expired');
@@ -1032,107 +1026,175 @@ ${changelog}
       const warnaMasaAktif = dapatkanWarnaMasaAktif(sisaHari);
       const infoExpFormatted = expDateVal ? `${formatTanggalIndo(expDateVal)}${teksSisaHari}` : '-';
 
+      const topZ = dapatkanTopZIndex();
       const overlay = document.createElement('div');
       overlay.id = 'sipgn-license-modal';
       overlay.style.cssText = `
         position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-        background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);
-        z-index: 999999; display: flex; align-items: center; justify-content: center;
+        background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+        z-index: ${topZ}; display: flex; align-items: center; justify-content: center;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       `;
 
       overlay.innerHTML = `
-        <div style="position: relative; background: #1e293b; border: 1px solid rgba(51, 65, 85, 0.8); color: #f8fafc; padding: 24px; border-radius: 16px; width: 380px; text-align: center; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);">
+        <style>
+          @keyframes sipgnModalScaleIn {
+            0% { opacity: 0; transform: scale(0.92) translateY(14px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+          }
+          #sipgn-slider-speed {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 5px;
+            background: #334155;
+            outline: none;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            display: block;
+          }
+          #sipgn-slider-speed::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #38bdf8;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+            transition: transform 0.1s, background 0.2s;
+          }
+          #sipgn-slider-speed::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+            background: #60a5fa;
+          }
+          #sipgn-slider-speed::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #38bdf8;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+            border: none;
+          }
+        </style>
+        <div style="position: relative; background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid rgba(56, 189, 248, 0.3); color: #f8fafc; padding: 20px 22px; border-radius: 18px; width: 380px; max-width: 90vw; max-height: 90vh; overflow-y: auto; text-align: center; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75); animation: sipgnModalScaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
           ${
             bisaDitutup
-              ? `<button id="sipgn-btn-close-x" style="position: absolute; top: 14px; right: 14px; background: rgba(255,255,255,0.05); border: none; color: #94a3b8; width: 28px; height: 28px; border-radius: 50%; font-size: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s;">✕</button>`
+              ? `<button id="sipgn-btn-close-x" style="position: absolute; top: 14px; right: 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #94a3b8; width: 28px; height: 28px; border-radius: 50%; font-size: 13px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s;">✕</button>`
               : ''
           }
-          <div style="width: 44px; height: 44px; background: rgba(37, 99, 235, 0.1); color: #38bdf8; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; margin: 0 auto 12px auto;">💳</div>
-          <h3 style="margin: 0 0 4px 0; font-size: 18px; font-weight: 700; color: #f8fafc;">Informasi & Status Perangkat</h3>
-          <p style="font-size: 11px; color: #94a3b8; margin: 0 0 16px 0; line-height: 1.4;">${isUserBaru ? 'Selamat datang! Dapatkan trial gratis 1 hari (24 jam) untuk pengguna baru.' : 'Kelola langganan dan identitas perangkat Anda.'}</p>
+          <div style="width: 44px; height: 44px; background: rgba(37, 99, 235, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; margin: 0 auto 10px auto;">💳</div>
+          <h3 style="margin: 0 0 4px 0; font-size: 17px; font-weight: 800; color: #f8fafc; letter-spacing: -0.2px;">Informasi & Status Perangkat</h3>
+          <p style="font-size: 11px; color: #94a3b8; margin: 0 0 14px 0; line-height: 1.4;">${isUserBaru ? 'Selamat datang! Nikmati akses gratis trial 24 jam untuk pengguna baru.' : 'Kelola langganan lisensi dan data cadangan perangkat Anda.'}</p>
 
-          <!-- AKUN / DEVICE ID SECTION -->
-          <div id="sipgn-info-perangkat-sec" style="background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 12px; margin-bottom: 14px; border: 1px solid rgba(51, 65, 85, 0.5); text-align: left; ${isKadaluarsa ? 'display: none;' : ''}">
-            <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; font-weight: 600; margin-bottom: 4px;">Informasi Perangkat</div>
+          <div id="sipgn-info-perangkat-sec" style="background: rgba(15, 23, 42, 0.65); padding: 10px 12px; border-radius: 12px; margin-bottom: 12px; border: 1px solid rgba(51, 65, 85, 0.6); text-align: left; ${isKadaluarsa ? 'display: none;' : ''}">
+            <div style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; font-weight: 700; margin-bottom: 6px;">Informasi Perangkat</div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-              <span style="font-size: 12px; color: #cbd5e1;">Device ID:</span>
-              <span id="sipgn-dev-id-text" style="font-size: 12px; font-weight: 700; color: #facc15; font-family: monospace; background: rgba(250, 204, 21, 0.1); padding: 2px 6px; border-radius: 4px;">${currentDevId}</span>
+              <span style="font-size: 11px; color: #cbd5e1;">Device ID:</span>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span id="sipgn-dev-id-text" style="font-size: 11px; font-weight: 700; color: #facc15; font-family: monospace; background: rgba(250, 204, 21, 0.1); padding: 2px 6px; border-radius: 5px; border: 1px solid rgba(250, 204, 21, 0.2);">${currentDevId}</span>
+              </div>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-              <span style="font-size: 12px; color: #cbd5e1;">Status:</span>
-              <span style="font-size: 12px; font-weight: 700; color: ${statusColor}; text-transform: uppercase;">${statusLabelFormatted}</span>
+              <span style="font-size: 11px; color: #cbd5e1;">Status Lisensi:</span>
+              <span style="font-size: 11px; font-weight: 800; color: ${statusColor}; text-transform: uppercase; background: rgba(15, 23, 42, 0.8); padding: 2px 6px; border-radius: 5px; border: 1px solid ${statusColor}44;">${statusLabelFormatted}</span>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-              <span style="font-size: 12px; color: #cbd5e1;">Masa Aktif:</span>
-              <span style="font-size: 12px; font-weight: 600; color: ${warnaMasaAktif}; text-align: right;">${infoExpFormatted}</span>
+              <span style="font-size: 11px; color: #cbd5e1;">Masa Aktif:</span>
+              <span style="font-size: 11px; font-weight: 700; color: ${warnaMasaAktif}; text-align: right;">${infoExpFormatted}</span>
             </div>
           </div>
 
-          <!-- PENGATURAN BACKUP & IMPORT DI DALAM MODAL PENGATURAN -->
-          <div id="sipgn-backup-import-sec" style="background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 12px; margin-bottom: 14px; border: 1px solid rgba(51, 65, 85, 0.5); text-align: left; ${(isKadaluarsa || isUserBaru) ? 'display: none;' : ''}">
-            <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; font-weight: 600; margin-bottom: 8px;">Backup & Import Data KPM</div>
+          <div id="sipgn-speed-setting-sec" style="background: rgba(15, 23, 42, 0.65); padding: 12px 14px; border-radius: 12px; margin-bottom: 12px; border: 1px solid rgba(51, 65, 85, 0.6); text-align: left;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <div style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; color: #38bdf8; font-weight: 700; display: flex; align-items: center; gap: 4px;">
+                <span>⌨️</span> Kecepatan Ketik Human-like
+              </div>
+              <span id="sipgn-speed-val-badge" style="font-size: 11px; font-weight: 700; color: #38bdf8; font-family: monospace; background: rgba(56, 189, 248, 0.12); padding: 2px 8px; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.25);">
+                ${currentSpeedLevel}%
+              </span>
+            </div>
+
+            <div style="padding: 0 9px;">
+              <input type="range" id="sipgn-slider-speed" min="0" max="75" step="25" value="${currentSpeedLevel}" />
+            </div>
+
+            <div style="display: flex; justify-content: space-between; text-align: center; font-size: 9px; color: #64748b; font-weight: 600; margin-top: 6px; padding: 0;">
+              <span style="width: 18px; text-align: center;">0%</span>
+              <span style="width: 18px; text-align: center;">25%</span>
+              <span style="width: 18px; text-align: center;">50%</span>
+              <span style="width: 18px; text-align: center;">75%</span>
+            </div>
+
+            <div id="sipgn-speed-desc-text" style="font-size: 10px; color: #cbd5e1; font-weight: 600; margin-top: 8px; background: rgba(15, 23, 42, 0.6); padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); text-align: center;">
+              ${formatSpeedText(currentSpeedLevel)}
+            </div>
+          </div>
+
+          <div id="sipgn-backup-import-sec" style="background: rgba(15, 23, 42, 0.65); padding: 10px 12px; border-radius: 12px; margin-bottom: 12px; border: 1px solid rgba(51, 65, 85, 0.6); text-align: left; ${(isKadaluarsa || isUserBaru) ? 'display: none;' : ''}">
+            <div style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; font-weight: 700; margin-bottom: 8px;">Backup & Import Data KPM</div>
             <div style="display: flex; gap: 8px;">
-              <button id="sipgn-btn-modal-backup" style="flex: 1; padding: 8px; border: none; border-radius: 8px; background: #334155; color: white; cursor: pointer; font-size: 11px; font-weight: 600; transition: background 0.2s;">↓ Backup</button>
-              <button id="sipgn-btn-modal-import" style="flex: 1; padding: 8px; border: none; border-radius: 8px; background: #334155; color: white; cursor: pointer; font-size: 11px; font-weight: 600; transition: background 0.2s;">↑ Import</button>
+              <button id="sipgn-btn-modal-backup" style="flex: 1; padding: 8px; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; background: #334155; color: white; cursor: pointer; font-size: 11px; font-weight: 600; transition: all 0.2s;">↓ Backup</button>
+              <button id="sipgn-btn-modal-import" style="flex: 1; padding: 8px; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; background: #334155; color: white; cursor: pointer; font-size: 11px; font-weight: 600; transition: all 0.2s;">↑ Import</button>
             </div>
             <input type="file" id="sipgn-modal-input-import" accept="application/json,.json" style="display: none;" />
           </div>
 
           ${
             pesanPeringatan
-              ? `<div style="background: ${isBerhasil ? 'rgba(6, 78, 59, 0.4)' : 'rgba(127, 29, 29, 0.3)'}; color: ${isBerhasil ? '#a7f3d0' : '#fecaca'}; padding: 10px; border-radius: 10px; font-size: 11px; margin-bottom: 14px; border: 1px solid ${isBerhasil ? 'rgba(4, 120, 87, 0.4)' : 'rgba(153, 27, 27, 0.4)'}; text-align: left;">
+              ? `<div style="background: ${isBerhasil ? 'rgba(6, 78, 59, 0.4)' : 'rgba(127, 29, 29, 0.35)'}; color: ${isBerhasil ? '#a7f3d0' : '#fecaca'}; padding: 10px 12px; border-radius: 10px; font-size: 11px; margin-bottom: 12px; border: 1px solid ${isBerhasil ? 'rgba(4, 120, 87, 0.4)' : 'rgba(153, 27, 27, 0.4)'}; text-align: left; line-height: 1.4;">
                   ${pesanPeringatan}
                  </div>`
               : ''
           }
 
-          <div id="sipgn-sec-qris" style="display: block; background: rgba(15, 23, 42, 0.4); padding: 14px; border-radius: 12px; border: 1px solid rgba(51, 65, 85, 0.5); margin-bottom: 14px;">
+          <div id="sipgn-sec-qris" style="display: block; background: rgba(15, 23, 42, 0.5); padding: 12px 14px; border-radius: 14px; border: 1px solid rgba(51, 65, 85, 0.6); margin-bottom: 12px;">
 
             ${
               isUserBaru
-                ? `<!-- TOMBOL CLAIM FREE TRIAL KHUSUS USER BARU -->
-                   <button id="sipgn-btn-claim-trial" style="width: 100%; padding: 12px; border: none; border-radius: 10px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; font-weight: 700; cursor: pointer; font-size: 13px; transition: 0.2s; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);">
-                     🎁 Claim Free Trial (24 Jam)
+                ? `<div style="background: rgba(37, 99, 235, 0.12); border: 1px solid rgba(37, 99, 235, 0.3); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; text-align: left; font-size: 11px; color: #cbd5e1; line-height: 1.4;">
+                      🎁 <b>Bonus Pengguna Baru:</b> Nikmati akses fitur penuh selama <b>24 jam</b> tanpa biaya untuk mencoba seluruh otomatisasi.
+                   </div>
+                   <button id="sipgn-btn-claim-trial" style="width: 100%; padding: 11px; border: none; border-radius: 10px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; font-weight: 700; cursor: pointer; font-size: 12px; transition: 0.2s; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.45);">
+                      🎁 Klaim Free Trial (24 Jam)
                    </button>`
-                : `<!-- TAMPILAN PEMBAYARAN QRIS & VOUCHER UNTUK USER LAMA -->
-                   ${isQrisEnabled ? `
-                     <div id="sipgn-wrapper-paket" style="text-align: left;">
-                       <label style="display: block; font-size: 11px; font-weight: 600; color: #cbd5e1; margin-bottom: 6px;">Pilih Paket Durasi :</label>
-                       <select id="sipgn-select-paket" style="width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 12px; margin-bottom: 12px; outline: none;">
-                         <option value="">⏳ Memuat paket...</option>
-                       </select>
-                     </div>
+                : `
+                    <div style="background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3); color: #fef08a; padding: 12px; border-radius: 10px; font-size: 11px; text-align: center; margin-bottom: 10px; line-height: 1.5;">
+                      Silakan perpanjang lisensi Anda melalui link:<br>
+                      <a href="https://www.minduniverse.id/payment" target="_blank" style="color: #38bdf8; font-weight: 700; text-decoration: underline; word-break: break-all;">https://www.minduniverse.id/payment</a>
+                    </div>
 
-                     <button id="sipgn-btn-buy-qris" style="width: 100%; padding: 11px; border: none; border-radius: 10px; background: #10b981; color: white; font-weight: 600; cursor: pointer; font-size: 12px; transition: 0.2s; margin-bottom: 12px;">
-                       💳 Bayar via QRIS
-                     </button>
-                   ` : `
-                     <!-- INFOBAR JIKA QRIS DIMATIKAN ADMIN -->
-                     <div style="background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3); color: #fef08a; padding: 10px 12px; border-radius: 10px; font-size: 11px; text-align: center; margin-bottom: 12px; line-height: 1.4;">
-                       ⚠️ <b>Pembayaran QRIS Ditutup Sementara.</b><br>Silakan gunakan kode voucher untuk melakukan perpanjangan lisensi.
-                     </div>
-                   `}
-
-                   <!-- VOUCHER SECTION -->
-                   <div id="sipgn-voucher-section" style="text-align: left; border-top: 1px dashed rgba(51, 65, 85, 0.8); padding-top: 12px;">
-                     <label style="display: block; font-size: 11px; font-weight: 600; color: #38bdf8; margin-bottom: 6px;">Klaim Kode Voucher:</label>
-                     <div style="display: flex; gap: 6px; margin-bottom: 4px;">
-                       <input type="text" id="sipgn-input-voucher" placeholder="KODE VOUCHER" style="flex: 2; box-sizing: border-box; padding: 8px 12px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 12px; text-transform: uppercase; outline: none;" />
-                       <button id="sipgn-btn-apply-voucher" style="flex: 1; padding: 8px 12px; border: none; border-radius: 10px; background: #2563eb; color: white; font-weight: 600; cursor: pointer; font-size: 12px; transition: 0.2s;">Klaim</button>
-                     </div>
-                     <div id="sipgn-voucher-feedback" style="font-size: 11px; min-height: 14px; margin-top: 4px;"></div>
-                   </div>`
+                    <div id="sipgn-voucher-section" style="text-align: left; border-top: 1px dashed rgba(51, 65, 85, 0.8); padding-top: 10px;">
+                      <label style="display: block; font-size: 10px; font-weight: 700; color: #38bdf8; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;">Klaim Kode Voucher:</label>
+                      <div style="display: flex; gap: 6px; margin-bottom: 4px;">
+                        <input type="text" id="sipgn-input-voucher" placeholder="KODE VOUCHER" style="flex: 2; box-sizing: border-box; padding: 8px 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 11px; font-weight: 700; text-transform: uppercase; outline: none;" />
+                        <button id="sipgn-btn-apply-voucher" style="flex: 1; padding: 8px 10px; border: none; border-radius: 8px; background: #2563eb; color: white; font-weight: 700; cursor: pointer; font-size: 11px; transition: 0.2s;">Klaim</button>
+                      </div>
+                      <div id="sipgn-voucher-feedback" style="font-size: 10px; min-height: 14px; margin-top: 4px;"></div>
+                    </div>`
             }
-
-            <div id="sipgn-qris-container" style="display: none; text-align: center;"></div>
           </div>
 
-          <div style="font-size: 11px; color: #64748b;">© 2026 - <b>Mindspace Studio</b></div>
+          <div style="font-size: 10px; color: #64748b;">Powered by <b style="color: #94a3b8;">Mindspace Studio</b></div>
         </div>
       `;
 
-      document.body.appendChild(overlay);
+      bantuAppendKeBody(overlay);
+
+      const sliderSpeed = document.getElementById('sipgn-slider-speed');
+      const badgeSpeed = document.getElementById('sipgn-speed-val-badge');
+      const textSpeed = document.getElementById('sipgn-speed-desc-text');
+
+      if (sliderSpeed) {
+        sliderSpeed.oninput = (e) => {
+          const val = e.target.value;
+          if (badgeSpeed) badgeSpeed.textContent = `${val}%`;
+          if (textSpeed) textSpeed.textContent = formatSpeedText(val);
+          simpanTypingSpeedLevel(val);
+        };
+      }
 
       if (isUserBaru) {
         const btnClaimTrial = document.getElementById('sipgn-btn-claim-trial');
@@ -1177,24 +1239,6 @@ ${changelog}
             importBackupData(modalInputImport.files?.[0]);
             modalInputImport.value = '';
           };
-        }
-
-        if (isQrisEnabled) {
-          const selectPaket = document.getElementById('sipgn-select-paket');
-          const btnBeli = document.getElementById('sipgn-btn-buy-qris');
-
-          muatDaftarPaketKeSelect(selectPaket, btnBeli);
-
-          if (btnBeli) {
-            btnBeli.onclick = () => {
-              if (!selectPaket || !selectPaket.value) {
-                tampilkanModalAlertModern('Perhatian', 'Silakan pilih paket durasi terlebih dahulu.', false);
-                return;
-              }
-              const hari = Number(selectPaket.value);
-              prosesPembayaranOtomatis(hari);
-            };
-          }
         }
 
         const inputVoucher = document.getElementById('sipgn-input-voucher');
@@ -1243,9 +1287,6 @@ ${changelog}
         const btnCloseX = document.getElementById('sipgn-btn-close-x');
         if (btnCloseX) {
           btnCloseX.onclick = () => {
-            hentikanTimerDanPolling();
-            isPaymentModalOpen = false;
-            isPaymentSuccess = false;
             overlay.remove();
           };
         }
@@ -1260,17 +1301,18 @@ ${changelog}
     const modalLama = document.getElementById('sipgn-backup-info-modal');
     if (modalLama) modalLama.remove();
 
+    const topZ = dapatkanTopZIndex();
     const overlay = document.createElement('div');
     overlay.id = 'sipgn-backup-info-modal';
     overlay.style.cssText = `
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);
-      z-index: 1000003; display: flex; align-items: center; justify-content: center;
+      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      z-index: ${topZ}; display: flex; align-items: center; justify-content: center;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     `;
 
     overlay.innerHTML = `
-      <div style="background: #1e293b; border: 1px solid rgba(56, 189, 248, 0.3); color: #f8fafc; padding: 24px; border-radius: 16px; width: 340px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+      <div style="background: #1e293b; border: 1px solid rgba(56, 189, 248, 0.3); color: #f8fafc; padding: 24px; border-radius: 16px; width: 340px; max-width: 90vw; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
         <div style="width: 48px; height: 48px; background: rgba(56, 189, 248, 0.1); color: #38bdf8; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin: 0 auto 14px auto;">💾</div>
         <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #f8fafc;">Konfirmasi Backup Data</h3>
         <p style="font-size: 11px; color: #94a3b8; margin: 8px 0 16px 0; line-height: 1.5;">
@@ -1287,7 +1329,7 @@ ${changelog}
       </div>
     `;
 
-    document.body.appendChild(overlay);
+    bantuAppendKeBody(overlay);
 
     document.getElementById('sipgn-btn-bk-proceed').onclick = () => {
       overlay.remove();
@@ -1302,17 +1344,18 @@ ${changelog}
     const modalLama = document.getElementById('sipgn-import-choice-modal');
     if (modalLama) modalLama.remove();
 
+    const topZ = dapatkanTopZIndex();
     const overlay = document.createElement('div');
     overlay.id = 'sipgn-import-choice-modal';
     overlay.style.cssText = `
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);
-      z-index: 1000003; display: flex; align-items: center; justify-content: center;
+      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      z-index: ${topZ}; display: flex; align-items: center; justify-content: center;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     `;
 
     overlay.innerHTML = `
-      <div style="background: #1e293b; border: 1px solid rgba(56, 189, 248, 0.3); color: #f8fafc; padding: 24px; border-radius: 16px; width: 340px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+      <div style="background: #1e293b; border: 1px solid rgba(56, 189, 248, 0.3); color: #f8fafc; padding: 24px; border-radius: 16px; width: 340px; max-width: 90vw; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
         <div style="width: 48px; height: 48px; background: rgba(56, 189, 248, 0.1); color: #38bdf8; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin: 0 auto 14px auto;">📥</div>
         <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #f8fafc;">Pilih Metode Import</h3>
         <p style="font-size: 11px; color: #94a3b8; margin: 8px 0 16px 0;">Pilih sumber data KPM yang ingin Anda pulihkan.</p>
@@ -1329,7 +1372,7 @@ ${changelog}
       </div>
     `;
 
-    document.body.appendChild(overlay);
+    bantuAppendKeBody(overlay);
 
     document.getElementById('sipgn-btn-imp-local').onclick = () => {
       overlay.remove();
@@ -1349,46 +1392,151 @@ ${changelog}
     if (modalLama) modalLama.remove();
 
     const isHold = warnaTema === 'hold';
-    const bgHeader = isHold ? 'rgba(120, 53, 15, 0.3)' : 'rgba(127, 29, 29, 0.3)';
-    const borderColor = isHold ? 'rgba(217, 119, 6, 0.4)' : 'rgba(153, 27, 27, 0.4)';
-    const textColor = isHold ? '#fef08a' : '#fecaca';
+    const isExpired = warnaTema === 'expired';
 
+    let bgHeader = 'linear-gradient(135deg, rgba(225, 29, 72, 0.25), rgba(159, 18, 57, 0.4))';
+    let borderColor = 'rgba(239, 68, 68, 0.45)';
+    let textColor = '#fecaca';
+    let accentIcon = '🚫';
+
+    if (isHold) {
+      bgHeader = 'linear-gradient(135deg, rgba(217, 119, 6, 0.25), rgba(180, 83, 9, 0.4))';
+      borderColor = 'rgba(245, 158, 11, 0.45)';
+      textColor = '#fef08a';
+      accentIcon = '⏸️';
+    } else if (isExpired) {
+      bgHeader = 'linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(185, 28, 28, 0.4))';
+      borderColor = 'rgba(239, 68, 68, 0.5)';
+      textColor = '#fecaca';
+      accentIcon = '⏰';
+    }
+
+    const devId = dapatkanDeviceID();
+    const topZ = dapatkanTopZIndex();
     const overlay = document.createElement('div');
     overlay.id = 'sipgn-status-modal';
     overlay.style.cssText = `
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(8px);
-      z-index: 999999; display: flex; align-items: center; justify-content: center;
+      background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      z-index: ${topZ}; display: flex; align-items: center; justify-content: center;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     `;
 
     overlay.innerHTML = `
-      <div style="position: relative; background: #1e293b; border: 1px solid ${borderColor}; color: #f8fafc; padding: 28px; border-radius: 16px; width: 340px; text-align: center; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);">
-        <div style="width: 52px; height: 52px; background: ${bgHeader}; color: ${textColor}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; margin: 0 auto 16px auto;">${isHold ? '⏸️' : '🚫'}</div>
-        <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 700; color: ${textColor};">${judulText}</h3>
-        <div style="background: rgba(15, 23, 42, 0.6); color: #cbd5e1; padding: 14px; border-radius: 12px; font-size: 12px; margin-bottom: 16px; border: 1px solid ${borderColor}; line-height: 1.5;">
+      <style>
+        @keyframes sipgnPulseStatusIcon {
+          0%, 100% { transform: scale(1); box-shadow: 0 0 20px ${isHold ? 'rgba(245, 158, 11, 0.3)' : 'rgba(239, 68, 68, 0.3)'}; }
+          50% { transform: scale(1.08); box-shadow: 0 0 35px ${isHold ? 'rgba(245, 158, 11, 0.6)' : 'rgba(239, 68, 68, 0.6)'}; }
+        }
+        @keyframes sipgnPopStatusModal {
+          0% { opacity: 0; transform: scale(0.88) translateY(20px); }
+          100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+      </style>
+
+      <div style="position: relative; background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid ${borderColor}; color: #f8fafc; padding: 28px; border-radius: 24px; width: 460px; max-width: 92vw; text-align: center; box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.8); animation: sipgnPopStatusModal 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; max-height: 90vh; overflow-y: auto;">
+        <div style="width: 68px; height: 68px; background: ${bgHeader}; border: 1px solid ${borderColor}; color: ${textColor}; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 18px auto; animation: sipgnPulseStatusIcon 3s infinite;">
+          ${accentIcon}
+        </div>
+
+        <span style="font-size: 10px; font-weight: 800; letter-spacing: 1px; color: ${textColor}; text-transform: uppercase; background: ${isHold ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)'}; padding: 4px 12px; border-radius: 99px; border: 1px solid ${borderColor};">
+          Status Akses Perangkat
+        </span>
+
+        <h3 style="margin: 12px 0 8px 0; font-size: 22px; font-weight: 800; color: ${textColor}; letter-spacing: -0.3px;">${judulText}</h3>
+
+        <div style="background: rgba(15, 23, 42, 0.7); color: #cbd5e1; padding: 14px; border-radius: 14px; font-size: 12px; margin: 14px 0; border: 1px solid ${borderColor}; line-height: 1.5; text-align: left;">
           ${pesanText}
         </div>
-        <div style="font-size: 11px; color: #94a3b8; margin-bottom: 16px;">
-          Device ID: <b style="color:#facc15; font-family: monospace;">${dapatkanDeviceID()}</b>
+
+        <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(51, 65, 85, 0.8); border-radius: 12px; padding: 10px 14px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
+          <div style="text-align: left;">
+            <div style="font-size: 10px; text-transform: uppercase; color: #94a3b8; font-weight: 700;">Device ID :</div>
+            <div id="sipgn-dev-id-status" style="font-size: 13px; font-weight: 700; color: #facc15; font-family: monospace;">${devId}</div>
+          </div>
+          <button id="sipgn-btn-copy-devid" style="background: rgba(250, 204, 21, 0.15); border: 1px solid rgba(250, 204, 21, 0.3); color: #facc15; padding: 6px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; transition: 0.2s;">
+            📋 Salin ID
+          </button>
         </div>
-        <button id="sipgn-btn-reload-status" style="width: 100%; padding: 11px; border: none; border-radius: 10px; background: #334155; color: white; font-weight: 600; cursor: pointer; font-size: 12px; transition: 0.2s;">
+
+        ${isExpired ? `
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 14px; padding: 14px; margin-bottom: 16px; text-align: left;">
+            <label style="display: block; font-size: 11px; font-weight: 700; color: #38bdf8; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">🔑 Perpanjang Dengan Kode Voucher:</label>
+            <div style="display: flex; gap: 8px; margin-bottom: 6px;">
+              <input type="text" id="sipgn-expired-input-voucher" placeholder="MASUKKAN KODE VOUCHER" style="flex: 2; box-sizing: border-box; padding: 10px 12px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 12px; font-weight: 700; text-transform: uppercase; outline: none;" />
+              <button id="sipgn-expired-btn-apply-voucher" style="flex: 1; padding: 10px; border: none; border-radius: 10px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; font-weight: 700; cursor: pointer; font-size: 12px; transition: 0.2s;">Klaim</button>
+            </div>
+            <div id="sipgn-expired-voucher-feedback" style="font-size: 11px; min-height: 16px; font-weight: 600;"></div>
+          </div>
+        ` : ''}
+
+        <button id="sipgn-btn-reload-status" style="width: 100%; padding: 12px; border: none; border-radius: 12px; background: linear-gradient(135deg, #334155, #1e293b); color: white; font-weight: 700; cursor: pointer; font-size: 13px; transition: all 0.2s; border: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);">
           🔄 Muat Ulang Halaman
         </button>
-        <div style="margin-top: 16px; font-size: 11px; color: #64748b;">© 2026 - <b>Mindspace Studio</b></div>
+
+        <div style="margin-top: 16px; font-size: 11px; color: #64748b;">Powered by <b style="color: #94a3b8;">Mindspace Studio</b></div>
       </div>
     `;
 
-    document.body.appendChild(overlay);
+    bantuAppendKeBody(overlay);
+
+    const btnCopy = document.getElementById('sipgn-btn-copy-devid');
+    if (btnCopy) {
+      btnCopy.onclick = () => {
+        navigator.clipboard.writeText(devId);
+        btnCopy.textContent = '✅ Tersalin!';
+        setTimeout(() => { btnCopy.textContent = '📋 Salin ID'; }, 2000);
+      };
+    }
+
+    if (isExpired) {
+      const inputVoucher = document.getElementById('sipgn-expired-input-voucher');
+      const btnApplyVoucher = document.getElementById('sipgn-expired-btn-apply-voucher');
+      const voucherFeedback = document.getElementById('sipgn-expired-voucher-feedback');
+
+      if (btnApplyVoucher) {
+        btnApplyVoucher.onclick = async () => {
+          const kode = inputVoucher.value.trim().toUpperCase();
+          if (!kode) {
+            voucherFeedback.textContent = 'Masukkan kode voucher terlebih dahulu.';
+            voucherFeedback.style.color = '#ef4444';
+            return;
+          }
+
+          btnApplyVoucher.disabled = true;
+          btnApplyVoucher.textContent = 'Memeriksa...';
+          voucherFeedback.textContent = '';
+
+          try {
+            const resKlaim = await klaimVoucherVercel(kode);
+            if (resKlaim.success) {
+              voucherFeedback.textContent = resKlaim.message;
+              voucherFeedback.style.color = '#4ade80';
+              setTimeout(() => {
+                overlay.remove();
+                eksekusiSuksesPembayaran(0, devId, resKlaim.exp_date, 0);
+              }, 1000);
+            } else {
+              voucherFeedback.textContent = resKlaim.error || 'Voucher tidak valid.';
+              voucherFeedback.style.color = '#ef4444';
+              btnApplyVoucher.disabled = false;
+              btnApplyVoucher.textContent = 'Klaim';
+            }
+          } catch (err) {
+            voucherFeedback.textContent = 'Gagal memproses klaim voucher.';
+            voucherFeedback.style.color = '#ef4444';
+            btnApplyVoucher.disabled = false;
+            btnApplyVoucher.textContent = 'Klaim';
+          }
+        };
+      }
+    }
 
     document.getElementById('sipgn-btn-reload-status').onclick = () => {
       location.reload();
     };
   }
 
-  // ------------------------------------------------------------------
-  // CORE LOGIC FORM FILLER & SPINNER
-  // ------------------------------------------------------------------
   const DATA_AWAL = [
     {
       sekolah: 'SMAN 1 MEDAN',
@@ -1407,6 +1555,7 @@ ${changelog}
       jamOmprengKembaliSPPG: '12:00',
       jamMulaiCuci: '12:30',
       terpakai: false,
+      statusProses: 'belum',
     },
   ];
 
@@ -1420,6 +1569,7 @@ ${changelog}
       const data = raw ? JSON.parse(raw) : [...DATA_AWAL];
       return data.map((d) => ({
         terpakai: false,
+        statusProses: d.statusProses || (d.terpakai ? 'pengantaran' : 'belum'),
         jamKeberangkatan: '',
         jamTibaTujuan: '',
         jamJadwalPengambilan: '',
@@ -1454,7 +1604,7 @@ ${changelog}
       onload: function(res) {
         try {
           const resp = JSON.parse(res.responseText);
-          console.log('[Autofill] Backup tersinkron ke database & auto-delete diatur (3 hari):', resp);
+          console.log('[Autofill] Backup tersinkron ke database:', resp);
         } catch(e) {
           console.warn('[Autofill] Gagal parsing respon sync database backup');
         }
@@ -1465,7 +1615,7 @@ ${changelog}
     });
   }
 
-  function downloadBackupData() {
+  async function downloadBackupData() {
     const backup = {
       Application: 'SIPGN POP - Autofill',
       Version: CURRENT_VERSION,
@@ -1476,16 +1626,30 @@ ${changelog}
 
     syncBackupToDatabase(backup);
 
-    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const isi = JSON.stringify(backup, null, 2);
+    const namaFile = `sipgn-autofill-backup-${new Date().toISOString().slice(0, 10)}.json`;
+
+    try {
+      const berkas = new File([isi], namaFile, { type: 'application/json' });
+      if (navigator.canShare && navigator.canShare({ files: [berkas] })) {
+        await navigator.share({ files: [berkas], title: 'Backup SIPGN Autofill' });
+        tampilkanModalAlertModern('Berhasil', `Backup ${dataPenugasan.length} data KPM dibagikan`, true);
+        return;
+      }
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;
+    }
+
+    const blob = new Blob([isi], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const tautan = document.createElement('a');
-    const tanggal = new Date().toISOString().slice(0, 10);
     tautan.href = url;
-    tautan.download = `sipgn-autofill-backup-${tanggal}.json`;
+    tautan.download = namaFile;
     document.body.appendChild(tautan);
     tautan.click();
     tautan.remove();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    tampilkanModalAlertModern('Berhasil', `Backup ${dataPenugasan.length} data KPM diunduh`, true);
   }
 
   function importBackupData(file) {
@@ -1541,7 +1705,7 @@ ${changelog}
           const dataImpor = resp.backup_data?.dataKPM || resp.dataKPM || (Array.isArray(resp) ? resp : null);
 
           if (!Array.isArray(dataImpor) || !dataImpor.every((data) => data && typeof data.sekolah === 'string')) {
-            throw new Error('Data backup dari cloud database tidak valid atau sudah kadaluarsa (terhapus otomatis setelah 3 hari).');
+            throw new Error('Data backup dari cloud database tidak valid atau sudah kadaluarsa.');
           }
 
           tampilkanModalKonfirmasiModern(
@@ -1590,6 +1754,59 @@ ${changelog}
     element.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
+  function tampilkanBadgeStatus(pesan) {}
+  function sembunyikanBadgeStatus() {}
+
+  async function setNativeValueHuman(element, value, charDelayMin = 35, charDelayMax = 80) {
+    if (!element) return;
+    try {
+      element.focus();
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } catch (e) {}
+
+    const speedLevel = dapatkanTypingSpeedLevel();
+    const valStr = String(value);
+
+    if (speedLevel === '0') {
+      setNativeValue(element, valStr);
+      await wait(50);
+      try { element.dispatchEvent(new Event('blur', { bubbles: true })); } catch (e) {}
+      return;
+    }
+
+    const multiplier = speedLevel === '25' ? 0.4 : speedLevel === '75' ? 1.6 : 1.0;
+    const minDelay = Math.max(10, Math.floor(charDelayMin * multiplier));
+    const maxDelay = Math.max(20, Math.floor(charDelayMax * multiplier));
+
+    const proto = element.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
+    const setter = Object.getOwnPropertyDescriptor(proto, 'value').set;
+
+    setter.call(element, '');
+    element.dispatchEvent(new Event('input', { bubbles: true }));
+
+    let currentVal = '';
+    for (let i = 0; i < valStr.length; i++) {
+      const char = valStr[i];
+      currentVal += char;
+
+      const keyOptions = { key: char, char: char, keyCode: char.charCodeAt(0), bubbles: true, cancelable: true };
+      element.dispatchEvent(new KeyboardEvent('keydown', keyOptions));
+      element.dispatchEvent(new KeyboardEvent('keypress', keyOptions));
+
+      setter.call(element, currentVal);
+      element.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: char }));
+      element.dispatchEvent(new KeyboardEvent('keyup', keyOptions));
+
+      let delay = getRandomDelay(minDelay, maxDelay);
+      if (char === ' ' || char === '-' || char === '/') delay += getRandomDelay(Math.floor(20 * multiplier), Math.floor(60 * multiplier));
+      await wait(delay);
+    }
+    element.dispatchEvent(new Event('change', { bubbles: true }));
+
+    await wait(Math.floor(100 * multiplier));
+    try { element.dispatchEvent(new Event('blur', { bubbles: true })); } catch (e) {}
+  }
+
   function wait(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
@@ -1611,7 +1828,7 @@ ${changelog}
         await wait(400);
         continue;
       }
-      setNativeValue(input, nilai);
+      await setNativeValueHuman(input, nilai, 30, 70);
       await smartWait(300, 600);
 
       const inputSetelah = cariInputFn();
@@ -1626,7 +1843,7 @@ ${changelog}
     const input = document.querySelector('input[placeholder*="Cari nama KPM"]');
     if (!input) return false;
 
-    setNativeValue(input, namaSekolah);
+    await setNativeValueHuman(input, namaSekolah, 25, 60);
 
     const tombolOpsi = await tungguElemen(() =>
       [...document.querySelectorAll('button')].find((btn) =>
@@ -1635,7 +1852,7 @@ ${changelog}
     );
 
     if (!tombolOpsi) return false;
-    await smartWait(300, 500);
+    await smartWait(350, 600);
     tombolOpsi.click();
     return true;
   }
@@ -1667,16 +1884,16 @@ ${changelog}
     return null;
   }
 
-  function isiPorsiSekolahLama(porsiBesar, porsiKecil) {
+  async function isiPorsiSekolahLama(porsiBesar, porsiKecil) {
     const inputs = document.querySelectorAll('input[type="number"]');
     const validInputs = [...inputs].filter(inp => !inp.closest('#sipgn-autofill-panel'));
     if (validInputs.length < 2) return false;
-    setNativeValue(validInputs[0], porsiBesar);
-    setNativeValue(validInputs[1], porsiKecil);
+    await setNativeValueHuman(validInputs[0], porsiBesar || '0', 25, 60);
+    await setNativeValueHuman(validInputs[1], porsiKecil || '0', 25, 60);
     return true;
   }
 
-  function isiPorsi(data) {
+  async function isiPorsi(data) {
     const kategori = [
       { nama: 'Porsi Besar', nilai: data.porsiBesar },
       { nama: 'Porsi Kecil', nilai: data.porsiKecil },
@@ -1688,11 +1905,11 @@ ${changelog}
     for (const k of kategori) {
       const input = cariInputPorsiKategori(k.nama);
       if (!input) continue;
-      setNativeValue(input, k.nilai || '0');
+      await setNativeValueHuman(input, k.nilai || '0', 25, 60);
       jumlahTerisi++;
     }
     if (jumlahTerisi === 0) {
-      return isiPorsiSekolahLama(data.porsiBesar, data.porsiKecil);
+      return await isiPorsiSekolahLama(data.porsiBesar, data.porsiKecil);
     }
     return true;
   }
@@ -1707,32 +1924,105 @@ ${changelog}
     );
   }
 
-  function isiKurirDanPlat(namaKurir, platNomor) {
-    const inputKurir = document.querySelector('input[placeholder="Nama lengkap kurir/driver"]');
-    const inputPlat = document.querySelector('input[placeholder="Contoh: B 1234 ABC"]');
-    if (inputKurir) setNativeValue(inputKurir, namaKurir);
-    if (inputPlat) setNativeValue(inputPlat, platNomor);
+  async function isiKurirDanPlat(namaKurir, platNomor) {
+    const semuaInput = [...document.querySelectorAll('input')].filter(
+      (inp) => !inp.closest('#sipgn-autofill-panel') && inp.type !== 'hidden' && inp.type !== 'checkbox'
+    );
+
+    let inputKurir = semuaInput.find((inp) => {
+      const ph = (inp.placeholder || '').toLowerCase();
+      const name = (inp.name || '').toLowerCase();
+      const id = (inp.id || '').toLowerCase();
+      return ph.includes('kurir') || ph.includes('driver') || name.includes('kurir') || name.includes('driver') || id.includes('kurir');
+    });
+
+    if (!inputKurir) {
+      const labels = [...document.querySelectorAll('label')].filter((l) => !l.closest('#sipgn-autofill-panel'));
+      const labelKurir = labels.find((l) => {
+        const txt = l.textContent.toLowerCase();
+        return txt.includes('kurir') || txt.includes('driver') || txt.includes('pengemudi');
+      });
+      if (labelKurir) {
+        inputKurir = labelKurir.querySelector('input') ||
+                     labelKurir.parentElement?.querySelector('input') ||
+                     (labelKurir.parentElement?.parentElement ? labelKurir.parentElement.parentElement.querySelector('input') : null);
+      }
+    }
+
+    let inputPlat = semuaInput.find((inp) => {
+      const ph = (inp.placeholder || '').toLowerCase();
+      const name = (inp.name || '').toLowerCase();
+      const id = (inp.id || '').toLowerCase();
+      return ph.includes('1234') || ph.includes('plat') || ph.includes('nopol') || ph.includes('kendaraan') ||
+             name.includes('plat') || name.includes('nopol') || name.includes('kendaraan') ||
+             id.includes('plat') || id.includes('nopol') || id.includes('kendaraan');
+    });
+
+    if (!inputPlat) {
+      const labels = [...document.querySelectorAll('label')].filter((l) => !l.closest('#sipgn-autofill-panel'));
+      const labelPlat = labels.find((l) => {
+        const txt = l.textContent.toLowerCase();
+        return txt.includes('plat') || txt.includes('nopol') || txt.includes('nomor kendaraan') || txt.includes('kendaraan') || txt.includes('polisi');
+      });
+      if (labelPlat) {
+        inputPlat = labelPlat.querySelector('input') ||
+                    labelPlat.parentElement?.querySelector('input') ||
+                    (labelPlat.parentElement?.parentElement ? labelPlat.parentElement.parentElement.querySelector('input') : null);
+      }
+    }
+
+    if (!inputPlat && inputKurir) {
+      const kontainerInduk = inputKurir.closest('form') || inputKurir.parentElement?.parentElement;
+      if (kontainerInduk) {
+        const inputsKontainer = [...kontainerInduk.querySelectorAll('input')].filter(
+          (inp) => inp !== inputKurir && !inp.closest('#sipgn-autofill-panel') && inp.type !== 'hidden' && inp.type !== 'checkbox' && inp.type !== 'number'
+        );
+        if (inputsKontainer.length > 0) {
+          inputPlat = inputsKontainer[0];
+        }
+      }
+    }
+
+    if (inputKurir && namaKurir) {
+      await setNativeValueHuman(inputKurir, namaKurir, 20, 55);
+      await smartWait(200, 400);
+    }
+
+    if (inputPlat && platNomor) {
+      await setNativeValueHuman(inputPlat, platNomor, 25, 60);
+      await smartWait(200, 400);
+    }
   }
 
   async function isiPenugasan(index) {
     const data = dataPenugasan[index];
     if (!data) return;
 
-    await isiLokasiKPM(data.sekolah);
-    await smartWait(600, 1000);
+    tampilkanBadgeStatus(`Sedang Mengetik: <b>${data.sekolah}</b>...`);
 
+    await isiLokasiKPM(data.sekolah);
+    await smartWait(500, 850);
+
+    tampilkanBadgeStatus(`Mengisi Ritase & Waktu...`);
     await isiRitase(data.ritase);
-    await smartWait(300, 500);
+    await smartWait(350, 600);
 
     isiBatasWaktu(data.batasWaktu);
-    await smartWait(200, 400);
+    await smartWait(250, 450);
 
-    isiPorsi(data);
-    await smartWait(300, 600);
+    tampilkanBadgeStatus(`Mengisi Jumlah Porsi...`);
+    await isiPorsi(data);
+    await smartWait(350, 650);
 
-    isiKurirDanPlat(data.namaKurir, data.platNomor);
+    aturCheckboxKurirMBG();
+    await smartWait(250, 450);
+
+    tampilkanBadgeStatus(`Mengisi Nama Kurir & Plat Nomor...`);
+    await isiKurirDanPlat(data.namaKurir, data.platNomor);
+    await smartWait(300, 500);
 
     dataPenugasan[index].terpakai = true;
+    dataPenugasan[index].statusProses = 'pengantaran';
     simpanData(dataPenugasan);
     renderPanel();
   }
@@ -1996,9 +2286,9 @@ ${changelog}
 
     for (let i = 0; i < jumlahKlik; i++) {
       tombol.click();
-      await wait(18);
+      await wait(getRandomDelay(35, 75));
     }
-    await wait(45);
+    await wait(60);
     nilaiSekarang = bacaNilaiAktif(kolom);
     return nilaiSekarang === target;
   }
@@ -2112,31 +2402,57 @@ ${changelog}
     const data = dataPenugasan[index];
     if (!data) return false;
 
+    aturCheckboxKurirMBG();
+    await smartWait(250, 450);
+
     const jumlahOmpreng = hitungTotalPorsi(data);
-    const inputJumlah = document.querySelector('input[placeholder="Contoh: 25"]');
-    const inputKurir = document.querySelector('input[placeholder="Nama kurir"]');
-    const inputPlat = document.querySelector('input[placeholder="Contoh: B 9999 XYZ"]');
+    const semuaInput = [...document.querySelectorAll('input')].filter((inp) => !inp.closest('#sipgn-autofill-panel'));
+    const inputJumlah = semuaInput.find((inp) => {
+      const ph = (inp.placeholder || '').toLowerCase();
+      const name = (inp.name || '').toLowerCase();
+      return ph.includes('contoh: 25') || ph.includes('jumlah') || ph.includes('ompreng') || name.includes('jumlah') || name.includes('ompreng') || inp.type === 'number';
+    });
 
-    if (inputJumlah) setNativeValue(inputJumlah, String(jumlahOmpreng));
-    await smartWait(200, 400);
-    if (inputKurir) setNativeValue(inputKurir, data.namaKurir || '');
-    await smartWait(200, 400);
-    if (inputPlat) setNativeValue(inputPlat, data.platNomor || '');
-    await smartWait(300, 500);
+    if (inputJumlah) {
+      await setNativeValueHuman(inputJumlah, String(jumlahOmpreng), 35, 75);
+      await smartWait(250, 450);
+    }
 
-    return aturWaktuKeberangkatan(data.jamJadwalPengambilan, 'Waktu Dijadwalkan Pengambilan');
+    await isiKurirDanPlat(data.namaKurir, data.platNomor);
+    await smartWait(300, 550);
+
+    const hasil = await aturWaktuKeberangkatan(data.jamJadwalPengambilan, 'Waktu Dijadwalkan Pengambilan');
+
+    if (hasil) {
+      dataPenugasan[index].statusProses = 'pengembalian';
+      simpanData(dataPenugasan);
+      renderPanel();
+    }
+    return hasil;
   }
 
   async function isiMulaiPencucian(index) {
     const data = dataPenugasan[index];
     if (!data) return false;
 
+    tampilkanBadgeStatus(`Proses Pencucian: <b>${data.sekolah}</b>...`);
+
     const jumlahOmpreng = hitungTotalPorsi(data);
     const inputJumlah = document.querySelector('input[placeholder="Contoh: 25"]');
-    if (inputJumlah) setNativeValue(inputJumlah, String(jumlahOmpreng));
-    await smartWait(300, 500);
+    if (inputJumlah) {
+      await setNativeValueHuman(inputJumlah, String(jumlahOmpreng), 35, 75);
+      await smartWait(300, 550);
+    }
 
-    return aturWaktuKeberangkatan(data.jamMulaiCuci, 'Waktu Mulai Cuci');
+    const hasil = await aturWaktuKeberangkatan(data.jamMulaiCuci, 'Waktu Mulai Cuci');
+    sembunyikanBadgeStatus();
+
+    if (hasil) {
+      dataPenugasan[index].statusProses = 'pencucian';
+      simpanData(dataPenugasan);
+      renderPanel();
+    }
+    return hasil;
   }
 
   function pasangDetektorNavigasiSPA() {
@@ -2167,8 +2483,10 @@ ${changelog}
       'Waktu Keberangkatan',
       'Waktu Diterima di Tujuan',
       'Jumlah Ompreng',
+      'Waktu Dijadwalkan Pengambilan',
       'Waktu Ompreng Kembali di SPPG',
       'Jumlah Ompreng Dicuci',
+      'Waktu Mulai Cuci',
     ];
     const tandaFormSaatIni = () => [...document.querySelectorAll('label')]
       .filter((el) => !el.closest('#sipgn-autofill-panel'))
@@ -2218,20 +2536,20 @@ ${changelog}
     input.placeholder = placeholder;
     input.style.cssText = `
       width: 100%; box-sizing: border-box; padding: 8px 12px; border-radius: 8px;
-      border: 1px solid rgba(51, 65, 85, 0.8); font-size: 12px; background: rgba(15, 23, 42, 0.7); color: #f8fafc;
-      outline: none; transition: all 0.25s ease; box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.12); font-size: 12px; background: rgba(15, 23, 42, 0.5); color: #f8fafc;
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); outline: none; transition: all 0.2s ease;
     `;
 
     input.onfocus = () => {
-      input.style.borderColor = '#38bdf8';
-      input.style.background = 'rgba(15, 23, 42, 0.95)';
-      input.style.boxShadow = '0 0 0 3px rgba(56, 189, 248, 0.15), inset 0 2px 4px rgba(0, 0, 0, 0.1)';
+      input.style.borderColor = 'rgba(255, 255, 255, 0.25)';
+      input.style.background = 'rgba(15, 23, 42, 0.75)';
+      input.style.boxShadow = 'none';
     };
 
     input.onblur = () => {
-      input.style.borderColor = 'rgba(51, 65, 85, 0.8)';
-      input.style.background = 'rgba(15, 23, 42, 0.7)';
-      input.style.boxShadow = 'inset 0 2px 4px rgba(0, 0, 0, 0.1)';
+      input.style.borderColor = 'rgba(255, 255, 255, 0.12)';
+      input.style.background = 'rgba(15, 23, 42, 0.5)';
+      input.style.boxShadow = 'none';
     };
 
     inputContainer.appendChild(input);
@@ -2246,43 +2564,43 @@ ${changelog}
 
     const isEdit = dataEdit !== null;
 
+    const topZ = dapatkanTopZIndex();
     const overlay = document.createElement('div');
     overlay.id = 'sipgn-kpm-form-modal';
     overlay.style.cssText = `
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px);
-      z-index: 1000002; display: flex; align-items: center; justify-content: center;
+      background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      z-index: ${topZ}; display: flex; align-items: center; justify-content: center;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      animation: sipgnFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     `;
 
     overlay.innerHTML = `
-      <div style="position: relative; background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid rgba(56, 189, 248, 0.2); color: #f8fafc; padding: 28px; border-radius: 20px; width: 850px; max-width: 92vw; max-height: 88vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 30px rgba(56, 189, 248, 0.05); text-align: left; display: flex; flex-direction: column;">
+      <div style="position: relative; background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid rgba(56, 189, 248, 0.2); color: #f8fafc; padding: 20px; border-radius: 20px; width: 860px; max-width: 92vw; min-height: auto; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); text-align: left; display: flex; flex-direction: column;">
 
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid rgba(51, 65, 85, 0.6); padding-bottom: 14px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; border-bottom: 1px solid rgba(51, 65, 85, 0.6); padding-bottom: 16px;">
           <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 36px; height: 36px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #38bdf8; font-size: 16px;">
+            <div style="width: 38px; height: 38px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #38bdf8; font-size: 18px;">
               ${isEdit ? '✏️' : '✨'}
             </div>
             <div>
-              <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #f8fafc; letter-spacing: -0.2px;">${isEdit ? 'Edit Data KPM' : 'Tambah Data KPM Baru'}</h3>
-              <p style="font-size: 11px; color: #94a3b8; margin: 2px 0 0 0;">Lengkapi formulir manajemen pengiriman di bawah ini.</p>
+              <h3 style="margin: 0; font-size: 17px; font-weight: 700; color: #f8fafc; letter-spacing: -0.2px;">${isEdit ? 'Edit Data KPM' : 'Tambah Data KPM Baru'}</h3>
+              <p style="font-size: 12px; color: #94a3b8; margin: 3px 0 0 0;">Lengkapi formulir manajemen pengiriman di bawah ini.</p>
             </div>
           </div>
           <button id="sipgn-btn-close-kpm-modal" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: #94a3b8; width: 32px; height: 32px; border-radius: 50%; font-size: 15px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">✕</button>
         </div>
 
-        <div id="sipgn-kpm-form-inputs-container" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 16px;"></div>
+        <div id="sipgn-kpm-form-inputs-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px;"></div>
 
-        <div style="margin-top: 24px; border-top: 1px solid rgba(51, 65, 85, 0.6); padding-top: 16px;">
-          <button id="sipgn-btn-save-kpm-modal" style="width: 100%; padding: 12px; border: none; border-radius: 12px; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; font-weight: 600; cursor: pointer; font-size: 13px; box-shadow: 0 4px 14px rgba(34, 197, 94, 0.35); transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <div style="margin-top: 28px; border-top: 1px solid rgba(51, 65, 85, 0.6); padding-top: 20px;">
+          <button id="sipgn-btn-save-kpm-modal" style="width: 100%; padding: 13px; border: none; border-radius: 12px; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; font-weight: 600; cursor: pointer; font-size: 14px; box-shadow: 0 4px 14px rgba(34, 197, 94, 0.35); transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;">
             <span>${isEdit ? '💾 Update Data KPM' : '🚀 Simpan Data KPM'}</span>
           </button>
         </div>
       </div>
     `;
 
-    document.body.appendChild(overlay);
+    bantuAppendKeBody(overlay);
 
     const containerInputs = document.getElementById('sipgn-kpm-form-inputs-container');
 
@@ -2323,14 +2641,9 @@ ${changelog}
     }
 
     const btnClose = document.getElementById('sipgn-btn-close-kpm-modal');
-    btnClose.onmouseover = () => { btnClose.style.background = 'rgba(255, 255, 255, 0.1)'; btnClose.style.color = '#fff'; };
-    btnClose.onmouseout = () => { btnClose.style.background = 'rgba(255, 255, 255, 0.05)'; btnClose.style.color = '#94a3b8'; };
     btnClose.onclick = () => overlay.remove();
 
     const btnSave = document.getElementById('sipgn-btn-save-kpm-modal');
-    btnSave.onmouseover = () => btnSave.style.filter = 'brightness(1.1)';
-    btnSave.onmouseout = () => btnSave.style.filter = 'none';
-
     btnSave.onclick = () => {
       const ambil = (id) => document.getElementById(id)?.value.trim() || '';
       const dataForm = {
@@ -2349,6 +2662,7 @@ ${changelog}
         jamJadwalPengambilan: ambil('sipgn-in-jamJadwalPengambilan'),
         jamOmprengKembaliSPPG: ambil('sipgn-in-jamOmprengKembaliSPPG'),
         jamMulaiCuci: ambil('sipgn-in-jamMulaiCuci'),
+        statusProses: (isEdit && indexTarget !== null) ? (dataPenugasan[indexTarget]?.statusProses || 'belum') : 'belum',
       };
 
       if (!dataForm.sekolah) {
@@ -2389,61 +2703,266 @@ ${changelog}
   function tandaiUlangStatus(status) {
     if (indexTerpilih < 0 || !dataPenugasan[indexTerpilih]) return;
     dataPenugasan[indexTerpilih].terpakai = status;
+    if (!status) dataPenugasan[indexTerpilih].statusProses = 'belum';
     simpanData(dataPenugasan);
     renderPanel();
   }
 
   function hapusSemuaTanda() {
-    const jumlahTerpakai = dataPenugasan.filter((d) => d.terpakai).length;
+    const jumlahTerpakai = dataPenugasan.filter((d) => d.terpakai || d.statusProses !== 'belum').length;
     if (jumlahTerpakai === 0) {
-      tampilkanModalAlertModern('Informasi', 'Tidak ada KPM yang tertandai digunakan.', false);
+      tampilkanModalAlertModern('Informasi', 'Tidak ada KPM yang tertandai sedang berjalan.', false);
       return;
     }
     tampilkanModalKonfirmasiModern(
       'Reset Status Tanda',
-      `Hapus tanda "digunakan" pada ${jumlahTerpakai} KPM? Semua KPM akan kembali berstatus belum dipakai.`,
+      `Reset status proses pada ${jumlahTerpakai} KPM? Semua KPM akan kembali ke status "Belum Diproses".`,
       () => {
-        dataPenugasan.forEach((d) => { d.terpakai = false; });
+        dataPenugasan.forEach((d) => {
+          d.terpakai = false;
+          d.statusProses = 'belum';
+        });
         simpanData(dataPenugasan);
         renderPanel();
       }
     );
   }
 
+  function pasangGayaScrollbar() {
+    if (document.getElementById('sipgn-scrollbar-style')) return;
+    const style = document.createElement('style');
+    style.id = 'sipgn-scrollbar-style';
+    style.textContent = `
+      #sipgn-autofill-panel,
+      #sipgn-kpm-form-modal,
+      #sipgn-license-modal,
+      #sipgn-update-modal,
+      #sipgn-confirm-modal,
+      #sipgn-alert-modal,
+      #sipgn-status-modal,
+      #sipgn-welcome-sppg-modal,
+      #sipgn-backup-info-modal,
+      #sipgn-import-choice-modal {
+        -webkit-user-select: none !important;
+        -moz-user-select: none !important;
+        -ms-user-select: none !important;
+        user-select: none !important;
+      }
+
+      @media (max-width: 640px) {
+        #sipgn-kpm-form-inputs-container {
+          grid-template-columns: 1fr !important;
+          gap: 12px !important;
+        }
+
+        #sipgn-license-modal,
+        #sipgn-kpm-form-modal,
+        #sipgn-update-modal,
+        #sipgn-confirm-modal,
+        #sipgn-alert-modal,
+        #sipgn-status-modal,
+        #sipgn-welcome-sppg-modal,
+        #sipgn-backup-info-modal,
+        #sipgn-import-choice-modal,
+        #sipgn-success-modal {
+          align-items: flex-end !important;
+        }
+
+        #sipgn-license-modal > div,
+        #sipgn-kpm-form-modal > div,
+        #sipgn-update-modal > div,
+        #sipgn-confirm-modal > div,
+        #sipgn-alert-modal > div,
+        #sipgn-status-modal > div,
+        #sipgn-welcome-sppg-modal > div,
+        #sipgn-backup-info-modal > div,
+        #sipgn-import-choice-modal > div,
+        #sipgn-success-modal > div {
+          width: 100vw !important;
+          max-width: 100vw !important;
+          max-height: 40vh !important;
+          border-radius: 24px 24px 0 0 !important;
+          padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 18px) !important;
+          margin: 0 !important;
+          overflow-y: auto !important;
+          -webkit-overflow-scrolling: touch !important;
+        }
+      }
+
+      #sipgn-autofill-panel input,
+      #sipgn-autofill-panel textarea,
+      #sipgn-kpm-form-modal input,
+      #sipgn-kpm-form-modal textarea,
+      #sipgn-license-modal input,
+      #sipgn-license-modal textarea,
+      #sipgn-welcome-sppg-modal input,
+      #sipgn-welcome-sppg-modal textarea {
+        -webkit-user-select: text !important;
+        -moz-user-select: text !important;
+        -ms-user-select: text !important;
+        user-select: text !important;
+      }
+
+      @keyframes sipgnBorderGlow {
+        0% { border-color: rgba(56, 189, 248, 0.35); box-shadow: 0 0 15px rgba(56, 189, 248, 0.2); }
+        50% { border-color: rgba(129, 140, 248, 0.65); box-shadow: 0 0 25px rgba(129, 140, 248, 0.35); }
+        100% { border-color: rgba(56, 189, 248, 0.35); box-shadow: 0 0 15px rgba(56, 189, 248, 0.2); }
+      }
+
+      #sipgn-autofill-panel::-webkit-scrollbar,
+      #sipgn-kpm-form-modal div::-webkit-scrollbar,
+      #sipgn-license-modal div::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+      }
+      #sipgn-autofill-panel::-webkit-scrollbar-track,
+      #sipgn-kpm-form-modal div::-webkit-scrollbar-track,
+      #sipgn-license-modal div::-webkit-scrollbar-track {
+        background: rgba(15, 23, 42, 0.4);
+        border-radius: 8px;
+      }
+      #sipgn-autofill-panel::-webkit-scrollbar-thumb,
+      #sipgn-kpm-form-modal div::-webkit-scrollbar-thumb,
+      #sipgn-license-modal div::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 8px;
+      }
+      #sipgn-autofill-panel::-webkit-scrollbar-thumb:hover,
+      #sipgn-kpm-form-modal div::-webkit-scrollbar-thumb:hover,
+      #sipgn-license-modal div::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+      #sipgn-autofill-panel {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+        animation: sipgnBorderGlow 4s ease-in-out infinite;
+      }
+      #sipgn-autofill-panel select,
+      #sipgn-kpm-form-modal select,
+      #sipgn-license-modal select {
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2338bdf8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        background-size: 14px;
+        padding-right: 32px !important;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      #sipgn-autofill-panel select option,
+      #sipgn-kpm-form-modal select option,
+      #sipgn-license-modal select option {
+        background-color: #0f172a;
+        color: #f8fafc;
+        padding: 10px;
+      }
+      #sipgn-autofill-panel select:focus,
+      #sipgn-kpm-form-modal select:focus,
+      #sipgn-license-modal select:focus {
+        border-color: rgba(255, 255, 255, 0.25) !important;
+        box-shadow: 0 0 12px rgba(56, 189, 248, 0.3) !important;
+        outline: none !important;
+      }
+      #sipgn-autofill-panel button,
+      #sipgn-kpm-form-modal button,
+      #sipgn-license-modal button {
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+      }
+      #sipgn-autofill-panel button:hover:not(:disabled),
+      #sipgn-kpm-form-modal button:hover:not(:disabled),
+      #sipgn-license-modal button:hover:not(:disabled) {
+        transform: translateY(-1.5px);
+        filter: brightness(1.12);
+      }
+      #sipgn-autofill-panel button:active:not(:disabled),
+      #sipgn-kpm-form-modal button:active:not(:disabled),
+      #sipgn-license-modal button:active:not(:disabled) {
+        transform: translateY(0.5px);
+        filter: brightness(0.95);
+      }
+    `;
+    (document.head || document.documentElement).appendChild(style);
+  }
+
   function renderPanel() {
     try {
-      let panel = document.getElementById('sipgn-autofill-panel');
-      if (panel) panel.remove();
+      pasangGayaScrollbar();
+      let panelLama = document.getElementById('sipgn-autofill-panel');
+      if (panelLama) panelLama.remove();
+      let fabLama = document.getElementById('sipgn-fab-trigger');
+      if (fabLama) fabLama.remove();
+      let backdropLama = document.getElementById('sipgn-mobile-backdrop');
+      if (backdropLama) backdropLama.remove();
 
-      panel = document.createElement('div');
+      const mobileMode = isMobileDevice();
+
+      if (mobileMode) {
+        if (!mobilePanelOpen) {
+          const fab = document.createElement('button');
+          fab.id = 'sipgn-fab-trigger';
+          fab.type = 'button';
+          fab.innerHTML = '⚡';
+          fab.style.cssText = `
+            position: fixed; right: 18px; bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+            width: 58px; height: 58px; border-radius: 50%; border: 1px solid rgba(56, 189, 248, 0.5);
+            background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; font-size: 26px;
+            z-index: 2147483645; box-shadow: 0 8px 24px rgba(37, 99, 235, 0.5);
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+          `;
+          fab.onclick = () => {
+            mobilePanelOpen = true;
+            renderPanel();
+          };
+          bantuAppendKeBody(fab);
+          return;
+        }
+
+        const backdrop = document.createElement('div');
+        backdrop.id = 'sipgn-mobile-backdrop';
+        backdrop.style.cssText = `
+          position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+          z-index: 2147483646;
+        `;
+        backdrop.onclick = () => {
+          mobilePanelOpen = false;
+          renderPanel();
+        };
+        bantuAppendKeBody(backdrop);
+      }
+
+      const isMinimized = !mobileMode && dapatkanPanelMinimized();
+
+      const panel = document.createElement('div');
       panel.id = 'sipgn-autofill-panel';
-      panel.style.cssText = `
-        position: fixed; top: 20px; right: 20px; z-index: 99999;
-        background: #1e293b; color: #f8fafc; padding: 16px;
-        border-radius: 16px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px;
-        width: 300px; max-height: 90vh; overflow-y: auto;
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
-        border: 1px solid rgba(51, 65, 85, 0.8);
-      `;
+
+      if (mobileMode) {
+        panel.style.cssText = `
+          position: fixed; left: 0; right: 0; bottom: 0; z-index: 2147483647;
+          box-sizing: border-box; background: linear-gradient(145deg, #1e293b, #0f172a); color: #f8fafc;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px;
+          border-radius: 24px 24px 0 0; border-top: 1px solid rgba(56, 189, 248, 0.3);
+          padding: 16px 16px calc(env(safe-area-inset-bottom, 0px) + 20px);
+          max-height: 40vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+          box-shadow: 0 -10px 30px rgba(0,0,0,0.7);
+        `;
+      } else {
+        panel.style.cssText = `
+          position: fixed; top: 20px; right: 20px; z-index: 1000000;
+          background: linear-gradient(135deg, rgba(30, 41, 59, 0.96) 0%, rgba(15, 23, 42, 0.98) 100%);
+          backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+          color: #f8fafc; padding: ${isMinimized ? '10px 14px' : '20px 18px'};
+          border-radius: 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px;
+          width: ${isMinimized ? 'auto' : '350px'}; max-height: 92vh; min-height: ${isMinimized ? 'auto' : '520px'}; overflow-y: auto;
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), inset 0 1px 1px 0 rgba(255, 255, 255, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(255, 255, 255, 0.12); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        `;
+      }
 
       const halamanTugasBaru = cekHalamanTugasBaru();
 
-      const headerContainer = document.createElement('div');
-      headerContainer.style.cssText = 'display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;';
-
-      const judul = document.createElement('div');
-      judul.textContent = 'SIPGN Autofill';
-      judul.style.cssText = 'font-weight: 700; font-size: 15px; color: #f8fafc; letter-spacing: -0.2px;';
-      headerContainer.appendChild(judul);
-
-      const badgeVer = document.createElement('span');
-      badgeVer.textContent = `v${CURRENT_VERSION}`;
-      badgeVer.style.cssText = 'font-size: 10px; background: rgba(56, 189, 248, 0.1); color: #38bdf8; padding: 2px 6px; border-radius: 6px; font-weight: 600;';
-      headerContainer.appendChild(badgeVer);
-
-      panel.appendChild(headerContainer);
-
-      // --- SMART KPM COUNTER & SUMMARY BAR WITH SPPG NAME HEADER ---
       function jenisKPM(data) {
         return (data.porsiBalita || data.porsiIbuMenyusui || data.porsiIbuHamil) ? 'posyandu' : 'sekolah';
       }
@@ -2451,41 +2970,161 @@ ${changelog}
       const totalSekolah = dataPenugasan.filter((d) => jenisKPM(d) === 'sekolah').length;
       const totalPosyandu = dataPenugasan.filter((d) => jenisKPM(d) === 'posyandu').length;
       const totalKPM = dataPenugasan.length;
+
+      const totalPorsiBesar = dataPenugasan.reduce((acc, curr) => acc + Number(curr.porsiBesar || 0), 0);
+      const totalPorsiKecil = dataPenugasan.reduce((acc, curr) => acc + Number(curr.porsiKecil || 0), 0);
+      const totalPorsiBalita = dataPenugasan.reduce((acc, curr) => acc + Number(curr.porsiBalita || 0), 0);
+      const totalPorsiBumil = dataPenugasan.reduce((acc, curr) => acc + Number(curr.porsiIbuHamil || 0), 0);
+      const totalPorsiBusui = dataPenugasan.reduce((acc, curr) => acc + Number(curr.porsiIbuMenyusui || 0), 0);
       const totalPorsiSemua = dataPenugasan.reduce((acc, curr) => acc + hitungTotalPorsi(curr), 0);
+
+      const totalPengantaran = dataPenugasan.filter((d) => d.statusProses === 'pengantaran').length;
+      const totalPengembalian = dataPenugasan.filter((d) => d.statusProses === 'pengembalian').length;
+      const totalPencucian = dataPenugasan.filter((d) => d.statusProses === 'pencucian').length;
+
+      const headerContainer = document.createElement('div');
+      headerContainer.style.cssText = `display: flex; align-items: center; justify-content: space-between; gap: 8px; ${isMinimized ? '' : 'margin-bottom: 12px;'}`;
+
+      const headerLeft = document.createElement('div');
+      headerLeft.style.cssText = 'display: flex; align-items: center; gap: 6px;';
+
+      const judul = document.createElement('div');
+      judul.textContent = 'SIPGN Autofill';
+      judul.style.cssText = 'font-weight: 800; font-size: 14px; background: linear-gradient(135deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.3px;';
+      headerLeft.appendChild(judul);
+
+      const badgeVer = document.createElement('span');
+      badgeVer.textContent = `v${CURRENT_VERSION}`;
+      badgeVer.style.cssText = 'font-size: 10px; background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.25); padding: 2px 7px; border-radius: 99px; font-weight: 700;';
+      headerLeft.appendChild(badgeVer);
+
+      headerContainer.appendChild(headerLeft);
+
+      const headerRight = document.createElement('div');
+      headerRight.style.cssText = 'display: flex; align-items: center; gap: 6px;';
+
+      if (mobileMode) {
+        const btnTutupMobile = document.createElement('button');
+        btnTutupMobile.textContent = '✕ Tutup';
+        btnTutupMobile.style.cssText = 'background: rgba(255,255,255,0.08); border: none; color: #94a3b8; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer;';
+        btnTutupMobile.onclick = () => {
+          mobilePanelOpen = false;
+          renderPanel();
+        };
+        headerRight.appendChild(btnTutupMobile);
+      } else {
+        if (isMinimized) {
+          const miniBadge = document.createElement('span');
+          miniBadge.style.cssText = 'font-size: 11px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.12); padding: 2px 8px; border-radius: 99px; color: #cbd5e1; font-weight: 600; font-family: monospace;';
+          miniBadge.innerHTML = `<span style="color:#60a5fa;">🚚${totalPengantaran}</span> <span style="color:#c084fc;">📦${totalPengembalian}</span> <span style="color:#2dd4bf;">🧼${totalPencucian}</span>`;
+          headerRight.appendChild(miniBadge);
+        }
+
+        const btnMinimize = document.createElement('button');
+        btnMinimize.innerHTML = isMinimized ? '➕' : '➖';
+        btnMinimize.title = isMinimized ? 'Perbesar Panel' : 'Minimalkan Panel';
+        btnMinimize.style.cssText = `
+          background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12);
+          color: #cbd5e1; width: 26px; height: 26px; border-radius: 8px;
+          font-size: 11px; display: flex; align-items: center; justify-content: center;
+          cursor: pointer; transition: all 0.2s; outline: none;
+        `;
+        btnMinimize.onclick = () => {
+          simpanPanelMinimized(!isMinimized);
+          renderPanel();
+        };
+        headerRight.appendChild(btnMinimize);
+      }
+
+      headerContainer.appendChild(headerRight);
+
+      panel.appendChild(headerContainer);
+
+      if (isMinimized && !mobileMode) {
+        bantuAppendKeBody(panel);
+        return;
+      }
+
+      const bodyContainer = document.createElement('div');
+      bodyContainer.id = 'sipgn-panel-body';
+
       const namaSPPG = dapatkanNamaSPPG() || 'SPPG - UNKNOWN';
 
       const summaryBar = document.createElement('div');
       summaryBar.style.cssText = `
-        background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(51, 65, 85, 0.6);
-        border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; font-size: 10px;
+        background: rgba(255, 255, 255, 0.04);
+        backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 14px; padding: 12px 12px; margin-bottom: 12px; font-size: 11px;
+        box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.08);
       `;
       summaryBar.innerHTML = `
-        <div style="color: #facc15; font-weight: 700; font-size: 11px; margin-bottom: 6px; border-bottom: 1px dashed rgba(51, 65, 85, 0.8); padding-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">
-          🏢 ${namaSPPG}
+        <div style="color: #facc15; font-weight: 700; font-size: 12px; margin-bottom: 8px; border-bottom: 1px dashed rgba(255, 255, 255, 0.1); padding-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 14px;">🏢</span> <span>${namaSPPG}</span>
+          </div>
         </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-          <div style="color: #94a3b8;">🏫 Sekolah: <b style="color: #38bdf8;">${totalSekolah}</b></div>
-          <div style="color: #94a3b8;">👶 Posyandu: <b style="color: #f472b6;">${totalPosyandu}</b></div>
-          <div style="color: #94a3b8;">📊 Total KPM: <b style="color: #facc15;">${totalKPM}</b></div>
-          <div style="color: #94a3b8;">📦 Total Porsi: <b style="color: #4ade80;">${totalPorsiSemua.toLocaleString('id-ID')}</b></div>
+
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; text-align: center; color: #cbd5e1; font-size: 11px; font-weight: 600; margin-bottom: 6px;">
+          <div style="background: rgba(255, 255, 255, 0.03); padding: 5px 2px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.15);">
+            <div style="font-size: 9px; color: #94a3b8; text-transform: uppercase;">Sekolah</div>
+            <b style="color: #38bdf8; font-size: 13px;">${totalSekolah}</b>
+          </div>
+          <div style="background: rgba(255, 255, 255, 0.03); padding: 5px 2px; border-radius: 8px; border: 1px solid rgba(244, 114, 182, 0.15);">
+            <div style="font-size: 9px; color: #94a3b8; text-transform: uppercase;">Posyandu</div>
+            <b style="color: #f472b6; font-size: 13px;">${totalPosyandu}</b>
+          </div>
+          <div style="background: rgba(255, 255, 255, 0.03); padding: 5px 2px; border-radius: 8px; border: 1px solid rgba(250, 204, 21, 0.15);">
+            <div style="font-size: 9px; color: #94a3b8; text-transform: uppercase;">Total KPM</div>
+            <b style="color: #facc15; font-size: 13px;">${totalKPM}</b>
+          </div>
+          <div style="background: rgba(255, 255, 255, 0.03); padding: 5px 2px; border-radius: 8px; border: 1px solid rgba(74, 222, 128, 0.15);">
+            <div style="font-size: 9px; color: #94a3b8; text-transform: uppercase;">Porsi</div>
+            <b style="color: #4ade80; font-size: 13px;">${totalPorsiSemua.toLocaleString('id-ID')}</b>
+          </div>
+        </div>
+
+        <div style="border-top: 1px dashed rgba(255, 255, 255, 0.08); padding-top: 6px; margin-top: 6px;">
+          <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; text-align: center; color: #cbd5e1; font-size: 10px; font-weight: 600;">
+            <div style="background: rgba(15, 23, 42, 0.4); padding: 4px 1px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.06);">
+              <div style="font-size: 8px; color: #94a3b8;">BESAR</div>
+              <b style="color: #cbd5e1; font-size: 11px;">${totalPorsiBesar}</b>
+            </div>
+            <div style="background: rgba(15, 23, 42, 0.4); padding: 4px 1px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.06);">
+              <div style="font-size: 8px; color: #94a3b8;">KECIL</div>
+              <b style="color: #cbd5e1; font-size: 11px;">${totalPorsiKecil}</b>
+            </div>
+            <div style="background: rgba(15, 23, 42, 0.4); padding: 4px 1px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.06);">
+              <div style="font-size: 8px; color: #94a3b8;">BALITA</div>
+              <b style="color: #38bdf8; font-size: 11px;">${totalPorsiBalita}</b>
+            </div>
+            <div style="background: rgba(15, 23, 42, 0.4); padding: 4px 1px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.06);">
+              <div style="font-size: 8px; color: #94a3b8;">BUSUI</div>
+              <b style="color: #c084fc; font-size: 11px;">${totalPorsiBusui}</b>
+            </div>
+            <div style="background: rgba(15, 23, 42, 0.4); padding: 4px 1px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.06);">
+              <div style="font-size: 8px; color: #94a3b8;">BUMIL</div>
+              <b style="color: #f472b6; font-size: 11px;">${totalPorsiBumil}</b>
+            </div>
+          </div>
         </div>
       `;
-      panel.appendChild(summaryBar);
+      bodyContainer.appendChild(summaryBar);
 
-      // --- INDIKATOR HALAMAN BERADA TEPAT DI BEWASAN KPM COUNTER ---
-      const indikatorHalaman = document.createElement('div');
-      indikatorHalaman.textContent = halamanTugasBaru
-        ? '📍 Halaman: Buat Penugasan'
-        : '📍 Halaman: Detail Distribusi';
-      indikatorHalaman.style.cssText = 'font-size: 11px; color: #94a3b8; margin-bottom: 10px; font-weight: 500;';
-      panel.appendChild(indikatorHalaman);
+      const garisAtasKPM = document.createElement('div');
+      garisAtasKPM.style.cssText = 'height: 1px; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent); margin: 12px 0; width: 100%;';
+      bodyContainer.appendChild(garisAtasKPM);
 
-      const garis2 = document.createElement('hr');
-      garis2.style.cssText = 'border: none; border-top: 1px solid #334155; margin: 0 0 12px 0;';
-      panel.appendChild(garis2);
+      function formatStatusBadge(status) {
+        if (status === 'pengantaran') return '🚚 Pengantaran';
+        if (status === 'pengembalian') return '📦 Pengembalian';
+        if (status === 'pencucian') return '🧼 Pencucian';
+        return '';
+      }
 
       function teksOpsi(data) {
-        return `${data.terpakai ? '✅ ' : ''}${data.sekolah}${data.terpakai ? ' (digunakan)' : ''}`;
+        const statusStr = formatStatusBadge(data.statusProses);
+        return statusStr ? `[${statusStr}] ${data.sekolah}` : data.sekolah;
       }
 
       let selectSekolah = null;
@@ -2494,17 +3133,26 @@ ${changelog}
       function buatSelectKPM(labelTeks, jenisTarget) {
         const labelSelect = document.createElement('div');
         labelSelect.textContent = labelTeks;
-        labelSelect.style.cssText = 'font-size: 11px; color: #94a3b8; margin-bottom: 4px; font-weight: 500;';
-        panel.appendChild(labelSelect);
+        labelSelect.style.cssText = 'font-size: 11px; color: #94a3b8; margin-bottom: 6px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase;';
+        bodyContainer.appendChild(labelSelect);
 
         const sel = document.createElement('select');
         sel.style.cssText = `
-          width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 8px; margin-bottom: 10px;
-          border: 1px solid #334155; font-size: 12px; background: #0f172a; color: #f8fafc;
-          outline: none; transition: border-color 0.2s; cursor: pointer;
+          width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 10px; margin-bottom: 12px;
+          border: 1px solid rgba(255, 255, 255, 0.12); font-size: 12px; background: rgba(15, 23, 42, 0.5); color: #f8fafc;
+          backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+          outline: none; transition: all 0.2s ease; cursor: pointer;
         `;
-        sel.onfocus = () => sel.style.borderColor = '#38bdf8';
-        sel.onblur = () => sel.style.borderColor = '#334155';
+        sel.onfocus = () => {
+          sel.style.borderColor = 'rgba(255, 255, 255, 0.25)';
+          sel.style.background = 'rgba(15, 23, 42, 0.75)';
+          sel.style.boxShadow = 'none';
+        };
+        sel.onblur = () => {
+          sel.style.borderColor = 'rgba(255, 255, 255, 0.12)';
+          sel.style.background = 'rgba(15, 23, 42, 0.5)';
+          sel.style.boxShadow = 'none';
+        };
 
         const placeholder = document.createElement('option');
         placeholder.value = '';
@@ -2534,27 +3182,120 @@ ${changelog}
           indexTerpilih = Number(nilai);
           const selLain = sel === selectSekolah ? selectPosyandu : selectSekolah;
           if (selLain) selLain.value = '';
+          renderPanel();
         };
-        panel.appendChild(sel);
+        bodyContainer.appendChild(sel);
         return sel;
       }
 
       selectSekolah = buatSelectKPM('KPM Sekolah', 'sekolah');
       selectPosyandu = buatSelectKPM('KPM Posyandu (3B)', 'posyandu');
 
-      const jumlahKPMTerpakai = dataPenugasan.filter((d) => d.terpakai).length;
+      const autoKurirState = dapatkanAutoKurirMBG();
+      const wrapperToggle = document.createElement('div');
+      wrapperToggle.style.cssText = `
+        display: flex; align-items: center; justify-content: space-between;
+        background: rgba(255, 255, 255, 0.04); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 10px 12px; border-radius: 12px; margin-bottom: 12px; cursor: pointer;
+        transition: all 0.2s ease;
+      `;
+
+      const teksToggle = document.createElement('span');
+      teksToggle.style.cssText = 'font-size: 11px; font-weight: 600; color: #cbd5e1; display: flex; align-items: center; gap: 6px;';
+      teksToggle.innerHTML = `🛵 Tugaskan ke Aplikasi Kurir MBG`;
+
+      const switchToggle = document.createElement('div');
+      switchToggle.style.cssText = `
+        width: 36px; height: 20px; background: ${autoKurirState ? 'linear-gradient(135deg, #38bdf8, #0284c7)' : '#334155'};
+        border-radius: 99px; position: relative; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: ${autoKurirState ? '0 0 10px rgba(56, 189, 248, 0.4)' : 'none'};
+      `;
+      const knobToggle = document.createElement('div');
+      knobToggle.style.cssText = `
+        width: 16px; height: 16px; background: white; border-radius: 50%;
+        position: absolute; top: 2px; left: ${autoKurirState ? '18px' : '2px'}; transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      `;
+      switchToggle.appendChild(knobToggle);
+
+      wrapperToggle.appendChild(teksToggle);
+      wrapperToggle.appendChild(switchToggle);
+
+      wrapperToggle.onclick = () => {
+        const valBaru = !dapatkanAutoKurirMBG();
+        simpanAutoKurirMBG(valBaru);
+        aturCheckboxKurirMBG();
+        renderPanel();
+      };
+
+      bodyContainer.appendChild(wrapperToggle);
+
+      const garis2 = document.createElement('div');
+      garis2.style.cssText = 'height: 1px; background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.3), transparent); margin: 12px 0; width: 100%;';
+      bodyContainer.appendChild(garis2);
+
+      if (indexTerpilih >= 0 && dataPenugasan[indexTerpilih]) {
+        const kpmAktif = dataPenugasan[indexTerpilih];
+        let colorBg = 'rgba(51, 65, 85, 0.4)';
+        let colorText = '#94a3b8';
+        let statusTeks = '⚪ Belum Diproses';
+
+        if (kpmAktif.statusProses === 'pengantaran') {
+          colorBg = 'rgba(37, 99, 235, 0.25)';
+          colorText = '#60a5fa';
+          statusTeks = '🚚 Ditugaskan Pengantaran';
+        } else if (kpmAktif.statusProses === 'pengembalian') {
+          colorBg = 'rgba(124, 58, 237, 0.25)';
+          colorText = '#c084fc';
+          statusTeks = '📦 Ditugaskan Pengembalian';
+        } else if (kpmAktif.statusProses === 'pencucian') {
+          colorBg = 'rgba(13, 148, 136, 0.25)';
+          colorText = '#2dd4bf';
+          statusTeks = '🧼 Proses Pencucian';
+        }
+
+        const statusBox = document.createElement('div');
+        statusBox.style.cssText = `
+          background: ${colorBg}; border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 10px; padding: 8px 12px; margin-bottom: 8px; font-size: 11px;
+          display: flex; align-items: center; justify-content: space-between;
+        `;
+        statusBox.innerHTML = `
+          <span style="color: #cbd5e1; font-weight: 500;">Status Proses:</span>
+          <b style="color: ${colorText}; font-weight: 700;">${statusTeks}</b>
+        `;
+        bodyContainer.appendChild(statusBox);
+      }
+
+      const processCountBar = document.createElement('div');
+      processCountBar.style.cssText = `
+        background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(51, 65, 85, 0.6);
+        border-radius: 10px; padding: 7px 12px; margin-bottom: 10px; font-size: 11px;
+        display: flex; align-items: center; justify-content: space-around; font-weight: 600;
+      `;
+      processCountBar.innerHTML = `
+        <span>🚚 <b style="color: #60a5fa;">${totalPengantaran}</b></span>
+        <span style="color: rgba(51, 65, 85, 0.8);">|</span>
+        <span>📦 <b style="color: #c084fc;">${totalPengembalian}</b></span>
+        <span style="color: rgba(51, 65, 85, 0.8);">|</span>
+        <span>🧼 <b style="color: #2dd4bf;">${totalPencucian}</b></span>
+      `;
+      bodyContainer.appendChild(processCountBar);
+
+      const jumlahKPMTerpakai = dataPenugasan.filter((d) => d.terpakai || d.statusProses !== 'belum').length;
       const tombolHapusSemuaTanda = document.createElement('button');
-      tombolHapusSemuaTanda.textContent = `Hapus Semua Tanda${jumlahKPMTerpakai > 0 ? ` (${jumlahKPMTerpakai})` : ''}`;
+      tombolHapusSemuaTanda.textContent = `Reset Semua Status${jumlahKPMTerpakai > 0 ? ` (${jumlahKPMTerpakai})` : ''}`;
       tombolHapusSemuaTanda.disabled = jumlahKPMTerpakai === 0;
       tombolHapusSemuaTanda.style.cssText = `
-        width: 100%; padding: 7px; border: none; border-radius: 8px;
+        width: 100%; padding: 8px; border: none; border-radius: 10px;
         background: ${jumlahKPMTerpakai > 0 ? 'rgba(51, 65, 85, 0.5)' : 'transparent'};
         color: ${jumlahKPMTerpakai > 0 ? '#cbd5e1' : '#64748b'};
         cursor: ${jumlahKPMTerpakai > 0 ? 'pointer' : 'not-allowed'};
-        font-size: 11px; font-weight: 500; margin-bottom: 10px; border: 1px dashed #334155;
+        font-size: 11px; font-weight: 600; margin-bottom: 10px; border: 1px dashed #334155;
       `;
       tombolHapusSemuaTanda.onclick = hapusSemuaTanda;
-      panel.appendChild(tombolHapusSemuaTanda);
+      bodyContainer.appendChild(tombolHapusSemuaTanda);
 
       const bisaIsiPenugasan = indexTerpilih >= 0 && halamanTugasBaru;
 
@@ -2566,17 +3307,18 @@ ${changelog}
         const txt = el.textContent.replace(/\s+/g, ' ').replace('*', '').trim();
         return txt === 'Waktu Diterima di Tujuan' || txt.includes('Waktu Diterima di Tujuan');
       });
-      const adaFormPengambilan = [...document.querySelectorAll('label')].some((el) => {
-        const txt = el.textContent.replace(/\s+/g, ' ').replace('*', '').trim();
-        return txt === 'Jumlah Ompreng' || txt.includes('Jumlah Ompreng');
-      });
       const adaWaktuKembaliSPPG = [...document.querySelectorAll('label')].some((el) => {
         const txt = el.textContent.replace(/\s+/g, ' ').replace('*', '').trim();
         return txt === 'Waktu Ompreng Kembali di SPPG' || txt.includes('Waktu Ompreng Kembali di SPPG');
       });
+      const adaFormPengambilan = !adaWaktuKeberangkatan && !adaWaktuDiterima && !adaWaktuKembaliSPPG && [...document.querySelectorAll('label')].some((el) => {
+        const txt = el.textContent.replace(/\s+/g, ' ').replace('*', '').trim();
+        return (txt === 'Jumlah Ompreng' || txt.includes('Jumlah Ompreng') || txt.includes('Waktu Dijadwalkan Pengambilan')) &&
+               !txt.includes('Dicuci') && !txt.includes('Kembali');
+      });
       const adaFormPencucian = [...document.querySelectorAll('label')].some((el) => {
         const txt = el.textContent.replace(/\s+/g, ' ').replace('*', '').trim();
-        return txt === 'Jumlah Ompreng Dicuci' || txt.includes('Jumlah Ompreng Dicuci');
+        return txt === 'Jumlah Ompreng Dicuci' || txt.includes('Jumlah Ompreng Dicuci') || txt.includes('Waktu Mulai Cuci');
       });
 
       const bisaSetJam = indexTerpilih >= 0 && !halamanTugasBaru && adaWaktuKeberangkatan;
@@ -2592,17 +3334,17 @@ ${changelog}
         tombolPenugasan.textContent = '⚡ Isi Penugasan';
         tombolPenugasan.disabled = !bisaIsiPenugasan;
         tombolPenugasan.style.cssText = `
-          width: 100%; padding: 9px; border: none; border-radius: 8px;
-          background: ${bisaIsiPenugasan ? '#7c3aed' : '#334155'}; color: white;
-          cursor: ${bisaIsiPenugasan ? 'pointer' : 'not-allowed'}; font-size: 12px; font-weight: 600;
-          box-shadow: ${bisaIsiPenugasan ? '0 4px 12px rgba(124, 58, 237, 0.3)' : 'none'};
+          width: 100%; padding: 10px; border: none; border-radius: 10px;
+          background: ${bisaIsiPenugasan ? 'linear-gradient(135deg, #8b5cf6, #6d28d9)' : '#334155'}; color: white;
+          cursor: ${bisaIsiPenugasan ? 'pointer' : 'not-allowed'}; font-size: 12px; font-weight: 700;
+          box-shadow: ${bisaIsiPenugasan ? '0 4px 14px rgba(139, 92, 246, 0.4)' : 'none'};
         `;
         tombolPenugasan.onclick = () => {
           if (!bisaIsiPenugasan) return;
           isiPenugasan(indexTerpilih);
         };
         barisPenugasan.appendChild(tombolPenugasan);
-        panel.appendChild(barisPenugasan);
+        bodyContainer.appendChild(barisPenugasan);
       }
 
       if (adaWaktuKeberangkatan || adaWaktuDiterima) {
@@ -2614,19 +3356,23 @@ ${changelog}
           tombolJam.textContent = 'Set Berangkat';
           tombolJam.disabled = !bisaSetJam;
           tombolJam.style.cssText = `
-            flex: 1; padding: 8px; border: none; border-radius: 8px;
-            background: ${bisaSetJam ? '#0e7490' : '#334155'}; color: white;
-            cursor: ${bisaSetJam ? 'pointer' : 'not-allowed'}; font-size: 11px; font-weight: 600;
+            flex: 1; padding: 9px; border: none; border-radius: 10px;
+            background: ${bisaSetJam ? 'linear-gradient(135deg, #0284c7, #0369a1)' : '#334155'}; color: white;
+            cursor: ${bisaSetJam ? 'pointer' : 'not-allowed'}; font-size: 11px; font-weight: 700;
+            box-shadow: ${bisaSetJam ? '0 4px 12px rgba(2, 132, 199, 0.3)' : 'none'};
           `;
           tombolJam.onclick = async () => {
             if (!bisaSetJam) return;
             tombolJam.disabled = true;
             tombolJam.textContent = 'Mengatur...';
             const berhasil = await aturWaktuKeberangkatan(dataPenugasan[indexTerpilih]?.jamKeberangkatan, 'Waktu Keberangkatan');
+            if (berhasil && dataPenugasan[indexTerpilih]) {
+              dataPenugasan[indexTerpilih].statusProses = 'pengantaran';
+              simpanData(dataPenugasan);
+            }
             tombolJam.textContent = berhasil ? 'Tersimpan' : 'Gagal';
             await wait(1200);
-            tombolJam.textContent = 'Set Berangkat';
-            tombolJam.disabled = !bisaSetJam;
+            renderPanel();
           };
           barisJam.appendChild(tombolJam);
         }
@@ -2636,9 +3382,10 @@ ${changelog}
           tombolJamTiba.textContent = 'Set Tiba';
           tombolJamTiba.disabled = !bisaSetJamTiba;
           tombolJamTiba.style.cssText = `
-            flex: 1; padding: 8px; border: none; border-radius: 8px;
-            background: ${bisaSetJamTiba ? '#15803d' : '#334155'}; color: white;
-            cursor: ${bisaSetJamTiba ? 'pointer' : 'not-allowed'}; font-size: 11px; font-weight: 600;
+            flex: 1; padding: 9px; border: none; border-radius: 10px;
+            background: ${bisaSetJamTiba ? 'linear-gradient(135deg, #16a34a, #15803d)' : '#334155'}; color: white;
+            cursor: ${bisaSetJamTiba ? 'pointer' : 'not-allowed'}; font-size: 11px; font-weight: 700;
+            box-shadow: ${bisaSetJamTiba ? '0 4px 12px rgba(22, 163, 74, 0.3)' : 'none'};
           `;
           tombolJamTiba.onclick = async () => {
             if (!bisaSetJamTiba) return;
@@ -2650,13 +3397,12 @@ ${changelog}
             );
             tombolJamTiba.textContent = berhasil ? 'Tersimpan' : 'Gagal';
             await wait(1200);
-            tombolJamTiba.textContent = 'Set Tiba';
-            tombolJamTiba.disabled = !bisaSetJamTiba;
+            renderPanel();
           };
           barisJam.appendChild(tombolJamTiba);
         }
 
-        panel.appendChild(barisJam);
+        bodyContainer.appendChild(barisJam);
       }
 
       if (adaFormPengambilan) {
@@ -2666,9 +3412,10 @@ ${changelog}
         tombolPengambilan.textContent = '📦 Isi Pengambilan Ompreng';
         tombolPengambilan.disabled = !bisaIsiPengambilan;
         tombolPengambilan.style.cssText = `
-          width: 100%; padding: 8px; border: none; border-radius: 8px;
-          background: ${bisaIsiPengambilan ? '#7c3aed' : '#334155'}; color: white;
-          cursor: ${bisaIsiPengambilan ? 'pointer' : 'not-allowed'}; font-size: 11px; font-weight: 600;
+          width: 100%; padding: 9px; border: none; border-radius: 10px;
+          background: ${bisaIsiPengambilan ? 'linear-gradient(135deg, #8b5cf6, #6d28d9)' : '#334155'}; color: white;
+          cursor: ${bisaIsiPengambilan ? 'pointer' : 'not-allowed'}; font-size: 11px; font-weight: 700;
+          box-shadow: ${bisaIsiPengambilan ? '0 4px 12px rgba(139, 92, 246, 0.3)' : 'none'};
         `;
         tombolPengambilan.onclick = async () => {
           if (!bisaIsiPengambilan) return;
@@ -2677,11 +3424,10 @@ ${changelog}
           const berhasil = await isiPengambilanOmpreng(indexTerpilih);
           tombolPengambilan.textContent = berhasil ? 'Terisi' : 'Gagal';
           await wait(1200);
-          tombolPengambilan.textContent = '📦 Isi Pengambilan Ompreng';
-          tombolPengambilan.disabled = !bisaIsiPengambilan;
+          renderPanel();
         };
         barisPengambilan.appendChild(tombolPengambilan);
-        panel.appendChild(barisPengambilan);
+        bodyContainer.appendChild(barisPengambilan);
       }
 
       if (adaWaktuKembaliSPPG) {
@@ -2691,9 +3437,10 @@ ${changelog}
         tombolWaktuKembali.textContent = '🔄 Set Ompreng Kembali';
         tombolWaktuKembali.disabled = !bisaSetWaktuKembali;
         tombolWaktuKembali.style.cssText = `
-          width: 100%; padding: 8px; border: none; border-radius: 8px;
-          background: ${bisaSetWaktuKembali ? '#0f766e' : '#334155'}; color: white;
-          cursor: ${bisaSetWaktuKembali ? 'pointer' : 'not-allowed'}; font-size: 11px; font-weight: 600;
+          width: 100%; padding: 9px; border: none; border-radius: 10px;
+          background: ${bisaSetWaktuKembali ? 'linear-gradient(135deg, #0d9488, #0f766e)' : '#334155'}; color: white;
+          cursor: ${bisaSetWaktuKembali ? 'pointer' : 'not-allowed'}; font-size: 11px; font-weight: 700;
+          box-shadow: ${bisaSetWaktuKembali ? '0 4px 12px rgba(13, 148, 136, 0.3)' : 'none'};
         `;
         tombolWaktuKembali.onclick = async () => {
           if (!bisaSetWaktuKembali) return;
@@ -2703,13 +3450,16 @@ ${changelog}
             dataPenugasan[indexTerpilih]?.jamOmprengKembaliSPPG,
             'Waktu Ompreng Kembali di SPPG'
           );
+          if (berhasil && dataPenugasan[indexTerpilih]) {
+            dataPenugasan[indexTerpilih].statusProses = 'pengembalian';
+            simpanData(dataPenugasan);
+          }
           tombolWaktuKembali.textContent = berhasil ? 'Tersimpan' : 'Gagal';
           await wait(1200);
-          tombolWaktuKembali.textContent = '🔄 Set Ompreng Kembali';
-          tombolWaktuKembali.disabled = !bisaSetWaktuKembali;
+          renderPanel();
         };
         barisWaktuKembali.appendChild(tombolWaktuKembali);
-        panel.appendChild(barisWaktuKembali);
+        bodyContainer.appendChild(barisWaktuKembali);
       }
 
       if (adaFormPencucian) {
@@ -2719,9 +3469,10 @@ ${changelog}
         tombolPencucian.textContent = '🧼 Isi Mulai Pencucian';
         tombolPencucian.disabled = !bisaIsiPencucian;
         tombolPencucian.style.cssText = `
-          width: 100%; padding: 8px; border: none; border-radius: 8px;
-          background: ${bisaIsiPencucian ? '#0369a1' : '#334155'}; color: white;
-          cursor: ${bisaIsiPencucian ? 'pointer' : 'not-allowed'}; font-size: 11px; font-weight: 600;
+          width: 100%; padding: 9px; border: none; border-radius: 10px;
+          background: ${bisaIsiPencucian ? 'linear-gradient(135deg, #0284c7, #0369a1)' : '#334155'}; color: white;
+          cursor: ${bisaIsiPencucian ? 'pointer' : 'not-allowed'}; font-size: 11px; font-weight: 700;
+          box-shadow: ${bisaIsiPencucian ? '0 4px 12px rgba(2, 132, 199, 0.3)' : 'none'};
         `;
         tombolPencucian.onclick = async () => {
           if (!bisaIsiPencucian) return;
@@ -2730,11 +3481,10 @@ ${changelog}
           const berhasil = await isiMulaiPencucian(indexTerpilih);
           tombolPencucian.textContent = berhasil ? 'Terisi' : 'Gagal';
           await wait(1200);
-          tombolPencucian.textContent = '🧼 Isi Mulai Pencucian';
-          tombolPencucian.disabled = !bisaIsiPencucian;
+          renderPanel();
         };
         barisPencucian.appendChild(tombolPencucian);
-        panel.appendChild(barisPencucian);
+        bodyContainer.appendChild(barisPencucian);
       }
 
       const barisAksi = document.createElement('div');
@@ -2744,8 +3494,9 @@ ${changelog}
       tombolEdit.textContent = '✏️ Edit';
       tombolEdit.disabled = indexTerpilih < 0;
       tombolEdit.style.cssText = `
-        flex: 1; padding: 7px; border: none; border-radius: 8px;
-        background: ${indexTerpilih >= 0 ? '#1e3a8a' : '#334155'}; color: white; cursor: ${indexTerpilih >= 0 ? 'pointer' : 'not-allowed'}; font-size: 11px; font-weight: 600;
+        flex: 1; padding: 8px; border: none; border-radius: 10px;
+        background: ${indexTerpilih >= 0 ? 'linear-gradient(135deg, #2563eb, #1d4ed8)' : '#334155'}; color: white; cursor: ${indexTerpilih >= 0 ? 'pointer' : 'not-allowed'}; font-size: 11px; font-weight: 600;
+        box-shadow: ${indexTerpilih >= 0 ? '0 4px 12px rgba(37, 99, 235, 0.3)' : 'none'};
       `;
       tombolEdit.onclick = () => {
         if (indexTerpilih < 0) return;
@@ -2756,171 +3507,171 @@ ${changelog}
       tombolHapus.textContent = '🗑️ Hapus';
       tombolHapus.disabled = indexTerpilih < 0;
       tombolHapus.style.cssText = `
-        padding: 7px 12px; border: none; border-radius: 8px;
-        background: ${indexTerpilih >= 0 ? 'rgba(127, 29, 29, 0.6)' : '#334155'}; color: white; cursor: ${indexTerpilih >= 0 ? 'pointer' : 'not-allowed'}; font-size: 11px; font-weight: 600;
+        padding: 8px 12px; border: none; border-radius: 10px;
+        background: ${indexTerpilih >= 0 ? 'linear-gradient(135deg, #dc2626, #991b1b)' : '#334155'}; color: white; cursor: ${indexTerpilih >= 0 ? 'pointer' : 'not-allowed'}; font-size: 11px; font-weight: 600;
+        box-shadow: ${indexTerpilih >= 0 ? '0 4px 12px rgba(220, 38, 38, 0.3)' : 'none'};
       `;
       tombolHapus.onclick = hapusDataTerpilih;
 
       barisAksi.appendChild(tombolEdit);
       barisAksi.appendChild(tombolHapus);
-      panel.appendChild(barisAksi);
+      bodyContainer.appendChild(barisAksi);
 
-      if (indexTerpilih >= 0 && dataPenugasan[indexTerpilih]?.terpakai) {
+      if (indexTerpilih >= 0 && (dataPenugasan[indexTerpilih]?.terpakai || dataPenugasan[indexTerpilih]?.statusProses !== 'belum')) {
         const tombolReset = document.createElement('button');
-        tombolReset.textContent = '↺ Tandai Belum Dipakai';
+        tombolReset.textContent = '↺ Reset Status KPM Ini';
         tombolReset.style.cssText = `
-          width: 100%; padding: 6px; border: none; border-radius: 8px;
-          background: #334155; color: #cbd5e1; cursor: pointer; font-size: 11px; font-weight: 500; margin-bottom: 10px;
+          width: 100%; padding: 7px; border: none; border-radius: 10px;
+          background: rgba(51, 65, 85, 0.6); color: #cbd5e1; cursor: pointer; font-size: 11px; font-weight: 500; margin-bottom: 10px;
         `;
         tombolReset.onclick = () => tandaiUlangStatus(false);
-        panel.appendChild(tombolReset);
+        bodyContainer.appendChild(tombolReset);
       }
 
       const garis = document.createElement('hr');
-      garis.style.cssText = 'border: none; border-top: 1px solid #334155; margin: 10px 0;';
-      panel.appendChild(garis);
+      garis.style.cssText = 'border: none; border-top: 1px solid rgba(51, 65, 85, 0.6); margin: 10px 0;';
+      bodyContainer.appendChild(garis);
 
-      var tombolToggleForm = document.createElement('button');
+      const tombolToggleForm = document.createElement('button');
       tombolToggleForm.textContent = '+ Tambah Data KPM Baru';
       tombolToggleForm.style.cssText = `
-        width: 100%; padding: 8px; border: none; border-radius: 8px;
-        background: rgba(37, 99, 235, 0.2); color: #38bdf8; border: 1px solid rgba(37, 99, 235, 0.3); cursor: pointer; font-size: 11px; font-weight: 600; margin-bottom: 8px;
-        transition: 0.2s;
+        width: 100%; padding: 9px; border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 10px;
+        background: rgba(37, 99, 235, 0.15); color: #38bdf8; cursor: pointer; font-size: 11px; font-weight: 700; margin-bottom: 8px;
       `;
       tombolToggleForm.onclick = () => {
         tampilkanModalFormKPM(null, null);
       };
-
-      panel.appendChild(tombolToggleForm);
+      bodyContainer.appendChild(tombolToggleForm);
 
       const tombolLisensi = document.createElement('button');
       tombolLisensi.textContent = '💳 Informasi & Status Perangkat';
       tombolLisensi.style.cssText = `
-        width: 100%; padding: 9px; border: none; border-radius: 8px;
-        background: #334155; color: white; cursor: pointer; font-size: 11px; font-weight: 600; margin-bottom: 4px;
-        transition: background 0.2s;
+        width: 100%; padding: 9px; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px;
+        background: rgba(51, 65, 85, 0.5); color: #f8fafc; cursor: pointer; font-size: 11px; font-weight: 600; margin-bottom: 4px;
       `;
-      tombolLisensi.onmouseover = () => tombolLisensi.style.background = '#475569';
-      tombolLisensi.onmouseout = () => tombolLisensi.style.background = '#334155';
       tombolLisensi.onclick = () => {
         tampilkanModalAktivasi('', true);
       };
-      panel.appendChild(tombolLisensi);
+      bodyContainer.appendChild(tombolLisensi);
 
       const footer = document.createElement('div');
-      footer.style.cssText = `margin-top: 6px; font-size: 10px; text-align: center; color: #64748b;`;
-      footer.innerHTML = '© 2026 - <b>Mindspace Studio</b>';
-      panel.appendChild(footer);
+      footer.style.cssText = `margin-top: 8px; font-size: 10px; text-align: center; color: #64748b;`;
+      footer.innerHTML = 'Powered by <b style="color: #94a3b8;">Mindspace Studio</b>';
+      bodyContainer.appendChild(footer);
 
-      document.body.appendChild(panel);
+      panel.appendChild(bodyContainer);
+      bantuAppendKeBody(panel);
     } catch (e) {
       console.error('[Autofill] Gagal merender panel UI:', e);
     }
   }
 
-  // ------------------------------------------------------------------
-  // PENGAWASAN STATUS LISENSI SECARA REAL-TIME
-  // ------------------------------------------------------------------
-  function bersihkanSemuaUI() {
-    if (isPaymentModalOpen || isPaymentSuccess) return;
-
-    const panel = document.getElementById('sipgn-autofill-panel');
-    if (panel) panel.remove();
-    const modalAktivasi = document.getElementById('sipgn-license-modal');
-    if (modalAktivasi) modalAktivasi.remove();
-    const modalStatus = document.getElementById('sipgn-status-modal');
-    if (modalStatus) modalStatus.remove();
-  }
-
-  function periksaStatusLisensiOnline(isPemeriksaanAwal = false) {
-    if ((isPaymentModalOpen || isPaymentSuccess) && !isPemeriksaanAwal) return;
+  function ambilStatusLisensiServer() {
     const currentDevId = dapatkanDeviceID();
-
-    GM_xmlhttpRequest({
-      method: 'GET',
-      url: `${VERCEL_API_URL}?action=check_license&device_id=${encodeURIComponent(currentDevId)}&_t=${Date.now()}`,
-      headers: {
-        'Cache-Control': 'no-cache, no-store'
-      },
-      onload: function (res) {
-        try {
-          const data = JSON.parse(res.responseText);
-          cachedServerStatus = data; // Simpan cache respon status lisensi
-
-          if (data && data.sppg_name) {
-            simpanNamaSPPG(data.sppg_name);
+    return new Promise((resolve) => {
+      GM_xmlhttpRequest({
+        method: 'GET',
+        url: `${VERCEL_API_URL}?action=check_license&device_id=${encodeURIComponent(currentDevId)}&_t=${Date.now()}`,
+        headers: { 'Cache-Control': 'no-cache, no-store' },
+        onload: function (res) {
+          try {
+            const data = JSON.parse(res.responseText);
+            cachedServerStatus = data;
+            if (data && data.sppg_name) simpanNamaSPPG(data.sppg_name);
+            let statusSekarang = data.valid ? 'active' : (data.status || 'expired');
+            if (data.exp_date) currentDatabaseExpDate = data.exp_date;
+            const pesanOutput = data.msg || data.message || data.reason || '';
+            resolve({ status: statusSekarang, valid: !!data.valid, msg: pesanOutput });
+          } catch (e) {
+            resolve({ status: 'error', valid: false, msg: 'Respon server gagal.' });
           }
-
-          if (isPaymentModalOpen || isPaymentSuccess) return;
-
-          let statusSekarang = 'unregistered';
-          if (data.status === 'revoked') {
-            statusSekarang = 'revoked';
-          } else if (data.status === 'hold') {
-            statusSekarang = 'hold';
-          } else if (data.valid) {
-            statusSekarang = 'active';
-          } else if (data.exp_date || (data.msg && data.msg.includes('kadaluarsa'))) {
-            statusSekarang = 'expired';
-          }
-
-          if (statusSekarang !== statusLisensiTerakhir || isPemeriksaanAwal) {
-            statusLisensiTerakhir = statusSekarang;
-
-            if (statusSekarang === 'revoked') {
-              bersihkanSemuaUI();
-              tampilkanModalStatusSitus('Akses Dibatalkan', 'Lisensi Anda telah dicabut oleh Administrator.', 'revoked');
-            } else if (statusSekarang === 'hold') {
-              bersihkanSemuaUI();
-              tampilkanModalStatusSitus('Lisensi Ditangguhkan', 'Lisensi Anda sedang ditangguhkan sementara. Silakan hubungi Administrator.', 'hold');
-            } else if (statusSekarang === 'active') {
-              currentDatabaseExpDate = data.exp_date;
-              bersihkanSemuaUI();
-              mulaiJalankanSkrip();
-            } else if (statusSekarang === 'unregistered') {
-              if (!dapatkanNamaSPPG()) {
-                tampilkanModalWelcomeSPPG(() => {
-                  currentDatabaseExpDate = data.exp_date || null;
-                  bersihkanSemuaUI();
-                  tampilkanModalAktivasi(data.msg || '', false);
-                });
-              } else {
-                currentDatabaseExpDate = data.exp_date || null;
-                bersihkanSemuaUI();
-                tampilkanModalAktivasi(data.msg || '', false);
-              }
-            } else {
-              currentDatabaseExpDate = data.exp_date || null;
-              bersihkanSemuaUI();
-              tampilkanModalAktivasi(data.msg || 'Lisensi tidak ditemukan atau telah kadaluarsa.', false);
-            }
-          }
-        } catch (e) {
-          if (isPemeriksaanAwal) tampilkanModalAktivasi('Gagal memverifikasi status lisensi ke server.', false);
-        }
-      },
-      onerror: function () {
-        if (isPemeriksaanAwal) tampilkanModalAktivasi('Gagal terhubung ke server verifikasi.', false);
-      }
+        },
+        onerror: () => resolve({ status: 'error', valid: false, msg: '' })
+      });
     });
   }
 
-  function inialisasiSistem() {
+  function tanganiStatusLisensi(resStatus) {
+    const status = resStatus.status;
+    const pesanServer = (resStatus.msg && String(resStatus.msg).trim()) ? String(resStatus.msg).trim() : null;
+
+    if (resStatus.valid || status === 'active') {
+      mulaiJalankanSkrip();
+    } else if (status === 'hold') {
+      tampilkanModalStatusSitus(
+        'Akses Lisensi Ditangguhkan',
+        pesanServer || 'Akses perangkat Anda saat ini sedang ditangguhkan oleh administrator system. Silakan hubungi admin untuk informasi lebih lanjut.',
+        'hold'
+      );
+    } else if (status === 'revoked') {
+      tampilkanModalStatusSitus(
+        'Akses Lisensi Dicabut',
+        pesanServer || 'Akses perangkat Anda telah dicabut secara permanen. Perangkat tidak dapat lagi mengakses fitur otomatisasi SIPGN.',
+        'revoked'
+      );
+    } else if (status === 'expired') {
+      tampilkanModalStatusSitus(
+        'Masa Aktif Lisensi Habis',
+        pesanServer || 'Masa aktif lisensi pada perangkat ini telah habis. Silakan masukkan kode voucher perpanjangan atau lakukan pembayaran via link resmi.',
+        'expired'
+      );
+    } else {
+      const pesanModal = pesanServer || '';
+      if (!dapatkanNamaSPPG()) {
+        tampilkanModalWelcomeSPPG(() => tampilkanModalAktivasi(pesanModal, false));
+      } else {
+        tampilkanModalAktivasi(pesanModal, false);
+      }
+    }
+  }
+
+  async function inialisasiSistem() {
     try {
-      periksaStatusLisensiOnline(true);
+      aktifkanPengubahKameraKeGaleri();
+
+      let targetStatus = null;
+      const loader = tampilkanLoadingScreen(() => {
+        if (targetStatus) tanganiStatusLisensi(targetStatus);
+      });
+
+      loader.updateProgress(20, 'Memulai Pemeriksaan Sistem...');
+
+      const randomDelayMs = Math.floor(Math.random() * (6000 - 3000 + 1)) + 3000;
+      const stepTime = randomDelayMs / 3;
+
+      await wait(stepTime);
+      loader.updateProgress(50, 'Menghubungkan ke Server...');
+
+      const resStatus = await ambilStatusLisensiServer();
+
+      if (!resStatus || resStatus.status === 'error') {
+        loader.tampilkanGagal('Koneksi Gagal! Periksa Internet Anda.');
+        return;
+      }
+
+      targetStatus = resStatus;
+
+      await wait(stepTime);
+      loader.updateProgress(80, 'Memuat Data Penugasan...');
+
+      await wait(stepTime);
+
+      loader.siapLanjut();
 
       if (intervalMonitorLisensi) clearInterval(intervalMonitorLisensi);
       intervalMonitorLisensi = setInterval(() => {
-        periksaStatusLisensiOnline(false);
+        ambilStatusLisensiServer().then((res) => {
+          if (!res.valid && res.status !== 'active') tanganiStatusLisensi(res);
+        });
       }, 60000);
-
     } catch (e) {
-      console.error('[Autofill] Gagal inisialisasi, membuka modal aktivasi:', e);
       tampilkanModalAktivasi('', false);
     }
   }
 
-  setTimeout(() => {
-    inialisasiSistem();
-  }, 500);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(inialisasiSistem, 300));
+  } else {
+    setTimeout(inialisasiSistem, 300);
+  }
 })();

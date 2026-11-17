@@ -218,7 +218,7 @@
             </div>
           </div>
           <div class="space-y-3">
-            <a id="btnDownloadUserscript" href="/autofill/download" target="_blank" onclick="incrementDownloadCounter()" class="w-full bg-brand-500 hover:bg-brand-600 active:scale-95 text-white py-4 rounded-2xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 shadow-xl shadow-brand-500/30">
+            <a id="btnDownloadUserscript" href="/autofill/download" target="_blank" rel="noopener noreferrer" onclick="incrementDownloadCounter()" class="w-full bg-brand-500 hover:bg-brand-600 active:scale-95 text-white py-4 rounded-2xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 shadow-xl shadow-brand-500/30">
               <span>📥</span> Download Script Autofill
             </a>
             <p class="text-[10px] text-center text-slate-500">Pastikan Anda telah memasang extension Tampermonkey di browser Anda.</p>
@@ -328,7 +328,7 @@
 
     <!-- FOOTER -->
     <footer class="glass-card border-t border-slate-800 py-10 px-4 sm:px-8 text-center text-xs text-slate-500 space-y-2 mt-auto">
-      <p class="font-bold text-slate-300">MindHUB SIPGN v1.5.56 &copy; 2026 &mdash; Professional Script Platform & Licensing.</p>
+      <p class="font-bold text-slate-300">MindHUB SIPGN <span id="footerScriptVersion">v1.5.56</span> &copy; 2026 &mdash; Professional Script Platform &amp; Licensing.</p>
       <p>All rights reserved.</p>
     </footer>
   </div>
@@ -352,17 +352,27 @@
     // Fetch script metadata on load for landing page download
     async function muatMetadataLanding() {
       try {
-        const res = await fetch(`${VERCEL_API_URL}?action=check_version`);
+        const res = await fetch(`${VERCEL_API_URL}?action=check_version&_t=${Date.now()}`, {
+          cache: 'no-store'
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        if (data && data.version) {
+        const releaseInfo = data?.release || data;
+        if (releaseInfo && releaseInfo.version) {
           const verEl = document.getElementById('landingScriptVersion');
-          
-          if (verEl) verEl.textContent = `v${data.version}`;
-          if (btnDl && data.download_url) btnDl.href = data.download_url;
+          const footerVerEl = document.getElementById('footerScriptVersion');
+          const btnDl = document.getElementById('btnDownloadUserscript');
+          const cleanVersion = String(releaseInfo.version).replace(/^v/i, '').trim();
+
+          if (verEl) verEl.textContent = `v${cleanVersion}`;
+          if (footerVerEl) footerVerEl.textContent = `v${cleanVersion}`;
+          if (btnDl && releaseInfo.download_url) btnDl.href = releaseInfo.download_url;
         }
       } catch (e) {
         const verEl = document.getElementById('landingScriptVersion');
+        const footerVerEl = document.getElementById('footerScriptVersion');
         if (verEl) verEl.textContent = 'v1.5.56';
+        if (footerVerEl) footerVerEl.textContent = 'v1.5.56';
       }
     }
 

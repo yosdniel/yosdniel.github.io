@@ -1,5 +1,753 @@
-<!DOCTYPE html><html lang="id" class="dark"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>MindHUB - Portal Layanan & Admin Dashboard</title><link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon.ico"><link rel="apple-touch-icon" href="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon512.png"><meta name="theme-color" content="#020617"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="MindHUB Unified"><script>const manifestData={"name":"MindHUB Portal","short_name":"MindHUB","start_url":"./","scope":"./","display":"standalone","orientation":"portrait-primary","background_color":"#020617","theme_color":"#020617","icons":[{"src":"https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}]};const blob=new Blob([JSON.stringify(manifestData)],{type:'application/json'});const linkTag=document.createElement('link');linkTag.rel='manifest';linkTag.href=URL.createObjectURL(blob);document.head.appendChild(linkTag);</script><script src="https://cdn.tailwindcss.com"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"><script>tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['"Plus Jakarta Sans"','sans-serif']},colors:{brand:{50:'#eef2ff',100:'#e0e7ff',400:'#818cf8',500:'#6366f1',600:'#4f46e5',700:'#4338ca'}}}}}</script><style>body{font-family:'Plus Jakarta Sans',sans-serif;overflow-x:hidden}::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(99,102,241,.25);border-radius:4px}::-webkit-scrollbar-thumb:hover{background:rgba(99,102,241,.5)}.view-section{display:none!important}.view-section.active{display:flex!important}.subview-section{display:none!important}.subview-section.active{display:block!important}.auth-tab-content{display:none}.auth-tab-content.active{display:block}.glass-card{background:rgba(15,23,42,.78);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.09);box-shadow:0 20px 50px rgba(0,0,0,.4)}.package-item-row,.package-card{transition:all .2s ease-in-out;cursor:pointer;position:relative}.package-item-row{cursor:default}.package-card.selected{border-color:#6366f1!important;background:rgba(99,102,241,.15)!important;box-shadow:0 10px 25px -5px rgba(99,102,241,.3)}.scrollbar-none::-webkit-scrollbar{display:none}.scrollbar-none{-ms-overflow-style:none;scrollbar-width:none}#qrcode-box img,#qrcode-box canvas{margin:0 auto;max-width:100%;height:auto;display:block;border-radius:12px}</style></head><body class="bg-slate-950 text-slate-100 min-h-screen antialiased selection:bg-brand-500 selection:text-white"><div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-[100000] max-w-[90vw] w-auto px-5 py-3 rounded-2xl shadow-2xl border text-white font-bold text-xs sm:text-sm transition-all duration-300 -translate-y-20 opacity-0 pointer-events-none flex items-center gap-2"></div><input type="file" id="importFileInput" accept=".csv, .json" class="hidden" onchange="processImportFile(event)"><div id="customConfirmModal" class="fixed inset-0 z-[100000] bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4"><div class="glass-card rounded-3xl shadow-2xl p-6 sm:p-7 max-w-sm w-full text-center border border-slate-800"><div class="w-12 h-12 sm:w-14 sm:h-14 bg-amber-500/10 text-amber-500 rounded-2xl mx-auto flex items-center justify-center text-xl sm:text-2xl mb-4 font-bold border border-amber-500/20">⚠️</div><h3 id="modalConfirmTitle" class="text-sm sm:text-base font-bold text-white mb-2">Konfirmasi</h3><p id="modalConfirmMsg" class="text-xs text-slate-400 mb-6 leading-relaxed whitespace-pre-line"></p><div class="flex gap-3"><button id="btnModalConfirmYes" class="flex-1 bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-bold py-3 rounded-xl text-xs transition shadow-lg shadow-brand-500/25">Ya</button><button id="btnModalConfirmNo" class="flex-1 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-bold py-3 rounded-xl text-xs transition border border-slate-700">Batal</button></div></div></div><div id="jsonViewerModal" class="fixed inset-0 z-[100000] bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4"><div class="glass-card rounded-3xl shadow-2xl p-5 sm:p-7 max-w-2xl w-full border border-slate-800 flex flex-col max-h-[85vh]"><div class="flex items-center justify-between pb-4 border-b border-slate-800"><div class="flex items-center gap-2"><span class="text-lg">☁️</span><div><h3 id="jsonModalTitle" class="text-xs sm:text-sm font-bold text-white">Preview Cloud Backup JSON</h3><span id="jsonModalSubtitle" class="text-[10px] text-slate-400 block">Inspection Utility</span></div></div><button onclick="closeJsonPreviewModal()" class="w-8 h-8 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white flex items-center justify-center font-bold text-xs transition">✕</button></div><div class="my-4 flex-1 overflow-hidden flex flex-col"><pre id="jsonPreviewContainer" class="bg-slate-950/90 p-4 rounded-2xl border border-slate-800/80 text-[11px] text-brand-400 font-mono overflow-auto flex-1 whitespace-pre-wrap leading-relaxed select-all scrollbar-none"></pre></div><div class="flex gap-3 pt-2"><button onclick="copyJsonPreview()" class="flex-1 bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-bold py-3 rounded-xl text-xs transition shadow-lg shadow-brand-500/25 flex items-center justify-center gap-1.5">📋 Salin JSON</button><button onclick="downloadBackupCloud()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3 rounded-xl text-xs transition flex items-center justify-center gap-1.5">📥 Download File</button><button onclick="closeJsonPreviewModal()" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 font-bold px-5 rounded-xl text-xs transition border border-slate-700">Tutup</button></div></div></div><div id="sidebarBackdrop" onclick="toggleSidebarMobile(false)" class="fixed inset-0 z-30 bg-slate-950/70 backdrop-blur-sm hidden lg:hidden transition-opacity duration-300 opacity-0"></div><div id="viewLandingPage" class="view-section active fixed inset-0 z-[9999] bg-slate-950 w-full h-full items-center justify-center p-4 overflow-y-auto"><div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/30 via-slate-950 to-slate-950 pointer-events-none"></div><div class="glass-card w-full max-w-md p-6 sm:p-8 rounded-3xl shadow-2xl relative z-10 border border-slate-800 my-auto"><div class="text-center mb-6"><div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl mx-auto flex items-center justify-center mb-3 shadow-xl shadow-brand-500/30 border border-indigo-400/30 overflow-hidden bg-slate-900 p-1"><img src="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon512.png" alt="MindHUB Logo" class="w-full h-full object-cover rounded-xl"></div><h2 class="font-extrabold text-xl sm:text-2xl text-white tracking-tight">MindHUB Portal Pro</h2><p class="text-xs text-slate-400 mt-1">Enterprise Cloud Licensing & Ecosystem ✨</p></div><div id="authTabsContainer" class="flex bg-slate-900/90 p-1 rounded-2xl border border-slate-800 mb-6"><button id="tabBtnLogin" onclick="switchAuthTab('login')" class="flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 bg-brand-500 text-white shadow-md shadow-brand-500/20">Masuk / Login</button><button id="tabBtnRegister" onclick="switchAuthTab('register')" class="flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 text-slate-400 hover:text-white">Daftar Akun</button></div><div id="formTabLogin" class="auth-tab-content active space-y-4 text-left"><div id="loginErrorMsg" class="hidden p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold leading-relaxed"></div><div><label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Username / Email</label><input type="text" id="loginUserIdentifier" placeholder="akun@minduniverse.id" oninput="this.value = this.value.toLowerCase()" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition font-mono lowercase"></div><div><div class="flex justify-between items-center mb-1.5"><label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Password</label><button type="button" onclick="switchAuthTab('forgot')" class="text-[11px] text-brand-400 hover:text-brand-300 font-bold hover:underline">Lupa Password?</button></div><input type="password" id="loginPassword" placeholder="••••••••••••" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition" onkeyup="if(event.key==='Enter') verifikasiUserLogin()"></div><div class="flex items-center gap-2 pt-1"><input type="checkbox" id="rememberMeCheckbox" class="w-4 h-4 rounded border-slate-800 bg-slate-900 text-brand-500 focus:ring-0 cursor-pointer"><label for="rememberMeCheckbox" class="text-xs text-slate-400 font-semibold cursor-pointer select-none">Ingat saya</label></div><button id="btnLogin" onclick="verifikasiUserLogin()" class="w-full bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 active:scale-[0.99] text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-xl shadow-brand-500/30 transition duration-200 mt-2">Masuk Portal</button></div><div id="formTabRegister" class="auth-tab-content space-y-3.5 text-left"><div id="registerErrorMsg" class="hidden p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold leading-relaxed"></div><div><label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1 tracking-wider">Username (6-16 Karakter)</label><input type="text" id="regUsername" minlength="6" maxlength="16" placeholder="mindspace" oninput="this.value = this.value.toLowerCase()" class="w-full px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition font-mono lowercase"></div><div><label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1 tracking-wider">Email Address</label><input type="email" id="regEmail" placeholder="akun@minduniverse.id" class="w-full px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition"></div><div><label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1 tracking-wider">Password</label><input type="password" id="regPassword" minlength="6" maxlength="16" placeholder="••••••••••••" oninput="validatePasswordStrength(this.value, 'regPasswordStrength')" class="w-full px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition"><div id="regPasswordStrength" class="mt-2.5 space-y-1.5 p-3 rounded-2xl bg-slate-900/90 border border-slate-800 text-[11px]"><div data-rule="length" class="flex items-center gap-2 text-red-400 transition-colors"><span class="indicator-icon font-bold">❌</span><span>Minimal 8 karakter</span></div><div data-rule="uppercase" class="flex items-center gap-2 text-red-400 transition-colors"><span class="indicator-icon font-bold">❌</span><span>Minimal 1 huruf besar (A-Z)</span></div><div data-rule="number" class="flex items-center gap-2 text-red-400 transition-colors"><span class="indicator-icon font-bold">❌</span><span>Minimal 1 angka (0-9)</span></div><div data-rule="special" class="flex items-center gap-2 text-red-400 transition-colors"><span class="indicator-icon font-bold">❌</span><span>Minimal 1 karakter spesial (@$!%*?& dll.)</span></div></div></div><button id="btnRegister" onclick="prosesUserRegister()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 active:scale-[0.99] text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-xl shadow-emerald-500/20 transition duration-200 mt-2">Daftar Akun</button></div><div id="formTabForgot" class="auth-tab-content space-y-4 text-left"><div class="text-center space-y-1"><span class="text-3xl">🔑</span><h3 class="font-extrabold text-white text-sm">Pemulihan Password</h3><p class="text-xs text-slate-400">Masukkan email terdaftar untuk menerima 6-digit kode OTP reset password.</p></div><div id="forgotErrorMsg" class="hidden p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold leading-relaxed"></div><div><label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Email Terdaftar</label><input type="email" id="forgotInputEmail" placeholder="user@domain.com" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition"></div><button id="btnSendResetCode" onclick="prosesCekEmailLupaPassword()" class="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 active:scale-[0.99] text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-xl shadow-amber-500/20 transition">Kirim kode OTP</button><div class="text-center"><button type="button" onclick="switchAuthTab('login')" class="text-xs text-slate-500 hover:text-slate-300 underline">Batal & Kembali ke Login</button></div></div><div id="formTabResetNew" class="auth-tab-content space-y-4 text-left"><div class="text-center space-y-1"><span class="text-3xl">🛡️</span><h3 class="font-extrabold text-white text-sm">Buat Password Baru</h3><p class="text-xs text-slate-400">Masukkan kode OTP 6-angka (berlaku 5 menit) dari email <span id="resetTargetEmail" class="text-amber-400 font-mono">user@domain.com</span></p></div><div id="resetNewErrorMsg" class="hidden p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold leading-relaxed"></div><div><label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Kode OTP 6-Digit</label><input type="text" id="resetInputCode" maxlength="6" placeholder="123456" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-center text-xl tracking-[0.4em] font-mono outline-none focus:border-brand-500 transition"></div><div><label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Password Baru</label><input type="password" id="resetNewPassword" minlength="6" maxlength="16" placeholder="••••••••••••" oninput="validatePasswordStrength(this.value, 'resetPasswordStrength')" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition"><div id="resetPasswordStrength" class="mt-2.5 space-y-1.5 p-3 rounded-2xl bg-slate-900/90 border border-slate-800 text-[11px]"><div data-rule="length" class="flex items-center gap-2 text-red-400 transition-colors"><span class="indicator-icon font-bold">❌</span><span>Minimal 8 karakter</span></div><div data-rule="uppercase" class="flex items-center gap-2 text-red-400 transition-colors"><span class="indicator-icon font-bold">❌</span><span>Minimal 1 huruf besar (A-Z)</span></div><div data-rule="number" class="flex items-center gap-2 text-red-400 transition-colors"><span class="indicator-icon font-bold">❌</span><span>Minimal 1 angka (0-9)</span></div><div data-rule="special" class="flex items-center gap-2 text-red-400 transition-colors"><span class="indicator-icon font-bold">❌</span><span>Minimal 1 karakter spesial (@$!%*?& dll.)</span></div></div></div><div><label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Konfirmasi Password Baru</label><input type="password" id="resetConfirmPassword" minlength="6" maxlength="16" placeholder="••••••••••••" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition"></div><button id="btnSubmitResetPassword" onclick="prosesResetPasswordBaru()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 active:scale-[0.99] text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-xl shadow-emerald-500/20 transition">Simpan Password Baru</button><div class="text-center"><button type="button" onclick="switchAuthTab('login')" class="text-xs text-slate-500 hover:text-slate-300 underline">Kembali ke Login</button></div></div><div id="formTabVerify" class="auth-tab-content space-y-4 text-center"><div class="space-y-1"><span class="text-3xl">📩</span><h3 class="font-extrabold text-white text-sm">Verifikasi Email Anda</h3><p class="text-xs text-slate-400">Masukkan 6-angka kode verifikasi (berlaku 5 menit) ke <span id="verifyTargetEmail" class="text-brand-400 font-mono">user@domain.com</span></p></div><div id="verifyErrorMsg" class="hidden p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold leading-relaxed text-left"></div><div><input type="text" id="verifyInputCode" maxlength="6" placeholder="123456" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-center text-xl sm:text-2xl tracking-[0.5em] font-mono outline-none focus:border-brand-500 transition"></div><button id="btnVerifyEmail" onclick="konfirmasiKodeVerifikasi()" class="w-full bg-gradient-to-r from-brand-500 to-indigo-600 text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-xl shadow-brand-500/30 transition">Verifikasi & Aktifkan Akun</button><button onclick="switchAuthTab('login')" class="text-xs text-slate-500 hover:text-slate-300 underline">Kembali ke Login</button></div><div class="mt-6 pt-4 border-t border-slate-800/80 text-center flex flex-col gap-1"><span class="text-[10px] text-slate-500">&copy; 2026 Mindspace Studio</span></div></div></div><div id="viewDashboardApp" class="view-section min-h-screen w-full flex-col lg:flex-row"><aside id="sidebar" class="w-72 glass-card border-r border-slate-800/80 flex flex-col fixed inset-y-0 left-0 z-40 transition-transform duration-300 -translate-x-full lg:translate-x-0"><div class="h-20 flex items-center justify-between px-6 border-b border-slate-800/80"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-xl bg-slate-900 border border-indigo-500/30 overflow-hidden p-0.5 shadow-md shadow-brand-500/20"><img src="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon512.png" alt="MindHUB" class="w-full h-full object-cover rounded-lg"></div><span class="font-extrabold text-lg text-white tracking-tight">MindHUB Pro</span></div><button onclick="toggleSidebarMobile(false)" class="lg:hidden p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/50">✕</button></div><div class="flex-1 overflow-y-auto px-4 py-6 space-y-1.5 scrollbar-none"><div id="sectionAdminMenu" class="space-y-1.5"><div class="text-[10px] font-extrabold text-slate-500 uppercase px-3 mb-2 tracking-wider">Admin Navigation</div><button onclick="bukaSubView('overview')" id="navOverview" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent"><span class="text-base">⊞</span> Overview</button><button onclick="bukaSubView('device')" id="navDevice" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent"><span class="text-base">👥</span> Client Devices</button><button onclick="bukaSubView('transfer')" id="navTransfer" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent"><span class="text-base">🔄</span> Migrate Data</button></div><div id="sectionSystemConfig" class="space-y-1.5 pt-4"><div class="text-[10px] font-extrabold text-amber-500 uppercase px-3 mb-2 tracking-wider">System Config</div><button onclick="bukaSubView('packages')" id="navPackages" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent"><span class="text-base">📦</span> Pricing Plans</button><button onclick="bukaSubView('release')" id="navRelease" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent"><span class="text-base">🚀</span> Cloud Updater</button></div><div id="sectionUserMenu" class="space-y-1.5 pt-4"><div class="text-[10px] font-extrabold text-slate-500 uppercase px-3 mb-2 tracking-wider">User Portal</div><button onclick="bukaSubView('services')" id="navServices" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-brand-500/15 text-brand-400 text-xs font-bold transition border border-brand-500/30 shadow-sm"><span class="text-base">⚡</span> Layanan Aktif</button><button onclick="bukaSubView('voucher')" id="navVoucher" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent"><span class="text-base">🎫</span> Klaim Voucher</button><button onclick="bukaSubView('profile')" id="navProfile" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent"><span class="text-base">⚙️</span> Pengaturan Profil</button></div></div><div class="p-4 border-t border-slate-800/80"><button onclick="logoutUser()" class="w-full bg-red-500/10 hover:bg-red-500/20 active:scale-95 text-red-400 py-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 border border-red-500/20"><span>🚪</span> Keluar Sesi</button></div></aside><div class="flex-1 lg:pl-72 flex flex-col min-h-screen w-full"><header class="h-16 sm:h-20 glass-card border-b border-slate-800 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30"><div class="flex items-center gap-3"><button class="lg:hidden p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white" onclick="toggleSidebarMobile(true)"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg></button><h1 id="appTitle" class="font-extrabold text-sm sm:text-base text-white tracking-tight">Layanan Aktif Saya</h1></div><div class="flex items-center gap-3"><span id="userRoleBadge" class="text-[10px] uppercase font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">User</span><div class="w-8 h-8 rounded-full bg-slate-900 border border-brand-500/30 overflow-hidden flex items-center justify-center shadow-md"><img id="headerAvatarPreview" src="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon512.png" alt="Avatar Header" class="w-full h-full object-cover"></div><span id="userDisplayName" class="text-xs font-mono font-bold text-brand-400 bg-brand-500/10 px-3 py-1.5 rounded-xl border border-brand-500/20">DEV-USER</span></div></header><main class="flex-1 p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto"><div id="subViewServices" class="subview-section active space-y-6"><div class="glass-card p-6 rounded-3xl border border-slate-800 relative overflow-hidden"><div class="absolute -right-10 -top-10 w-48 h-48 bg-brand-500/15 rounded-full blur-3xl pointer-events-none"></div><h2 class="text-xl font-extrabold text-white mb-1">Status Lisensi & System Health</h2><p class="text-slate-400 text-xs max-w-md leading-relaxed">Pantau status aktif lisensi perangkat Anda secara real-time.</p></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="containerUserServices"><div class="text-center text-slate-500 text-xs py-10 col-span-2">Memuat data layanan...</div></div></div><div id="subViewVoucher" class="subview-section space-y-4 max-w-xl mx-auto"><div class="glass-card p-6 sm:p-8 rounded-3xl space-y-5 border border-slate-800"><div class="flex items-center gap-3 pb-3 border-b border-slate-800"><span class="text-3xl">🎫</span><div><h3 class="font-extrabold text-sm sm:text-base text-white">Klaim Kode Voucher Lisensi</h3><p class="text-xs text-slate-400">Aktifkan atau perpanjang masa aktif perangkat Anda.</p></div></div><div class="space-y-4 text-left"><div><label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Device ID Perangkat</label><input type="text" id="inputRedeemDeviceId" placeholder="Contoh: DEV-9BE2-DA4E" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm font-mono uppercase outline-none focus:border-brand-500 transition"></div><div><label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Kode Voucher Lisensi</label><input type="text" id="inputRedeemVoucher" placeholder="Contoh: MIND-XXXXXX-XXXXXX" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm font-mono uppercase outline-none focus:border-brand-500 transition"></div><button id="btnRedeemVoucher" onclick="prosesKlaimVoucher()" class="w-full bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 active:scale-[0.99] text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-xl shadow-brand-500/30 transition duration-200 mt-2">⚡ Redeem Voucher Sekarang</button></div></div></div><div id="subViewProfile" class="subview-section space-y-6 max-w-xl mx-auto"><div class="glass-card p-6 sm:p-8 rounded-3xl space-y-6 border border-slate-800"><div class="flex items-center gap-3 pb-4 border-b border-slate-800"><span class="text-3xl">👤</span><div><h3 class="font-extrabold text-sm sm:text-base text-white">Pengaturan Akun & Profil</h3><p class="text-xs text-slate-400">Kelola foto profil base64, keamanan password, dan email.</p></div></div><div class="space-y-3"><label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Foto Profil (Base64 Upload)</label><div class="flex items-center gap-4"><div class="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden flex items-center justify-center flex-shrink-0"><img id="profileAvatarPreview" src="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon512.png" alt="Avatar" class="w-full h-full object-cover"></div><div class="flex-1 space-y-2"><input type="file" id="inputAvatarFile" accept="image/png, image/jpeg, image/webp" class="hidden" onchange="previewAndConvertBase64(this)"><div class="flex gap-2"><button type="button" onclick="document.getElementById('inputAvatarFile').click()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-2 rounded-xl text-xs font-bold transition">Pilih Gambar</button><button onclick="updateProfilePictureBase64()" class="flex-1 bg-brand-500/20 hover:bg-brand-500/30 text-brand-400 border border-brand-500/30 px-4 py-2 rounded-xl text-xs font-bold transition">Simpan Avatar</button></div><p id="avatarFileName" class="text-[10px] text-slate-500 truncate">Maks. ukuran disarankan di bawah 500KB.</p></div></div></div><hr class="border-slate-800"><div class="space-y-3"><h4 class="text-xs font-extrabold text-white uppercase tracking-wider">🔒 Ganti Password</h4><div><label class="block text-[10px] text-slate-400 mb-1">Password Lama</label><input type="password" id="oldPassword" placeholder="••••••••" class="w-full px-3 py-2 rounded-xl border border-slate-800 bg-slate-900/80 text-white text-xs outline-none focus:border-brand-500"></div><div><label class="block text-[10px] text-slate-400 mb-1">Password Baru (Min. 8 Karakter)</label><input type="password" id="newPassword" placeholder="••••••••" class="w-full px-3 py-2 rounded-xl border border-slate-800 bg-slate-900/80 text-white text-xs outline-none focus:border-brand-500"></div><button onclick="requestChangePasswordOtp()" class="w-full bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/30 py-2.5 rounded-xl text-xs font-bold transition">Kirim Kode OTP Ganti Password</button><div id="sectionChangePasswordOtp" class="hidden space-y-2 pt-2 border-t border-slate-800"><label class="block text-[10px] text-slate-400">Kode OTP 6-Digit (dari Email)</label><input type="text" id="otpChangePassword" maxlength="6" placeholder="123456" class="w-full px-3 py-2 rounded-xl border border-slate-800 bg-slate-900/80 text-white text-center font-mono tracking-widest text-sm outline-none focus:border-brand-500"><button onclick="verifyAndChangePassword()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-bold transition">Konfirmasi & Simpan Password Baru</button></div></div><hr class="border-slate-800"><div class="space-y-3"><h4 class="text-xs font-extrabold text-white uppercase tracking-wider">✉️ Ganti Alamat Email</h4><div><label class="block text-[10px] text-slate-400 mb-1">Email Baru</label><input type="email" id="newEmailAddress" placeholder="emailbaru@domain.com" class="w-full px-3 py-2 rounded-xl border border-slate-800 bg-slate-900/80 text-white text-xs outline-none focus:border-brand-500"></div><button onclick="requestChangeEmailOtp()" class="w-full bg-brand-500/20 hover:bg-brand-500/30 text-brand-400 border border-brand-500/30 py-2.5 rounded-xl text-xs font-bold transition">Kirim Kode OTP ke Email Baru</button><div id="sectionChangeEmailOtp" class="hidden space-y-2 pt-2 border-t border-slate-800"><label class="block text-[10px] text-slate-400">Kode OTP 6-Digit (dari Email Baru)</label><input type="text" id="otpChangeEmail" maxlength="6" placeholder="123456" class="w-full px-3 py-2 rounded-xl border border-slate-800 bg-slate-900/80 text-white text-center font-mono tracking-widest text-sm outline-none focus:border-brand-500"><button onclick="verifyAndChangeEmail()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-bold transition">Verifikasi & Ganti Email</button></div></div></div></div><div id="subViewMainMenu" class="subview-section space-y-4 sm:space-y-6"><div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6"><div class="lg:col-span-2 glass-card p-6 sm:p-8 rounded-3xl flex flex-col justify-center relative overflow-hidden border border-slate-800"><div class="absolute -right-10 -top-10 w-48 h-48 sm:w-64 sm:h-64 bg-brand-500/15 rounded-full blur-3xl pointer-events-none"></div><h2 class="text-xl sm:text-2xl font-extrabold text-white mb-2 relative z-10">Welcome to MindHUB Pro Enterprise</h2><p class="text-slate-400 text-xs sm:text-sm max-w-md leading-relaxed relative z-10">All systems fully operational. Monitor device authorization, real-time analytics, and gateway synchronization with high-performance metrics.</p></div><div class="glass-card p-5 sm:p-6 rounded-3xl flex flex-col justify-between border border-slate-800"><span class="text-[10px] sm:text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Monthly Revenue</span><h3 id="statRevBulan" class="text-2xl sm:text-3xl font-black text-white mt-2">Rp 0</h3><div class="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-slate-800"><div><span class="text-[10px] text-slate-500 uppercase font-bold">Today</span><h4 id="statRevHari" class="text-xs sm:text-sm font-bold text-brand-400 mt-1">Rp 0</h4></div><div><span class="text-[10px] text-slate-500 uppercase font-bold">This Week</span><h4 id="statRevMinggu" class="text-xs sm:text-sm font-bold text-brand-400 mt-1">Rp 0</h4></div></div></div></div><div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6"><div class="lg:col-span-2 glass-card p-4 sm:p-6 rounded-3xl border border-slate-800"><div class="flex items-center justify-between mb-4 flex-wrap gap-2"><div><div class="text-xs sm:text-sm font-bold text-slate-300 flex items-center gap-2"><span>📈 Revenue Trend</span></div><p class="text-[10px] text-slate-400 mt-0.5">Analisis tren pendapatan real-time</p></div><div class="flex bg-slate-900 p-1 rounded-xl border border-slate-800 text-[10px] font-bold"><button id="btnTf7d" onclick="setRevenueTimeframe('7d')" class="px-3 py-1 rounded-lg bg-brand-500 text-white transition shadow-md shadow-brand-500/20">7d</button><button id="btnTf14d" onclick="setRevenueTimeframe('14d')" class="px-3 py-1 rounded-lg text-slate-400 hover:text-white transition">14d</button><button id="btnTf1m" onclick="setRevenueTimeframe('1m')" class="px-3 py-1 rounded-lg text-slate-400 hover:text-white transition">1m</button></div></div><div class="w-full bg-slate-900/50 p-3 sm:p-5 rounded-2xl border border-slate-800/80 overflow-x-auto scrollbar-none"><div id="chartBarsContainer" class="w-full min-w-[320px] flex items-end justify-between h-44 sm:h-48 pt-6 border-b border-slate-800/80 px-1 sm:px-2 gap-1 sm:gap-1.5"></div></div></div><div class="glass-card p-5 sm:p-6 rounded-3xl border border-slate-800 flex flex-col justify-between relative overflow-hidden"><div class="space-y-3"><div class="flex items-center justify-between"><div class="flex items-center gap-2"><span class="relative flex h-3 w-3"><span id="heartbeatPulseRing" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span id="heartbeatDot" class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span></span><h4 class="font-bold text-white text-xs sm:text-sm">MindHUB System Status</h4></div><span id="heartbeatLiveValue" class="text-[11px] font-mono font-extrabold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-lg">-- ms</span></div><p class="text-[11px] text-slate-400 leading-relaxed">Seluruh sistem, database lisensi, dan updater berjalan normal.</p><div class="w-full bg-slate-950/80 rounded-2xl p-3 border border-slate-800/80 relative"><div class="flex items-center justify-between text-[9px] font-mono text-slate-500 mb-1"><span>LIVE LATENCY MONITOR</span><span class="text-emerald-400 animate-pulse font-bold">1 Hz REALTIME</span></div><div class="w-full h-20 relative"><canvas id="heartbeatCanvas" class="w-full h-full block"></canvas></div><div class="flex justify-between items-center text-[9px] font-mono text-slate-500 mt-1 pt-1 border-t border-slate-900"><span id="hbMinMs">Min: --</span><span id="hbAvgMs">Avg: --</span><span id="hbMaxMs">Max: --</span></div></div></div><div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between"><span class="text-xs font-semibold text-slate-400">System Engine:</span><span id="systemEngineBadge" class="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold rounded-xl text-xs">Online</span></div></div></div><div class="grid grid-cols-1 sm:grid-cols-3 gap-4"><div class="glass-card p-4 sm:p-5 rounded-2xl border border-slate-800 flex items-center justify-between"><div><span class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block">Total Script Downloads</span><div class="flex items-center gap-2 mt-1"><span class="relative flex h-2.5 w-2.5"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-500"></span></span><span class="text-xs font-bold text-brand-400">download.html Portal</span></div></div><div class="text-right"><span id="statTotalDownloads" class="text-base sm:text-xl font-mono font-black text-emerald-400">0</span><span class="text-[9px] text-slate-500 block">Total Ditekan</span></div></div><div class="glass-card p-4 sm:p-5 rounded-2xl border border-slate-800 flex flex-col justify-between"><div class="flex justify-between items-center"><span class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">License Ratio</span><span id="statActiveRatio" class="text-[11px] font-bold text-brand-400">0% Active</span></div><div class="w-full bg-slate-900 rounded-full h-2 mt-3 overflow-hidden flex" id="licenseRatioBar"><div class="bg-emerald-500 h-full transition-all duration-500" style="width: 0%"></div><div class="bg-amber-500 h-full transition-all duration-500" style="width: 0%"></div><div class="bg-red-500 h-full transition-all duration-500" style="width: 0%"></div></div></div><div class="glass-card p-4 sm:p-5 rounded-2xl border border-slate-800 flex items-center justify-between"><div><span class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block">Data Management</span><span class="text-xs text-slate-400 mt-0.5 block">CSV / JSON Sync</span></div><div class="flex gap-2"><button onclick="exportLicensesCSV()" class="bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 active:scale-95 px-3 py-2 rounded-xl text-xs font-bold transition border border-indigo-500/20 flex items-center gap-1">📥 Export</button><button onclick="document.getElementById('importFileInput').click()" class="bg-brand-500/10 hover:bg-brand-500/20 text-brand-400 active:scale-95 px-3 py-2 rounded-xl text-xs font-bold transition border border-brand-500/20 flex items-center gap-1">📤 Import</button></div></div></div><div class="glass-card p-5 rounded-2xl border border-slate-800 space-y-3"><div class="flex items-center justify-between flex-wrap gap-2"><div class="flex items-center gap-2"><span class="text-base">⚠️</span><span class="text-[11px] font-extrabold text-amber-400 uppercase tracking-wider">Licenses Expiring Soon (Next 7 Days)</span></div><button onclick="bukaSubView('device')" class="text-[10px] text-brand-400 font-bold hover:underline">View All Devices →</button></div><div id="expiringRadarContainer" class="space-y-2 max-h-48 overflow-y-auto"><div class="text-center text-slate-500 text-xs py-4">Checking active license status...</div></div></div></div><div id="subViewDeviceCheck" class="subview-section space-y-4 max-w-4xl mx-auto"><div class="glass-card p-5 sm:p-8 rounded-3xl space-y-4 border border-slate-800"><div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center"><div class="sm:col-span-2"><label class="block text-[10px] sm:text-xs font-bold text-slate-400 uppercase mb-2">Cari Device ID / SPPG</label><input type="text" id="searchUserQuery" placeholder="🔍 Ketik Device ID atau Nama SPPG..." class="w-full px-4 py-3 sm:py-3.5 rounded-2xl border border-slate-700 bg-slate-900/60 text-xs sm:text-sm text-white outline-none focus:border-brand-500 transition" oninput="filterUserList()"></div><div><label class="block text-[10px] sm:text-xs font-bold text-slate-400 uppercase mb-2">Urutan / Sort</label><select id="sortDeviceOption" onchange="filterUserList()" class="w-full px-3 py-3 sm:py-3.5 rounded-2xl border border-slate-700 bg-slate-900/60 text-xs text-white outline-none focus:border-brand-500 transition"><option value="exp_asc">⚠️ Kadaluarsa Terdekat</option><option value="exp_desc">⏳ Masa Aktif Terlama</option><option value="name_asc">🔤 Device ID / Name A-Z</option><option value="active_desc">⚡ Baru Saja Aktif</option></select></div></div><div class="flex justify-between items-center flex-wrap gap-2 border-b border-slate-800/80 pb-3"><div class="flex gap-2 overflow-x-auto scrollbar-none" id="filterTabsContainer"><button class="px-3.5 py-2 rounded-xl bg-brand-500 text-white text-xs font-bold tab-btn active whitespace-nowrap" onclick="setFilterTab('all', this)">All</button><button class="px-3.5 py-2 rounded-xl bg-slate-800/80 text-slate-400 text-xs font-semibold tab-btn whitespace-nowrap" onclick="setFilterTab('active', this)">Active</button><button class="px-3.5 py-2 rounded-xl bg-slate-800/80 text-slate-400 text-xs font-semibold tab-btn whitespace-nowrap" onclick="setFilterTab('hold', this)">Hold</button><button class="px-3.5 py-2 rounded-xl bg-slate-800/80 text-slate-400 text-xs font-semibold tab-btn whitespace-nowrap" onclick="setFilterTab('expired', this)">Expired</button><button class="px-3.5 py-2 rounded-xl bg-slate-800/80 text-slate-400 text-xs font-semibold tab-btn whitespace-nowrap" onclick="setFilterTab('revoked', this)">Revoked</button></div><label class="flex items-center gap-2 cursor-pointer text-xs text-slate-400 hover:text-white font-bold select-none px-2 py-1 bg-slate-900 rounded-xl border border-slate-800"><input type="checkbox" id="chkSelectAllDevices" onchange="toggleSelectAllDevices(this.checked)" class="rounded border-slate-700 text-brand-500 focus:ring-0 bg-slate-950"><span>Select All</span></label></div><div id="bulkActionsToolbar" class="hidden bg-slate-900/95 border border-brand-500/30 p-3 sm:p-4 rounded-2xl flex items-center justify-between flex-wrap gap-3 shadow-xl backdrop-blur-md"><div class="text-xs text-slate-300 font-bold"><span id="bulkSelectedCount" class="text-brand-400 font-extrabold text-sm">0</span> Device Dipilih</div><div class="flex gap-2 flex-wrap text-xs"><button onclick="bulkExtendDuration(7)" class="bg-brand-500/20 hover:bg-brand-500/30 text-brand-400 font-bold px-3 py-1.5 rounded-xl border border-brand-500/30 transition">+7 Hari</button><button onclick="bulkExtendDuration(30)" class="bg-brand-500/20 hover:bg-brand-500/30 text-brand-400 font-bold px-3 py-1.5 rounded-xl border border-brand-500/30 transition">+30 Hari</button><button onclick="bulkUpdateStatus('hold')" class="bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold px-3 py-1.5 rounded-xl border border-amber-500/30 transition">Set Hold</button><button onclick="bulkUpdateStatus('active')" class="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 font-bold px-3 py-1.5 rounded-xl border border-emerald-500/20 transition">Set Active</button><button onclick="bulkDeleteLicensesWithModal()" class="bg-red-500/20 hover:bg-red-500/30 text-red-400 font-bold px-3 py-1.5 rounded-xl border border-red-500/30 transition">🗑️ Hapus Batch</button></div></div><div id="listAllUsersContainer" class="space-y-2.5 max-h-[420px] overflow-y-auto"><div class="text-center text-slate-500 text-xs py-10">Memuat data...</div></div><button onclick="bukaSubView('overview')" class="w-full bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-2xl text-xs font-bold transition border border-slate-700">🔙 Kembali ke Overview</button></div></div><div id="subViewDeviceDetail" class="subview-section space-y-4 sm:space-y-6 max-w-2xl mx-auto"><div class="glass-card p-5 sm:p-8 rounded-3xl space-y-5 border border-slate-800"><div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-2 text-xs sm:text-sm"><div class="flex justify-between items-center gap-2"><span>Device ID</span> <span id="dispDeviceId" class="text-amber-400 font-mono font-bold truncate max-w-[180px] sm:max-w-none">-</span></div><div class="flex justify-between items-center gap-2"><span>SPPG</span> <span id="dispSppgName" class="text-brand-400 font-bold truncate max-w-[180px] sm:max-w-none">-</span></div><div class="flex justify-between items-center gap-2"><span>Status</span> <span id="dispStatus">-</span></div><div class="flex justify-between items-center gap-2"><span>Exp Date</span> <span id="dispExpDate" class="text-white font-bold">-</span></div><div class="flex justify-between items-center gap-2"><span>Last Active</span> <span id="dispLastActive" class="text-slate-400">-</span></div></div><div id="extensionSection" class="bg-slate-900/90 p-5 rounded-2xl border border-brand-500/30 space-y-4 shadow-xl"><div class="flex items-center justify-between border-b border-slate-800 pb-3"><span class="font-extrabold text-xs sm:text-sm text-white uppercase tracking-wider flex items-center gap-2"><span>⚡</span> Perpanjang Masa Aktif Perangkat</span><span class="text-[10px] text-brand-400 font-mono bg-brand-500/10 px-2.5 py-1 rounded-lg border border-brand-500/20">Self-Service QRIS</span></div><div id="extensionStepPackages" class="space-y-3"><label class="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Pilih Paket Langganan</label><div id="detailPackagesContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div><div class="space-y-2 pt-2"><label class="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Kode Promo (Opsional)</label><div class="flex gap-2"><input type="text" id="detailPromoCode" placeholder="Masukkan kode promo" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-white font-mono uppercase text-xs outline-none focus:border-brand-500 transition"><button type="button" onclick="applyDetailPromo()" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-bold px-4 rounded-xl text-xs transition border border-slate-750 shrink-0">Terapkan</button></div><div id="detailPromoMsg" class="text-[11px] font-medium hidden"></div></div><button type="button" onclick="createDetailQR()" class="w-full bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 active:scale-[0.99] text-white font-extrabold py-3.5 px-6 rounded-2xl text-xs sm:text-sm transition shadow-xl shadow-brand-500/30 mt-2">🚀 Buat QRIS Pembayaran</button></div><div id="extensionStepQris" class="hidden space-y-4 text-center"><div><h3 class="font-bold text-sm text-white">Scan QRIS untuk Perpanjang Lisensi</h3><p id="detailQrisSubtitle" class="text-[11px] text-slate-400 mt-0.5 font-mono">-</p></div><div class="bg-white p-4 rounded-2xl inline-block shadow-2xl mx-auto border-4 border-slate-800"><div id="qrcode-box" class="flex items-center justify-center min-w-[180px] min-h-[180px]"></div></div><div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 max-w-sm mx-auto space-y-1"><span class="text-[10px] uppercase font-extrabold text-slate-500 tracking-wider block">Total Tagihan (Termasuk Fee 1.7%)</span><b id="detailQrisTotalAmount" class="text-emerald-400 font-black text-xl">Rp 0</b><span id="detailQrisFeeInfo" class="text-[10px] text-slate-400 block font-mono"></span></div><div class="flex items-center justify-center gap-2 text-xs text-brand-400 font-bold bg-brand-500/10 py-2 px-3 rounded-xl border border-brand-500/20 max-w-sm mx-auto"><span class="w-2.5 h-2.5 rounded-full bg-brand-400 animate-ping"></span><span id="detailPollingStatusText">Mengecek status pembayaran otomatis...</span></div><button type="button" onclick="cancelDetailQris()" class="text-xs text-slate-400 hover:text-white underline font-semibold pt-1 block mx-auto">&larr; Batalkan &amp; Ganti Paket</button></div><div id="extensionStepSuccess" class="hidden space-y-4 text-center py-2"><div class="w-14 h-14 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 rounded-2xl mx-auto flex items-center justify-center text-2xl shadow-xl shadow-emerald-500/20">🎉</div><div><h3 class="font-black text-base text-white">Perpanjangan Berhasil!</h3><p class="text-xs text-slate-300 mt-1">Masa aktif perangkat telah diperbarui.</p></div><div class="bg-slate-950 p-3 rounded-xl border border-slate-800 max-w-sm mx-auto text-xs space-y-1"><div class="flex justify-between"><span class="text-slate-400">Exp Date Baru:</span><span id="detailSuccessExpDate" class="font-mono text-emerald-400 font-bold">-</span></div></div><button onclick="bukaSubView('device')" class="bg-brand-500 hover:bg-brand-600 text-white font-bold py-2.5 px-6 rounded-xl text-xs transition">Kembali ke Daftar Device</button></div></div><div id="backupInfoCard" class="hidden bg-slate-900/90 p-4 sm:p-5 rounded-2xl border border-emerald-500/30 space-y-3 text-xs shadow-xl"><div class="font-bold text-emerald-400 uppercase tracking-wider flex items-center justify-between"><span class="flex items-center gap-1.5"><span class="text-sm">☁️</span> Cloud Backup Data KPM (Aktif)</span><span class="text-[10px] text-emerald-300 font-mono bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">3D Auto-Purge</span></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-300"><div><b>Nama File:</b> <span id="dispBackupFilename" class="font-mono text-amber-400 block truncate">-</span></div><div><b>Waktu Backup:</b> <span id="dispBackupTime" class="text-slate-400 block">-</span></div></div><div class="flex gap-2 pt-2"><button onclick="previewBackupCloud()" class="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-1">👁️ Lihat JSON</button><button onclick="downloadBackupCloud()" class="flex-1 bg-brand-500 hover:bg-brand-600 text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-1">📥 Download</button><button onclick="hapusBackupCloudWithModal()" class="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold py-2.5 rounded-xl transition border border-red-500/20">🗑️ Hapus</button></div></div><div id="developerVoucherBox" class="bg-brand-500/10 p-4 sm:p-5 rounded-2xl border border-brand-500/20 space-y-3"><div class="font-bold text-brand-400 text-xs uppercase tracking-wider flex items-center justify-between flex-wrap gap-1"><span>🎫 Generate Voucher Device Ini</span><span class="text-[10px] text-slate-400 font-normal">(Single-use per Device ID)</span></div><div class="grid grid-cols-3 sm:grid-cols-6 gap-1.5 sm:gap-2"><button onclick="generateVoucherDevice(1)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">1 Hari</button><button onclick="generateVoucherDevice(3)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">3 Hari</button><button onclick="generateVoucherDevice(7)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">7 Hari</button><button onclick="generateVoucherDevice(14)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">14 Hari</button><button onclick="generateVoucherDevice(30)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">30 Hari</button><button onclick="generateVoucherDevice(60)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">60 Hari</button></div><div class="flex gap-2"><input type="text" id="dispGeneratedVoucher" readonly placeholder="MIND-XXXXXX-XXXXXX" class="flex-1 bg-slate-900/90 border border-slate-700 px-3 sm:px-4 py-2.5 rounded-xl font-mono text-xs sm:text-sm text-brand-400 font-bold text-center"><button onclick="salinVoucherDevice()" class="bg-brand-500 hover:bg-brand-600 active:scale-95 text-white px-4 rounded-xl font-bold text-xs transition">Salin</button></div></div><div id="developerEditControls" class="space-y-4 pt-2"><div><label class="block text-xs font-bold text-slate-400 uppercase mb-2">Edit SPPG Name</label><input type="text" id="editSppgName" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition"></div><div><label class="block text-xs font-bold text-slate-400 uppercase mb-2">Aksi Cepat Tambah Durasi</label><div class="grid grid-cols-3 sm:grid-cols-6 gap-1.5 sm:gap-2"><button onclick="tambahHari(1)" class="bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-xl text-xs font-bold">+1H</button><button onclick="tambahHari(7)" class="bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-xl text-xs font-bold">+7H</button><button onclick="tambahHari(14)" class="bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-xl text-xs font-bold">+14H</button><button onclick="tambahHari(30)" class="bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-xl text-xs font-bold">+30H</button><button onclick="tambahHari(60)" class="bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-xl text-xs font-bold">+60H</button><button onclick="setLifetime()" class="bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-xl text-xs font-bold">♾️</button></div></div><div><label class="block text-xs font-bold text-slate-400 uppercase mb-2">Manual Exp Date</label><input type="date" id="editExpDate" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition"></div><div><label class="block text-xs font-bold text-slate-400 uppercase mb-2">License Status</label><select id="editStatus" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition"><option value="active">Active</option><option value="hold">Hold</option><option value="revoked">Revoked</option><option value="expired">Expired</option></select></div></div><div class="pt-4 space-y-3"><button id="btnSaveConfig" onclick="simpanPerubahanLisensi()" class="w-full bg-brand-500 hover:bg-brand-600 active:scale-[0.99] text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-brand-500/25 transition">Save Configuration</button><div class="flex gap-3"><button id="btnDeleteLicense" onclick="hapusLisensiWithModal()" class="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 py-3 rounded-2xl text-xs font-bold transition border border-red-500/20">Delete License</button><button onclick="bukaSubView('device')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-2xl text-xs font-bold transition">Back to List</button></div></div></div></div><div id="subViewTransferDevice" class="subview-section max-w-xl mx-auto space-y-4"><div class="glass-card p-5 sm:p-8 rounded-3xl space-y-4 border border-slate-800"><div class="bg-brand-500/10 border border-brand-500/20 p-4 rounded-2xl text-xs text-slate-300 leading-relaxed"><b>Migrasi Device ID:</b> Memindahkan masa aktif, status lisensi, nama SPPG, dan backup cloud ke Device Baru.</div><div><label class="block text-xs font-bold text-slate-400 uppercase mb-2">Device ID Asal</label><input type="text" id="inputSourceDevice" placeholder="DEV-XXXX" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs font-mono uppercase"></div><div><label class="block text-xs font-bold text-slate-400 uppercase mb-2">Device ID Tujuan (Baru)</label><input type="text" id="inputTargetDevice" placeholder="DEV-YYYY" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs font-mono uppercase"></div><div class="flex gap-3 pt-2"><button onclick="eksekusiOperDeviceWithModal()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white py-3.5 px-6 rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-amber-500/20 transition">🚀 Migrasi Sekarang</button><button onclick="bukaSubView('overview')" class="w-32 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 py-3.5 px-5 rounded-2xl text-xs sm:text-sm font-bold transition border border-slate-700 flex items-center justify-center gap-2"><span>🏠</span> Menu</button></div></div></div><div id="subViewPackages" class="subview-section max-w-4xl mx-auto space-y-4"><div class="glass-card p-5 sm:p-8 rounded-3xl space-y-4 border border-slate-800"><div class="flex items-center justify-between flex-wrap gap-2"><div><label class="font-bold text-xs uppercase text-slate-300">Daftar Paket Langganan & Diskon</label><p class="text-[11px] text-slate-400">Atur nama paket, durasi hari, harga normal, serta konfigurasi promo diskon.</p></div><button onclick="tambahBarisPaketForm()" class="bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-bold px-4 py-3.5 rounded-2xl text-xs sm:text-sm transition shadow-lg shadow-brand-500/20 flex items-center justify-center gap-1.5">+ Tambah Paket</button></div><div id="containerListPaket" class="space-y-4 max-h-[550px] overflow-y-auto pr-1"><div class="text-center text-slate-500 text-xs py-10">Memuat paket dari database API...</div></div><div class="flex gap-3 pt-4 border-t border-slate-800"><button onclick="simpanPengaturanPaketServer()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white py-3.5 px-6 rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2">💾 Simpan Paket & Diskon</button><button onclick="bukaSubView('overview')" class="w-32 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 py-3.5 px-5 rounded-2xl text-xs sm:text-sm font-bold transition border border-slate-700 flex items-center justify-center gap-2"><span>🏠</span> Menu</button></div></div></div><div id="subViewRelease" class="subview-section max-w-xl mx-auto space-y-4"><div class="glass-card p-5 sm:p-8 rounded-3xl space-y-4 border border-slate-800"><div class="bg-indigo-500/10 border border-indigo-500/20 p-4 rounded-2xl text-xs text-slate-300">In-app userscript release metadata updater & cloud publisher.</div><div><label class="block text-xs font-bold text-slate-400 uppercase mb-2">Versi Terbaru</label><input type="text" id="inputReleaseVersion" placeholder="1.5.48" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs"></div><div><label class="block text-xs font-bold text-slate-400 uppercase mb-2">URL Download File (.user.js)</label><input type="url" id="inputDownloadUrl" placeholder="https://..." class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs"></div><div><label class="block text-xs font-bold text-slate-400 uppercase mb-2">Changelog</label><textarea id="inputChangelog" rows="4" placeholder="- Perbaikan bug&#10;- Peningkatan performa" onkeydown="handleChangelogAutoBullet(event)" onfocus="if(!this.value) this.value='- ';" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs font-mono"></textarea></div><div class="flex gap-3 pt-2"><button onclick="simpanUpdateReleaseServer()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white py-3.5 px-6 rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2">🚀 Rilis Update</button><button onclick="bukaSubView('overview')" class="w-32 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 py-3.5 px-5 rounded-2xl text-xs sm:text-sm font-bold transition border border-slate-700 flex items-center justify-center gap-2"><span>🏠</span> Menu</button></div></div></div></main></div></div><script>
-const VBASE='https://mindspace-id.vercel.app',VAPI=`${VBASE}/api/tokopay`,CAPI=`${VBASE}/api/config`,SALT='MINDSTUDIO2026';let sInst=null,sPromise=null,userSess=null,vEmail=null,rEmail=null,adminPass='',gUsers=[],selDevs=[],statFilt='all',currLic=null,currBkp=null,confFn=null,tFrame='7d',gStats=null,baseAvatar='',tmpEmail='',_dHari=30,_dFinal=80000,_dBase=100000,_dDisc=0,_dRef=null,_dPoll=null,hbPts=new Array(30).fill(40),hbInt=null,DEFAULTS=[{hari:1,harga:5000,nama:'Durasi 1 Hari'},{hari:3,harga:10000,nama:'Durasi 3 Hari'},{hari:7,harga:25000,nama:'Durasi 7 Hari'},{hari:14,harga:50000,nama:'Durasi 14 Hari'},{hari:30,harga:100000,final_price:80000,nama:'Durasi 30 Hari'},{hari:60,harga:200000,final_price:150000,nama:'Durasi 60 Hari'}];
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>MindHUB - Portal Layanan & Admin Dashboard</title>
+  <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon.ico">
+  <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon512.png">
+  <meta name="theme-color" content="#020617">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MindHUB Unified">
+  <script>const manifestData={name:"MindHUB Portal",short_name:"MindHUB",start_url:"./",scope:"./",display:"standalone",orientation:"portrait-primary",background_color:"#020617",theme_color:"#020617",icons:[{src:"https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon512.png",sizes:"512x512",type:"image/png",purpose:"any maskable"}]};const blob=new Blob([JSON.stringify(manifestData)],{type:'application/json'});const linkTag=document.createElement('link');linkTag.rel='manifest';linkTag.href=URL.createObjectURL(blob);document.head.appendChild(linkTag);</script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['"Plus Jakarta Sans"','sans-serif']},colors:{brand:{50:'#eef2ff',100:'#e0e7ff',400:'#818cf8',500:'#6366f1',600:'#4f46e5',700:'#4338ca'}}}}}</script>
+  <style>
+    body{font-family:'Plus Jakarta Sans',sans-serif;overflow-x:hidden}
+    ::-webkit-scrollbar{width:5px;height:5px}
+    ::-webkit-scrollbar-track{background:transparent}
+    ::-webkit-scrollbar-thumb{background:rgba(99,102,241,.25);border-radius:4px}
+    ::-webkit-scrollbar-thumb:hover{background:rgba(99,102,241,.5)}
+    .view-section{display:none!important}
+    .view-section.active{display:flex!important}
+    .subview-section{display:none!important}
+    .subview-section.active{display:block!important}
+    .auth-tab-content{display:none}
+    .auth-tab-content.active{display:block}
+    .glass-card{background:rgba(15,23,42,.78);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.09);box-shadow:0 20px 50px rgba(0,0,0,.4)}
+    .package-item-row,.package-card{transition:all .2s ease-in-out;cursor:pointer;position:relative}
+    .package-item-row{cursor:default}
+    .package-card.selected{border-color:#6366f1!important;background:rgba(99,102,241,.15)!important;box-shadow:0 10px 25px -5px rgba(99,102,241,.3)}
+    .scrollbar-none::-webkit-scrollbar{display:none}
+    .scrollbar-none{-ms-overflow-style:none;scrollbar-width:none}
+    #qrcode-box img,#qrcode-box canvas{margin:0 auto;max-width:100%;height:auto;display:block;border-radius:12px}
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen antialiased selection:bg-brand-500 selection:text-white">
+  <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-[100000] max-w-[90vw] w-auto px-5 py-3 rounded-2xl shadow-2xl border text-white font-bold text-xs sm:text-sm transition-all duration-300 -translate-y-20 opacity-0 pointer-events-none flex items-center gap-2"></div>
+  <input type="file" id="importFileInput" accept=".csv, .json" class="hidden" onchange="processImportFile(event)">
+
+  <div id="customConfirmModal" class="fixed inset-0 z-[100000] bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4">
+    <div class="glass-card rounded-3xl shadow-2xl p-6 sm:p-7 max-w-sm w-full text-center border border-slate-800">
+      <div class="w-12 h-12 sm:w-14 sm:h-14 bg-amber-500/10 text-amber-500 rounded-2xl mx-auto flex items-center justify-center text-xl sm:text-2xl mb-4 font-bold border border-amber-500/20">⚠️</div>
+      <h3 id="modalConfirmTitle" class="text-sm sm:text-base font-bold text-white mb-2">Konfirmasi</h3>
+      <p id="modalConfirmMsg" class="text-xs text-slate-400 mb-6 leading-relaxed whitespace-pre-line"></p>
+      <div class="flex gap-3">
+        <button id="btnModalConfirmYes" class="flex-1 bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-bold py-3 rounded-xl text-xs transition shadow-lg shadow-brand-500/25">Ya</button>
+        <button id="btnModalConfirmNo" class="flex-1 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-bold py-3 rounded-xl text-xs transition border border-slate-700">Batal</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="jsonViewerModal" class="fixed inset-0 z-[100000] bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4">
+    <div class="glass-card rounded-3xl shadow-2xl p-5 sm:p-7 max-w-2xl w-full border border-slate-800 flex flex-col max-h-[85vh]">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">☁️</span>
+          <div>
+            <h3 id="jsonModalTitle" class="text-xs sm:text-sm font-bold text-white">Preview Cloud Backup JSON</h3>
+            <span id="jsonModalSubtitle" class="text-[10px] text-slate-400 block">Inspection Utility</span>
+          </div>
+        </div>
+        <button onclick="closeJsonPreviewModal()" class="w-8 h-8 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white flex items-center justify-center font-bold text-xs transition">✕</button>
+      </div>
+      <div class="my-4 flex-1 overflow-hidden flex flex-col">
+        <pre id="jsonPreviewContainer" class="bg-slate-950/90 p-4 rounded-2xl border border-slate-800/80 text-[11px] text-brand-400 font-mono overflow-auto flex-1 whitespace-pre-wrap leading-relaxed select-all scrollbar-none"></pre>
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button onclick="copyJsonPreview()" class="flex-1 bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-bold py-3 rounded-xl text-xs transition shadow-lg shadow-brand-500/25 flex items-center justify-center gap-1.5">📋 Salin JSON</button>
+        <button onclick="downloadBackupCloud()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3 rounded-xl text-xs transition flex items-center justify-center gap-1.5">📥 Download File</button>
+        <button onclick="closeJsonPreviewModal()" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 font-bold px-5 rounded-xl text-xs transition border border-slate-700">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="sidebarBackdrop" onclick="toggleSidebarMobile(false)" class="fixed inset-0 z-30 bg-slate-950/70 backdrop-blur-sm hidden lg:hidden transition-opacity duration-300 opacity-0"></div>
+
+  <div id="viewLandingPage" class="view-section active fixed inset-0 z-[9999] bg-slate-950 w-full h-full items-center justify-center p-4 overflow-y-auto">
+    <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/30 via-slate-950 to-slate-950 pointer-events-none"></div>
+    <div class="glass-card w-full max-w-md p-6 sm:p-8 rounded-3xl shadow-2xl relative z-10 border border-slate-800 my-auto">
+      <div class="text-center mb-6">
+        <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl mx-auto flex items-center justify-center mb-3 shadow-xl shadow-brand-500/30 border border-indigo-400/30 overflow-hidden bg-slate-900 p-1">
+          <img src="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon512.png" alt="MindHUB Logo" class="w-full h-full object-cover rounded-xl">
+        </div>
+        <h2 class="font-extrabold text-xl sm:text-2xl text-white tracking-tight">MindHUB Portal Pro</h2>
+        <p class="text-xs text-slate-400 mt-1">Enterprise Cloud Licensing & Ecosystem ✨</p>
+      </div>
+
+      <div id="authTabsContainer" class="flex bg-slate-900/90 p-1 rounded-2xl border border-slate-800 mb-6">
+        <button id="tabBtnLogin" onclick="switchAuthTab('login')" class="flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 bg-brand-500 text-white shadow-md shadow-brand-500/20">Masuk / Login</button>
+        <button id="tabBtnRegister" onclick="switchAuthTab('register')" class="flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 text-slate-400 hover:text-white">Daftar Akun</button>
+      </div>
+
+      <div id="formTabLogin" class="auth-tab-content active space-y-4 text-left">
+        <div id="loginErrorMsg" class="hidden p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold leading-relaxed"></div>
+        <div>
+          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Username / Email</label>
+          <input type="text" id="loginUserIdentifier" placeholder="akun@minduniverse.id" oninput="this.value = this.value.toLowerCase()" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition font-mono lowercase">
+        </div>
+        <div>
+          <div class="flex justify-between items-center mb-1.5">
+            <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Password</label>
+            <button type="button" onclick="switchAuthTab('forgot')" class="text-[11px] text-brand-400 hover:text-brand-300 font-bold hover:underline">Lupa Password?</button>
+          </div>
+          <input type="password" id="loginPassword" placeholder="••••••••••••" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition" onkeyup="if(event.key==='Enter') verifikasiUserLogin()">
+        </div>
+        <div class="flex items-center gap-2 pt-1">
+          <input type="checkbox" id="rememberMeCheckbox" class="w-4 h-4 rounded border-slate-800 bg-slate-900 text-brand-500 focus:ring-0 cursor-pointer">
+          <label for="rememberMeCheckbox" class="text-xs text-slate-400 font-semibold cursor-pointer select-none">Ingat saya</label>
+        </div>
+        <button id="btnLogin" onclick="verifikasiUserLogin()" class="w-full bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 active:scale-[0.99] text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-xl shadow-brand-500/30 transition duration-200 mt-2">Masuk Portal</button>
+      </div>
+
+      <div id="formTabRegister" class="auth-tab-content space-y-3.5 text-left">
+        <div id="registerErrorMsg" class="hidden p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold leading-relaxed"></div>
+        <div>
+          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1 tracking-wider">Username (6-16 Karakter)</label>
+          <input type="text" id="regUsername" minlength="6" maxlength="16" placeholder="mindspace" oninput="this.value = this.value.toLowerCase()" class="w-full px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition font-mono lowercase">
+        </div>
+        <div>
+          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1 tracking-wider">Email Address</label>
+          <input type="email" id="regEmail" placeholder="akun@minduniverse.id" class="w-full px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
+        </div>
+        <div>
+          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1 tracking-wider">Password</label>
+          <input type="password" id="regPassword" minlength="6" maxlength="16" placeholder="••••••••••••" oninput="validatePasswordStrength(this.value, 'regPasswordStrength')" class="w-full px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
+          <div id="regPasswordStrength" class="mt-2.5 space-y-1.5 p-3 rounded-2xl bg-slate-900/90 border border-slate-800 text-[11px]">
+            <div data-rule="length" class="flex items-center gap-2 text-red-400 transition-colors"><span class="indicator-icon font-bold">❌</span><span>Minimal 8 karakter</span></div>
+            <div data-rule="uppercase" class="flex items-center gap-2 text-red-400 transition-colors"><span class="indicator-icon font-bold">❌</span><span>Minimal 1 huruf besar (A-Z)</span></div>
+            <div data-rule="number" class="flex items-center gap-2 text-red-400 transition-colors"><span class="indicator-icon font-bold">❌</span><span>Minimal 1 angka (0-9)</span></div>
+            <div data-rule="special" class="flex items-center gap-2 text-red-400 transition-colors"><span class="indicator-icon font-bold">❌</span><span>Minimal 1 karakter spesial (@$!%*?& dll.)</span></div>
+          </div>
+        </div>
+        <button id="btnRegister" onclick="prosesUserRegister()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 active:scale-[0.99] text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-xl shadow-emerald-500/20 transition duration-200 mt-2">Daftar Akun</button>
+      </div>
+
+      <div id="formTabForgot" class="auth-tab-content space-y-4 text-left">
+        <div class="text-center space-y-1">
+          <span class="text-3xl">🔑</span>
+          <h3 class="font-extrabold text-white text-sm">Pemulihan Password</h3>
+          <p class="text-xs text-slate-400">Masukkan email terdaftar untuk menerima 6-digit kode OTP reset password.</p>
+        </div>
+        <div id="forgotErrorMsg" class="hidden p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold leading-relaxed"></div>
+        <div>
+          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Email Terdaftar</label>
+          <input type="email" id="forgotInputEmail" placeholder="user@domain.com" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
+        </div>
+        <button id="btnSendResetCode" onclick="prosesCekEmailLupaPassword()" class="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 active:scale-[0.99] text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-xl shadow-amber-500/20 transition">Kirim kode OTP</button>
+        <div class="text-center">
+          <button type="button" onclick="switchAuthTab('login')" class="text-xs text-slate-500 hover:text-slate-300 underline">Batal & Kembali ke Login</button>
+        </div>
+      </div>
+
+      <div id="formTabResetNew" class="auth-tab-content space-y-4 text-left">
+        <div class="text-center space-y-1">
+          <span class="text-3xl">🛡️</span>
+          <h3 class="font-extrabold text-white text-sm">Buat Password Baru</h3>
+          <p class="text-xs text-slate-400">Masukkan kode OTP 6-angka (berlaku 5 menit) dari email <span id="resetTargetEmail" class="text-amber-400 font-mono">user@domain.com</span></p>
+        </div>
+        <div id="resetNewErrorMsg" class="hidden p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold leading-relaxed"></div>
+        <div>
+          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Kode OTP 6-Digit</label>
+          <input type="text" id="resetInputCode" maxlength="6" placeholder="123456" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-center text-xl tracking-[0.4em] font-mono outline-none focus:border-brand-500 transition">
+        </div>
+        <div>
+          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Password Baru</label>
+          <input type="password" id="resetNewPassword" minlength="6" maxlength="16" placeholder="••••••••••••" oninput="validatePasswordStrength(this.value, 'resetPasswordStrength')" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
+          <div id="resetPasswordStrength" class="mt-2.5 space-y-1.5 p-3 rounded-2xl bg-slate-900/90 border border-slate-800 text-[11px]">
+            <div data-rule="length" class="flex items-center gap-2 text-red-400 transition-colors"><span class="indicator-icon font-bold">❌</span><span>Minimal 8 karakter</span></div>
+            <div data-rule="uppercase" class="flex items-center gap-2 text-red-400 transition-colors"><span class="indicator-icon font-bold">❌</span><span>Minimal 1 huruf besar (A-Z)</span></div>
+            <div data-rule="number" class="flex items-center gap-2 text-red-400 transition-colors"><span class="indicator-icon font-bold">❌</span><span>Minimal 1 angka (0-9)</span></div>
+            <div data-rule="special" class="flex items-center gap-2 text-red-400 transition-colors"><span class="indicator-icon font-bold">❌</span><span>Minimal 1 karakter spesial (@$!%*?& dll.)</span></div>
+          </div>
+        </div>
+        <div>
+          <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Konfirmasi Password Baru</label>
+          <input type="password" id="resetConfirmPassword" minlength="6" maxlength="16" placeholder="••••••••••••" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
+        </div>
+        <button id="btnSubmitResetPassword" onclick="prosesResetPasswordBaru()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 active:scale-[0.99] text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-xl shadow-emerald-500/20 transition">Simpan Password Baru</button>
+        <div class="text-center">
+          <button type="button" onclick="switchAuthTab('login')" class="text-xs text-slate-500 hover:text-slate-300 underline">Kembali ke Login</button>
+        </div>
+      </div>
+
+      <div id="formTabVerify" class="auth-tab-content space-y-4 text-center">
+        <div class="space-y-1">
+          <span class="text-3xl">📩</span>
+          <h3 class="font-extrabold text-white text-sm">Verifikasi Email Anda</h3>
+          <p class="text-xs text-slate-400">Masukkan 6-angka kode verifikasi (berlaku 5 menit) ke <span id="verifyTargetEmail" class="text-brand-400 font-mono">user@domain.com</span></p>
+        </div>
+        <div id="verifyErrorMsg" class="hidden p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold leading-relaxed text-left"></div>
+        <div>
+          <input type="text" id="verifyInputCode" maxlength="6" placeholder="123456" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-center text-xl sm:text-2xl tracking-[0.5em] font-mono outline-none focus:border-brand-500 transition">
+        </div>
+        <button id="btnVerifyEmail" onclick="konfirmasiKodeVerifikasi()" class="w-full bg-gradient-to-r from-brand-500 to-indigo-600 text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-xl shadow-brand-500/30 transition">Verifikasi & Aktifkan Akun</button>
+        <button onclick="switchAuthTab('login')" class="text-xs text-slate-500 hover:text-slate-300 underline">Kembali ke Login</button>
+      </div>
+
+      <div class="mt-6 pt-4 border-t border-slate-800/80 text-center flex flex-col gap-1">
+        <span class="text-[10px] text-slate-500">&copy; 2026 Mindspace Studio</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="viewDashboardApp" class="view-section min-h-screen w-full flex-col lg:flex-row">
+    <aside id="sidebar" class="w-72 glass-card border-r border-slate-800/80 flex flex-col fixed inset-y-0 left-0 z-40 transition-transform duration-300 -translate-x-full lg:translate-x-0">
+      <div class="h-20 flex items-center justify-between px-6 border-b border-slate-800/80">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-slate-900 border border-indigo-500/30 overflow-hidden p-0.5 shadow-md shadow-brand-500/20">
+            <img src="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon512.png" alt="MindHUB" class="w-full h-full object-cover rounded-lg">
+          </div>
+          <span class="font-extrabold text-lg text-white tracking-tight">MindHUB Pro</span>
+        </div>
+        <button onclick="toggleSidebarMobile(false)" class="lg:hidden p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/50">✕</button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto px-4 py-6 space-y-1.5 scrollbar-none">
+        <div id="sectionAdminMenu" class="space-y-1.5">
+          <div class="text-[10px] font-extrabold text-slate-500 uppercase px-3 mb-2 tracking-wider">Admin Navigation</div>
+          <button onclick="bukaSubView('overview')" id="navOverview" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent"><span class="text-base">⊞</span> Overview</button>
+          <button onclick="bukaSubView('device')" id="navDevice" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent"><span class="text-base">👥</span> Client Devices</button>
+          <button onclick="bukaSubView('transfer')" id="navTransfer" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent"><span class="text-base">🔄</span> Migrate Data</button>
+        </div>
+
+        <div id="sectionSystemConfig" class="space-y-1.5 pt-4">
+          <div class="text-[10px] font-extrabold text-amber-500 uppercase px-3 mb-2 tracking-wider">System Config</div>
+          <button onclick="bukaSubView('packages')" id="navPackages" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent"><span class="text-base">📦</span> Pricing Plans</button>
+          <button onclick="bukaSubView('release')" id="navRelease" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent"><span class="text-base">🚀</span> Cloud Updater</button>
+        </div>
+
+        <div id="sectionUserMenu" class="space-y-1.5 pt-4">
+          <div class="text-[10px] font-extrabold text-slate-500 uppercase px-3 mb-2 tracking-wider">User Portal</div>
+          <button onclick="bukaSubView('services')" id="navServices" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-brand-500/15 text-brand-400 text-xs font-bold transition border border-brand-500/30 shadow-sm"><span class="text-base">⚡</span> Layanan Aktif</button>
+          <button onclick="bukaSubView('voucher')" id="navVoucher" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent"><span class="text-base">🎫</span> Klaim Voucher</button>
+          <button onclick="bukaSubView('profile')" id="navProfile" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 text-xs font-semibold transition border border-transparent"><span class="text-base">⚙️</span> Pengaturan Profil</button>
+        </div>
+      </div>
+
+      <div class="p-4 border-t border-slate-800/80">
+        <button onclick="logoutUser()" class="w-full bg-red-500/10 hover:bg-red-500/20 active:scale-95 text-red-400 py-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 border border-red-500/20"><span>🚪</span> Keluar Sesi</button>
+      </div>
+    </aside>
+
+    <div class="flex-1 lg:pl-72 flex flex-col min-h-screen w-full">
+      <header class="h-16 sm:h-20 glass-card border-b border-slate-800 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30">
+        <div class="flex items-center gap-3">
+          <button class="lg:hidden p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white" onclick="toggleSidebarMobile(true)">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+          </button>
+          <h1 id="appTitle" class="font-extrabold text-sm sm:text-base text-white tracking-tight">Layanan Aktif Saya</h1>
+        </div>
+        <div class="flex items-center gap-3">
+          <span id="userRoleBadge" class="text-[10px] uppercase font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">User</span>
+          <div class="w-8 h-8 rounded-full bg-slate-900 border border-brand-500/30 overflow-hidden flex items-center justify-center shadow-md">
+            <img id="headerAvatarPreview" src="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon512.png" alt="Avatar Header" class="w-full h-full object-cover">
+          </div>
+          <span id="userDisplayName" class="text-xs font-mono font-bold text-brand-400 bg-brand-500/10 px-3 py-1.5 rounded-xl border border-brand-500/20">DEV-USER</span>
+        </div>
+      </header>
+
+      <main class="flex-1 p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto">
+        <div id="subViewServices" class="subview-section active space-y-6">
+          <div class="glass-card p-6 rounded-3xl border border-slate-800 relative overflow-hidden">
+            <div class="absolute -right-10 -top-10 w-48 h-48 bg-brand-500/15 rounded-full blur-3xl pointer-events-none"></div>
+            <h2 class="text-xl font-extrabold text-white mb-1">Status Lisensi & System Health</h2>
+            <p class="text-slate-400 text-xs max-w-md leading-relaxed">Pantau status aktif lisensi perangkat Anda secara real-time.</p>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="containerUserServices">
+            <div class="text-center text-slate-500 text-xs py-10 col-span-2">Memuat data layanan...</div>
+          </div>
+        </div>
+
+        <div id="subViewVoucher" class="subview-section space-y-4 max-w-xl mx-auto">
+          <div class="glass-card p-6 sm:p-8 rounded-3xl space-y-5 border border-slate-800">
+            <div class="flex items-center gap-3 pb-3 border-b border-slate-800">
+              <span class="text-3xl">🎫</span>
+              <div>
+                <h3 class="font-extrabold text-sm sm:text-base text-white">Klaim Kode Voucher Lisensi</h3>
+                <p class="text-xs text-slate-400">Aktifkan atau perpanjang masa aktif perangkat Anda.</p>
+              </div>
+            </div>
+            <div class="space-y-4 text-left">
+              <div>
+                <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Device ID Perangkat</label>
+                <input type="text" id="inputRedeemDeviceId" placeholder="Contoh: DEV-9BE2-DA4E" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm font-mono uppercase outline-none focus:border-brand-500 transition">
+              </div>
+              <div>
+                <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-wider">Kode Voucher Lisensi</label>
+                <input type="text" id="inputRedeemVoucher" placeholder="Contoh: MIND-XXXXXX-XXXXXX" class="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/80 text-white text-xs sm:text-sm font-mono uppercase outline-none focus:border-brand-500 transition">
+              </div>
+              <button id="btnRedeemVoucher" onclick="prosesKlaimVoucher()" class="w-full bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 active:scale-[0.99] text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-xl shadow-brand-500/30 transition duration-200 mt-2">⚡ Redeem Voucher Sekarang</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="subViewProfile" class="subview-section space-y-6 max-w-xl mx-auto">
+          <div class="glass-card p-6 sm:p-8 rounded-3xl space-y-6 border border-slate-800">
+            <div class="flex items-center gap-3 pb-4 border-b border-slate-800">
+              <span class="text-3xl">👤</span>
+              <div>
+                <h3 class="font-extrabold text-sm sm:text-base text-white">Pengaturan Akun & Profil</h3>
+                <p class="text-xs text-slate-400">Kelola foto profil base64, keamanan password, dan email.</p>
+              </div>
+            </div>
+            <div class="space-y-3">
+              <label class="block text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Foto Profil (Base64 Upload)</label>
+              <div class="flex items-center gap-4">
+                <div class="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden flex items-center justify-center flex-shrink-0">
+                  <img id="profileAvatarPreview" src="https://raw.githubusercontent.com/yosdniel/yosdniel.github.io/refs/heads/main/assets/favicon512.png" alt="Avatar" class="w-full h-full object-cover">
+                </div>
+                <div class="flex-1 space-y-2">
+                  <input type="file" id="inputAvatarFile" accept="image/png, image/jpeg, image/webp" class="hidden" onchange="previewAndConvertBase64(this)">
+                  <div class="flex gap-2">
+                    <button type="button" onclick="document.getElementById('inputAvatarFile').click()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-2 rounded-xl text-xs font-bold transition">Pilih Gambar</button>
+                    <button onclick="updateProfilePictureBase64()" class="flex-1 bg-brand-500/20 hover:bg-brand-500/30 text-brand-400 border border-brand-500/30 px-4 py-2 rounded-xl text-xs font-bold transition">Simpan Avatar</button>
+                  </div>
+                  <p id="avatarFileName" class="text-[10px] text-slate-500 truncate">Maks. ukuran disarankan di bawah 500KB.</p>
+                </div>
+              </div>
+            </div>
+            <hr class="border-slate-800">
+            <div class="space-y-3">
+              <h4 class="text-xs font-extrabold text-white uppercase tracking-wider">🔒 Ganti Password</h4>
+              <div>
+                <label class="block text-[10px] text-slate-400 mb-1">Password Lama</label>
+                <input type="password" id="oldPassword" placeholder="••••••••" class="w-full px-3 py-2 rounded-xl border border-slate-800 bg-slate-900/80 text-white text-xs outline-none focus:border-brand-500">
+              </div>
+              <div>
+                <label class="block text-[10px] text-slate-400 mb-1">Password Baru (Min. 8 Karakter)</label>
+                <input type="password" id="newPassword" placeholder="••••••••" class="w-full px-3 py-2 rounded-xl border border-slate-800 bg-slate-900/80 text-white text-xs outline-none focus:border-brand-500">
+              </div>
+              <button onclick="requestChangePasswordOtp()" class="w-full bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/30 py-2.5 rounded-xl text-xs font-bold transition">Kirim Kode OTP Ganti Password</button>
+              <div id="sectionChangePasswordOtp" class="hidden space-y-2 pt-2 border-t border-slate-800">
+                <label class="block text-[10px] text-slate-400">Kode OTP 6-Digit (dari Email)</label>
+                <input type="text" id="otpChangePassword" maxlength="6" placeholder="123456" class="w-full px-3 py-2 rounded-xl border border-slate-800 bg-slate-900/80 text-white text-center font-mono tracking-widest text-sm outline-none focus:border-brand-500">
+                <button onclick="verifyAndChangePassword()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-bold transition">Konfirmasi & Simpan Password Baru</button>
+              </div>
+            </div>
+            <hr class="border-slate-800">
+            <div class="space-y-3">
+              <h4 class="text-xs font-extrabold text-white uppercase tracking-wider">✉️ Ganti Alamat Email</h4>
+              <div>
+                <label class="block text-[10px] text-slate-400 mb-1">Email Baru</label>
+                <input type="email" id="newEmailAddress" placeholder="emailbaru@domain.com" class="w-full px-3 py-2 rounded-xl border border-slate-800 bg-slate-900/80 text-white text-xs outline-none focus:border-brand-500">
+              </div>
+              <button onclick="requestChangeEmailOtp()" class="w-full bg-brand-500/20 hover:bg-brand-500/30 text-brand-400 border border-brand-500/30 py-2.5 rounded-xl text-xs font-bold transition">Kirim Kode OTP ke Email Baru</button>
+              <div id="sectionChangeEmailOtp" class="hidden space-y-2 pt-2 border-t border-slate-800">
+                <label class="block text-[10px] text-slate-400">Kode OTP 6-Digit (dari Email Baru)</label>
+                <input type="text" id="otpChangeEmail" maxlength="6" placeholder="123456" class="w-full px-3 py-2 rounded-xl border border-slate-800 bg-slate-900/80 text-white text-center font-mono tracking-widest text-sm outline-none focus:border-brand-500">
+                <button onclick="verifyAndChangeEmail()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-bold transition">Verifikasi & Ganti Email</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="subViewMainMenu" class="subview-section space-y-4 sm:space-y-6">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div class="lg:col-span-2 glass-card p-6 sm:p-8 rounded-3xl flex flex-col justify-center relative overflow-hidden border border-slate-800">
+              <div class="absolute -right-10 -top-10 w-48 h-48 sm:w-64 sm:h-64 bg-brand-500/15 rounded-full blur-3xl pointer-events-none"></div>
+              <h2 class="text-xl sm:text-2xl font-extrabold text-white mb-2 relative z-10">Welcome to MindHUB Pro Enterprise</h2>
+              <p class="text-slate-400 text-xs sm:text-sm max-w-md leading-relaxed relative z-10">All systems fully operational. Monitor device authorization, real-time analytics, and gateway synchronization with high-performance metrics.</p>
+            </div>
+            <div class="glass-card p-5 sm:p-6 rounded-3xl flex flex-col justify-between border border-slate-800">
+              <span class="text-[10px] sm:text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Monthly Revenue</span>
+              <h3 id="statRevBulan" class="text-2xl sm:text-3xl font-black text-white mt-2">Rp 0</h3>
+              <div class="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-slate-800">
+                <div>
+                  <span class="text-[10px] text-slate-500 uppercase font-bold">Today</span>
+                  <h4 id="statRevHari" class="text-xs sm:text-sm font-bold text-brand-400 mt-1">Rp 0</h4>
+                </div>
+                <div>
+                  <span class="text-[10px] text-slate-500 uppercase font-bold">This Week</span>
+                  <h4 id="statRevMinggu" class="text-xs sm:text-sm font-bold text-brand-400 mt-1">Rp 0</h4>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div class="lg:col-span-2 glass-card p-4 sm:p-6 rounded-3xl border border-slate-800">
+              <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+                <div>
+                  <div class="text-xs sm:text-sm font-bold text-slate-300 flex items-center gap-2"><span>📈 Revenue Trend</span></div>
+                  <p class="text-[10px] text-slate-400 mt-0.5">Analisis tren pendapatan real-time</p>
+                </div>
+                <div class="flex bg-slate-900 p-1 rounded-xl border border-slate-800 text-[10px] font-bold">
+                  <button id="btnTf7d" onclick="setRevenueTimeframe('7d')" class="px-3 py-1 rounded-lg bg-brand-500 text-white transition shadow-md shadow-brand-500/20">7d</button>
+                  <button id="btnTf14d" onclick="setRevenueTimeframe('14d')" class="px-3 py-1 rounded-lg text-slate-400 hover:text-white transition">14d</button>
+                  <button id="btnTf1m" onclick="setRevenueTimeframe('1m')" class="px-3 py-1 rounded-lg text-slate-400 hover:text-white transition">1m</button>
+                </div>
+              </div>
+              <div class="w-full bg-slate-900/50 p-3 sm:p-5 rounded-2xl border border-slate-800/80 overflow-x-auto scrollbar-none">
+                <div id="chartBarsContainer" class="w-full min-w-[320px] flex items-end justify-between h-44 sm:h-48 pt-6 border-b border-slate-800/80 px-1 sm:px-2 gap-1 sm:gap-1.5"></div>
+              </div>
+            </div>
+
+            <div class="glass-card p-5 sm:p-6 rounded-3xl border border-slate-800 flex flex-col justify-between relative overflow-hidden">
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="relative flex h-3 w-3">
+                      <span id="heartbeatPulseRing" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span id="heartbeatDot" class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                    </span>
+                    <h4 class="font-bold text-white text-xs sm:text-sm">MindHUB System Status</h4>
+                  </div>
+                  <span id="heartbeatLiveValue" class="text-[11px] font-mono font-extrabold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-lg">-- ms</span>
+                </div>
+                <p class="text-[11px] text-slate-400 leading-relaxed">Seluruh sistem, database lisensi, dan updater berjalan normal.</p>
+                <div class="w-full bg-slate-950/80 rounded-2xl p-3 border border-slate-800/80 relative">
+                  <div class="flex items-center justify-between text-[9px] font-mono text-slate-500 mb-1">
+                    <span>LIVE LATENCY MONITOR</span>
+                    <span class="text-emerald-400 animate-pulse font-bold">1 Hz REALTIME</span>
+                  </div>
+                  <div class="w-full h-20 relative">
+                    <canvas id="heartbeatCanvas" class="w-full h-full block"></canvas>
+                  </div>
+                  <div class="flex justify-between items-center text-[9px] font-mono text-slate-500 mt-1 pt-1 border-t border-slate-900">
+                    <span id="hbMinMs">Min: --</span>
+                    <span id="hbAvgMs">Avg: --</span>
+                    <span id="hbMaxMs">Max: --</span>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-400">System Engine:</span>
+                <span id="systemEngineBadge" class="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold rounded-xl text-xs">Online</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="glass-card p-4 sm:p-5 rounded-2xl border border-slate-800 flex items-center justify-between">
+              <div>
+                <span class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block">Total Script Downloads</span>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="relative flex h-2.5 w-2.5">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-500"></span>
+                  </span>
+                  <span class="text-xs font-bold text-brand-400">download.html Portal</span>
+                </div>
+              </div>
+              <div class="text-right">
+                <span id="statTotalDownloads" class="text-base sm:text-xl font-mono font-black text-emerald-400">0</span>
+                <span class="text-[9px] text-slate-500 block">Total Ditekan</span>
+              </div>
+            </div>
+
+            <div class="glass-card p-4 sm:p-5 rounded-2xl border border-slate-800 flex flex-col justify-between">
+              <div class="flex justify-between items-center">
+                <span class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">License Ratio</span>
+                <span id="statActiveRatio" class="text-[11px] font-bold text-brand-400">0% Active</span>
+              </div>
+              <div class="w-full bg-slate-900 rounded-full h-2 mt-3 overflow-hidden flex" id="licenseRatioBar">
+                <div class="bg-emerald-500 h-full transition-all duration-500" style="width: 0%"></div>
+                <div class="bg-amber-500 h-full transition-all duration-500" style="width: 0%"></div>
+                <div class="bg-red-500 h-full transition-all duration-500" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <div class="glass-card p-4 sm:p-5 rounded-2xl border border-slate-800 flex items-center justify-between">
+              <div>
+                <span class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block">Data Management</span>
+                <span class="text-xs text-slate-400 mt-0.5 block">CSV / JSON Sync</span>
+              </div>
+              <div class="flex gap-2">
+                <button onclick="exportLicensesCSV()" class="bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 active:scale-95 px-3 py-2 rounded-xl text-xs font-bold transition border border-indigo-500/20 flex items-center gap-1">📥 Export</button>
+                <button onclick="document.getElementById('importFileInput').click()" class="bg-brand-500/10 hover:bg-brand-500/20 text-brand-400 active:scale-95 px-3 py-2 rounded-xl text-xs font-bold transition border border-brand-500/20 flex items-center gap-1">📤 Import</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="glass-card p-5 rounded-2xl border border-slate-800 space-y-3">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+              <div class="flex items-center gap-2">
+                <span class="text-base">⚠️</span>
+                <span class="text-[11px] font-extrabold text-amber-400 uppercase tracking-wider">Licenses Expiring Soon (Next 7 Days)</span>
+              </div>
+              <button onclick="bukaSubView('device')" class="text-[10px] text-brand-400 font-bold hover:underline">View All Devices →</button>
+            </div>
+            <div id="expiringRadarContainer" class="space-y-2 max-h-48 overflow-y-auto">
+              <div class="text-center text-slate-500 text-xs py-4">Checking active license status...</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="subViewDeviceCheck" class="subview-section space-y-4 max-w-4xl mx-auto">
+          <div class="glass-card p-5 sm:p-8 rounded-3xl space-y-4 border border-slate-800">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
+              <div class="sm:col-span-2">
+                <label class="block text-[10px] sm:text-xs font-bold text-slate-400 uppercase mb-2">Cari Device ID / SPPG</label>
+                <input type="text" id="searchUserQuery" placeholder="🔍 Ketik Device ID atau Nama SPPG..." class="w-full px-4 py-3 sm:py-3.5 rounded-2xl border border-slate-700 bg-slate-900/60 text-xs sm:text-sm text-white outline-none focus:border-brand-500 transition" oninput="filterUserList()">
+              </div>
+              <div>
+                <label class="block text-[10px] sm:text-xs font-bold text-slate-400 uppercase mb-2">Urutan / Sort</label>
+                <select id="sortDeviceOption" onchange="filterUserList()" class="w-full px-3 py-3 sm:py-3.5 rounded-2xl border border-slate-700 bg-slate-900/60 text-xs text-white outline-none focus:border-brand-500 transition">
+                  <option value="exp_asc">⚠️ Kadaluarsa Terdekat</option>
+                  <option value="exp_desc">⏳ Masa Aktif Terlama</option>
+                  <option value="name_asc">🔤 Device ID / Name A-Z</option>
+                  <option value="active_desc">⚡ Baru Saja Aktif</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="flex justify-between items-center flex-wrap gap-2 border-b border-slate-800/80 pb-3">
+              <div class="flex gap-2 overflow-x-auto scrollbar-none" id="filterTabsContainer">
+                <button class="px-3.5 py-2 rounded-xl bg-brand-500 text-white text-xs font-bold tab-btn active whitespace-nowrap" onclick="setFilterTab('all', this)">All</button>
+                <button class="px-3.5 py-2 rounded-xl bg-slate-800/80 text-slate-400 text-xs font-semibold tab-btn whitespace-nowrap" onclick="setFilterTab('active', this)">Active</button>
+                <button class="px-3.5 py-2 rounded-xl bg-slate-800/80 text-slate-400 text-xs font-semibold tab-btn whitespace-nowrap" onclick="setFilterTab('hold', this)">Hold</button>
+                <button class="px-3.5 py-2 rounded-xl bg-slate-800/80 text-slate-400 text-xs font-semibold tab-btn whitespace-nowrap" onclick="setFilterTab('expired', this)">Expired</button>
+                <button class="px-3.5 py-2 rounded-xl bg-slate-800/80 text-slate-400 text-xs font-semibold tab-btn whitespace-nowrap" onclick="setFilterTab('revoked', this)">Revoked</button>
+              </div>
+              <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-400 hover:text-white font-bold select-none px-2 py-1 bg-slate-900 rounded-xl border border-slate-800">
+                <input type="checkbox" id="chkSelectAllDevices" onchange="toggleSelectAllDevices(this.checked)" class="rounded border-slate-700 text-brand-500 focus:ring-0 bg-slate-950">
+                <span>Select All</span>
+              </label>
+            </div>
+
+            <div id="bulkActionsToolbar" class="hidden bg-slate-900/95 border border-brand-500/30 p-3 sm:p-4 rounded-2xl flex items-center justify-between flex-wrap gap-3 shadow-xl backdrop-blur-md">
+              <div class="text-xs text-slate-300 font-bold"><span id="bulkSelectedCount" class="text-brand-400 font-extrabold text-sm">0</span> Device Dipilih</div>
+              <div class="flex gap-2 flex-wrap text-xs">
+                <button onclick="bulkExtendDuration(7)" class="bg-brand-500/20 hover:bg-brand-500/30 text-brand-400 font-bold px-3 py-1.5 rounded-xl border border-brand-500/30 transition">+7 Hari</button>
+                <button onclick="bulkExtendDuration(30)" class="bg-brand-500/20 hover:bg-brand-500/30 text-brand-400 font-bold px-3 py-1.5 rounded-xl border border-brand-500/30 transition">+30 Hari</button>
+                <button onclick="bulkUpdateStatus('hold')" class="bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold px-3 py-1.5 rounded-xl border border-amber-500/30 transition">Set Hold</button>
+                <button onclick="bulkUpdateStatus('active')" class="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 font-bold px-3 py-1.5 rounded-xl border border-emerald-500/30 transition">Set Active</button>
+                <button onclick="bulkDeleteLicensesWithModal()" class="bg-red-500/20 hover:bg-red-500/30 text-red-400 font-bold px-3 py-1.5 rounded-xl border border-red-500/30 transition">🗑️ Hapus Batch</button>
+              </div>
+            </div>
+
+            <div id="listAllUsersContainer" class="space-y-2.5 max-h-[420px] overflow-y-auto">
+              <div class="text-center text-slate-500 text-xs py-10">Memuat data...</div>
+            </div>
+
+            <button onclick="bukaSubView('overview')" class="w-full bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-2xl text-xs font-bold transition border border-slate-700">🔙 Kembali ke Overview</button>
+          </div>
+        </div>
+
+        <div id="subViewDeviceDetail" class="subview-section space-y-4 sm:space-y-6 max-w-2xl mx-auto">
+          <div class="glass-card p-5 sm:p-8 rounded-3xl space-y-5 border border-slate-800">
+            <div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-2 text-xs sm:text-sm">
+              <div class="flex justify-between items-center gap-2"><span>Device ID</span> <span id="dispDeviceId" class="text-amber-400 font-mono font-bold truncate max-w-[180px] sm:max-w-none">-</span></div>
+              <div class="flex justify-between items-center gap-2"><span>SPPG</span> <span id="dispSppgName" class="text-brand-400 font-bold truncate max-w-[180px] sm:max-w-none">-</span></div>
+              <div class="flex justify-between items-center gap-2"><span>Status</span> <span id="dispStatus">-</span></div>
+              <div class="flex justify-between items-center gap-2"><span>Exp Date</span> <span id="dispExpDate" class="text-white font-bold">-</span></div>
+              <div class="flex justify-between items-center gap-2"><span>Last Active</span> <span id="dispLastActive" class="text-slate-400">-</span></div>
+            </div>
+
+            <div id="extensionSection" class="bg-slate-900/90 p-5 rounded-2xl border border-brand-500/30 space-y-4 shadow-xl">
+              <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <span class="font-extrabold text-xs sm:text-sm text-white uppercase tracking-wider flex items-center gap-2"><span>⚡</span> Perpanjang Masa Aktif Perangkat</span>
+                <span class="text-[10px] text-brand-400 font-mono bg-brand-500/10 px-2.5 py-1 rounded-lg border border-brand-500/20">Self-Service QRIS</span>
+              </div>
+
+              <div id="extensionStepPackages" class="space-y-3">
+                <label class="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Pilih Paket Langganan</label>
+                <div id="detailPackagesContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+                <div class="space-y-2 pt-2">
+                  <label class="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Kode Promo (Opsional)</label>
+                  <div class="flex gap-2">
+                    <input type="text" id="detailPromoCode" placeholder="Masukkan kode promo" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-white font-mono uppercase text-xs outline-none focus:border-brand-500 transition">
+                    <button type="button" onclick="applyDetailPromo()" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-bold px-4 rounded-xl text-xs transition border border-slate-750 shrink-0">Terapkan</button>
+                  </div>
+                  <div id="detailPromoMsg" class="text-[11px] font-medium hidden"></div>
+                </div>
+                <button type="button" onclick="createDetailQR()" class="w-full bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 active:scale-[0.99] text-white font-extrabold py-3.5 px-6 rounded-2xl text-xs sm:text-sm transition shadow-xl shadow-brand-500/30 mt-2">🚀 Buat QRIS Pembayaran</button>
+              </div>
+
+              <div id="extensionStepQris" class="hidden space-y-4 text-center">
+                <div>
+                  <h3 class="font-bold text-sm text-white">Scan QRIS untuk Perpanjang Lisensi</h3>
+                  <p id="detailQrisSubtitle" class="text-[11px] text-slate-400 mt-0.5 font-mono">-</p>
+                </div>
+                <div class="bg-white p-4 rounded-2xl inline-block shadow-2xl mx-auto border-4 border-slate-800">
+                  <div id="qrcode-box" class="flex items-center justify-center min-w-[180px] min-h-[180px]"></div>
+                </div>
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 max-w-sm mx-auto space-y-1">
+                  <span class="text-[10px] uppercase font-extrabold text-slate-500 tracking-wider block">Total Tagihan (Termasuk Fee 1.7%)</span>
+                  <b id="detailQrisTotalAmount" class="text-emerald-400 font-black text-xl">Rp 0</b>
+                  <span id="detailQrisFeeInfo" class="text-[10px] text-slate-400 block font-mono"></span>
+                </div>
+                <div class="flex items-center justify-center gap-2 text-xs text-brand-400 font-bold bg-brand-500/10 py-2 px-3 rounded-xl border border-brand-500/20 max-w-sm mx-auto">
+                  <span class="w-2.5 h-2.5 rounded-full bg-brand-400 animate-ping"></span>
+                  <span id="detailPollingStatusText">Mengecek status pembayaran otomatis...</span>
+                </div>
+                <button type="button" onclick="cancelDetailQris()" class="text-xs text-slate-400 hover:text-white underline font-semibold pt-1 block mx-auto">&larr; Batalkan &amp; Ganti Paket</button>
+              </div>
+
+              <div id="extensionStepSuccess" class="hidden space-y-4 text-center py-2">
+                <div class="w-14 h-14 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 rounded-2xl mx-auto flex items-center justify-center text-2xl shadow-xl shadow-emerald-500/20">🎉</div>
+                <div>
+                  <h3 class="font-black text-base text-white">Perpanjangan Berhasil!</h3>
+                  <p class="text-xs text-slate-300 mt-1">Masa aktif perangkat telah diperbarui.</p>
+                </div>
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 max-w-sm mx-auto text-xs space-y-1">
+                  <div class="flex justify-between">
+                    <span class="text-slate-400">Exp Date Baru:</span>
+                    <span id="detailSuccessExpDate" class="font-mono text-emerald-400 font-bold">-</span>
+                  </div>
+                </div>
+                <button onclick="bukaSubView('device')" class="bg-brand-500 hover:bg-brand-600 text-white font-bold py-2.5 px-6 rounded-xl text-xs transition">Kembali ke Daftar Device</button>
+              </div>
+            </div>
+
+            <div id="backupInfoCard" class="hidden bg-slate-900/90 p-4 sm:p-5 rounded-2xl border border-emerald-500/30 space-y-3 text-xs shadow-xl">
+              <div class="font-bold text-emerald-400 uppercase tracking-wider flex items-center justify-between">
+                <span class="flex items-center gap-1.5"><span class="text-sm">☁️</span> Cloud Backup Data KPM (Aktif)</span>
+                <span class="text-[10px] text-emerald-300 font-mono bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">3D Auto-Purge</span>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-300">
+                <div><b>Nama File:</b> <span id="dispBackupFilename" class="font-mono text-amber-400 block truncate">-</span></div>
+                <div><b>Waktu Backup:</b> <span id="dispBackupTime" class="text-slate-400 block">-</span></div>
+              </div>
+              <div class="flex gap-2 pt-2">
+                <button onclick="previewBackupCloud()" class="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-1">👁️ Lihat JSON</button>
+                <button onclick="downloadBackupCloud()" class="flex-1 bg-brand-500 hover:bg-brand-600 text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-1">📥 Download</button>
+                <button onclick="hapusBackupCloudWithModal()" class="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold py-2.5 rounded-xl transition border border-red-500/20">🗑️ Hapus</button>
+              </div>
+            </div>
+
+            <div id="developerVoucherBox" class="bg-brand-500/10 p-4 sm:p-5 rounded-2xl border border-brand-500/20 space-y-3">
+              <div class="font-bold text-brand-400 text-xs uppercase tracking-wider flex items-center justify-between flex-wrap gap-1">
+                <span>🎫 Generate Voucher Device Ini</span>
+                <span class="text-[10px] text-slate-400 font-normal">(Single-use per Device ID)</span>
+              </div>
+              <div class="grid grid-cols-3 sm:grid-cols-6 gap-1.5 sm:gap-2">
+                <button onclick="generateVoucherDevice(1)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">1 Hari</button>
+                <button onclick="generateVoucherDevice(3)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">3 Hari</button>
+                <button onclick="generateVoucherDevice(7)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">7 Hari</button>
+                <button onclick="generateVoucherDevice(14)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">14 Hari</button>
+                <button onclick="generateVoucherDevice(30)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">30 Hari</button>
+                <button onclick="generateVoucherDevice(60)" class="bg-slate-800 hover:bg-brand-600 active:scale-95 text-white py-2 rounded-xl text-[10px] sm:text-xs font-bold transition">60 Hari</button>
+              </div>
+              <div class="flex gap-2">
+                <input type="text" id="dispGeneratedVoucher" readonly placeholder="MIND-XXXXXX-XXXXXX" class="flex-1 bg-slate-900/90 border border-slate-700 px-3 sm:px-4 py-2.5 rounded-xl font-mono text-xs sm:text-sm text-brand-400 font-bold text-center">
+                <button onclick="salinVoucherDevice()" class="bg-brand-500 hover:bg-brand-600 active:scale-95 text-white px-4 rounded-xl font-bold text-xs transition">Salin</button>
+              </div>
+            </div>
+
+            <div id="developerEditControls" class="space-y-4 pt-2">
+              <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Edit SPPG Name</label>
+                <input type="text" id="editSppgName" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Aksi Cepat Tambah Durasi</label>
+                <div class="grid grid-cols-3 sm:grid-cols-6 gap-1.5 sm:gap-2">
+                  <button onclick="tambahHari(1)" class="bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-xl text-xs font-bold">+1H</button>
+                  <button onclick="tambahHari(7)" class="bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-xl text-xs font-bold">+7H</button>
+                  <button onclick="tambahHari(14)" class="bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-xl text-xs font-bold">+14H</button>
+                  <button onclick="tambahHari(30)" class="bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-xl text-xs font-bold">+30H</button>
+                  <button onclick="tambahHari(60)" class="bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-xl text-xs font-bold">+60H</button>
+                  <button onclick="setLifetime()" class="bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-xl text-xs font-bold">♾️</button>
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Manual Exp Date</label>
+                <input type="date" id="editExpDate" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">License Status</label>
+                <select id="editStatus" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs sm:text-sm outline-none focus:border-brand-500 transition">
+                  <option value="active">Active</option>
+                  <option value="hold">Hold</option>
+                  <option value="revoked">Revoked</option>
+                  <option value="expired">Expired</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="pt-4 space-y-3">
+              <button id="btnSaveConfig" onclick="simpanPerubahanLisensi()" class="w-full bg-brand-500 hover:bg-brand-600 active:scale-[0.99] text-white py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-brand-500/25 transition">Save Configuration</button>
+              <div class="flex gap-3">
+                <button id="btnDeleteLicense" onclick="hapusLisensiWithModal()" class="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 py-3 rounded-2xl text-xs font-bold transition border border-red-500/20">Delete License</button>
+                <button onclick="bukaSubView('device')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-2xl text-xs font-bold transition">Back to List</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="subViewTransferDevice" class="subview-section max-w-xl mx-auto space-y-4">
+          <div class="glass-card p-5 sm:p-8 rounded-3xl space-y-4 border border-slate-800">
+            <div class="bg-brand-500/10 border border-brand-500/20 p-4 rounded-2xl text-xs text-slate-300 leading-relaxed">
+              <b>Migrasi Device ID:</b> Memindahkan masa aktif, status lisensi, nama SPPG, dan backup cloud ke Device Baru.
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Device ID Asal</label>
+              <input type="text" id="inputSourceDevice" placeholder="DEV-XXXX" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs font-mono uppercase">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Device ID Tujuan (Baru)</label>
+              <input type="text" id="inputTargetDevice" placeholder="DEV-YYYY" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs font-mono uppercase">
+            </div>
+            <div class="flex gap-3 pt-2">
+              <button onclick="eksekusiOperDeviceWithModal()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white py-3.5 px-6 rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-amber-500/20 transition">🚀 Migrasi Sekarang</button>
+              <button onclick="bukaSubView('overview')" class="w-32 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 py-3.5 px-5 rounded-2xl text-xs sm:text-sm font-bold transition border border-slate-700 flex items-center justify-center gap-2"><span>🏠</span> Menu</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="subViewPackages" class="subview-section max-w-4xl mx-auto space-y-4">
+          <div class="glass-card p-5 sm:p-8 rounded-3xl space-y-4 border border-slate-800">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <label class="font-bold text-xs uppercase text-slate-300">Daftar Paket Langganan & Diskon</label>
+                <p class="text-[11px] text-slate-400">Atur nama paket, durasi hari, harga normal, serta konfigurasi promo diskon.</p>
+              </div>
+              <button onclick="tambahBarisPaketForm()" class="bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-bold px-4 py-3.5 rounded-2xl text-xs sm:text-sm transition shadow-lg shadow-brand-500/20 flex items-center justify-center gap-1.5">+ Tambah Paket</button>
+            </div>
+            <div id="containerListPaket" class="space-y-4 max-h-[550px] overflow-y-auto pr-1">
+              <div class="text-center text-slate-500 text-xs py-10">Memuat paket dari database API...</div>
+            </div>
+            <div class="flex gap-3 pt-4 border-t border-slate-800">
+              <button onclick="simpanPengaturanPaketServer()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white py-3.5 px-6 rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2">💾 Simpan Paket & Diskon</button>
+              <button onclick="bukaSubView('overview')" class="w-32 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 py-3.5 px-5 rounded-2xl text-xs sm:text-sm font-bold transition border border-slate-700 flex items-center justify-center gap-2"><span>🏠</span> Menu</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="subViewRelease" class="subview-section max-w-xl mx-auto space-y-4">
+          <div class="glass-card p-5 sm:p-8 rounded-3xl space-y-4 border border-slate-800">
+            <div class="bg-indigo-500/10 border border-indigo-500/20 p-4 rounded-2xl text-xs text-slate-300">In-app userscript release metadata updater & cloud publisher.</div>
+            <div>
+              <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Versi Terbaru</label>
+              <input type="text" id="inputReleaseVersion" placeholder="1.5.48" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-400 uppercase mb-2">URL Download File (.user.js)</label>
+              <input type="url" id="inputDownloadUrl" placeholder="https://..." class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Changelog</label>
+              <textarea id="inputChangelog" rows="4" placeholder="- Perbaikan bug&#10;- Peningkatan performa" onkeydown="handleChangelogAutoBullet(event)" onfocus="if(!this.value) this.value='- ';" class="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900/60 text-white text-xs font-mono"></textarea>
+            </div>
+            <div class="flex gap-3 pt-2">
+              <button id="btnPublishRelease" onclick="simpanUpdateReleaseServer()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white py-3.5 px-6 rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2">🚀 Rilis Update</button>
+              <button onclick="bukaSubView('overview')" class="w-32 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 py-3.5 px-5 rounded-2xl text-xs sm:text-sm font-bold transition border border-slate-700 flex items-center justify-center gap-2"><span>🏠</span> Menu</button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+const VBASE='https://mindspace-id.vercel.app',VAPI=`${VBASE}/api/tokopay`,CAPI=`${VBASE}/api/config`,SALT='MINDSTUDIO2026';let sInst=null,sPromise=null,userSess=null,vEmail=null,rEmail=null,adminPass='',gUsers=[],selDevs=[],statFilt='all',currLic=null,currBkp=null,confFn=null,tFrame='7d',gStats=null,baseAvatar='',tmpEmail='',_dHari=30,_dFinal=80000,_dBase=100000,_dDisc=0,_dRef=null,_dPoll=null,hbPts=new Array(30).fill(40),hbInt=null,currRelId=null,DEFAULTS=[{hari:1,harga:5000,nama:'Durasi 1 Hari'},{hari:3,harga:10000,nama:'Durasi 3 Hari'},{hari:7,harga:25000,nama:'Durasi 7 Hari'},{hari:14,harga:50000,nama:'Durasi 14 Hari'},{hari:30,harga:100000,final_price:80000,nama:'Durasi 30 Hari'},{hari:60,harga:200000,final_price:150000,nama:'Durasi 60 Hari'}];
 function fmt(n){return new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(n)||0);}
 function setCookie(k,v,d=1){const dt=new Date();dt.setTime(dt.getTime()+(d*86400000));document.cookie=`${k}=${encodeURIComponent(JSON.stringify(v))};expires=${dt.toUTCString()};path=/;SameSite=Strict`;}
 function getCookie(k){const m=document.cookie.match('(^|;)\\s*'+k+'\\s*=\\s*([^;]+)');return m?JSON.parse(decodeURIComponent(m[2])):null;}
@@ -80,8 +828,10 @@ async function muatDataPaketServer(){const c=document.getElementById('containerL
 function tambahBarisPaketForm(nama='',hari='',harga='',dt='none',dv='',du=''){const c=document.getElementById('containerListPaket');if(!c)return;if(!c.querySelector('.package-item-row'))c.innerHTML='';if(typeof nama!=='string')nama='';dt=dt||'none';dv=dv??'';du=du||'';const div=document.createElement('div');div.className='package-item-row p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3 transition hover:border-slate-700 shadow-md';div.innerHTML=`<div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end"><div class="sm:col-span-4"><label class="block text-[10px] text-slate-400 font-extrabold uppercase mb-1">Nama Paket</label><input type="text" class="inp-nama w-full px-3 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white font-semibold outline-none focus:border-brand-500 transition" value="${nama}" placeholder="Paket PRO"></div><div class="sm:col-span-3"><label class="block text-[10px] text-slate-400 font-extrabold uppercase mb-1">Durasi (Hari)</label><input type="number" class="inp-hari w-full px-3 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white font-semibold outline-none focus:border-brand-500 transition" value="${hari}" placeholder="30"></div><div class="sm:col-span-4"><label class="block text-[10px] text-slate-400 font-extrabold uppercase mb-1">Harga Normal (Rp)</label><input type="number" oninput="calcForm(this)" class="inp-harga w-full px-3 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-brand-400 font-mono font-bold outline-none focus:border-brand-500 transition" value="${harga}" placeholder="50000"></div><div class="sm:col-span-1 flex justify-end"><button onclick="this.closest('.package-item-row').remove()" class="w-full h-10 bg-red-500/15 hover:bg-red-500/25 active:scale-95 text-red-400 border border-red-500/20 rounded-xl font-bold flex items-center justify-center text-xs transition">✕</button></div></div><div class="p-3 bg-slate-950/60 rounded-xl border border-slate-800/80 space-y-3"><div class="flex items-center justify-between"><span class="text-[10px] font-extrabold text-brand-400 uppercase tracking-wider">🏷️ Promo Diskon</span><span class="preview-harga-akhir text-[11px] font-mono font-extrabold text-emerald-400">Rp 0</span></div><div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5"><div><label class="block text-[9px] text-slate-500 font-bold uppercase mb-1">Tipe</label><select onchange="calcForm(this)" class="inp-disc-type w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white outline-none focus:border-brand-500 transition font-semibold"><option value="none" ${dt==='none'?'selected':''}>Tanpa Diskon</option><option value="percent" ${dt==='percent'?'selected':''}>Persentase (%)</option><option value="nominal" ${dt==='nominal'?'selected':''}>Nominal (Rp)</option></select></div><div><label class="block text-[9px] text-slate-500 font-bold uppercase mb-1">Nilai</label><input type="number" oninput="calcForm(this)" class="inp-disc-val w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-amber-400 font-mono font-bold outline-none focus:border-brand-500 transition" value="${dv}" placeholder="20 / 10000"></div><div><label class="block text-[9px] text-slate-500 font-bold uppercase mb-1">Batas Waktu</label><input type="date" class="inp-disc-until w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white outline-none focus:border-brand-500 transition" value="${du}"></div></div></div>`;c.appendChild(div);calcForm(div.querySelector('.inp-harga'));}
 function calcForm(el){const row=el.closest('.package-item-row');if(!row)return;const norm=Number(row.querySelector('.inp-harga').value)||0,type=row.querySelector('.inp-disc-type').value,valInp=row.querySelector('.inp-disc-val'),val=Number(valInp.value)||0,prev=row.querySelector('.preview-harga-akhir');valInp.disabled=type==='none';valInp.classList.toggle('opacity-40',type==='none');let fin=norm;if(type==='percent'&&val>0)fin=Math.max(0,norm-Math.round((norm*val)/100));else if(type==='nominal'&&val>0)fin=Math.max(0,norm-val);if(prev){if(fin<norm)prev.innerHTML=`<span class="line-through text-slate-500 mr-1">Rp ${norm.toLocaleString('id-ID')}</span> <span class="text-emerald-400 font-bold">Rp ${fin.toLocaleString('id-ID')}</span>`;else prev.textContent=`Rp ${norm.toLocaleString('id-ID')}`;}}
 async function simpanPengaturanPaketServer(){const rows=document.querySelectorAll('#containerListPaket > .package-item-row'),pkgs=[];rows.forEach(r=>{const nama=r.querySelector('.inp-nama').value.trim(),hari=Number(r.querySelector('.inp-hari').value)||0,harga=Number(r.querySelector('.inp-harga').value)||0,discount_type=r.querySelector('.inp-disc-type').value,discount_value=Number(r.querySelector('.inp-disc-val').value)||0,discount_until=r.querySelector('.inp-disc-until').value;let final_price=harga;if(discount_type==='percent'&&discount_value>0)final_price=Math.max(0,harga-Math.round((harga*discount_value)/100));else if(discount_type==='nominal'&&discount_value>0)final_price=Math.max(0,harga-discount_value);if(nama)pkgs.push({nama,hari,harga,discount_type,discount_value,discount_until,final_price});});try{const r=await fetch(VAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save_packages',packages:pkgs,admin_secret:adminPass,secret:adminPass})}),res=await r.json().catch(()=>({}));if(r.ok&&(res.success||res.status)){showToast('Paket tersimpan!');muatDataPaketServer();}else showToast(res.error||'Gagal.',false);}catch(e){showToast('Network error.',false);}}
-async function muatDataReleaseServer(){const v=document.getElementById('inputReleaseVersion'),u=document.getElementById('inputDownloadUrl'),cg=document.getElementById('inputChangelog');if(!v)return;v.value='Memuat...';u.value='';cg.value='';try{const r=await fetch(`${VAPI}?action=get_release`,{method:'GET',headers:{'Accept':'application/json'},cache:'no-store'});if(!r.ok)throw new Error();const j=await r.json(),rel=j.release||j.data||j;if(rel){v.value=rel.version||rel.versi||'';u.value=rel.download_url||rel.url||'';cg.value=rel.changelog||rel.catatan||'';}}catch(e){v.value='';showToast('Gagal memuat release.',false);}}
-async function simpanUpdateReleaseServer(){const version=document.getElementById('inputReleaseVersion').value.trim(),download_url=document.getElementById('inputDownloadUrl').value.trim(),changelog=document.getElementById('inputChangelog').value.trim();if(!version||!download_url)return showToast('Versi & URL wajib diisi!',false);try{const r=await fetch(VAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save_release',version,download_url,changelog,secret:adminPass,admin_secret:adminPass})}),res=await r.json().catch(()=>({}));if(r.ok&&(res.success||res.status)){showToast('Update dipublikasikan!');muatDataReleaseServer();}else showToast(res.error||'Gagal merilis.',false);}catch(e){showToast('Network error.',false);}}
+async function muatDataReleaseServer(){const v=document.getElementById('inputReleaseVersion'),u=document.getElementById('inputDownloadUrl'),cg=document.getElementById('inputChangelog');if(!v)return;v.value='Memuat...';u.value='';cg.value='';try{const sb=await initSupabase();const {data:rel,error}=await sb.from('releases').select('id,version,download_url,changelog').order('id',{ascending:false}).limit(1).maybeSingle();if(error)throw error;if(rel){currRelId=rel.id;v.value=rel.version||'';u.value=rel.download_url||'';cg.value=rel.changelog||'';}else{currRelId=null;v.value='';}}catch(e){v.value='';showToast('Gagal memuat release.',false);}}
+async function simpanUpdateReleaseServer(){const version=document.getElementById('inputReleaseVersion').value.trim(),download_url=document.getElementById('inputDownloadUrl').value.trim(),changelog=document.getElementById('inputChangelog').value.trim(),btn=document.getElementById('btnPublishRelease');if(!version||!download_url)return showToast('Versi & URL wajib diisi!',false);if(!userSess||userSess.role!=='developer')return showToast('Akses ditolak: Hanya Developer.',false);if(btn)btn.disabled=true;try{const sb=await initSupabase(),now=new Date().toISOString();const {data:existing}=await sb.from('releases').select('id').order('id',{ascending:false}).limit(1).maybeSingle();let dbErr=null;if(existing&&existing.id){const {error}=await sb.from('releases').update({version,download_url,changelog,updated_at:now}).eq('id',existing.id);dbErr=error;currRelId=existing.id;}else{const {data:inserted,error}=await sb.from('releases').insert({version,download_url,changelog,created_at:now,updated_at:now}).select('id').single();dbErr=error;if(inserted)currRelId=inserted.id;}if(dbErr)throw dbErr;showToast('Update dipublikasikan ke tabel releases!');await muatDataReleaseServer();}catch(e){console.error(e);showToast('Gagal merilis update: '+(e.message||'Database error'),false);}finally{if(btn)btn.disabled=false;}}
 function handleChangelogAutoBullet(e){if(e.key==='Enter'){e.preventDefault();const ta=e.target,pos=ta.selectionStart;ta.value=ta.value.substring(0,pos)+'\n- '+ta.value.substring(pos);ta.selectionStart=ta.selectionEnd=pos+3;}}
 function exportLicensesCSV(){if(!gUsers.length)return showToast('Tidak ada data.',false);let csv=['device_id,sppg_name,status,exp_date,last_active'];gUsers.forEach(u=>csv.push(`"${u.device_id||''}","${(u.sppg_name||'').replace(/"/g,'""')}","${u.status||'active'}","${u.exp_date||''}","${u.last_active||''}"`));const blob=new Blob([csv.join('\n')],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`mindhub-licenses-${getToday()}.csv`;document.body.appendChild(a);a.click();a.remove();showToast('CSV Exported!');}
-</script></body></html>
+  </script>
+</body>
+</html>

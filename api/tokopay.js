@@ -280,20 +280,34 @@ export default async function handler(req, res) {
   const candidateUserId = String(body?.user_id || query?.user_id || jwtPayload?.sub || '').trim() || null;
 
   // ==========================================
-  // GET RELEASE METADATA
+  // GET RELEASE METADATA / CHECK VERSION
   // ==========================================
-  if (action === 'get_release') {
+  if (action === 'get_release' || action === 'check_version') {
+    let releaseData = globalReleaseCache;
     try {
       const relRes = await fetch(`${SUPABASE_URL}/rest/v1/releases?select=*&order=created_at.desc&limit=1`, {
         headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
         cache: 'no-store'
       });
       const relData = await relRes.json();
-      if (Array.isArray(relData) && relData.length > 0) {
-        return res.status(200).json({ success: true, release: relData[0] });
+      if (Array.isArray(relData) && relData.length > 0 && relData[0]?.version) {
+        releaseData = {
+          ...relData[0],
+          version: String(relData[0].version).trim(),
+          download_url: String(relData[0].download_url || globalReleaseCache.download_url).trim(),
+          changelog: String(relData[0].changelog || '').trim()
+        };
+        globalReleaseCache = releaseData;
       }
     } catch (e) {}
-    return res.status(200).json({ success: true, release: globalReleaseCache });
+
+    return res.status(200).json({
+      success: true,
+      version: releaseData.version,
+      download_url: releaseData.download_url,
+      changelog: releaseData.changelog,
+      release: releaseData
+    });
   }
 
   // ==========================================

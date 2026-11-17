@@ -51,14 +51,84 @@ function hitungHargaFinalPaket(pkg) {
   return hargaNormal;
 }
 
-async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, paketHari, nominal = 0, clientName = 'User QRIS / Voucher', sppgName = '') {
+function decodeJwtPayloadUnsafe(req, body = {}, query = {}) {
+  const authHeader = String(req.headers?.authorization || '');
+  const token = authHeader.startsWith('Bearer ')
+    ? authHeader.slice(7).trim()
+    : String(body?.token || query?.token || '').trim();
+
+  if (!token || !token.includes('.')) return null;
+  try {
+    const parts = token.split('.');
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const jsonStr = Buffer.from(base64, 'base64').toString('utf8');
+    return JSON.parse(jsonStr);
+  } catch {
+    return null;
+  }
+}
+
+function normalizeDeviceArray(raw) {
+  let list = [];
+  if (Array.isArray(raw)) {
+    list = raw;
+  } else if (typeof raw === 'string' && raw.trim()) {
+    try {
+      const parsed = JSON.parse(raw);
+      list = Array.isArray(parsed) ? parsed : [raw];
+    } catch {
+      list = [raw];
+    }
+  }
+  return [...new Set(list.map(v => String(v || '').trim().toUpperCase()).filter(Boolean))];
+}
+
+async function resolveOwnerAccountByDevice(supabaseUrl, supabaseKey, cleanDeviceId, candidateUserId = null) {
+  const headers = { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` };
+
+  // 1. Jika ada kandidat user_id (UUID dari user_accounts.id atau sub JWT), cek langsung barisnya
+  if (candidateUserId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(candidateUserId)) {
+    try {
+      const uRes = await fetch(
+        `${supabaseUrl}/rest/v1/user_accounts?id=eq.${encodeURIComponent(candidateUserId)}&select=id,uid,uuid,username,email,device_id,device_ids`,
+        { headers, cache: 'no-store' }
+      );
+      const uData = await uRes.json();
+      if (Array.isArray(uData) && uData.length > 0) {
+        const acc = uData[0];
+        const devList = normalizeDeviceArray(acc.device_ids ?? acc.device_id);
+        if (devList.includes(cleanDeviceId)) {
+          return acc;
+        }
+      }
+    } catch {}
+  }
+
+  // 2. Fallback: cari akun yang memiliki cleanDeviceId di device_ids (jsonb) atau device_id
+  try {
+    const jsonFilter = encodeURIComponent(JSON.stringify([cleanDeviceId]));
+    const searchRes = await fetch(
+      `${supabaseUrl}/rest/v1/user_accounts?or=(device_ids.cs.${jsonFilter},device_id.eq.${encodeURIComponent(cleanDeviceId)})&select=id,uid,uuid,username,email,device_id,device_ids&limit=1`,
+      { headers, cache: 'no-store' }
+    );
+    const searchData = await searchRes.json();
+    if (Array.isArray(searchData) && searchData.length > 0) {
+      return searchData[0];
+    }
+  } catch {}
+
+  return null;
+}
+
+async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, paketHari, nominal = 0, clientName = 'User QRIS / Voucher', sppgName = '', candidateUserId = null) {
   if (!supabaseUrl || !supabaseKey || !deviceId) return null;
+  const cleanDevId = String(deviceId).trim().toUpperCase();
 
   try {
     let finalNominal = Number(nominal);
     if (!finalNominal || finalNominal <= 0) {
       const pRes = await fetch(`${supabaseUrl}/rest/v1/packages?hari=eq.${Number(paketHari)}&select=*`, {
-        headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` },
+        headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` },
         cache: 'no-store'
       });
       const pData = await pRes.json();
@@ -73,31 +143,33 @@ async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, pake
     await fetch(`${supabaseUrl}/rest/v1/transactions`, {
       method: 'POST',
       headers: {
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${supabaseKey}`,
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        device_id: deviceId,
+        device_id: cleanDevId,
         amount: finalNominal,
         paket_hari: Number(paketHari),
         status: 'success'
       })
     });
 
-    // 2. Cek Lisensi Eksisting
-    const getRes = await fetch(`${supabaseUrl}/rest/v1/licenses?device_id=eq.${encodeURIComponent(deviceId)}`, {
+    // 2. Cek Lisensi Eksisting & Pemilik Akun (user_accounts.id)
+    const getRes = await fetch(`${supabaseUrl}/rest/v1/licenses?device_id=eq.${encodeURIComponent(cleanDevId)}`, {
       method: 'GET',
-      headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` },
+      headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` },
       cache: 'no-store'
     });
 
     const existing = await getRes.json();
     const activeLicense = Array.isArray(existing) && existing.length > 0 ? existing[0] : null;
+    const ownerAccount = await resolveOwnerAccountByDevice(supabaseUrl, supabaseKey, cleanDevId, candidateUserId);
+    const resolvedUserId = activeLicense?.user_id || ownerAccount?.id || null;
 
     const expDateNew = calculateExpiryDate(activeLicense?.exp_date, paketHari);
     const nonce = Math.floor(Math.random() * 16777215).toString(16).toUpperCase();
-    const payload = `${expDateNew}|${deviceId}|AutoPayment|MINDSTUDIO2026|${nonce}`;
+    const payload = `${expDateNew}|${cleanDevId}|AutoPayment|MINDSTUDIO2026|${nonce}`;
     const licenseKeyNew = `MIND-${btoa(payload).split('').reverse().join('')}`;
     const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
 
@@ -108,41 +180,45 @@ async function catatTransaksiDanLisensi(supabaseUrl, supabaseKey, deviceId, pake
       updated_at: timestampWIB
     };
 
+    if (resolvedUserId) {
+      bodyPayload.user_id = resolvedUserId;
+    }
+
     if (sppgName) {
       bodyPayload.sppg_name = sppgName;
     }
 
     if (activeLicense) {
-      const updateRes = await fetch(`${supabaseUrl}/rest/v1/licenses?device_id=eq.${encodeURIComponent(deviceId)}`, {
+      const updateRes = await fetch(`${supabaseUrl}/rest/v1/licenses?device_id=eq.${encodeURIComponent(cleanDevId)}`, {
         method: 'PATCH',
         headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`,
           'Content-Type': 'application/json',
-          'Prefer': 'return=representation'
+          Prefer: 'return=representation'
         },
         body: JSON.stringify(bodyPayload),
         cache: 'no-store'
       });
       const updatedData = await updateRes.json();
-      return Array.isArray(updatedData) && updatedData.length > 0 ? updatedData[0] : { exp_date: expDateNew };
+      return Array.isArray(updatedData) && updatedData.length > 0 ? updatedData[0] : { exp_date: expDateNew, user_id: resolvedUserId };
     } else {
-      bodyPayload.device_id = deviceId;
-      bodyPayload.client_name = clientName;
+      bodyPayload.device_id = cleanDevId;
+      bodyPayload.client_name = ownerAccount?.username || clientName;
 
       const insertRes = await fetch(`${supabaseUrl}/rest/v1/licenses`, {
         method: 'POST',
         headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`,
           'Content-Type': 'application/json',
-          'Prefer': 'return=representation'
+          Prefer: 'return=representation'
         },
         body: JSON.stringify(bodyPayload),
         cache: 'no-store'
       });
       const insertedData = await insertRes.json();
-      return Array.isArray(insertedData) && insertedData.length > 0 ? insertedData[0] : { exp_date: expDateNew };
+      return Array.isArray(insertedData) && insertedData.length > 0 ? insertedData[0] : { exp_date: expDateNew, user_id: resolvedUserId };
     }
   } catch (err) {
     console.error('[Catat Transaksi Error]:', err);
@@ -193,12 +269,15 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Konfigurasi Supabase URL atau Service Key belum diatur di server Vercel.' });
   }
 
-  const { query, body = {} } = req;
+  const { query = {}, body = {} } = req;
   const action = query.action || body?.action;
   const reff_id = query.reff_id || query.ref_id || body?.reff_id || body?.ref_id;
   const device_id = query.device_id || body?.device_id;
   const sppg_name = body?.sppg_name || query?.sppg_name;
   let paket_hari = query.paket_hari || body?.paket_hari;
+
+  const jwtPayload = decodeJwtPayloadUnsafe(req, body, query);
+  const candidateUserId = String(body?.user_id || query?.user_id || jwtPayload?.sub || '').trim() || null;
 
   // ==========================================
   // GET RELEASE METADATA
@@ -206,7 +285,7 @@ export default async function handler(req, res) {
   if (action === 'get_release') {
     try {
       const relRes = await fetch(`${SUPABASE_URL}/rest/v1/releases?select=*&order=created_at.desc&limit=1`, {
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
         cache: 'no-store'
       });
       const relData = await relRes.json();
@@ -223,7 +302,7 @@ export default async function handler(req, res) {
   if (action === 'get_all_licenses') {
     try {
       const licRes = await fetch(`${SUPABASE_URL}/rest/v1/licenses?select=*`, {
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
         cache: 'no-store'
       });
       const licenses = await licRes.json();
@@ -244,7 +323,7 @@ export default async function handler(req, res) {
 
     try {
       const pkgRes = await fetch(`${SUPABASE_URL}/rest/v1/packages?select=*`, {
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
         cache: 'no-store'
       });
       const dbPackages = await pkgRes.json();
@@ -271,7 +350,7 @@ export default async function handler(req, res) {
   if (action === 'get_stats') {
     try {
       const resTrans = await fetch(`${SUPABASE_URL}/rest/v1/transactions?select=*`, {
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
         cache: 'no-store'
       });
       const transactions = await resTrans.json();
@@ -306,35 +385,116 @@ export default async function handler(req, res) {
 
       return res.status(200).json({ harian, mingguan, bulanan, chart_harian: chartHarian });
     } catch (e) {
-      return res.status(200).json({ harian: 0, mingguan: 0, bulanan: 0, chart_harian: [0,0,0,0,0,0,0] });
+      return res.status(200).json({ harian: 0, mingguan: 0, bulanan: 0, chart_harian: [0, 0, 0, 0, 0, 0, 0] });
     }
   }
 
   // ==========================================
-  // CHECK LICENSE
+  // CHECK LICENSE & DEVICE LINK STATUS (INITIAL CHECK)
   // ==========================================
   if (action === 'check_license') {
     if (!device_id) return res.status(200).json({ valid: false, msg: 'Device ID tidak ditemukan.' });
+    const cleanDevId = String(device_id).trim().toUpperCase();
 
     try {
-      const getRes = await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(device_id)}`, {
-        method: 'GET',
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
-        cache: 'no-store'
-      });
+      // Ambil baris licenses + relasi user_accounts(id, uid, uuid, username, email)
+      const getRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(cleanDevId)}&select=*,user_accounts(id,uid,uuid,username,email)`,
+        {
+          method: 'GET',
+          headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
+          cache: 'no-store'
+        }
+      );
       const licenses = await getRes.json();
       const lic = Array.isArray(licenses) && licenses.length > 0 ? licenses[0] : null;
 
-      if (!lic) return res.status(200).json({ valid: false, status: 'unregistered', msg: 'Device ID belum terdaftar.' });
-      if (lic.status === 'revoked') return res.status(200).json({ valid: false, status: 'revoked', msg: 'Akses perangkat dicabut.' });
-      if (lic.status === 'hold') return res.status(200).json({ valid: false, status: 'hold', msg: 'Akses ditangguhkan.' });
+      // Cek apakah perangkat sudah tertaut di user_accounts
+      const ownerAccount = await resolveOwnerAccountByDevice(SUPABASE_URL, SUPABASE_KEY, cleanDevId, candidateUserId);
+      let resolvedUserId = lic?.user_id || ownerAccount?.id || null;
+
+      // Auto-heal: jika baris lisensi ada tapi user_id belum terisi padahal sudah ditautkan di user_accounts
+      if (lic && !lic.user_id && ownerAccount?.id) {
+        try {
+          const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
+          await fetch(`${SUPABASE_URL}/rest/v1/licenses?id=eq.${lic.id}`, {
+            method: 'PATCH',
+            headers: {
+              apikey: SUPABASE_KEY,
+              Authorization: `Bearer ${SUPABASE_KEY}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ user_id: ownerAccount.id, updated_at: timestampWIB })
+          });
+          resolvedUserId = ownerAccount.id;
+        } catch {}
+      }
+
+      const ownerProfile = lic?.user_accounts || (ownerAccount ? {
+        id: ownerAccount.id,
+        uid: ownerAccount.uid,
+        uuid: ownerAccount.uuid,
+        username: ownerAccount.username,
+        email: ownerAccount.email
+      } : null);
+
+      const isLinked = Boolean(resolvedUserId);
+      const isLinkedToCurrentUser = Boolean(
+        candidateUserId &&
+        (resolvedUserId === candidateUserId || ownerProfile?.uid === candidateUserId)
+      );
+
+      const linkPayload = {
+        user_id: resolvedUserId,
+        is_linked: candidateUserId ? isLinkedToCurrentUser : isLinked,
+        is_linked_any: isLinked,
+        owner: ownerProfile,
+        linked_username: ownerProfile?.username || null
+      };
+
+      if (!lic) {
+        return res.status(200).json({
+          valid: false,
+          status: 'unregistered',
+          msg: 'Device ID belum terdaftar.',
+          ...linkPayload
+        });
+      }
+      if (lic.status === 'revoked') {
+        return res.status(200).json({
+          valid: false,
+          status: 'revoked',
+          msg: 'Akses perangkat dicabut.',
+          ...linkPayload
+        });
+      }
+      if (lic.status === 'hold') {
+        return res.status(200).json({
+          valid: false,
+          status: 'hold',
+          msg: 'Akses ditangguhkan.',
+          ...linkPayload
+        });
+      }
 
       const hariIniWIB = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
       if (lic.exp_date && lic.exp_date < hariIniWIB) {
-        return res.status(200).json({ valid: false, status: 'expired', exp_date: lic.exp_date, msg: 'Masa aktif habis.' });
+        return res.status(200).json({
+          valid: false,
+          status: 'expired',
+          exp_date: lic.exp_date,
+          msg: 'Masa aktif habis.',
+          ...linkPayload
+        });
       }
 
-      return res.status(200).json({ valid: true, status: 'active', exp_date: lic.exp_date, sppg_name: lic.sppg_name || '' });
+      return res.status(200).json({
+        valid: true,
+        status: 'active',
+        exp_date: lic.exp_date,
+        sppg_name: lic.sppg_name || '',
+        ...linkPayload
+      });
     } catch (e) {
       return res.status(200).json({ valid: false, msg: 'Gagal verifikasi lisensi.' });
     }
@@ -344,7 +504,6 @@ export default async function handler(req, res) {
   // POST REQUEST HANDLERS
   // ==========================================
   if (req.method === 'POST') {
-    
     // 1. UPDATE RELEASE
     if (body.action === 'update_release') {
       const { version, download_url, changelog } = body;
@@ -363,10 +522,10 @@ export default async function handler(req, res) {
         await fetch(`${SUPABASE_URL}/rest/v1/releases`, {
           method: 'POST',
           headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${SUPABASE_KEY}`,
             'Content-Type': 'application/json',
-            'Prefer': 'return=representation'
+            Prefer: 'return=representation'
           },
           body: JSON.stringify({
             version: globalReleaseCache.version,
@@ -399,7 +558,7 @@ export default async function handler(req, res) {
       try {
         await fetch(`${SUPABASE_URL}/rest/v1/vouchers`, {
           method: 'POST',
-          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+          headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
             code: voucherCode,
             days_value: durationDays,
@@ -411,7 +570,7 @@ export default async function handler(req, res) {
           })
         });
 
-        return res.status(200).json({ success: true, code: voucherCode, message: `Voucher berhasil dibuat` });
+        return res.status(200).json({ success: true, code: voucherCode, message: 'Voucher berhasil dibuat' });
       } catch (err) {
         return res.status(500).json({ error: 'Gagal membuat kode voucher.' });
       }
@@ -427,7 +586,7 @@ export default async function handler(req, res) {
 
       try {
         const vRes = await fetch(`${SUPABASE_URL}/rest/v1/vouchers?code=eq.${encodeURIComponent(cleanVoucher)}&select=*`, {
-          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+          headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
           cache: 'no-store'
         });
         const vData = await vRes.json();
@@ -442,12 +601,17 @@ export default async function handler(req, res) {
         usedDevices.push(devIdTarget);
         await fetch(`${SUPABASE_URL}/rest/v1/vouchers?id=eq.${voucher.id}`, {
           method: 'PATCH',
-          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+          headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ used_count: (voucher.used_count || 0) + 1, used_devices: usedDevices })
         });
 
-        const savedInfo = await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, devIdTarget, voucher.days_value, 0, 'Voucher Claim');
-        return res.status(200).json({ success: true, message: 'Voucher berhasil diklaim!', exp_date: savedInfo?.exp_date });
+        const savedInfo = await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, devIdTarget, voucher.days_value, 0, 'Voucher Claim', '', candidateUserId);
+        return res.status(200).json({
+          success: true,
+          message: 'Voucher berhasil diklaim!',
+          exp_date: savedInfo?.exp_date,
+          user_id: savedInfo?.user_id || null
+        });
       } catch (err) {
         return res.status(500).json({ error: 'Gagal memproses klaim voucher.' });
       }
@@ -457,7 +621,7 @@ export default async function handler(req, res) {
     if (body.action === 'save_license') {
       const sppgTarget = body.sppg_name || sppg_name || '';
       const timestampWIB = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T');
-      
+
       const patchPayload = {
         exp_date: body.exp_date,
         status: body.status,
@@ -465,10 +629,11 @@ export default async function handler(req, res) {
       };
       if (body.license_key) patchPayload.license_key = body.license_key;
       if (sppgTarget) patchPayload.sppg_name = sppgTarget;
+      if (body.user_id !== undefined) patchPayload.user_id = body.user_id || null;
 
       const updateRes = await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${encodeURIComponent(body.device_id)}`, {
         method: 'PATCH',
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=representation' },
         body: JSON.stringify(patchPayload)
       });
 
@@ -487,13 +652,13 @@ export default async function handler(req, res) {
       try {
         await fetch(`${SUPABASE_URL}/rest/v1/packages`, {
           method: 'DELETE',
-          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Prefer': 'return=minimal' }
+          headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, Prefer: 'return=minimal' }
         });
 
         for (const p of pkgs) {
           await fetch(`${SUPABASE_URL}/rest/v1/packages`, {
             method: 'POST',
-            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+            headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
               name: p.name,
               hari: p.days,
@@ -522,7 +687,7 @@ export default async function handler(req, res) {
 
       if (isLunasCallback && refIdCallback) {
         const { deviceId: targetDevId, paketHari: targetPaketHari } = parseReffId(refIdCallback);
-        let nominalBayar = Number(body.total_bayar || body.nominal || 0);
+        const nominalBayar = Number(body.total_bayar || body.nominal || 0);
 
         if (targetDevId) {
           await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, targetDevId, targetPaketHari, nominalBayar);
@@ -541,7 +706,7 @@ export default async function handler(req, res) {
     if (!nominal || nominal <= 0) {
       try {
         const pkgRes = await fetch(`${SUPABASE_URL}/rest/v1/packages?hari=eq.${paketHariFix}&select=*`, {
-          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+          headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
           cache: 'no-store'
         });
         const pkgData = await pkgRes.json();
@@ -572,9 +737,9 @@ export default async function handler(req, res) {
         success: true,
         reff_id: refIdOrder,
         ref_id: refIdOrder,
-        qr_link: qr_link,
-        qr_string: qr_string,
-        total_bayar: total_bayar,
+        qr_link,
+        qr_string,
+        total_bayar,
         raw: tokopayData
       });
     } catch (err) {
@@ -606,16 +771,17 @@ export default async function handler(req, res) {
         if (!targetDevId) targetDevId = device_id;
         if (!paket_hari && targetPaketHari) paket_hari = targetPaketHari;
 
-        let nominalBayar = Number(innerData?.total_bayar || innerData?.nominal || 0);
+        const nominalBayar = Number(innerData?.total_bayar || innerData?.nominal || 0);
 
         if (!targetDevId) return res.status(200).json({ is_paid: false, error: 'Device ID tidak terdeteksi.' });
 
-        const savedInfo = await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, targetDevId, targetPaketHari, nominalBayar);
+        const savedInfo = await catatTransaksiDanLisensi(SUPABASE_URL, SUPABASE_KEY, targetDevId, targetPaketHari, nominalBayar, 'User QRIS / Voucher', '', candidateUserId);
 
         return res.status(200).json({
           is_paid: true,
           status: 'Success',
-          exp_date: savedInfo?.exp_date || null
+          exp_date: savedInfo?.exp_date || null,
+          user_id: savedInfo?.user_id || null
         });
       }
 

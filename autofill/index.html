@@ -366,7 +366,6 @@
 
           if (verEl) verEl.textContent = `v${cleanVersion}`;
           if (footerVerEl) footerVerEl.textContent = `v${cleanVersion}`;
-          if (btnDl && releaseInfo.download_url) btnDl.href = releaseInfo.download_url;
         }
       } catch (e) {
         const verEl = document.getElementById('landingScriptVersion');

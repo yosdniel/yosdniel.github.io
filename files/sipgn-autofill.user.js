@@ -3484,7 +3484,7 @@ async function aturWaktuKeberangkatan(jamMenitStr, namaField = 'Waktu Keberangka
           </div>
           <div>
             <div style="display:flex; align-items:center; gap:6px;">
-              <span style="font-weight:800; font-size:13.5px; letter-spacing:-0.2px; line-height:1.15;">SIPGN - Autofill</span>
+              <span style="font-weight:800; font-size:13.5px; letter-spacing:-0.2px; line-height:1.15;">POP - Autofill</span>
               ${badgeHeaderTitleHtml}
             </div>
             <div style="font-size:9.5px; color:var(--ms-text-muted); font-family:var(--ms-font-mono); font-weight:700;">Crafted by <b>Mindspace Studio</b></div>

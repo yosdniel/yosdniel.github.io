@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SIPGN Autofill POP - Mindspace Studio
 // @namespace    sipgn-autofill
-// @version      2.0.1
+// @version      2.0.2
 // @description  Ultra-Modern Cyber-Bento Glassmorphic Suite untuk Otomatisasi SIPGN POP (Encrypted Core Vault, Fake Camera, Command Palette Ctrl+K, Auto-Sequence, CSV/JSON Engine, Live Batch Status & Telemetry)
 // @match        https://pop-sipgn.bgn.go.id/distribution*
 // @match        https://pop-sipgn.bgn.go.id/*
@@ -21,8 +21,8 @@
   'use strict';
 
   /* ============================================================================
-   * 0. CRYPTOGRAPHIC VAULT & INTEGRITY PROTECTION ENGINE (ANTI-TAMPER / ENCRYPTION)
-   * ============================================================================ */
+- 0. CRYPTOGRAPHIC VAULT & INTEGRITY PROTECTION ENGINE (ANTI-TAMPER / ENCRYPTION)
+- ============================================================================ */
   const _0xVault = (() => {
     const _k = [0x4d, 0x49, 0x4e, 0x44, 0x53, 0x50, 0x41, 0x43, 0x45, 0x32, 0x30, 0x32, 0x36];
     const _enc = (str) => {
@@ -77,8 +77,8 @@
   const getSecretSalt = () => _0xVault.dec(_CFG_VAULT.salt);
 
   /* ============================================================================
-   * 1. FAKE CAMERA ENGINE (GALERI KE KAMERA STREAM)
-   * ============================================================================ */
+- 1. FAKE CAMERA ENGINE (GALERI KE KAMERA STREAM)
+- ============================================================================ */
   (function inisialisasiFakeCamera() {
     try {
       const canvas = document.createElement('canvas');
@@ -86,6 +86,7 @@
       canvas.height = 720;
       const ctx = canvas.getContext('2d');
       let img = null;
+      let prevObjectUrl = null;
 
       setInterval(() => {
         ctx.fillStyle = '#000';
@@ -104,9 +105,21 @@
           input.onchange = () => {
             const f = input.files[0];
             if (!f) return reject(new DOMException('Batal', 'NotAllowedError'));
+            const objectUrl = URL.createObjectURL(f);
             const i = new Image();
-            i.onload = () => { img = i; resolve(); };
-            i.src = URL.createObjectURL(f);
+            i.onload = () => {
+              if (prevObjectUrl) {
+                try { URL.revokeObjectURL(prevObjectUrl); } catch (e) {}
+              }
+              prevObjectUrl = objectUrl;
+              img = i;
+              resolve();
+            };
+            i.onerror = () => {
+              try { URL.revokeObjectURL(objectUrl); } catch (e) {}
+              reject(new DOMException('Gambar gagal dimuat', 'NotReadableError'));
+            };
+            i.src = objectUrl;
           };
           input.oncancel = () => reject(new DOMException('Batal', 'NotAllowedError'));
           input.click();
@@ -128,11 +141,11 @@
   })();
 
   /* ============================================================================
-   * 2. KONFIGURASI & ENCRYPTED STORAGE KEYS
-   * ============================================================================ */
+- 2. KONFIGURASI & ENCRYPTED STORAGE KEYS
+- ============================================================================ */
   const CURRENT_VERSION = (typeof GM_info !== 'undefined' && GM_info.script)
     ? GM_info.script.version
-    : '2.0.1';
+    : '2.0.2';
 
   const LICENSE_STORAGE_KEY = 'sipgn_license_key';
   const DEVICE_STORAGE_KEY = 'sipgn_device_id';
@@ -146,6 +159,14 @@
   const TYPING_SPEED_KEY = 'sipgn_typing_speed_level';
   const PANEL_POS_KEY = 'sipgn_panel_position_v3';
 
+  // Keys untuk Fitur Baru
+  const JITTER_MODE_KEY = 'sipgn_jitter_mode_enabled';
+  const REALTIME_CLOCK_KEY = 'sipgn_realtime_clock_enabled';
+  const AUTO_ADVANCE_KEY = 'sipgn_auto_advance_enabled';
+  const AUTO_SUBMIT_KEY = 'sipgn_auto_submit_enabled';
+  const AUTO_CLOUD_SYNC_KEY = 'sipgn_auto_cloud_sync_enabled';
+  const FLEET_MASTER_KEY = 'sipgn_fleet_master_v1';
+
   let currentDatabaseExpDate = null;
   let cachedServerStatus = null;
   let intervalMonitorLisensi = null;
@@ -156,6 +177,16 @@
   let filterStatus = 'semua';
   let sortMode = 'default'; // 'default' | 'nama' | 'porsi' | 'ritase'
   let activityLogs = [];
+  let isAutomating = false;
+  let isScriptInitialized = false;
+  let globalDragListenersAttached = false;
+  let activeDragState = null;
+
+  // State Fitur Baru
+  let inlineEditIdx = null;
+  let autoCloudSyncTimer = null;
+  let cloudSyncState = 'idle'; // 'idle' | 'syncing' | 'synced' | 'error'
+  let activeSubmitCountdownCancel = null;
 
   function catatAktivitas(teks, tipe = 'info') {
     const waktu = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -164,8 +195,8 @@
   }
 
   /* ============================================================================
-   * 3. HELPER KEAMANAN, ENCRYPTED STORAGE, AUTH JWT & DEVICE LINKING
-   * ============================================================================ */
+- 3. HELPER KEAMANAN, ENCRYPTED STORAGE, AUTH JWT & DEVICE LINKING
+- ============================================================================ */
   function escapeHtml(text) {
     if (text === null || text === undefined) return '';
     return String(text)
@@ -174,6 +205,117 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
+  }
+
+  function normalisasiFormatJam(rawJam) {
+    if (rawJam === null || rawJam === undefined) return '';
+    const bersih = String(rawJam).trim().replace(/\./g, ':');
+    const match = bersih.match(/^(\d{1,2}):(\d{1,2})(?::\d{1,2})?$/);
+    if (!match) return '';
+    const jam = parseInt(match[1], 10);
+    const menit = parseInt(match[2], 10);
+    if (isNaN(jam) || isNaN(menit) || jam < 0 || jam > 23 || menit < 0 || menit > 59) return '';
+    return `${String(jam).padStart(2, '0')}:${String(menit).padStart(2, '0')}`;
+  }
+
+  function jamKeMenit(jamStr) {
+    const norm = normalisasiFormatJam(jamStr);
+    if (!norm) return null;
+    const [h, m] = norm.split(':').map(Number);
+    return h * 60 + m;
+  }
+
+  function menitKeJam(totalMenit) {
+    const safeM = ((totalMenit % 1440) + 1440) % 1440;
+    const h = Math.floor(safeM / 60);
+    const m = safeM % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  }
+
+  // Fitur 1: Real-Time Clock & Jitter Mode (±1–4 Menit Alami)
+  function terapkanRealTimeDanJitter(rawJam) {
+    const useRealtime = dapatkanRealtimeClock();
+    const useJitter = dapatkanJitterMode();
+
+    let baseJam = normalisasiFormatJam(rawJam);
+    if (useRealtime) {
+      const now = new Date();
+      baseJam = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    }
+    if (!baseJam) return '';
+
+    if (useJitter) {
+      const baseMenit = jamKeMenit(baseJam);
+      if (baseMenit !== null) {
+        const delta = (Math.floor(Math.random() * 4) + 1) * (Math.random() < 0.5 ? -1 : 1);
+        const hasil = menitKeJam(baseMenit + delta);
+        catatAktivitas(`Jitter Waktu: ${baseJam} → ${hasil} (${delta > 0 ? '+' : ''}${delta}m)`, 'info');
+        return hasil;
+      }
+    }
+    return baseJam;
+  }
+
+  // Fitur 7: Pre-Flight Guard (Deteksi Konflik Jadwal & Porsi 0)
+  function periksaKonflikPreFlight(data) {
+    if (!data) return ['Data KPM tidak ditemukan.'];
+    const konflik = [];
+    const totalPorsi = hitungTotalPorsi(data);
+    if (totalPorsi <= 0) {
+      konflik.push('Total porsi bernilai 0 (belum ada porsi yang diisi).');
+    }
+
+    const mBerangkat = jamKeMenit(data.jamKeberangkatan);
+    const mTiba = jamKeMenit(data.jamTibaTujuan);
+    const mAmbil = jamKeMenit(data.jamJadwalPengambilan);
+    const mKembali = jamKeMenit(data.jamOmprengKembaliSPPG);
+    const mCuci = jamKeMenit(data.jamMulaiCuci);
+
+    if (mBerangkat !== null && mTiba !== null && mTiba < mBerangkat) {
+      konflik.push(`Jam Tiba (${normalisasiFormatJam(data.jamTibaTujuan)}) lebih awal dari Jam Berangkat (${normalisasiFormatJam(data.jamKeberangkatan)}).`);
+    }
+    if (mTiba !== null && mAmbil !== null && mAmbil < mTiba) {
+      konflik.push(`Jadwal Ambil (${normalisasiFormatJam(data.jamJadwalPengambilan)}) lebih awal dari Jam Tiba (${normalisasiFormatJam(data.jamTibaTujuan)}).`);
+    }
+    if (mAmbil !== null && mKembali !== null && mKembali < mAmbil) {
+      konflik.push(`Ompreng Kembali (${normalisasiFormatJam(data.jamOmprengKembaliSPPG)}) lebih awal dari Jadwal Ambil (${normalisasiFormatJam(data.jamJadwalPengambilan)}).`);
+    }
+    if (mKembali !== null && mCuci !== null && mCuci < mKembali) {
+      konflik.push(`Jam Mulai Cuci (${normalisasiFormatJam(data.jamMulaiCuci)}) lebih awal dari Ompreng Kembali (${normalisasiFormatJam(data.jamOmprengKembaliSPPG)}).`);
+    }
+    return konflik;
+  }
+
+  function konfirmasiPreFlightJikaKonflik(data) {
+    return new Promise((resolve) => {
+      const daftarKonflik = periksaKonflikPreFlight(data);
+      if (daftarKonflik.length === 0) return resolve(true);
+
+      const overlay = buatOverlayModal('sipgn-preflight-modal');
+      overlay.innerHTML = `
+        <div class="ms-aurora-shell ms-modal-box" style="padding: 24px; border-radius: 22px; width: 390px; max-width: 92vw; text-align: left;">
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+            <span style="font-size:26px;">🛡️</span>
+            <div>
+              <h3 style="margin:0; font-size:15.5px; font-weight:800; color:var(--ms-amber);">Pre-Flight Guard: Peringatan Data</h3>
+              <div style="font-size:11px; color:var(--ms-text-muted);">Ditemukan anomali jadwal atau porsi pada <b>${escapeHtml(data.sekolah)}</b></div>
+            </div>
+          </div>
+          <div class="ms-bento" style="padding:11px 13px; margin-bottom:16px; border-color:rgba(245,158,11,0.38); background:rgba(245,158,11,0.08);">
+            <ul style="margin:0; padding-left:16px; font-size:11.5px; color:#fde68a; display:flex; flex-direction:column; gap:5px;">
+              ${daftarKonflik.map((k) => `<li>${escapeHtml(k)}</li>`).join('')}
+            </ul>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button id="ms-preflight-cancel" class="ms-btn ms-btn-ghost" style="flex:1; padding:10px;">Perbaiki Dulu</button>
+            <button id="ms-preflight-proceed" class="ms-btn ms-btn-primary" style="flex:1; padding:10px;">Tetap Jalankan</button>
+          </div>
+        </div>
+      `;
+      bantuAppendKeBody(overlay);
+      document.getElementById('ms-preflight-cancel').onclick = () => { overlay.remove(); resolve(false); };
+      document.getElementById('ms-preflight-proceed').onclick = () => { overlay.remove(); resolve(true); };
+    });
   }
 
   function bandingkanVersiSemver(vServer, vLokal) {
@@ -253,12 +395,8 @@
       changelog: '✨ Peningkatan stabilitas sistem - Optimalisasi antarmuka Bento Glassmorphism - Pembaruan modul automasi penugasan KPM - Peningkatan performa secara menyeluruh.'
     };
 
-    // Fungsi helper untuk mengubah teks changelog mentah menjadi list HTML (bullet points)
     const formatChangelogToHTML = (rawText) => {
       const text = String(rawText || '').trim();
-
-      // Pisahkan teks berdasarkan pola "- " (minus diikuti spasi) yang diawali baris baru atau awal teks
-      // Menggunakan regex /^[-\u2022]\s+|\n\s*[-\u2022]\s+/g
       const items = text.split(/(?:^[-\u2022]|\n\s*[-\u2022])\s+/).map(item => item.trim()).filter(Boolean);
 
       if (items.length <= 1) {
@@ -559,8 +697,8 @@
   }
 
   /* ============================================================================
-   * 4. ULTRA-PREMIUM CYBER-AURORA BENTO DESIGN SYSTEM (v2.0.1)
-   * ============================================================================ */
+- 4. ULTRA-PREMIUM CYBER-AURORA BENTO DESIGN SYSTEM (v2.0.2)
+- ============================================================================ */
   function pasangDesignSystemCSS() {
     if (!document.getElementById('ms-font-jakarta')) {
       const link = document.createElement('link');
@@ -940,8 +1078,66 @@
   }
 
   /* ============================================================================
-   * 5. STATE, PREFERENCE & DRAGGABLE POSITION HELPERS
-   * ============================================================================ */
+- 5. STATE, PREFERENCE, MASTER ARMADA & DRAGGABLE POSITION HELPERS
+- ============================================================================ */
+  function dapatkanBoolPref(gmKey, defaultVal = false) {
+    try {
+      const val = GM_getValue(gmKey, defaultVal);
+      return val === true || val === 'true';
+    } catch (e) {
+      const val = localStorage.getItem(gmKey);
+      return val === null ? defaultVal : val === 'true';
+    }
+  }
+
+  function simpanBoolPref(gmKey, val) {
+    try { GM_setValue(gmKey, Boolean(val)); } catch (e) {}
+    localStorage.setItem(gmKey, String(Boolean(val)));
+  }
+
+  const dapatkanJitterMode = () => dapatkanBoolPref(JITTER_MODE_KEY, false);
+  const simpanJitterMode = (val) => simpanBoolPref(JITTER_MODE_KEY, val);
+  const dapatkanRealtimeClock = () => dapatkanBoolPref(REALTIME_CLOCK_KEY, false);
+  const simpanRealtimeClock = (val) => simpanBoolPref(REALTIME_CLOCK_KEY, val);
+  const dapatkanAutoAdvance = () => dapatkanBoolPref(AUTO_ADVANCE_KEY, true);
+  const simpanAutoAdvance = (val) => simpanBoolPref(AUTO_ADVANCE_KEY, val);
+  const dapatkanAutoSubmit = () => dapatkanBoolPref(AUTO_SUBMIT_KEY, false);
+  const simpanAutoSubmit = (val) => simpanBoolPref(AUTO_SUBMIT_KEY, val);
+  const dapatkanAutoCloudSync = () => dapatkanBoolPref(AUTO_CLOUD_SYNC_KEY, true);
+  const simpanAutoCloudSync = (val) => simpanBoolPref(AUTO_CLOUD_SYNC_KEY, val);
+
+  // Fitur 6: Master Database Kurir & Armada (Preset Dropdown)
+  function muatMasterArmada() {
+    try {
+      const raw = GM_getValue(FLEET_MASTER_KEY, '') || localStorage.getItem(FLEET_MASTER_KEY);
+      if (!raw) return [{ namaKurir: 'BUDIAWAN SUTARJO', platNomor: 'BK1234ABC' }];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function simpanMasterArmada(list) {
+    const str = JSON.stringify(list);
+    try { GM_setValue(FLEET_MASTER_KEY, str); } catch (e) {}
+    localStorage.setItem(FLEET_MASTER_KEY, str);
+  }
+
+  function tambahPresetArmadaJikaBaru(namaKurir, platNomor) {
+    const nama = String(namaKurir || '').trim();
+    const plat = String(platNomor || '').trim().toUpperCase();
+    if (!nama && !plat) return;
+    const list = muatMasterArmada();
+    const exists = list.some(
+      (a) => a.namaKurir.toLowerCase() === nama.toLowerCase() && a.platNomor.toUpperCase() === plat
+    );
+    if (!exists) {
+      list.push({ namaKurir: nama, platNomor: plat });
+      simpanMasterArmada(list);
+    }
+  }
+
   function dapatkanPosisiPanel() {
     try {
       const raw = GM_getValue(PANEL_POS_KEY, '') || localStorage.getItem(PANEL_POS_KEY);
@@ -977,42 +1173,44 @@
 
   function aktifkanDraggablePanel(panelEl, handleEl) {
     if (!panelEl || !handleEl || isMobileDevice()) return;
-    let isDragging = false;
-    let startX = 0, startY = 0, initialLeft = 0, initialTop = 0;
+
+    if (!globalDragListenersAttached) {
+      globalDragListenersAttached = true;
+
+      window.addEventListener('mousemove', (e) => {
+        if (!activeDragState || !activeDragState.panelEl) return;
+        const { panelEl: targetPanel, startX, startY, initialLeft, initialTop } = activeDragState;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        const newLeft = Math.min(Math.max(8, initialLeft + dx), window.innerWidth - targetPanel.offsetWidth - 8);
+        const newTop = Math.min(Math.max(8, initialTop + dy), window.innerHeight - 60);
+        targetPanel.style.left = `${newLeft}px`;
+        targetPanel.style.top = `${newTop}px`;
+      });
+
+      window.addEventListener('mouseup', () => {
+        if (!activeDragState || !activeDragState.panelEl) return;
+        const rect = activeDragState.panelEl.getBoundingClientRect();
+        simpanPosisiPanel(Math.round(rect.top), Math.round(rect.left));
+        activeDragState = null;
+      });
+    }
 
     handleEl.addEventListener('mousedown', (e) => {
       if (e.target.closest('button')) return;
-      isDragging = true;
       const rect = panelEl.getBoundingClientRect();
-      startX = e.clientX;
-      startY = e.clientY;
-      initialLeft = rect.left;
-      initialTop = rect.top;
       panelEl.style.right = 'auto';
-      panelEl.style.left = `${initialLeft}px`;
-      panelEl.style.top = `${initialTop}px`;
+      panelEl.style.left = `${rect.left}px`;
+      panelEl.style.top = `${rect.top}px`;
+      activeDragState = {
+        panelEl,
+        startX: e.clientX,
+        startY: e.clientY,
+        initialLeft: rect.left,
+        initialTop: rect.top
+      };
       e.preventDefault();
     });
-
-    const onMouseMove = (e) => {
-      if (!isDragging) return;
-      const dx = e.clientX - startX;
-      const dy = e.clientY - startY;
-      const newLeft = Math.min(Math.max(8, initialLeft + dx), window.innerWidth - panelEl.offsetWidth - 8);
-      const newTop = Math.min(Math.max(8, initialTop + dy), window.innerHeight - 60);
-      panelEl.style.left = `${newLeft}px`;
-      panelEl.style.top = `${newTop}px`;
-    };
-
-    const onMouseUp = () => {
-      if (!isDragging) return;
-      isDragging = false;
-      const rect = panelEl.getBoundingClientRect();
-      simpanPosisiPanel(Math.round(rect.top), Math.round(rect.left));
-    };
-
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
   }
 
   function dapatkanTypingSpeedLevel() {
@@ -1034,32 +1232,19 @@
   }
 
   function dapatkanAutoKurirMBG() {
-    try {
-      const val = GM_getValue(AUTO_KURIR_KEY, true);
-      return val === true || val === 'true';
-    } catch (e) {
-      const val = localStorage.getItem(AUTO_KURIR_KEY);
-      return val === null ? true : val === 'true';
-    }
+    return dapatkanBoolPref(AUTO_KURIR_KEY, true);
   }
 
   function simpanAutoKurirMBG(val) {
-    try { GM_setValue(AUTO_KURIR_KEY, val); } catch (e) {}
-    localStorage.setItem(AUTO_KURIR_KEY, String(val));
+    simpanBoolPref(AUTO_KURIR_KEY, val);
   }
 
   function dapatkanPanelMinimized() {
-    try {
-      const val = GM_getValue(MINIMIZE_KEY, false);
-      return val === true || val === 'true';
-    } catch (e) {
-      return localStorage.getItem(MINIMIZE_KEY) === 'true';
-    }
+    return dapatkanBoolPref(MINIMIZE_KEY, false);
   }
 
   function simpanPanelMinimized(val) {
-    try { GM_setValue(MINIMIZE_KEY, val); } catch (e) {}
-    localStorage.setItem(MINIMIZE_KEY, String(val));
+    simpanBoolPref(MINIMIZE_KEY, val);
   }
 
   function dapatkanNamaSPPG() {
@@ -1135,8 +1320,8 @@
   }
 
   /* ============================================================================
-   * 6. MODAL DIALOGS (LOGIN, WELCOME, STATUS, VOUCHER, KPM EDITOR, COMMAND PALETTE)
-   * ============================================================================ */
+- 6. MODAL DIALOGS (LOGIN, WELCOME, STATUS, VOUCHER, KPM EDITOR, COMMAND PALETTE)
+- ============================================================================ */
   function buatOverlayModal(idModal) {
     pasangDesignSystemCSS();
     const lama = document.getElementById(idModal);
@@ -1162,7 +1347,7 @@
       { ikon: '⚡', judul: 'Isi Otomatis Penugasan Baru', sub: 'Jalankan pengisian form KPM aktif sekarang', aksi: () => { if (indexTerpilih >= 0) isiPenugasan(indexTerpilih); } },
       { ikon: '🤖', judul: 'Auto-Sequence Semua Aksi Halaman Ini', sub: 'Deteksi & isi seluruh field waktu/ompreng aktif', aksi: () => jalankanAutoSequenceHalaman() },
       { ikon: '✨', judul: 'Tambah Data KPM Baru', sub: 'Buka editor formulir KPM lengkap', aksi: () => tampilkanModalFormKPM(null, null) },
-      { ikon: '⏭️', judul: 'Lompat ke KPM Belum Diproses Berikutnya', sub: 'Pilih otomatis antrean KPM dengan status Belum', aksi: () => pilihKPMBelumBerikutnya() },
+      { ikon: '⏭️', judul: 'Lompat ke KPM Belum Diproses Berikutnya', sub: 'Pilih otomatis antrean KPM dengan status Belum', aksi: () => pilihKPMBelumBerikutnya(true) },
       { ikon: '🔄', judul: 'Cek Pembaruan Versi Skrip (In-App Update)', sub: `Versi terpasang saat ini: v${CURRENT_VERSION}`, aksi: () => {
         cekUpdateAplikasiInApp().then((rel) => {
           if (rel) tampilkanModalDetailUpdate();
@@ -1580,8 +1765,8 @@
   }
 
   /* ============================================================================
-   * 7. ENCRYPTED DATA KPM VAULT, CSV IMPORT/EXPORT & BACKUP CLOUD/LOKAL
-   * ============================================================================ */
+- 7. ENCRYPTED DATA KPM VAULT, CSV IMPORT/EXPORT & AUTO CLOUD SYNC
+- ============================================================================ */
   const DATA_AWAL = [
     {
       sekolah: 'SMAN 1 MEDAN',
@@ -1599,6 +1784,9 @@
       jamJadwalPengambilan: '11:00',
       jamOmprengKembaliSPPG: '12:00',
       jamMulaiCuci: '12:30',
+      omprengKembaliAktual: '',
+      omprengDicuciAktual: '',
+      catatanSelisih: '',
       terpakai: false,
       statusProses: 'belum',
     },
@@ -1621,6 +1809,9 @@
         porsiBalita: '',
         porsiIbuMenyusui: '',
         porsiIbuHamil: '',
+        omprengKembaliAktual: '',
+        omprengDicuciAktual: '',
+        catatanSelisih: '',
         ...d,
       }));
     } catch (e) {
@@ -1628,31 +1819,88 @@
     }
   }
 
-  function simpanData(data) {
+  // Fitur 4: Auto-Save Cloud Sync (Debounce)
+  function jadwalkanAutoCloudSync(data) {
+    if (!dapatkanAutoCloudSync() || !dapatkanAuthToken()) return;
+    if (autoCloudSyncTimer) clearTimeout(autoCloudSyncTimer);
+    cloudSyncState = 'syncing';
+
+    autoCloudSyncTimer = setTimeout(() => {
+      const backupPayload = {
+        Application: 'SIPGN POP - Autofill',
+        Version: CURRENT_VERSION,
+        Developed: 'Mindspace Studio',
+        dibuatPada: new Date().toISOString(),
+        dataKPM: data,
+      };
+      const token = dapatkanAuthToken();
+      GM_xmlhttpRequest({
+        method: 'POST',
+        url: getVercelApiUrl(),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        data: JSON.stringify({
+          action: 'save_backup',
+          device_id: dapatkanDeviceID(),
+          user_id: dapatkanUserIdAktif(),
+          backup_data: backupPayload,
+          auto_delete_days: 3
+        }),
+        onload: () => {
+          cloudSyncState = 'synced';
+          const badgeEl = document.getElementById('ms-cloud-sync-pill');
+          if (badgeEl) {
+            badgeEl.textContent = '☁️ Synced';
+            badgeEl.style.color = 'var(--ms-emerald)';
+          }
+        },
+        onerror: () => {
+          cloudSyncState = 'error';
+          const badgeEl = document.getElementById('ms-cloud-sync-pill');
+          if (badgeEl) {
+            badgeEl.textContent = '☁️ Offline';
+            badgeEl.style.color = 'var(--ms-amber)';
+          }
+        }
+      });
+    }, 2400);
+  }
+
+  function simpanData(data, skipCloudSync = false) {
     try {
       const cipher = _0xVault.enc(JSON.stringify(data));
       localStorage.setItem(STORAGE_KEY, cipher);
     } catch (e) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     }
+    if (!skipCloudSync) {
+      jadwalkanAutoCloudSync(data);
+    }
   }
 
   let dataPenugasan = muatData();
   let indexTerpilih = dataPenugasan.length > 0 ? 0 : -1;
 
-  function pilihKPMBelumBerikutnya() {
-    if (dataPenugasan.length === 0) return;
+  function pilihKPMBelumBerikutnya(tampilkanNotif = true) {
+    if (dataPenugasan.length === 0) return false;
     const startIdx = indexTerpilih >= 0 ? indexTerpilih : -1;
     for (let offset = 1; offset <= dataPenugasan.length; offset++) {
       const idx = (startIdx + offset) % dataPenugasan.length;
       if (dataPenugasan[idx].statusProses === 'belum') {
         indexTerpilih = idx;
         renderPanel();
-        tampilkanToast(`Antrean berikutnya: <b>${escapeHtml(dataPenugasan[idx].sekolah)}</b>`, 'info');
-        return;
+        if (tampilkanNotif) {
+          tampilkanToast(`Antrean berikutnya: <b>${escapeHtml(dataPenugasan[idx].sekolah)}</b>`, 'info');
+        }
+        return true;
       }
     }
-    tampilkanToast('Semua KPM sudah diproses!', 'success');
+    if (tampilkanNotif) {
+      tampilkanToast('Semua KPM sudah diproses!', 'success');
+    }
+    return false;
   }
 
   function hitungTotalPorsi(data) {
@@ -1665,6 +1913,22 @@
     );
   }
 
+  // Fitur 8: Pelacak Selisih Ompreng (Kembali vs Dicuci)
+  function hitungSelisihOmpreng(data) {
+    const dikirim = hitungTotalPorsi(data);
+    const kembali = data.omprengKembaliAktual !== '' && data.omprengKembaliAktual !== null && data.omprengKembaliAktual !== undefined
+      ? Number(data.omprengKembaliAktual)
+      : null;
+    const dicuci = data.omprengDicuciAktual !== '' && data.omprengDicuciAktual !== null && data.omprengDicuciAktual !== undefined
+      ? Number(data.omprengDicuciAktual)
+      : null;
+
+    const selisihKembali = kembali !== null && !isNaN(kembali) ? kembali - dikirim : 0;
+    const selisihCuci = dicuci !== null && !isNaN(dicuci) ? dicuci - (kembali !== null && !isNaN(kembali) ? kembali : dikirim) : 0;
+    const adaSelisih = (kembali !== null && selisihKembali !== 0) || (dicuci !== null && selisihCuci !== 0);
+    return { dikirim, kembali, dicuci, selisihKembali, selisihCuci, adaSelisih };
+  }
+
   function jenisKPM(data) {
     return (data.porsiBalita || data.porsiIbuMenyusui || data.porsiIbuHamil) ? 'posyandu' : 'sekolah';
   }
@@ -1673,7 +1937,8 @@
     const headers = [
       'sekolah', 'ritase', 'batasWaktu', 'porsiBesar', 'porsiKecil',
       'porsiBalita', 'porsiIbuMenyusui', 'porsiIbuHamil', 'namaKurir', 'platNomor',
-      'jamKeberangkatan', 'jamTibaTujuan', 'jamJadwalPengambilan', 'jamOmprengKembaliSPPG', 'jamMulaiCuci', 'statusProses'
+      'jamKeberangkatan', 'jamTibaTujuan', 'jamJadwalPengambilan', 'jamOmprengKembaliSPPG', 'jamMulaiCuci',
+      'omprengKembaliAktual', 'omprengDicuciAktual', 'catatanSelisih', 'statusProses'
     ];
     const rows = dataPenugasan.map((d) =>
       headers.map((h) => `"${String(d[h] ?? '').replace(/"/g, '""')}"`).join(',')
@@ -1736,6 +2001,10 @@
           const namaSekolah = cols[iSekolah];
           if (!namaSekolah) continue;
 
+          const kurirVal = getVal(['kurir', 'driver'], '');
+          const platVal = getVal(['plat', 'nopol'], '');
+          tambahPresetArmadaJikaBaru(kurirVal, platVal);
+
           imported.push({
             sekolah: namaSekolah,
             ritase: getVal(['ritase'], '1'),
@@ -1745,13 +2014,16 @@
             porsiBalita: getVal(['balita'], ''),
             porsiIbuMenyusui: getVal(['menyusui'], ''),
             porsiIbuHamil: getVal(['hamil'], ''),
-            namaKurir: getVal(['kurir', 'driver'], ''),
-            platNomor: getVal(['plat', 'nopol'], ''),
+            namaKurir: kurirVal,
+            platNomor: platVal,
             jamKeberangkatan: getVal(['berangkat'], ''),
             jamTibaTujuan: getVal(['tiba'], ''),
             jamJadwalPengambilan: getVal(['jadwal', 'ambil'], ''),
             jamOmprengKembaliSPPG: getVal(['kembali'], ''),
             jamMulaiCuci: getVal(['cuci'], ''),
+            omprengKembaliAktual: getVal(['kembaliaktual'], ''),
+            omprengDicuciAktual: getVal(['dicuciaktual'], ''),
+            catatanSelisih: getVal(['catatanselisih'], ''),
             terpakai: false,
             statusProses: 'belum'
           });
@@ -1787,7 +2059,10 @@
         backup_data: dataBackup,
         auto_delete_days: 3
       }),
-      onload: () => tampilkanToast('Backup tersinkron ke Cloud Database!', 'success'),
+      onload: () => {
+        cloudSyncState = 'synced';
+        tampilkanToast('Backup tersinkron ke Cloud Database!', 'success');
+      },
       onerror: () => tampilkanToast('Backup lokal tersimpan, gagal sinkron Cloud.', 'warning')
     });
   }
@@ -1833,6 +2108,9 @@
           porsiBalita: '',
           porsiIbuMenyusui: '',
           porsiIbuHamil: '',
+          omprengKembaliAktual: '',
+          omprengDicuciAktual: '',
+          catatanSelisih: '',
           ...d,
         }));
         indexTerpilih = dataPenugasan.length > 0 ? 0 : -1;
@@ -1864,10 +2142,13 @@
           dataPenugasan = dataImpor.map((d) => ({
             terpakai: false,
             statusProses: d.statusProses || 'belum',
+            omprengKembaliAktual: '',
+            omprengDicuciAktual: '',
+            catatanSelisih: '',
             ...d,
           }));
           indexTerpilih = dataPenugasan.length > 0 ? 0 : -1;
-          simpanData(dataPenugasan);
+          simpanData(dataPenugasan, true);
           renderPanel();
           catatAktivitas(`Pulihkan ${dataPenugasan.length} KPM dari Cloud`, 'success');
           tampilkanToast(`Berhasil pulihkan ${dataPenugasan.length} data KPM dari Cloud!`, 'success');
@@ -1879,9 +2160,74 @@
     });
   }
 
+  // Modal Kelola Master Kurir & Armada (Fitur 6)
+  function tampilkanModalMasterArmada(onUpdated = null) {
+    const overlay = buatOverlayModal('sipgn-fleet-modal');
+    const renderFleetContent = () => {
+      const armadaList = muatMasterArmada();
+      overlay.innerHTML = `
+        <div class="ms-aurora-shell ms-modal-box ms-scroll" style="padding: 22px; border-radius: 24px; width: 460px; max-width: 94vw; max-height: 86vh; overflow-y: auto; text-align: left;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--ms-border);">
+            <div>
+              <h3 style="margin:0; font-size:15.5px; font-weight:800;">🚚 Master Database Kurir & Armada</h3>
+              <div style="font-size:11px; color:var(--ms-text-muted);">Simpan preset kurir & plat nomor untuk pemilihan cepat</div>
+            </div>
+            <button id="ms-close-fleet-modal" class="ms-btn ms-btn-ghost" style="width:28px; height:28px; border-radius:50%; padding:0;">✕</button>
+          </div>
+
+          <div class="ms-bento" style="padding:12px; margin-bottom:14px;">
+            <div style="display:grid; grid-template-columns: 1.4fr 1fr; gap:8px; margin-bottom:8px;">
+              <input id="ms-new-fleet-kurir" class="ms-input" placeholder="Nama Kurir (mis. BUDI)" />
+              <input id="ms-new-fleet-plat" class="ms-input" placeholder="Plat (mis. BK1234AB)" style="text-transform:uppercase;" />
+            </div>
+            <button id="ms-btn-add-fleet" class="ms-btn ms-btn-cyan" style="width:100%; padding:9px;">➕ Tambah ke Master Armada</button>
+          </div>
+
+          <div class="ms-scroll" style="max-height:240px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;">
+            ${armadaList.length === 0
+              ? `<div style="padding:18px; text-align:center; font-size:11.5px; color:var(--ms-text-muted);">Belum ada preset kurir tersimpan.</div>`
+              : armadaList.map((a, idx) => `
+                <div class="ms-bento" style="padding:9px 12px; display:flex; justify-content:space-between; align-items:center;">
+                  <div>
+                    <div style="font-size:12px; font-weight:700; color:#f8fafc;">🛵 ${escapeHtml(a.namaKurir || '-')}</div>
+                    <div style="font-size:10.5px; font-family:var(--ms-font-mono); color:var(--ms-amber);">${escapeHtml(a.platNomor || '-')}</div>
+                  </div>
+                  <button class="ms-btn ms-btn-danger ms-del-fleet-btn" data-idx="${idx}" style="padding:4px 8px; font-size:10.5px;">🗑️</button>
+                </div>
+              `).join('')
+            }
+          </div>
+        </div>
+      `;
+
+      overlay.querySelector('#ms-close-fleet-modal').onclick = () => { overlay.remove(); if (onUpdated) onUpdated(); };
+      overlay.querySelector('#ms-btn-add-fleet').onclick = () => {
+        const k = overlay.querySelector('#ms-new-fleet-kurir').value.trim();
+        const p = overlay.querySelector('#ms-new-fleet-plat').value.trim().toUpperCase();
+        if (!k && !p) { tampilkanToast('Isi nama kurir atau plat nomor.', 'warning'); return; }
+        tambahPresetArmadaJikaBaru(k, p);
+        tampilkanToast('Preset kurir & armada disimpan!', 'success');
+        renderFleetContent();
+      };
+      overlay.querySelectorAll('.ms-del-fleet-btn').forEach((btn) => {
+        btn.onclick = () => {
+          const i = Number(btn.dataset.idx);
+          const cur = muatMasterArmada();
+          cur.splice(i, 1);
+          simpanMasterArmada(cur);
+          renderFleetContent();
+        };
+      });
+    };
+
+    renderFleetContent();
+    bantuAppendKeBody(overlay);
+  }
+
   function tampilkanModalFormKPM(dataEdit = null, indexTarget = null) {
     const overlay = buatOverlayModal('sipgn-kpm-form-modal');
     const isEdit = dataEdit !== null;
+    const armadaPresets = muatMasterArmada();
 
     const field = (label, id, ph, val = '') => `
       <div>
@@ -1891,13 +2237,23 @@
     `;
 
     overlay.innerHTML = `
-      <div class="ms-aurora-shell ms-modal-box ms-scroll" style="padding: 22px; border-radius: 24px; width: 720px; max-width: 94vw; max-height: 90vh; overflow-y: auto; text-align: left;">
+      <div class="ms-aurora-shell ms-modal-box ms-scroll" style="padding: 22px; border-radius: 24px; width: 740px; max-width: 94vw; max-height: 90vh; overflow-y: auto; text-align: left;">
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid var(--ms-border);">
           <div>
             <h3 style="margin:0; font-size:16px; font-weight:800;">${isEdit ? '✏️ Edit Data KPM' : '✨ Tambah Data KPM Baru'}</h3>
-            <div style="font-size:11px; color:var(--ms-text-muted);">Atur detail porsi, armada kurir, dan jadwal distribusi ompreng.</div>
+            <div style="font-size:11px; color:var(--ms-text-muted);">Atur detail porsi, preset kurir & armada, jadwal distribusi, dan pelacak selisih ompreng.</div>
           </div>
           <button id="ms-close-kpm-modal" class="ms-btn ms-btn-ghost" style="width:30px; height:30px; border-radius:50%; padding:0;">✕</button>
+        </div>
+
+        <!-- Fitur 6: Preset Dropdown Master Kurir & Armada -->
+        <div class="ms-bento" style="padding:10px 12px; margin-bottom:12px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <span style="font-size:10.5px; font-weight:700; color:var(--ms-cyan);">🚚 Pilih Preset Armada:</span>
+          <select id="sipgn-select-preset-armada" class="ms-select" style="flex:1; min-width:200px; padding:7px 28px 7px 10px; font-size:11.5px;">
+            <option value="">-- Pilih dari Master Kurir & Plat --</option>
+            ${armadaPresets.map((a, idx) => `<option value="${idx}">${escapeHtml(a.namaKurir)} (${escapeHtml(a.platNomor)})</option>`).join('')}
+          </select>
+          <button type="button" id="sipgn-btn-manage-fleet-inline" class="ms-btn ms-btn-ghost" style="padding:7px 10px; font-size:10.5px;">⚙️ Kelola Preset</button>
         </div>
 
         <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 11px;">
@@ -1920,6 +2276,16 @@
           ${field('Jam Mulai Pencucian', 'sipgn-in-jamMulaiCuci', '12:30', dataEdit?.jamMulaiCuci)}
         </div>
 
+        <!-- Fitur 8: Pelacak Selisih Ompreng (Kembali vs Dicuci) -->
+        <div class="ms-bento" style="padding:12px; margin-top:12px; border-color:rgba(168,85,247,0.28);">
+          <div style="font-size:10.5px; font-weight:800; color:#c084fc; text-transform:uppercase; margin-bottom:8px;">📊 Pelacak Selisih Ompreng (Kembali vs Dicuci)</div>
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;">
+            ${field('Ompreng Kembali Aktual (Kosong = Sesuai Porsi)', 'sipgn-in-omprengKembaliAktual', 'Misal: 10', dataEdit?.omprengKembaliAktual)}
+            ${field('Ompreng Dicuci Aktual (Kosong = Sesuai Kembali)', 'sipgn-in-omprengDicuciAktual', 'Misal: 10', dataEdit?.omprengDicuciAktual)}
+            ${field('Catatan Selisih / Rusak / Tertinggal', 'sipgn-in-catatanSelisih', 'Misal: 1 tertinggal di UKS', dataEdit?.catatanSelisih)}
+          </div>
+        </div>
+
         <div style="margin-top:18px; display:flex; gap:8px;">
           <button id="ms-cancel-kpm-modal" class="ms-btn ms-btn-ghost" style="flex:1; padding:11px;">Batal</button>
           <button id="sipgn-btn-save-kpm-modal" class="ms-btn ms-btn-emerald" style="flex:2; padding:11px; font-size:12.5px;">${isEdit ? '💾 Simpan Perubahan' : '🚀 Simpan Data KPM'}</button>
@@ -1928,12 +2294,35 @@
     `;
     bantuAppendKeBody(overlay);
 
+    const presetSel = document.getElementById('sipgn-select-preset-armada');
+    presetSel.onchange = (e) => {
+      if (e.target.value === '') return;
+      const chosen = muatMasterArmada()[Number(e.target.value)];
+      if (chosen) {
+        document.getElementById('sipgn-in-namaKurir').value = chosen.namaKurir || '';
+        document.getElementById('sipgn-in-platNomor').value = chosen.platNomor || '';
+        tampilkanToast(`Kurir ${escapeHtml(chosen.namaKurir)} diterapkan.`, 'info', 2000);
+      }
+    };
+
+    document.getElementById('sipgn-btn-manage-fleet-inline').onclick = () => {
+      tampilkanModalMasterArmada(() => {
+        const updatedList = muatMasterArmada();
+        presetSel.innerHTML = `<option value="">-- Pilih dari Master Kurir & Plat --</option>` +
+          updatedList.map((a, idx) => `<option value="${idx}">${escapeHtml(a.namaKurir)} (${escapeHtml(a.platNomor)})</option>`).join('');
+      });
+    };
+
     document.getElementById('ms-close-kpm-modal').onclick = () => overlay.remove();
     document.getElementById('ms-cancel-kpm-modal').onclick = () => overlay.remove();
     document.getElementById('sipgn-btn-save-kpm-modal').onclick = () => {
       const ambil = (id) => document.getElementById(id)?.value.trim() || '';
       const sekolah = ambil('sipgn-in-sekolah');
       if (!sekolah) { tampilkanToast('Nama Sekolah / KPM wajib diisi!', 'warning'); return; }
+
+      const namaKurir = ambil('sipgn-in-namaKurir');
+      const platNomor = ambil('sipgn-in-platNomor');
+      tambahPresetArmadaJikaBaru(namaKurir, platNomor);
 
       const dataForm = {
         sekolah,
@@ -1944,13 +2333,16 @@
         porsiBalita: ambil('sipgn-in-porsiBalita'),
         porsiIbuMenyusui: ambil('sipgn-in-porsiIbuMenyusui'),
         porsiIbuHamil: ambil('sipgn-in-porsiIbuHamil'),
-        namaKurir: ambil('sipgn-in-namaKurir'),
-        platNomor: ambil('sipgn-in-platNomor'),
+        namaKurir,
+        platNomor,
         jamKeberangkatan: ambil('sipgn-in-jamKeberangkatan'),
         jamTibaTujuan: ambil('sipgn-in-jamTibaTujuan'),
         jamJadwalPengambilan: ambil('sipgn-in-jamJadwalPengambilan'),
         jamOmprengKembaliSPPG: ambil('sipgn-in-jamOmprengKembaliSPPG'),
         jamMulaiCuci: ambil('sipgn-in-jamMulaiCuci'),
+        omprengKembaliAktual: ambil('sipgn-in-omprengKembaliAktual'),
+        omprengDicuciAktual: ambil('sipgn-in-omprengDicuciAktual'),
+        catatanSelisih: ambil('sipgn-in-catatanSelisih'),
         terpakai: isEdit ? dataPenugasan[indexTarget].terpakai : false,
         statusProses: isEdit ? (dataPenugasan[indexTarget].statusProses || 'belum') : 'belum'
       };
@@ -1974,8 +2366,8 @@
   }
 
   /* ============================================================================
-   * 8. ENGINE AUTOFILL DOM & REACT/SPA INPUT INJECTION
-   * ============================================================================ */
+- 8. ENGINE AUTOFILL DOM, AUTO-SUBMIT COUNTDOWN & REACT/SPA INPUT INJECTION
+- ============================================================================ */
   function cekHalamanTugasBaru() {
     return location.pathname.includes('/distribution/new');
   }
@@ -1998,8 +2390,9 @@
   function setNativeValue(element, value) {
     if (!element) return;
     const proto = element.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
-    const setter = Object.getOwnPropertyDescriptor(proto, 'value').set;
-    setter.call(element, value);
+    const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
+    if (setter) setter.call(element, value);
+    else element.value = value;
     element.dispatchEvent(new Event('input', { bubbles: true }));
     element.dispatchEvent(new Event('change', { bubbles: true }));
   }
@@ -2023,8 +2416,9 @@
     const maxDelay = Math.max(20, Math.floor(charDelayMax * multiplier));
 
     const proto = element.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
-    const setter = Object.getOwnPropertyDescriptor(proto, 'value').set;
-    setter.call(element, '');
+    const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
+    if (setter) setter.call(element, '');
+    else element.value = '';
     element.dispatchEvent(new Event('input', { bubbles: true }));
 
     let currentVal = '';
@@ -2034,7 +2428,8 @@
       const keyOpts = { key: char, char: char, keyCode: char.charCodeAt(0), bubbles: true, cancelable: true };
       element.dispatchEvent(new KeyboardEvent('keydown', keyOpts));
       element.dispatchEvent(new KeyboardEvent('keypress', keyOpts));
-      setter.call(element, currentVal);
+      if (setter) setter.call(element, currentVal);
+      else element.value = currentVal;
       element.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: char }));
       element.dispatchEvent(new KeyboardEvent('keyup', keyOpts));
       await wait(getRandomDelay(minDelay, maxDelay));
@@ -2052,6 +2447,76 @@
       await wait(interval);
     }
     return null;
+  }
+
+  function cariTombolSubmitHalamanSIPGN() {
+    const kandidat = [...document.querySelectorAll('button')].filter(
+      (btn) => !btn.closest('#sipgn-autofill-panel') && !btn.closest('.ms-ui-root') && btn.offsetParent !== null && !btn.disabled
+    );
+    return (
+      kandidat.find((btn) => /^(simpan|submit|kirim|buat tugas|simpan penugasan|konfirmasi)$/i.test(btn.textContent.replace(/\s+/g, ' ').trim())) ||
+      kandidat.find((btn) => btn.type === 'submit' && /simpan|kirim|submit|buat/i.test(btn.textContent))
+    ) || null;
+  }
+
+  // Fitur 3: Auto-Fill & Auto-Submit Toggle dengan Hitungan Mundur Pembatalan 3 Detik
+  function picuAutoSubmitDenganCountdown() {
+    if (!dapatkanAutoSubmit()) return;
+    const targetBtn = cariTombolSubmitHalamanSIPGN();
+    if (!targetBtn) {
+      tampilkanToast('Auto-Submit aktif, namun tombol Simpan halaman tidak ditemukan.', 'warning');
+      return;
+    }
+
+    if (activeSubmitCountdownCancel) activeSubmitCountdownCancel();
+
+    pasangDesignSystemCSS();
+    const banner = document.createElement('div');
+    banner.id = 'ms-autosubmit-banner';
+    banner.className = 'ms-ui-root ms-aurora-shell';
+    banner.style.cssText = `
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      z-index: ${dapatkanTopZIndex()}; padding: 12px 18px; border-radius: 16px;
+      display: flex; align-items: center; gap: 14px; border-color: rgba(16,185,129,0.55);
+    `;
+
+    let sisaDetik = 3;
+    banner.innerHTML = `
+      <span style="font-size:18px;">🚀</span>
+      <div style="font-size:12px;">
+        <div style="font-weight:800; color:#34d399;">Auto-Submit dalam <span id="ms-countdown-num">3</span> detik...</div>
+        <div style="font-size:10.5px; color:var(--ms-text-muted);">Menekan tombol "${escapeHtml(targetBtn.textContent.trim())}" otomatis</div>
+      </div>
+      <button id="ms-cancel-autosubmit" class="ms-btn ms-btn-danger" style="padding:7px 12px; font-size:11px;">✕ Batalkan</button>
+    `;
+    bantuAppendKeBody(banner);
+
+    let dibatalkan = false;
+    const timer = setInterval(() => {
+      if (dibatalkan) return;
+      sisaDetik--;
+      const numEl = document.getElementById('ms-countdown-num');
+      if (numEl) numEl.textContent = String(Math.max(0, sisaDetik));
+
+      if (sisaDetik <= 0) {
+        clearInterval(timer);
+        banner.remove();
+        activeSubmitCountdownCancel = null;
+        catatAktivitas(`Auto-Submit menekan: ${targetBtn.textContent.trim()}`, 'success');
+        targetBtn.click();
+      }
+    }, 1000);
+
+    const batalFn = () => {
+      dibatalkan = true;
+      clearInterval(timer);
+      banner.remove();
+      activeSubmitCountdownCancel = null;
+      tampilkanToast('Auto-Submit dibatalkan.', 'info', 2200);
+    };
+
+    activeSubmitCountdownCancel = batalFn;
+    banner.querySelector('#ms-cancel-autosubmit').onclick = batalFn;
   }
 
   function aturCheckboxKurirMBG() {
@@ -2076,9 +2541,16 @@
     const input = document.querySelector('input[placeholder*="Cari nama KPM"]');
     if (!input) return false;
     await setNativeValueHuman(input, namaSekolah, 25, 55);
-    const tombolOpsi = await tungguElemen(() =>
-      [...document.querySelectorAll('button')].find((btn) => btn.textContent.includes(namaSekolah))
-    );
+    const namaTargetLower = String(namaSekolah || '').trim().toLowerCase();
+    const tombolOpsi = await tungguElemen(() => {
+      const semuaBtn = [...document.querySelectorAll('button')].filter(
+        (btn) => !btn.closest('#sipgn-autofill-panel') && btn.offsetParent !== null
+      );
+      return (
+        semuaBtn.find((btn) => btn.textContent.trim().toLowerCase() === namaTargetLower) ||
+        semuaBtn.find((btn) => btn.textContent.toLowerCase().includes(namaTargetLower))
+      );
+    });
     if (!tombolOpsi) return false;
     await smartWait(300, 550);
     tombolOpsi.click();
@@ -2097,13 +2569,17 @@
   }
 
   function isiBatasWaktu(nilai) {
+    const jamValid = normalisasiFormatJam(nilai);
+    if (!jamValid) return false;
     const input = document.querySelector('input[type="time"]');
-    if (input) setNativeValue(input, nilai);
+    if (!input) return false;
+    setNativeValue(input, jamValid);
+    return true;
   }
 
   function cariInputPorsiKategori(namaKategori) {
     const judul = [...document.querySelectorAll('div, span, p, h1, h2, h3, h4, h5')].find(
-      (el) => el.children.length === 0 && el.textContent.trim() === namaKategori
+      (el) => !el.closest('#sipgn-autofill-panel') && el.children.length === 0 && el.textContent.trim() === namaKategori
     );
     if (!judul) return null;
     let kontainer = judul.parentElement;
@@ -2142,7 +2618,7 @@
 
   async function isiKurirDanPlat(namaKurir, platNomor) {
     const semuaInput = [...document.querySelectorAll('input')].filter(
-      (inp) => !inp.closest('#sipgn-autofill-panel') && inp.type !== 'hidden' && inp.type !== 'checkbox'
+      (inp) => !inp.closest('#sipgn-autofill-panel') && inp.type !== 'hidden' && inp.type !== 'checkbox' && inp.offsetParent !== null
     );
 
     let inputKurir = semuaInput.find((inp) => {
@@ -2170,49 +2646,173 @@
   }
 
   async function isiPenugasan(index) {
+    if (isAutomating) return false;
     const data = dataPenugasan[index];
-    if (!data) return;
+    if (!data) return false;
 
-    tampilkanToast(`Mengisi penugasan: <b>${escapeHtml(data.sekolah)}</b>...`, 'info', 2500);
-    await isiLokasiKPM(data.sekolah);
-    await smartWait(450, 750);
-    await isiRitase(data.ritase);
-    await smartWait(300, 500);
-    isiBatasWaktu(data.batasWaktu);
-    await smartWait(200, 400);
-    await isiPorsi(data);
-    await smartWait(300, 550);
-    aturCheckboxKurirMBG();
-    await smartWait(200, 400);
-    await isiKurirDanPlat(data.namaKurir, data.platNomor);
+    const lanjut = await konfirmasiPreFlightJikaKonflik(data);
+    if (!lanjut) return false;
 
-    dataPenugasan[index].terpakai = true;
-    dataPenugasan[index].statusProses = 'pengantaran';
-    simpanData(dataPenugasan);
-    catatAktivitas(`Isi penugasan: ${data.sekolah} (${hitungTotalPorsi(data)} porsi)`, 'success');
-    renderPanel();
-    tampilkanToast(`Penugasan <b>${escapeHtml(data.sekolah)}</b> selesai diisi!`, 'success');
+    isAutomating = true;
+
+    try {
+      tampilkanToast(`Mengisi penugasan: <b>${escapeHtml(data.sekolah)}</b>...`, 'info', 2500);
+      await isiLokasiKPM(data.sekolah);
+      await smartWait(450, 750);
+      await isiRitase(data.ritase);
+      await smartWait(300, 500);
+      isiBatasWaktu(data.batasWaktu);
+      await smartWait(200, 400);
+      await isiPorsi(data);
+      await smartWait(300, 550);
+      aturCheckboxKurirMBG();
+      await smartWait(200, 400);
+      await isiKurirDanPlat(data.namaKurir, data.platNomor);
+
+      dataPenugasan[index].terpakai = true;
+      dataPenugasan[index].statusProses = 'pengantaran';
+      simpanData(dataPenugasan);
+      catatAktivitas(`Isi penugasan: ${data.sekolah} (${hitungTotalPorsi(data)} porsi)`, 'success');
+      renderPanel();
+      tampilkanToast(`Penugasan <b>${escapeHtml(data.sekolah)}</b> selesai diisi!`, 'success');
+      picuAutoSubmitDenganCountdown();
+      return true;
+    } finally {
+      isAutomating = false;
+    }
   }
 
   /* Time Picker Automation */
+  function teksBerisiTanggalWaktuSIPGN(teks) {
+    return /\d{2}\/\d{2}\/\d{4},?\s*\d{2}[.:]\d{2}/.test(String(teks || '').replace(/\s+/g, ' ').trim());
+  }
+
   function cariTriggerWaktuKeberangkatan(namaField = 'Waktu Keberangkatan') {
     const label = [...document.querySelectorAll('label')].find((el) => {
+      if (el.closest('#sipgn-autofill-panel')) return false;
       const txt = el.textContent.replace(/\s+/g, ' ').replace('*', '').trim();
       return txt === namaField || txt.includes(namaField);
     });
-    if (label?.parentElement) {
-      const dariLabel = [...label.parentElement.querySelectorAll('div.flex.w-full.cursor-pointer')][0];
+
+    if (label) {
+      let kontainer = label.parentElement;
+      for (let depth = 0; depth < 3 && kontainer && kontainer !== document.body; depth++) {
+        const dariFlex = [...kontainer.querySelectorAll('div.flex.w-full.cursor-pointer')].find(
+          (el) => !el.closest('#sipgn-autofill-panel') && el.offsetParent !== null
+        );
+        if (dariFlex) return dariFlex;
+
+        const dariTanggal = [...kontainer.querySelectorAll('div, button')].find((el) => {
+          if (el.closest('#sipgn-autofill-panel') || el.offsetParent === null) return false;
+          if (el.querySelector('div, button')) return false;
+          const teks = el.textContent.replace(/\s+/g, ' ').trim();
+          return teksBerisiTanggalWaktuSIPGN(teks) || /pilih\s*(tanggal|waktu)/i.test(teks);
+        });
+        if (dariTanggal) return dariTanggal.closest('div.cursor-pointer, button') || dariTanggal;
+
+        kontainer = kontainer.parentElement;
+      }
+    }
+
+    const labelCadangan = [...document.querySelectorAll('label, p, span')].find((el) => {
+      if (el.closest('#sipgn-autofill-panel')) return false;
+      return new RegExp(`^${namaField.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\*?$`, 'i').test(
+        el.textContent.replace(/\s+/g, ' ').trim()
+      );
+    });
+    if (labelCadangan?.parentElement) {
+      const dariLabel = [...labelCadangan.parentElement.querySelectorAll('div, button')].find((el) => {
+        if (el.closest('#sipgn-autofill-panel') || el.offsetParent === null) return false;
+        const teks = el.textContent.replace(/\s+/g, ' ').trim();
+        return teksBerisiTanggalWaktuSIPGN(teks) || /pilih\s*(tanggal|waktu)/i.test(teks);
+      });
       if (dariLabel) return dariLabel;
     }
-    return [...document.querySelectorAll('button, div')].find((el) => {
-      if (el.offsetParent === null) return false;
-      return /^\d{2}\/\d{2}\/\d{4},\s*\d{2}\.\d{2}$/.test(el.textContent.replace(/\s+/g, ' ').trim());
-    }) || null;
+
+    const semuaTriggerTanggal = [...document.querySelectorAll('div.flex.w-full.cursor-pointer, button, div')].filter((el) => {
+      if (el.closest('#sipgn-autofill-panel') || el.offsetParent === null) return false;
+      const teks = el.textContent.replace(/\s+/g, ' ').trim();
+      return teksBerisiTanggalWaktuSIPGN(teks);
+    });
+    if (semuaTriggerTanggal.length === 1) return semuaTriggerTanggal[0];
+
+    return null;
+  }
+
+  function cariDialogWaktu() {
+    const kolomJam = cariKolomSpinner('Jam');
+    const kolomMenit = cariKolomSpinner('Menit');
+    if (!kolomJam || !kolomMenit) return null;
+
+    const dialog = kolomJam.closest('[role="dialog"], [aria-modal="true"]');
+    if (dialog && !dialog.closest('#sipgn-autofill-panel')) return dialog;
+
+    let induk = kolomJam.parentElement;
+    while (induk && induk !== document.body) {
+      if (induk.contains(kolomMenit)) return induk;
+      induk = induk.parentElement;
+    }
+    return null;
+  }
+
+  async function tutupDialogWaktuJikaTerbuka() {
+    const dialog = cariDialogWaktu();
+    if (!dialog) return;
+    const tombolTutup = [...dialog.querySelectorAll('button')].find((btn) => {
+      if (btn.disabled || btn.offsetParent === null) return false;
+      const teks = btn.textContent.replace(/\s+/g, ' ').trim();
+      return /^(batal|tutup|cancel|close|✕|×)$/i.test(teks);
+    });
+    if (tombolTutup) {
+      tombolTutup.click();
+      await wait(250);
+    } else {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      await wait(250);
+    }
+  }
+
+  async function simpanPickerWaktu(jamMenitStr, namaField = 'Waktu Keberangkatan') {
+    const dialog = cariDialogWaktu();
+    if (!dialog) return true;
+
+    const tombolSimpan = [...dialog.querySelectorAll('button')].find((btn) => {
+      if (btn.disabled || btn.offsetParent === null) return false;
+      const teks = btn.textContent.replace(/\s+/g, ' ').trim();
+      return /^(simpan|terapkan|konfirmasi|selesai|ok)$/i.test(teks) ||
+        /^(simpan|terapkan|konfirmasi)\b/i.test(teks);
+    });
+    if (!tombolSimpan) {
+      await wait(150);
+      const trigger = cariTriggerWaktuKeberangkatan(namaField);
+      const teksTrigger = trigger ? trigger.textContent : '';
+      return !!trigger && (teksTrigger.includes(jamMenitStr.replace(':', '.')) || teksTrigger.includes(jamMenitStr));
+    }
+
+    const triggerSebelum = cariTriggerWaktuKeberangkatan(namaField);
+    const teksSebelum = triggerSebelum ? triggerSebelum.textContent : '';
+    await smartWait(200, 400);
+    tombolSimpan.click();
+    await wait(350);
+
+    const triggerSesudah = cariTriggerWaktuKeberangkatan(namaField);
+    const waktuTitik = jamMenitStr.replace(':', '.');
+    const berubah = triggerSesudah && (
+      triggerSesudah.textContent.includes(waktuTitik) ||
+      triggerSesudah.textContent.includes(jamMenitStr) ||
+      triggerSesudah.textContent !== teksSebelum
+    );
+    if (!berubah) {
+      return false;
+    }
+    return true;
   }
 
   function cariKolomSpinner(label) {
     const labelNormal = label.toLowerCase();
-    const labelEl = [...document.querySelectorAll('p, span')].find((el) => el.textContent.replace(/\s+/g, ' ').trim().toLowerCase() === labelNormal);
+    const labelEl = [...document.querySelectorAll('p, span')].find(
+      (el) => !el.closest('#sipgn-autofill-panel') && el.textContent.replace(/\s+/g, ' ').trim().toLowerCase() === labelNormal
+    );
     if (!labelEl) return null;
     let kolom = labelEl.parentElement;
     while (kolom && kolom !== document.body) {
@@ -2222,115 +2822,535 @@
     return labelEl.parentElement;
   }
 
-  function bacaNilaiAktif(kolom) {
-    const aktif = [...kolom.querySelectorAll('div')].find(
-      (div) => div.className.includes('font-bold') && div.className.includes('text-white') && /^\d+$/.test(div.textContent.trim())
+  function cariTombolPanah(kolom, arah) {
+    const tombol = [...kolom.querySelectorAll('button')].filter(
+      (btn) => btn.offsetParent !== null && !btn.disabled
     );
-    return aktif ? parseInt(aktif.textContent.trim(), 10) : null;
+    if (tombol.length < 2) return null;
+    return arah === 'up' ? tombol[0] : tombol[tombol.length - 1];
   }
 
-  async function setSpinnerValue(labelKolom, target) {
-    const kolom = cariKolomSpinner(labelKolom);
-    if (!kolom) return false;
-    const tombol = [...kolom.querySelectorAll('button')].filter((b) => b.offsetParent !== null && !b.disabled);
-    if (tombol.length < 2) return false;
-    const [tombolAtas, tombolBawah] = [tombol[0], tombol[tombol.length - 1]];
-
-    let sekarang = bacaNilaiAktif(kolom);
-    if (sekarang === null) return false;
-    if (sekarang === target) return true;
-
-    const putaran = labelKolom === 'Jam' ? 24 : 60;
-    const naik = (target - sekarang + putaran) % putaran;
-    const turun = (sekarang - target + putaran) % putaran;
-    const klik = Math.min(naik, turun);
-    const btn = naik <= turun ? tombolBawah : tombolAtas;
-
-    for (let i = 0; i < klik; i++) {
-      btn.click();
-      await wait(getRandomDelay(30, 65));
-    }
-    await wait(60);
-    return bacaNilaiAktif(kolom) === target;
-  }
-
-  async function aturWaktuKeberangkatan(jamMenitStr, namaField = 'Waktu Keberangkatan') {
-    if (!jamMenitStr || !/^\d{1,2}:\d{2}$/.test(jamMenitStr)) return false;
-    const [jamTarget, menitTarget] = jamMenitStr.split(':').map(Number);
-
-    let kolomJam = cariKolomSpinner('Jam');
-    if (!kolomJam) {
-      const trigger = cariTriggerWaktuKeberangkatan(namaField);
-      if (!trigger) return false;
-      trigger.click();
-      kolomJam = await tungguElemen(() => cariKolomSpinner('Jam'), 1800, 100);
-      if (!kolomJam) return false;
-    }
-
-    await setSpinnerValue('Jam', jamTarget);
-    await smartWait(120, 250);
-    await setSpinnerValue('Menit', menitTarget);
-    await smartWait(150, 300);
-
-    const dialog = kolomJam.closest('[role="dialog"], [aria-modal="true"]') || kolomJam.parentElement?.parentElement;
-    if (dialog) {
-      const tombolSimpan = [...dialog.querySelectorAll('button')].find((btn) =>
-        !btn.disabled && btn.offsetParent !== null && /^(simpan|terapkan|konfirmasi|selesai|ok)\b/i.test(btn.textContent.trim())
+  function cariKontainerScrollWheel(kolom) {
+    const kandidat = [...kolom.querySelectorAll('div, li, ul')].filter((el) => {
+      if (el.children.length === 0) return false;
+      const style = window.getComputedStyle(el);
+      return (
+        (style.overflowY === 'auto' || style.overflowY === 'scroll') &&
+        el.scrollHeight > el.clientHeight
       );
-      if (tombolSimpan) {
-        tombolSimpan.click();
-        await wait(300);
-      }
+    });
+    return kandidat[kandidat.length - 1] || null;
+  }
+
+  function bacaNilaiAktif(kolom) {
+    const semuaDiv = kolom.querySelectorAll('div');
+    const aktif = [...semuaDiv].find(
+      (div) =>
+        div.className.includes('font-bold') &&
+        div.className.includes('text-white') &&
+        /^\d+$/.test(div.textContent.trim())
+    );
+    if (aktif) return parseInt(aktif.textContent.trim(), 10);
+
+    const kontainer = cariKontainerScrollWheel(kolom);
+    if (kontainer) {
+      const rect = kontainer.getBoundingClientRect();
+      const tengah = rect.top + rect.height / 2;
+      let terdekat = null;
+      let jarakTerdekat = Infinity;
+      [...kontainer.querySelectorAll('div, li, span')].forEach((el) => {
+        if (el.children.length > 0) return;
+        const teks = el.textContent.trim();
+        if (!/^\d+$/.test(teks)) return;
+        const r = el.getBoundingClientRect();
+        if (r.height <= 0) return;
+        const jarak = Math.abs(r.top + r.height / 2 - tengah);
+        if (jarak < jarakTerdekat) {
+          jarakTerdekat = jarak;
+          terdekat = el;
+        }
+      });
+      if (terdekat) return parseInt(terdekat.textContent.trim(), 10);
     }
+    return null;
+  }
+
+  function scrollKeNilai(kolom, target) {
+    const kontainer = cariKontainerScrollWheel(kolom);
+    if (!kontainer) return false;
+    const items = [...kontainer.querySelectorAll('div, li, span')].filter((el) => {
+      if (el.children.length > 0) return false;
+      const teks = el.textContent.trim();
+      return /^\d+$/.test(teks) && teks.length <= 2;
+    });
+    const targetEl = items.find((el) => parseInt(el.textContent.trim(), 10) === target);
+    if (!targetEl) return false;
+
+    const cRect = kontainer.getBoundingClientRect();
+    const tRect = targetEl.getBoundingClientRect();
+    const geser = tRect.top - cRect.top + tRect.height / 2 - cRect.height / 2;
+    kontainer.scrollTop = Math.max(
+      0,
+      Math.min(kontainer.scrollTop + geser, kontainer.scrollHeight - kontainer.clientHeight)
+    );
+    kontainer.dispatchEvent(new Event('scroll', { bubbles: true }));
     return true;
   }
 
+  async function tungguSpinnerSelesai(kolom, nilaiSebelum, maxTunggu = 700) {
+    const batas = Date.now() + maxTunggu;
+    let nilai = null;
+    while (Date.now() < batas) {
+      await wait(20);
+      nilai = bacaNilaiAktif(kolom);
+      if (nilai !== null && nilai !== nilaiSebelum) {
+        await wait(30);
+        const nilaiCek = bacaNilaiAktif(kolom);
+        if (nilaiCek === nilai) return nilai;
+      }
+    }
+    return nilai;
+  }
+
+  async function tungguNilaiStabil(kolom, maxTunggu = 900) {
+    const batas = Date.now() + maxTunggu;
+    let terakhir = null;
+    while (Date.now() < batas) {
+      await wait(25);
+      terakhir = bacaNilaiAktif(kolom);
+      if (terakhir === null) continue;
+      await wait(35);
+      const kedua = bacaNilaiAktif(kolom);
+      if (kedua !== null && kedua === terakhir) return kedua;
+    }
+    return terakhir;
+  }
+
+  function cariDivNilaiExact(kolom, nilai) {
+    return [...kolom.querySelectorAll('div, li, button, span')].find((el) => {
+      if (el.children.length > 0) return false;
+      const teks = el.textContent.trim();
+      return /^\d+$/.test(teks) && parseInt(teks, 10) === nilai;
+    });
+  }
+
+  async function klikElemenPrecise(el) {
+    try {
+      el.scrollIntoView({ block: 'center', inline: 'nearest' });
+    } catch (e) {}
+    try {
+      el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, view: window }));
+      el.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, view: window }));
+    } catch (e) {}
+    try {
+      el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+      el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true }));
+    } catch (e) {}
+    el.click();
+  }
+
+
+async function setSpinnerValue(labelKolom, target, maxIterasi = 40) {
+  const kolom = cariKolomSpinner(labelKolom);
+  if (!kolom) return false;
+
+  const tombolAtas = cariTombolPanah(kolom, 'up');
+  const tombolBawah = cariTombolPanah(kolom, 'down');
+
+  let nilaiSekarang = await tungguNilaiStabil(kolom);
+  if (nilaiSekarang === null) return false;
+  if (nilaiSekarang === target) return true;
+
+  if (scrollKeNilai(kolom, target)) {
+    nilaiSekarang = await tungguNilaiStabil(kolom);
+    if (nilaiSekarang === target) return true;
+  }
+
+  const divTarget = cariDivNilaiExact(kolom, target);
+  if (divTarget) {
+    await klikElemenPrecise(divTarget);
+    const hasilKlik = await tungguSpinnerSelesai(kolom, nilaiSekarang);
+
+    if (hasilKlik === target) return true;
+    if (hasilKlik !== null) nilaiSekarang = hasilKlik;
+  }
+
+  const putaran = labelKolom === 'Jam' ? 24 : 60;
+  const langkahNaik = (target - nilaiSekarang + putaran) % putaran;
+  const langkahTurun = (nilaiSekarang - target + putaran) % putaran;
+
+  const jumlahKlik = Math.min(langkahNaik, langkahTurun);
+
+    const tombol = langkahNaik <= langkahTurun ? tombolBawah : tombolAtas;
+  if (!tombol || jumlahKlik > maxIterasi) return false;
+
+  for (let i = 0; i < jumlahKlik; i++) {
+    tombol.click();
+    await wait(getRandomDelay(35, 75));
+  }
+  await wait(60);
+  nilaiSekarang = bacaNilaiAktif(kolom);
+  return nilaiSekarang === target;
+}
+
+  async function bacaKolomStabil(label) {
+    const kolom = cariKolomSpinner(label);
+    return kolom ? await tungguNilaiStabil(kolom) : null;
+  }
+
+  function cariInputWaktu(namaField = 'Waktu Keberangkatan') {
+    const kataKunciMap = {
+      'Waktu Keberangkatan': ['berangkat', 'keberangkatan', 'departure'],
+      'Waktu Diterima di Tujuan': ['diterima', 'tujuan', 'tiba', 'arrival', 'received'],
+      'Waktu Dijadwalkan Pengambilan': ['pengambilan', 'ambil', 'pickup', 'jadwal'],
+      'Waktu Ompreng Kembali di SPPG': ['kembali', 'sppg', 'return'],
+      'Waktu Mulai Cuci': ['cuci', 'pencucian', 'wash']
+    };
+    const kataKunciField = kataKunciMap[namaField] || [];
+
+    const semuaKandidat = [...document.querySelectorAll('input')].filter((inp) => {
+      if (inp.closest('#sipgn-autofill-panel')) return false;
+      if (inp.disabled || inp.readOnly || inp.offsetParent === null) return false;
+      const tipe = (inp.type || '').toLowerCase();
+      const nama = ((inp.name || '') + ' ' + (inp.id || '') + ' ' + (inp.placeholder || '')).toLowerCase();
+      const val = String(inp.value || '');
+      return (
+        tipe === 'time' ||
+        tipe === 'datetime-local' ||
+        nama.includes('time') ||
+        nama.includes('jam') ||
+        nama.includes('waktu') ||
+        teksBerisiTanggalWaktuSIPGN(val) ||
+        /^\d{1,2}[:.]\d{2}$/.test(val)
+      );
+    });
+
+    if (semuaKandidat.length === 0) return [];
+
+    const labelTarget = [...document.querySelectorAll('label')].find((el) => {
+      if (el.closest('#sipgn-autofill-panel')) return false;
+      const txt = el.textContent.replace(/\s+/g, ' ').replace('*', '').trim();
+      return txt === namaField || txt.includes(namaField);
+    });
+    if (labelTarget) {
+      let kontainer = labelTarget.parentElement;
+      for (let d = 0; d < 3 && kontainer && kontainer !== document.body; d++) {
+        const dalamKontainer = semuaKandidat.filter((inp) => kontainer.contains(inp));
+        if (dalamKontainer.length === 1) return dalamKontainer;
+        kontainer = kontainer.parentElement;
+      }
+    }
+
+    if (kataKunciField.length > 0) {
+      const cocokNama = semuaKandidat.filter((inp) => {
+        const meta = `${inp.name || ''} ${inp.id || ''} ${inp.placeholder || ''}`.toLowerCase();
+        return kataKunciField.some((kw) => meta.includes(kw));
+      });
+      if (cocokNama.length === 1) return cocokNama;
+    }
+
+    return semuaKandidat.length === 1 ? semuaKandidat : [];
+  }
+
+
+async function kunciWaktuViaInput(jamMenitStr, namaField = 'Waktu Keberangkatan') {
+  const kandidat = cariInputWaktu(namaField);
+  if (kandidat.length === 0) return false;
+
+  const sekarang = new Date();
+
+  const tanggalISO = [
+    sekarang.getFullYear(),
+    String(sekarang.getMonth() + 1).padStart(2, '0'),
+    String(sekarang.getDate()).padStart(2, '0')
+  ].join('-');
+
+  const tanggalTampilan = [
+    String(sekarang.getDate()).padStart(2, '0'),
+    String(sekarang.getMonth() + 1).padStart(2, '0'),
+    sekarang.getFullYear()
+  ].join('/');
+
+  for (const inp of kandidat) {
+    const tipe = (inp.type || '').toLowerCase();
+
+    // Input time hanya menyimpan jam, bukan tanggal.
+    // Jangan menganggap tanggal sudah berhasil diatur.
+    if (tipe === 'time') continue;
+
+    let nilaiBaru;
+
+    if (tipe === 'datetime-local') {
+      nilaiBaru = `${tanggalISO}T${jamMenitStr}`;
+    } else {
+      nilaiBaru = `${tanggalTampilan}, ${jamMenitStr.replace(':', '.')}`;
+    }
+
+    setNativeValue(inp, nilaiBaru);
+    inp.dispatchEvent(new Event('input', { bubbles: true }));
+    inp.dispatchEvent(new Event('change', { bubbles: true }));
+    inp.dispatchEvent(new Event('blur', { bubbles: true }));
+
+    await wait(350);
+
+    const nilaiAktual = String(inp.value || '');
+    const trigger = cariTriggerWaktuKeberangkatan(namaField);
+    const teksTrigger = trigger?.textContent || '';
+
+    const jamCocok =
+      nilaiAktual.includes(jamMenitStr) ||
+      teksTrigger.includes(jamMenitStr) ||
+      teksTrigger.includes(jamMenitStr.replace(':', '.'));
+
+    const tanggalCocok =
+      nilaiAktual.includes(tanggalISO) ||
+      nilaiAktual.includes(tanggalTampilan) ||
+      teksTrigger.includes(tanggalTampilan);
+
+    if (jamCocok && tanggalCocok) return true;
+  }
+
+  return false;
+}
+
+  async function pilihTanggalHariIni() {
+    const now = new Date();
+    const hari = String(now.getDate());
+    const hariPad = hari.padStart(2, '0');
+    const bulanPad = String(now.getMonth() + 1).padStart(2, '0');
+    const tahun = String(now.getFullYear());
+
+    const dialog = cariDialogWaktu();
+    if (!dialog) return false;
+
+    // 1) Tombol pintasan "Sekarang / Hari ini"
+    const tombolSekarang = [...dialog.querySelectorAll('button')].find((btn) => {
+      if (btn.disabled || btn.offsetParent === null) return false;
+      return /^(sekarang|hari ini|today|now)$/i.test(btn.textContent.replace(/\s+/g, ' ').trim());
+    });
+    if (tombolSekarang) {
+      await klikElemenPrecise(tombolSekarang);
+      await wait(500);
+      return true;
+    }
+
+    // Area yang harus dikecualikan (spinner Jam & Menit)
+    const kolomJam = cariKolomSpinner('Jam');
+    const kolomMenit = cariKolomSpinner('Menit');
+    const dalamSpinner = (el) =>
+      (kolomJam && kolomJam.contains(el)) || (kolomMenit && kolomMenit.contains(el));
+
+    const kandidatSel = () => [...dialog.querySelectorAll('button, td, [role="gridcell"], [role="button"], div, span')].filter((el) => {
+      if (el.offsetParent === null || dalamSpinner(el)) return false;
+      if (el.querySelector('button, td, [role="gridcell"]')) return false;
+      const teks = el.textContent.replace(/\s+/g, ' ').trim();
+      if (teks !== hari && teks !== hariPad) return false;
+      if (el.disabled || el.getAttribute('aria-disabled') === 'true') return false;
+      const cls = String(el.className || '');
+      // Hindari tanggal dari bulan lain / nonaktif
+      if (/outside|disabled|opacity-(?:30|40|50)|text-(?:gray|slate|zinc)-(?:500|600)/i.test(cls)) return false;
+      return true;
+    });
+
+    // 2) Cek apakah tanggal hari ini sudah terpilih
+    const sudahTerpilih = kandidatSel().find((el) => {
+      const cls = String(el.className || '');
+      return el.getAttribute('aria-selected') === 'true' ||
+        el.getAttribute('aria-pressed') === 'true' ||
+        el.hasAttribute('data-selected') ||
+        /(^|\s)(selected|active|bg-(?:blue|sky|indigo|cyan|primary|green|emerald)-[0-9]+)/i.test(cls);
+    });
+    if (sudahTerpilih && !sudahTerpilih.hasAttribute('data-today')) {
+      // Terpilih bisa jadi karena default; tetap klik ulang agar state React tercatat
+      await klikElemenPrecise(sudahTerpilih);
+      await wait(400);
+      return true;
+    }
+
+    // 3) Klik sel tanggal hari ini. Prioritaskan penanda "today"/aria-label.
+    const daftar = kandidatSel();
+    const target =
+      daftar.find((el) => el.getAttribute('aria-current') === 'date' || el.hasAttribute('data-today')) ||
+      daftar.find((el) => {
+        const label = `${el.getAttribute('aria-label') || ''} ${el.getAttribute('data-date') || ''} ${el.getAttribute('title') || ''}`;
+        return label.includes(`${tahun}-${bulanPad}-${hariPad}`) ||
+          label.includes(`${hariPad}/${bulanPad}/${tahun}`) ||
+          (label.includes(tahun) && label.includes(hari));
+      }) ||
+      daftar[0];
+
+    if (!target) return false;
+
+    const klikable = target.closest('button, [role="gridcell"], [role="button"], td') || target;
+    await klikElemenPrecise(klikable);
+    await wait(500);
+    return true;
+  }
+
+async function aturWaktuKeberangkatan(jamMenitStr, namaField = 'Waktu Keberangkatan') {
+  const jamNormal = terapkanRealTimeDanJitter(jamMenitStr);
+  if (!jamNormal) return false;
+  const [jamTarget, menitTarget] = jamNormal.split(':').map(Number);
+
+  await tutupDialogWaktuJikaTerbuka();
+
+  // Buka picker
+  let kolomJam = cariKolomSpinner('Jam');
+  if (!kolomJam) {
+    const trigger = cariTriggerWaktuKeberangkatan(namaField);
+    if (!trigger) return false;
+
+    trigger.focus?.();
+    trigger.click();
+    kolomJam = await tungguElemen(() => cariKolomSpinner('Jam'), 1200, 75);
+    if (!kolomJam) {
+      await klikElemenPrecise(trigger);
+      kolomJam = await tungguElemen(() => cariKolomSpinner('Jam'), 1900, 100);
+    }
+    if (!kolomJam) return false;
+  }
+
+  // Pilih tanggal: sama seperti versi lama (tombol "Sekarang", dicari di seluruh halaman,
+  // hanya jika kolom belum berisi tanggal, dan TIDAK menggagalkan proses bila tidak ada)
+  const triggerAktif = cariTriggerWaktuKeberangkatan(namaField);
+  if (!teksBerisiTanggalWaktuSIPGN(triggerAktif?.textContent || '')) {
+    const tombolSekarang = [...document.querySelectorAll('button')].find((btn) =>
+      btn.offsetParent !== null && /^(sekarang|hari ini)$/i.test(btn.textContent.replace(/\s+/g, ' ').trim())
+    );
+    if (tombolSekarang) {
+      await klikElemenPrecise(tombolSekarang);
+      await wait(400);
+    } else {
+      console.warn('[Autofill] Tombol "Sekarang" tidak ditemukan');
+    }
+  }
+
+  // Atur jam & menit (maks 3 percobaan, seperti versi lama)
+  for (let percobaan = 1; percobaan <= 3; percobaan++) {
+    await setSpinnerValue('Jam', jamTarget);
+    await smartWait(150, 300);
+    await setSpinnerValue('Menit', menitTarget);
+    await smartWait(150, 300);
+
+    const jamAkhir = await bacaKolomStabil('Jam');
+    const menitAkhir = await bacaKolomStabil('Menit');
+
+    if (jamAkhir === jamTarget && menitAkhir === menitTarget) {
+      const ok = await simpanPickerWaktu(jamNormal, namaField);
+      if (!ok) console.warn('[Autofill] simpanPickerWaktu gagal');
+      return ok;
+    }
+    await wait(400);
+  }
+
+  console.warn('[Autofill] Spinner gagal mencapai', jamNormal);
+  await tutupDialogWaktuJikaTerbuka();
+  return false;
+}
+
+  function cariInputJumlahOmpreng(mode = 'pengambilan') {
+    const labelTargetText = mode === 'pencucian' ? 'Jumlah Ompreng Dicuci' : 'Jumlah Ompreng';
+    const labelEl = [...document.querySelectorAll('label')].find((el) => {
+      if (el.closest('#sipgn-autofill-panel')) return false;
+      const txt = el.textContent.replace(/\s+/g, ' ').replace('*', '').trim();
+      return txt === labelTargetText || (mode === 'pencucian' ? txt.includes('Dicuci') : txt.includes('Jumlah Ompreng') && !txt.includes('Dicuci'));
+    });
+
+    if (labelEl) {
+      let kontainer = labelEl.parentElement;
+      for (let d = 0; d < 3 && kontainer && kontainer !== document.body; d++) {
+        const inp = [...kontainer.querySelectorAll('input')].find(
+          (el) => !el.closest('#sipgn-autofill-panel') && !el.disabled && !el.readOnly && el.offsetParent !== null && el.type !== 'hidden' && el.type !== 'checkbox'
+        );
+        if (inp) return inp;
+        kontainer = kontainer.parentElement;
+      }
+    }
+
+    if (mode === 'pencucian') {
+      const inpPh = document.querySelector('input[placeholder="Contoh: 25"]');
+      if (inpPh && !inpPh.closest('#sipgn-autofill-panel') && inpPh.offsetParent !== null) return inpPh;
+    }
+
+    return [...document.querySelectorAll('input')].find(
+      (inp) => !inp.closest('#sipgn-autofill-panel') && !inp.disabled && !inp.readOnly && inp.offsetParent !== null && (inp.type === 'number' || /jumlah|ompreng/i.test(`${inp.placeholder} ${inp.name}`))
+    ) || null;
+  }
+
   async function isiPengambilanOmpreng(index) {
+    if (isAutomating) return false;
     const data = dataPenugasan[index];
     if (!data) return false;
-    aturCheckboxKurirMBG();
-    await smartWait(200, 400);
-    const jumlahOmpreng = hitungTotalPorsi(data);
-    const inputJumlah = [...document.querySelectorAll('input')].find(
-      (inp) => !inp.closest('#sipgn-autofill-panel') && (inp.type === 'number' || /jumlah|ompreng/i.test(`${inp.placeholder} ${inp.name}`))
-    );
-    if (inputJumlah) await setNativeValueHuman(inputJumlah, String(jumlahOmpreng), 30, 65);
-    await isiKurirDanPlat(data.namaKurir, data.platNomor);
-    const hasil = await aturWaktuKeberangkatan(data.jamJadwalPengambilan, 'Waktu Dijadwalkan Pengambilan');
-    if (hasil) {
-      dataPenugasan[index].statusProses = 'pengembalian';
-      simpanData(dataPenugasan);
-      catatAktivitas(`Isi pengambilan ompreng: ${data.sekolah}`, 'success');
-      renderPanel();
+    isAutomating = true;
+
+    try {
+      aturCheckboxKurirMBG();
+      await smartWait(200, 400);
+      const selisihInfo = hitungSelisihOmpreng(data);
+      const jumlahOmpreng = selisihInfo.kembali !== null && !isNaN(selisihInfo.kembali)
+        ? selisihInfo.kembali
+        : selisihInfo.dikirim;
+      const inputJumlah = cariInputJumlahOmpreng('pengambilan');
+      if (inputJumlah) await setNativeValueHuman(inputJumlah, String(jumlahOmpreng), 30, 65);
+      await isiKurirDanPlat(data.namaKurir, data.platNomor);
+      const hasil = await aturWaktuKeberangkatan(data.jamJadwalPengambilan, 'Waktu Dijadwalkan Pengambilan');
+      if (hasil) {
+        dataPenugasan[index].statusProses = 'pengembalian';
+        simpanData(dataPenugasan);
+        catatAktivitas(`Isi pengambilan ompreng (${jumlahOmpreng}): ${data.sekolah}`, 'success');
+        renderPanel();
+        picuAutoSubmitDenganCountdown();
+      }
+      return hasil;
+    } finally {
+      isAutomating = false;
     }
-    return hasil;
   }
 
   async function isiMulaiPencucian(index) {
+    if (isAutomating) return false;
     const data = dataPenugasan[index];
     if (!data) return false;
-    const inputJumlah = document.querySelector('input[placeholder="Contoh: 25"]');
-    if (inputJumlah) await setNativeValueHuman(inputJumlah, String(hitungTotalPorsi(data)), 30, 65);
-    const hasil = await aturWaktuKeberangkatan(data.jamMulaiCuci, 'Waktu Mulai Cuci');
-    if (hasil) {
-      dataPenugasan[index].statusProses = 'pencucian';
-      simpanData(dataPenugasan);
-      catatAktivitas(`Isi mulai pencucian: ${data.sekolah}`, 'success');
-      renderPanel();
+    isAutomating = true;
+
+    try {
+      const selisihInfo = hitungSelisihOmpreng(data);
+      const jumlahCuci = selisihInfo.dicuci !== null && !isNaN(selisihInfo.dicuci)
+        ? selisihInfo.dicuci
+        : (selisihInfo.kembali !== null && !isNaN(selisihInfo.kembali) ? selisihInfo.kembali : selisihInfo.dikirim);
+      const inputJumlah = cariInputJumlahOmpreng('pencucian');
+      if (inputJumlah) await setNativeValueHuman(inputJumlah, String(jumlahCuci), 30, 65);
+      const hasil = await aturWaktuKeberangkatan(data.jamMulaiCuci, 'Waktu Mulai Cuci');
+      if (hasil) {
+        dataPenugasan[index].statusProses = 'pencucian';
+        simpanData(dataPenugasan);
+        catatAktivitas(`Isi mulai pencucian (${jumlahCuci}): ${data.sekolah}`, 'success');
+        renderPanel();
+        picuAutoSubmitDenganCountdown();
+      }
+      return hasil;
+    } finally {
+      isAutomating = false;
     }
-    return hasil;
   }
 
   async function jalankanAutoSequenceHalaman() {
+    if (isAutomating) {
+      tampilkanToast('Proses otomatisasi sedang berjalan, harap tunggu...', 'warning');
+      return;
+    }
     const kpmAktif = indexTerpilih >= 0 ? dataPenugasan[indexTerpilih] : null;
     if (!kpmAktif) { tampilkanToast('Pilih data KPM terlebih dahulu.', 'warning'); return; }
 
-    const cekLabel = (kata) => [...document.querySelectorAll('label')].some((el) => !el.closest('#sipgn-autofill-panel') && el.textContent.includes(kata));
+    const lanjut = await konfirmasiPreFlightJikaKonflik(kpmAktif);
+    if (!lanjut) return;
+
+    const cekLabel = (kata) => [...document.querySelectorAll('label')].some((el) => !el.closest('#sipgn-autofill-panel') && el.offsetParent !== null && el.textContent.includes(kata));
     let langkahDijalankan = 0;
 
     if (cekHalamanTugasBaru()) {
-      await isiPenugasan(indexTerpilih);
-      langkahDijalankan++;
+      const ok = await isiPenugasan(indexTerpilih);
+      if (ok) langkahDijalankan++;
     }
     if (cekLabel('Waktu Keberangkatan')) {
       const ok = await aturWaktuKeberangkatan(kpmAktif.jamKeberangkatan, 'Waktu Keberangkatan');
@@ -2357,14 +3377,15 @@
       catatAktivitas(`Auto-Sequence menjalankan ${langkahDijalankan} aksi`, 'success');
       tampilkanToast(`Auto-Sequence selesai (${langkahDijalankan} aksi dieksekusi)!`, 'success');
       renderPanel();
+      if (!cekHalamanTugasBaru()) picuAutoSubmitDenganCountdown();
     } else {
-      tampilkanToast('Tidak ada formulir aktif yang terdeteksi di halaman ini.', 'warning');
+      tampilkanToast('Tidak ada formulir aktif atau jadwal jam belum diisi pada KPM ini.', 'warning');
     }
   }
 
   /* ============================================================================
-   * 9. ULTRA-PREMIUM BENTO WORKSPACE RENDERER (v2.0.1)
-   * ============================================================================ */
+- 9. ULTRA-PREMIUM BENTO WORKSPACE RENDERER (v2.0.2)
+- ============================================================================ */
   function buatSVGProgressRing(persen, ukuran = 48, stroke = 4.5) {
     const r = (ukuran - stroke) / 2;
     const keliling = 2 * Math.PI * r;
@@ -2526,6 +3547,7 @@
       const totalPorsiSemua = dataPenugasan.reduce((a, c) => a + hitungTotalPorsi(c), 0);
       const selesaiCount = dataPenugasan.filter((d) => d.statusProses !== 'belum').length;
       const progressPersen = dataPenugasan.length > 0 ? Math.round((selesaiCount / dataPenugasan.length) * 100) : 0;
+      const totalSelisihCount = dataPenugasan.filter((d) => hitungSelisihOmpreng(d).adaSelisih).length;
 
       const bentoHero = document.createElement('div');
       bentoHero.className = 'ms-bento';
@@ -2559,9 +3581,9 @@
             <div style="font-size:8.5px; color:var(--ms-text-muted); font-weight:700;">ANTAR/AMBIL</div>
             <div style="font-size:12.5px; font-weight:800; color:#60a5fa;">${totalPengantaran}/${totalPengembalian}</div>
           </div>
-          <div style="background:rgba(6,10,21,0.72); padding:7px 2px; border-radius:11px; border:1px solid var(--ms-border);">
-            <div style="font-size:8.5px; color:var(--ms-text-muted); font-weight:700;">CUCI</div>
-            <div style="font-size:13.5px; font-weight:800; color:#2dd4bf;">${totalPencucian}</div>
+          <div style="background:rgba(6,10,21,0.72); padding:7px 2px; border-radius:11px; border:1px solid ${totalSelisihCount > 0 ? 'rgba(244,63,94,0.45)' : 'var(--ms-border)'};">
+            <div style="font-size:8.5px; color:var(--ms-text-muted); font-weight:700;">${totalSelisihCount > 0 ? 'SELISIH' : 'CUCI'}</div>
+            <div style="font-size:13.5px; font-weight:800; color:${totalSelisihCount > 0 ? 'var(--ms-rose)' : '#2dd4bf'};">${totalSelisihCount > 0 ? `${totalSelisihCount}⚠️` : totalPencucian}</div>
           </div>
         </div>
       `;
@@ -2590,8 +3612,11 @@
       // Footer
       const footer = document.createElement('div');
       footer.style.cssText = 'margin-top:12px; display:flex; justify-content:space-between; align-items:center; font-size:9.5px; color:#64748b; padding:0 4px;';
+      const syncStatusText = dapatkanAutoCloudSync()
+        ? (cloudSyncState === 'syncing' ? '☁️ Syncing...' : cloudSyncState === 'error' ? '☁️ Offline' : '☁️ Auto-Sync')
+        : '☁️ Manual';
       footer.innerHTML = `
-        <span>Drag header • <b style="color:#94a3b8;">Ctrl+K</b></span>
+        <span>Drag header • <b style="color:#94a3b8;">Ctrl+K</b> • <span id="ms-cloud-sync-pill" style="color:var(--ms-cyan);">${syncStatusText}</span></span>
         <span>Crafted by <b style="color:#94a3b8;">Mindspace Studio</b></span>
       `;
       panel.appendChild(footer);
@@ -2633,7 +3658,7 @@
       indexTerpilih = (indexTerpilih + 1) % dataPenugasan.length;
       renderPanel();
     };
-    topRow.querySelector('#ms-next-pending-kpm').onclick = pilihKPMBelumBerikutnya;
+    topRow.querySelector('#ms-next-pending-kpm').onclick = () => pilihKPMBelumBerikutnya(true);
     topRow.querySelector('#ms-quick-add-kpm').onclick = () => tampilkanModalFormKPM(null, null);
 
     const sel = document.createElement('select');
@@ -2642,7 +3667,8 @@
       const opt = document.createElement('option');
       opt.value = idx;
       const badge = d.statusProses === 'pengantaran' ? '🚚' : d.statusProses === 'pengembalian' ? '📦' : d.statusProses === 'pencucian' ? '🧼' : '⚪';
-      opt.textContent = `${badge} ${d.sekolah} (${hitungTotalPorsi(d)} porsi)`;
+      const selisihMark = hitungSelisihOmpreng(d).adaSelisih ? ' ⚠️' : '';
+      opt.textContent = `${badge} ${d.sekolah} (${hitungTotalPorsi(d)} porsi)${selisihMark}`;
       if (idx === indexTerpilih) opt.selected = true;
       sel.appendChild(opt);
     });
@@ -2669,6 +3695,9 @@
       if (Number(kpmAktif.porsiIbuMenyusui) > 0) pills.push(`Busui: <b>${kpmAktif.porsiIbuMenyusui}</b>`);
       if (Number(kpmAktif.porsiIbuHamil) > 0) pills.push(`Bumil: <b>${kpmAktif.porsiIbuHamil}</b>`);
 
+      const konflikList = periksaKonflikPreFlight(kpmAktif);
+      const selisihObj = hitungSelisihOmpreng(kpmAktif);
+
       const detailBox = document.createElement('div');
       detailBox.style.cssText = 'margin-top:9px; padding-top:9px; border-top:1px dashed var(--ms-border);';
       detailBox.innerHTML = `
@@ -2680,6 +3709,17 @@
           ${pills.length > 0 ? pills.map((p) => `<span style="font-size:10px; padding:2px 7px; border-radius:6px; background:rgba(56,189,248,0.1); border:1px solid rgba(56,189,248,0.22); color:#cbd5e1;">${p}</span>`).join('') : '<span style="font-size:10px; color:var(--ms-text-muted);">0 porsi terkonfigurasi</span>'}
           <span style="font-size:10px; padding:2px 7px; border-radius:6px; background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.25); color:var(--ms-amber); font-family:var(--ms-font-mono);">⏰ ${escapeHtml(kpmAktif.batasWaktu || '-')}</span>
         </div>
+        ${konflikList.length > 0 ? `
+          <div style="font-size:10px; color:#fde68a; background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.35); padding:5px 8px; border-radius:8px; margin-bottom:7px;">
+            🛡️ <b>Pre-Flight Guard:</b> ${escapeHtml(konflikList[0])}
+          </div>
+        ` : ''}
+        ${selisihObj.adaSelisih ? `
+          <div style="font-size:10px; color:#fda4af; background:rgba(244,63,94,0.12); border:1px solid rgba(244,63,94,0.35); padding:5px 8px; border-radius:8px; margin-bottom:7px;">
+            📊 <b>Selisih Ompreng:</b> Kirim ${selisihObj.dikirim} • Kembali ${selisihObj.kembali ?? selisihObj.dikirim} (${selisihObj.selisihKembali >= 0 ? '+' : ''}${selisihObj.selisihKembali}) • Cuci ${selisihObj.dicuci ?? '-'}
+            ${kpmAktif.catatanSelisih ? `<div style="margin-top:2px; color:#fecdd3;">📝 ${escapeHtml(kpmAktif.catatanSelisih)}</div>` : ''}
+          </div>
+        ` : ''}
         <div id="ms-status-stepper" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:4px; background:rgba(6,10,21,0.65); padding:3px; border-radius:10px; border:1px solid var(--ms-border);"></div>
       `;
 
@@ -2710,25 +3750,37 @@
     }
     container.appendChild(selectorCard);
 
+    // Quick Automation Feature Pills (Kurir MBG, Jitter Mode, Real-Time Clock, Auto-Submit)
     const autoKurir = dapatkanAutoKurirMBG();
-    const toggleCard = document.createElement('div');
-    toggleCard.className = 'ms-bento';
-    toggleCard.style.cssText = 'padding:10px 12px; margin-bottom:10px; display:flex; align-items:center; justify-content:space-between; cursor:pointer;';
-    toggleCard.innerHTML = `
-      <span style="font-size:11.5px; font-weight:600; color:#e2e8f0;">🛵 Kirim ke Aplikasi Kurir MBG</span>
-      <div style="width:36px; height:20px; border-radius:99px; background:${autoKurir ? 'linear-gradient(135deg,#0ea5e9,#6366f1)' : '#334155'}; position:relative; transition:0.2s;">
-        <div style="width:16px; height:16px; border-radius:50%; background:#fff; position:absolute; top:2px; left:${autoKurir ? '18px' : '2px'}; transition:0.2s;"></div>
-      </div>
+    const jitterOn = dapatkanJitterMode();
+    const realtimeOn = dapatkanRealtimeClock();
+    const autoSubmitOn = dapatkanAutoSubmit();
+
+    const quickModesBox = document.createElement('div');
+    quickModesBox.className = 'ms-bento';
+    quickModesBox.style.cssText = 'padding:9px 10px; margin-bottom:10px; display:grid; grid-template-columns:repeat(2, 1fr); gap:6px;';
+    quickModesBox.innerHTML = `
+      <button id="ms-tog-kurir" class="ms-btn" style="padding:6px 8px; font-size:10px; justify-content:space-between; background:${autoKurir ? 'rgba(56,189,248,0.18)' : 'rgba(255,255,255,0.03)'}; border-color:${autoKurir ? 'rgba(56,189,248,0.45)' : 'var(--ms-border)'}; color:${autoKurir ? '#fff' : 'var(--ms-text-muted)'};">
+        <span>🛵 Kurir MBG</span><b>${autoKurir ? 'ON' : 'OFF'}</b>
+      </button>
+      <button id="ms-tog-jitter" class="ms-btn" style="padding:6px 8px; font-size:10px; justify-content:space-between; background:${jitterOn ? 'rgba(168,85,247,0.2)' : 'rgba(255,255,255,0.03)'}; border-color:${jitterOn ? 'rgba(168,85,247,0.48)' : 'var(--ms-border)'}; color:${jitterOn ? '#fff' : 'var(--ms-text-muted)'};">
+        <span>🎲 Jitter ±1-4m</span><b>${jitterOn ? 'ON' : 'OFF'}</b>
+      </button>
+      <button id="ms-tog-realtime" class="ms-btn" style="padding:6px 8px; font-size:10px; justify-content:space-between; background:${realtimeOn ? 'rgba(14,165,233,0.2)' : 'rgba(255,255,255,0.03)'}; border-color:${realtimeOn ? 'rgba(14,165,233,0.48)' : 'var(--ms-border)'}; color:${realtimeOn ? '#fff' : 'var(--ms-text-muted)'};">
+        <span>⏱️ Jam Live</span><b>${realtimeOn ? 'ON' : 'OFF'}</b>
+      </button>
+      <button id="ms-tog-autosubmit" class="ms-btn" style="padding:6px 8px; font-size:10px; justify-content:space-between; background:${autoSubmitOn ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.03)'}; border-color:${autoSubmitOn ? 'rgba(16,185,129,0.48)' : 'var(--ms-border)'}; color:${autoSubmitOn ? '#fff' : 'var(--ms-text-muted)'};">
+        <span>🚀 Auto-Submit</span><b>${autoSubmitOn ? 'ON' : 'OFF'}</b>
+      </button>
     `;
-    toggleCard.onclick = () => {
-      simpanAutoKurirMBG(!autoKurir);
-      aturCheckboxKurirMBG();
-      renderPanel();
-    };
-    container.appendChild(toggleCard);
+    quickModesBox.querySelector('#ms-tog-kurir').onclick = () => { simpanAutoKurirMBG(!autoKurir); aturCheckboxKurirMBG(); renderPanel(); };
+    quickModesBox.querySelector('#ms-tog-jitter').onclick = () => { simpanJitterMode(!jitterOn); renderPanel(); tampilkanToast(`Jitter Mode ±1–4 menit ${!jitterOn ? 'diaktifkan' : 'dimatikan'}.`, 'info', 2000); };
+    quickModesBox.querySelector('#ms-tog-realtime').onclick = () => { simpanRealtimeClock(!realtimeOn); renderPanel(); tampilkanToast(`Real-Time Clock ${!realtimeOn ? 'diaktifkan' : 'dimatikan'}.`, 'info', 2000); };
+    quickModesBox.querySelector('#ms-tog-autosubmit').onclick = () => { simpanAutoSubmit(!autoSubmitOn); renderPanel(); tampilkanToast(`Auto-Submit (3s countdown) ${!autoSubmitOn ? 'diaktifkan' : 'dimatikan'}.`, 'info', 2200); };
+    container.appendChild(quickModesBox);
 
     const halamanTugasBaru = cekHalamanTugasBaru();
-    const cekLabel = (kata) => [...document.querySelectorAll('label')].some((el) => !el.closest('#sipgn-autofill-panel') && el.textContent.includes(kata));
+    const cekLabel = (kata) => [...document.querySelectorAll('label')].some((el) => !el.closest('#sipgn-autofill-panel') && el.offsetParent !== null && el.textContent.includes(kata));
     const adaBerangkat = cekLabel('Waktu Keberangkatan');
     const adaTiba = cekLabel('Waktu Diterima di Tujuan');
     const adaKembali = cekLabel('Waktu Ompreng Kembali di SPPG');
@@ -2742,7 +3794,7 @@
       const btn = document.createElement('button');
       btn.className = 'ms-btn ms-btn-aurora';
       btn.style.cssText = 'width:100%; padding:11.5px; font-size:12.5px;';
-      btn.disabled = !kpmAktif;
+      btn.disabled = !kpmAktif || isAutomating;
       btn.innerHTML = '⚡ Isi Otomatis Penugasan Baru';
       btn.onclick = () => isiPenugasan(indexTerpilih);
       actionBox.appendChild(btn);
@@ -2755,14 +3807,20 @@
         const b1 = document.createElement('button');
         b1.className = 'ms-btn ms-btn-cyan';
         b1.style.cssText = 'flex:1; padding:10px;';
-        b1.disabled = !kpmAktif;
+        b1.disabled = !kpmAktif || isAutomating;
         b1.textContent = '🕒 Set Berangkat';
         b1.onclick = async () => {
+          if (isAutomating) return;
+          isAutomating = true;
           b1.disabled = true; b1.textContent = '⏳...';
-          const ok = await aturWaktuKeberangkatan(kpmAktif?.jamKeberangkatan, 'Waktu Keberangkatan');
-          if (ok) { kpmAktif.statusProses = 'pengantaran'; simpanData(dataPenugasan); catatAktivitas(`Set berangkat: ${kpmAktif.sekolah}`, 'success'); tampilkanToast('Jam keberangkatan disimpan!', 'success'); }
-          else tampilkanToast('Gagal mengatur jam keberangkatan.', 'error');
-          renderPanel();
+          try {
+            const ok = await aturWaktuKeberangkatan(kpmAktif?.jamKeberangkatan, 'Waktu Keberangkatan');
+            if (ok) { kpmAktif.statusProses = 'pengantaran'; simpanData(dataPenugasan); catatAktivitas(`Set berangkat: ${kpmAktif.sekolah}`, 'success'); tampilkanToast('Jam keberangkatan disimpan!', 'success'); picuAutoSubmitDenganCountdown(); }
+            else tampilkanToast('Gagal mengatur jam keberangkatan. Pastikan format jam valid.', 'error');
+          } finally {
+            isAutomating = false;
+            renderPanel();
+          }
         };
         row.appendChild(b1);
       }
@@ -2770,14 +3828,20 @@
         const b2 = document.createElement('button');
         b2.className = 'ms-btn ms-btn-emerald';
         b2.style.cssText = 'flex:1; padding:10px;';
-        b2.disabled = !kpmAktif;
+        b2.disabled = !kpmAktif || isAutomating;
         b2.textContent = '🏁 Set Tiba';
         b2.onclick = async () => {
+          if (isAutomating) return;
+          isAutomating = true;
           b2.disabled = true; b2.textContent = '⏳...';
-          const ok = await aturWaktuKeberangkatan(kpmAktif?.jamTibaTujuan, 'Waktu Diterima di Tujuan');
-          if (ok) catatAktivitas(`Set tiba: ${kpmAktif.sekolah}`, 'success');
-          tampilkanToast(ok ? 'Jam tiba disimpan!' : 'Gagal mengatur jam tiba.', ok ? 'success' : 'error');
-          renderPanel();
+          try {
+            const ok = await aturWaktuKeberangkatan(kpmAktif?.jamTibaTujuan, 'Waktu Diterima di Tujuan');
+            if (ok) { catatAktivitas(`Set tiba: ${kpmAktif.sekolah}`, 'success'); picuAutoSubmitDenganCountdown(); }
+            tampilkanToast(ok ? 'Jam tiba disimpan!' : 'Gagal mengatur jam tiba. Pastikan format jam valid.', ok ? 'success' : 'error');
+          } finally {
+            isAutomating = false;
+            renderPanel();
+          }
         };
         row.appendChild(b2);
       }
@@ -2788,12 +3852,12 @@
       const btn = document.createElement('button');
       btn.className = 'ms-btn ms-btn-violet';
       btn.style.cssText = 'width:100%; padding:10px;';
-      btn.disabled = !kpmAktif;
+      btn.disabled = !kpmAktif || isAutomating;
       btn.textContent = '📦 Isi Pengambilan Ompreng';
       btn.onclick = async () => {
         btn.disabled = true; btn.textContent = '⏳ Mengisi...';
         const ok = await isiPengambilanOmpreng(indexTerpilih);
-        tampilkanToast(ok ? 'Pengambilan ompreng terisi!' : 'Gagal mengisi pengambilan.', ok ? 'success' : 'error');
+        tampilkanToast(ok ? 'Pengambilan ompreng terisi!' : 'Gagal mengisi pengambilan. Periksa jadwal jam pengambilan.', ok ? 'success' : 'error');
         renderPanel();
       };
       actionBox.appendChild(btn);
@@ -2803,14 +3867,20 @@
       const btn = document.createElement('button');
       btn.className = 'ms-btn ms-btn-emerald';
       btn.style.cssText = 'width:100%; padding:10px;';
-      btn.disabled = !kpmAktif;
+      btn.disabled = !kpmAktif || isAutomating;
       btn.textContent = '🔄 Set Ompreng Kembali SPPG';
       btn.onclick = async () => {
+        if (isAutomating) return;
+        isAutomating = true;
         btn.disabled = true; btn.textContent = '⏳...';
-        const ok = await aturWaktuKeberangkatan(kpmAktif?.jamOmprengKembaliSPPG, 'Waktu Ompreng Kembali di SPPG');
-        if (ok) { kpmAktif.statusProses = 'pengembalian'; simpanData(dataPenugasan); catatAktivitas(`Ompreng kembali: ${kpmAktif.sekolah}`, 'success'); }
-        tampilkanToast(ok ? 'Waktu kembali tersimpan!' : 'Gagal mengatur waktu.', ok ? 'success' : 'error');
-        renderPanel();
+        try {
+          const ok = await aturWaktuKeberangkatan(kpmAktif?.jamOmprengKembaliSPPG, 'Waktu Ompreng Kembali di SPPG');
+          if (ok) { kpmAktif.statusProses = 'pengembalian'; simpanData(dataPenugasan); catatAktivitas(`Ompreng kembali: ${kpmAktif.sekolah}`, 'success'); picuAutoSubmitDenganCountdown(); }
+          tampilkanToast(ok ? 'Waktu kembali tersimpan!' : 'Gagal mengatur waktu kembali. Periksa jadwal jam kembali.', ok ? 'success' : 'error');
+        } finally {
+          isAutomating = false;
+          renderPanel();
+        }
       };
       actionBox.appendChild(btn);
     }
@@ -2819,12 +3889,12 @@
       const btn = document.createElement('button');
       btn.className = 'ms-btn ms-btn-cyan';
       btn.style.cssText = 'width:100%; padding:10px;';
-      btn.disabled = !kpmAktif;
+      btn.disabled = !kpmAktif || isAutomating;
       btn.textContent = '🧼 Isi Mulai Pencucian';
       btn.onclick = async () => {
         btn.disabled = true; btn.textContent = '⏳ Mengisi...';
         const ok = await isiMulaiPencucian(indexTerpilih);
-        tampilkanToast(ok ? 'Form pencucian terisi!' : 'Gagal mengisi pencucian.', ok ? 'success' : 'error');
+        tampilkanToast(ok ? 'Form pencucian terisi!' : 'Gagal mengisi pencucian. Periksa jadwal jam cuci.', ok ? 'success' : 'error');
         renderPanel();
       };
       actionBox.appendChild(btn);
@@ -2834,7 +3904,7 @@
       const btnSeq = document.createElement('button');
       btnSeq.className = 'ms-btn ms-btn-ghost';
       btnSeq.style.cssText = 'width:100%; padding:8.5px; border-color:rgba(56,189,248,0.38); color:var(--ms-cyan);';
-      btnSeq.disabled = !kpmAktif;
+      btnSeq.disabled = !kpmAktif || isAutomating;
       btnSeq.innerHTML = '🤖 Jalankan Auto-Sequence Halaman Ini';
       btnSeq.onclick = jalankanAutoSequenceHalaman;
       actionBox.appendChild(btnSeq);
@@ -2877,7 +3947,7 @@
     }
   }
 
-  /* TAB 2: DAFTAR KPM INTERAKTIF */
+  /* TAB 2: DAFTAR KPM INTERAKTIF + INLINE QUICK-EDIT (FITUR 5) */
   function renderTabDaftar(container) {
     const topBar = document.createElement('div');
     topBar.style.cssText = 'display:flex; gap:6px; margin-bottom:8px;';
@@ -2924,7 +3994,7 @@
 
     const listWrap = document.createElement('div');
     listWrap.className = 'ms-scroll';
-    listWrap.style.cssText = 'max-height:230px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; margin-bottom:8px;';
+    listWrap.style.cssText = 'max-height:255px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; margin-bottom:8px;';
 
     const q = searchQuery.toLowerCase();
     let items = dataPenugasan
@@ -2948,6 +4018,9 @@
     } else {
       items.forEach(({ item, idx }) => {
         const isSelected = idx === indexTerpilih;
+        const isInlineEditing = inlineEditIdx === idx;
+        const selisihObj = hitungSelisihOmpreng(item);
+
         const card = document.createElement('div');
         card.className = 'ms-bento';
         card.style.cssText = `
@@ -2956,32 +4029,92 @@
           background:${isSelected ? 'rgba(56,189,248,0.12)' : 'var(--ms-bg-bento)'};
         `;
         const badgeIcon = item.statusProses === 'pengantaran' ? '🚚' : item.statusProses === 'pengembalian' ? '📦' : item.statusProses === 'pencucian' ? '🧼' : '⚪';
+
         card.innerHTML = `
           <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
             <div style="font-size:11.5px; font-weight:700; color:#f8fafc; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-              ${badgeIcon} ${escapeHtml(item.sekolah)}
+              ${badgeIcon} ${escapeHtml(item.sekolah)} ${selisihObj.adaSelisih ? '<span title="Ada selisih ompreng">⚠️</span>' : ''}
             </div>
             <div style="display:flex; gap:4px; flex-shrink:0;">
-              <button class="ms-btn ms-btn-ghost ms-item-edit" style="padding:3px 6px; font-size:10px;">✏️</button>
-              <button class="ms-btn ms-btn-danger ms-item-del" style="padding:3px 6px; font-size:10px;">🗑️</button>
+              <button class="ms-btn ms-btn-ghost ms-item-quick" style="padding:3px 6px; font-size:10px; color:var(--ms-cyan);" title="Inline Quick-Edit">⚡</button>
+              <button class="ms-btn ms-btn-ghost ms-item-edit" style="padding:3px 6px; font-size:10px;" title="Edit Lengkap">✏️</button>
+              <button class="ms-btn ms-btn-danger ms-item-del" style="padding:3px 6px; font-size:10px;" title="Hapus">🗑️</button>
             </div>
           </div>
           <div style="display:flex; justify-content:space-between; margin-top:4px; font-size:10px; color:var(--ms-text-muted);">
             <span>${jenisKPM(item) === 'posyandu' ? '👶 Posyandu' : '🏫 Sekolah'} • <b>${hitungTotalPorsi(item)}</b> porsi (R${escapeHtml(item.ritase || '1')})</span>
             <span>${escapeHtml(item.namaKurir || '-')}</span>
           </div>
+          ${isInlineEditing ? `
+            <div class="ms-inline-box" style="margin-top:8px; padding-top:8px; border-top:1px dashed var(--ms-border); display:flex; flex-direction:column; gap:6px;">
+              <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:5px;">
+                <div>
+                  <label style="font-size:9px; color:#94a3b8; display:block;">Ritase</label>
+                  <input class="ms-input ms-qe-ritase" value="${escapeHtml(item.ritase)}" style="padding:4px 6px; font-size:11px;" />
+                </div>
+                <div>
+                  <label style="font-size:9px; color:#94a3b8; display:block;">Porsi Besar</label>
+                  <input class="ms-input ms-qe-besar" value="${escapeHtml(item.porsiBesar)}" style="padding:4px 6px; font-size:11px;" />
+                </div>
+                <div>
+                  <label style="font-size:9px; color:#94a3b8; display:block;">Porsi Kecil</label>
+                  <input class="ms-input ms-qe-kecil" value="${escapeHtml(item.porsiKecil)}" style="padding:4px 6px; font-size:11px;" />
+                </div>
+              </div>
+              <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:5px;">
+                <div>
+                  <label style="font-size:9px; color:#94a3b8; display:block;">Jam Berangkat</label>
+                  <input class="ms-input ms-qe-berangkat" value="${escapeHtml(item.jamKeberangkatan)}" placeholder="10:00" style="padding:4px 6px; font-size:11px;" />
+                </div>
+                <div>
+                  <label style="font-size:9px; color:#94a3b8; display:block;">Jam Tiba</label>
+                  <input class="ms-input ms-qe-tiba" value="${escapeHtml(item.jamTibaTujuan)}" placeholder="10:30" style="padding:4px 6px; font-size:11px;" />
+                </div>
+                <div>
+                  <label style="font-size:9px; color:#94a3b8; display:block;">Jadwal Ambil</label>
+                  <input class="ms-input ms-qe-ambil" value="${escapeHtml(item.jamJadwalPengambilan)}" placeholder="11:00" style="padding:4px 6px; font-size:11px;" />
+                </div>
+              </div>
+              <div style="display:flex; gap:5px; justify-content:flex-end;">
+                <button class="ms-btn ms-btn-ghost ms-qe-cancel" style="padding:4px 9px; font-size:10px;">Batal</button>
+                <button class="ms-btn ms-btn-emerald ms-qe-save" style="padding:4px 10px; font-size:10px;">💾 Simpan Cepat</button>
+              </div>
+            </div>
+          ` : ''}
         `;
+
         card.onclick = (e) => {
-          if (e.target.closest('.ms-item-edit') || e.target.closest('.ms-item-del')) return;
+          if (e.target.closest('.ms-item-quick') || e.target.closest('.ms-item-edit') || e.target.closest('.ms-item-del') || e.target.closest('.ms-inline-box')) return;
           indexTerpilih = idx;
           activeTab = 'aksi';
           renderPanel();
         };
+        card.querySelector('.ms-item-quick').onclick = () => {
+          inlineEditIdx = isInlineEditing ? null : idx;
+          renderPanel();
+        };
+        if (isInlineEditing) {
+          card.querySelector('.ms-qe-cancel').onclick = () => { inlineEditIdx = null; renderPanel(); };
+          card.querySelector('.ms-qe-save').onclick = () => {
+            item.ritase = card.querySelector('.ms-qe-ritase').value.trim();
+            item.porsiBesar = card.querySelector('.ms-qe-besar').value.trim();
+            item.porsiKecil = card.querySelector('.ms-qe-kecil').value.trim();
+            item.jamKeberangkatan = card.querySelector('.ms-qe-berangkat').value.trim();
+            item.jamTibaTujuan = card.querySelector('.ms-qe-tiba').value.trim();
+            item.jamJadwalPengambilan = card.querySelector('.ms-qe-ambil').value.trim();
+            simpanData(dataPenugasan);
+            inlineEditIdx = null;
+            catatAktivitas(`Quick-Edit KPM: ${item.sekolah}`, 'info');
+            renderPanel();
+            tampilkanToast(`Perubahan cepat "${escapeHtml(item.sekolah)}" disimpan!`, 'success', 2200);
+          };
+        }
         card.querySelector('.ms-item-edit').onclick = () => tampilkanModalFormKPM(item, idx);
         card.querySelector('.ms-item-del').onclick = () => {
           tampilkanModalKonfirmasiModern('Hapus KPM', `Hapus data "${escapeHtml(item.sekolah)}"?`, () => {
             dataPenugasan.splice(idx, 1);
             if (indexTerpilih >= dataPenugasan.length) indexTerpilih = dataPenugasan.length - 1;
+            if (inlineEditIdx === idx) inlineEditIdx = null;
             simpanData(dataPenugasan);
             renderPanel();
             tampilkanToast('Data KPM dihapus.', 'info');
@@ -3071,6 +4204,42 @@
     }
     container.appendChild(licCard);
 
+    // Automation & Workflow Preferences Card (Fitur 2, 4, 6)
+    const autoAdvanceOn = dapatkanAutoAdvance();
+    const autoCloudOn = dapatkanAutoCloudSync();
+    const autoCard = document.createElement('div');
+    autoCard.className = 'ms-bento';
+    autoCard.style.cssText = 'padding:12px; margin-bottom:10px;';
+    autoCard.innerHTML = `
+      <div style="font-size:10px; font-weight:700; color:var(--ms-text-muted); text-transform:uppercase; margin-bottom:8px;">🤖 Alur Otomatisasi & Armada</div>
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        <button id="ms-sys-autoadvance" class="ms-btn ms-btn-ghost" style="width:100%; padding:8px 10px; justify-content:space-between;">
+          <span>⏭️ Auto-Advance Queue Setelah Simpan</span>
+          <b style="color:${autoAdvanceOn ? 'var(--ms-emerald)' : 'var(--ms-text-muted)'};">${autoAdvanceOn ? 'AKTIF' : 'MATI'}</b>
+        </button>
+        <button id="ms-sys-autocloud" class="ms-btn ms-btn-ghost" style="width:100%; padding:8px 10px; justify-content:space-between;">
+          <span>☁️ Auto-Save Cloud Sync (Debounce)</span>
+          <b style="color:${autoCloudOn ? 'var(--ms-emerald)' : 'var(--ms-text-muted)'};">${autoCloudOn ? 'AKTIF' : 'MATI'}</b>
+        </button>
+        <button id="ms-sys-manage-fleet" class="ms-btn ms-btn-ghost" style="width:100%; padding:8px 10px; justify-content:space-between; border-color:rgba(56,189,248,0.32);">
+          <span>🚚 Master Database Kurir & Armada</span>
+          <span style="color:var(--ms-cyan); font-family:var(--ms-font-mono);">${muatMasterArmada().length} Preset →</span>
+        </button>
+      </div>
+    `;
+    autoCard.querySelector('#ms-sys-autoadvance').onclick = () => {
+      simpanAutoAdvance(!autoAdvanceOn);
+      renderPanel();
+      tampilkanToast(`Auto-Advance Queue ${!autoAdvanceOn ? 'diaktifkan' : 'dimatikan'}.`, 'info', 2000);
+    };
+    autoCard.querySelector('#ms-sys-autocloud').onclick = () => {
+      simpanAutoCloudSync(!autoCloudOn);
+      renderPanel();
+      tampilkanToast(`Auto-Save Cloud Sync ${!autoCloudOn ? 'diaktifkan' : 'dimatikan'}.`, 'info', 2000);
+    };
+    autoCard.querySelector('#ms-sys-manage-fleet').onclick = () => tampilkanModalMasterArmada(() => renderPanel());
+    container.appendChild(autoCard);
+
     const speedCard = document.createElement('div');
     speedCard.className = 'ms-bento';
     speedCard.style.cssText = 'padding:12px; margin-bottom:10px;';
@@ -3143,6 +4312,7 @@
       tampilkanModalKonfirmasiModern('Keluar Akun', 'Akhiri sesi login MindHUB pada perangkat ini?', () => {
         hapusAuthSession();
         cachedServerStatus = null;
+        isScriptInitialized = false;
         const p = document.getElementById('sipgn-autofill-panel');
         if (p) p.remove();
         tampilkanModalLoginMindHUB(() => inialisasiSistem());
@@ -3152,8 +4322,26 @@
   }
 
   /* ============================================================================
-   * 10. KEYBOARD SHORTCUTS, SPA OBSERVER & LIFECYCLE INITIALIZATION
-   * ============================================================================ */
+- 10. KEYBOARD SHORTCUTS, AUTO-ADVANCE LISTENER, SPA OBSERVER & LIFECYCLE
+- ============================================================================ */
+  // Fitur 2: Detektor Klik Tombol Simpan SIPGN untuk Auto-Advance Queue
+  function pasangDetektorSimpanAutoAdvance() {
+    document.addEventListener('click', (e) => {
+      if (!dapatkanAutoAdvance()) return;
+      const btn = e.target.closest('button');
+      if (!btn || btn.closest('#sipgn-autofill-panel') || btn.closest('.ms-ui-root')) return;
+      const teks = btn.textContent.replace(/\s+/g, ' ').trim();
+      if (/^(simpan|submit|kirim|buat tugas|simpan penugasan)$/i.test(teks) || btn.type === 'submit') {
+        setTimeout(() => {
+          const berpindah = pilihKPMBelumBerikutnya(true);
+          if (berpindah) {
+            catatAktivitas('Auto-Advance Queue ke KPM berikutnya', 'info');
+          }
+        }, 900);
+      }
+    }, true);
+  }
+
   function pasangKeyboardShortcuts() {
     window.addEventListener('keydown', (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
@@ -3162,6 +4350,7 @@
       } else if (e.key === 'Escape') {
         const cmdModal = document.getElementById('sipgn-command-palette');
         if (cmdModal) cmdModal.remove();
+        if (activeSubmitCountdownCancel) activeSubmitCountdownCancel();
       }
     });
   }
@@ -3204,7 +4393,7 @@
       'Jumlah Ompreng Dicuci', 'Waktu Mulai Cuci'
     ];
     const sig = () => [...document.querySelectorAll('label')]
-      .filter((el) => !el.closest('#sipgn-autofill-panel'))
+      .filter((el) => !el.closest('#sipgn-autofill-panel') && el.offsetParent !== null)
       .map((el) => el.textContent.replace(/\s+/g, ' ').replace('*', '').trim())
       .filter((t) => labels.includes(t))
       .sort()
@@ -3223,11 +4412,15 @@
   }
 
   function mulaiJalankanSkrip() {
-    aktifkanPengubahKameraKeGaleri();
-    pasangKeyboardShortcuts();
-    pasangDetektorNavigasiSPA();
+    if (!isScriptInitialized) {
+      isScriptInitialized = true;
+      aktifkanPengubahKameraKeGaleri();
+      pasangKeyboardShortcuts();
+      pasangDetektorSimpanAutoAdvance();
+      pasangDetektorNavigasiSPA();
+      pasangDetektorPerubahanForm();
+    }
     renderPanel();
-    pasangDetektorPerubahanForm();
     cekUpdateAplikasiInApp();
   }
 
@@ -3297,86 +4490,75 @@
       overlay.innerHTML = `
         <div class="ms-aurora-shell ms-modal-box" style="padding:26px; border-radius:24px; width:380px; max-width:92vw; text-align:center;">
           <div style="font-size:34px; margin-bottom:10px;">🎁</div>
-          <h3 style="margin:0 0 6px; font-size:18px; font-weight:800;">Aktivasi Free Trial 24 Jam</h3>
-          <p style="font-size:12px; color:var(--ms-text-muted); margin:0 0 18px; line-height:1.5;">Perangkat baru terdeteksi. Klaim akses penuh gratis selama 24 jam dan tautkan otomatis ke akun Anda.</p>
-          <button id="ms-btn-trial-now" class="ms-btn ms-btn-aurora" style="width:100%; padding:12px; font-size:13px;">🚀 Klaim Free Trial Sekarang</button>
+          <h3 style="margin:0 0 6px; font-size:18px; font-weight:800;">Aktivasi Free Trial 3 Hari</h3>
+          <p style="font-size:12px; color:var(--ms-text-muted); margin:0 0 18px;">Aktifkan masa percobaan gratis untuk mulai menggunakan SIPGN Autofill.</p>
+          <button id="ms-btn-claim-trial" class="ms-btn ms-btn-aurora" style="width:100%; padding:12px; font-size:13px;">🚀 Aktifkan Trial Sekarang</button>
         </div>
       `;
       bantuAppendKeBody(overlay);
-      document.getElementById('ms-btn-trial-now').onclick = async (e) => {
-        e.target.disabled = true; e.target.textContent = '⏳ Memproses...';
+      document.getElementById('ms-btn-claim-trial').onclick = async () => {
+        const btn = document.getElementById('ms-btn-claim-trial');
+        btn.disabled = true; btn.textContent = '⏳ Mengaktifkan...';
         try {
-          const r = await klaimFreeTrialVercel();
-          if (r.success || r.exp_date) {
-            try { await linkDeviceKeAkun(); } catch (err) {}
+          const tRes = await klaimFreeTrialVercel();
+          if (tRes.success) {
             overlay.remove();
-            eksekusiSuksesPembayaran(1, dapatkanDeviceID(), r.exp_date);
+            eksekusiSuksesPembayaran(3, dapatkanDeviceID(), tRes.exp_date);
           } else {
-            tampilkanToast(r.error || 'Gagal klaim trial.', 'error');
-            e.target.disabled = false; e.target.textContent = '🚀 Klaim Free Trial Sekarang';
+            tampilkanToast(tRes.error || 'Gagal mengaktifkan trial.', 'error');
+            btn.disabled = false; btn.textContent = '🚀 Aktifkan Trial Sekarang';
           }
-        } catch (err) {
-          tampilkanToast('Error koneksi server.', 'error');
-          e.target.disabled = false; e.target.textContent = '🚀 Klaim Free Trial Sekarang';
+        } catch (e) {
+          tampilkanToast('Gagal menghubungi server.', 'error');
+          btn.disabled = false; btn.textContent = '🚀 Aktifkan Trial Sekarang';
         }
       };
     } else {
-      tampilkanModalStatusSitus('Masa Aktif Lisensi Habis', res.msg || 'Masa aktif lisensi perangkat telah berakhir. Masukkan kode voucher untuk memperpanjang.', 'expired');
+      tampilkanModalStatusSitus('Masa Aktif Lisensi Berakhir', res.msg || 'Masa aktif lisensi Anda telah habis. Masukkan voucher perpanjangan di bawah ini.', 'expired');
     }
   }
 
   async function inialisasiSistem() {
-    try {
-      aktifkanPengubahKameraKeGaleri();
-      if (!cekValiditasJWT(dapatkanAuthToken())) {
-        hapusAuthSession();
-        tampilkanModalLoginMindHUB(() => inialisasiSistem());
-        return;
-      }
-
-      let targetStatus = null;
-      const loader = tampilkanLoadingScreen(() => { if (targetStatus) tanganiStatusLisensi(targetStatus); });
-      loader.updateProgress(30, 'Memverifikasi Sesi MindHUB...');
-      await wait(600);
-      loader.updateProgress(65, 'Memeriksa Lisensi Perangkat...');
-
-      const resStatus = await ambilStatusLisensiServer();
-      if (!resStatus || resStatus.status === 'error') {
-        loader.tampilkanGagal('Koneksi Gagal! Periksa Jaringan Internet Anda.');
-        return;
-      }
-      if (resStatus.status === 'unauthenticated') {
-        const sp = document.getElementById('sipgn-splash-loading');
-        if (sp) sp.remove();
-        tampilkanModalLoginMindHUB(() => inialisasiSistem());
-        return;
-      }
-
-      targetStatus = resStatus;
-      loader.updateProgress(95, 'Menyiapkan Mindspace Autofill...');
-      await wait(450);
-      loader.siapLanjut();
-
-      if (intervalMonitorLisensi) clearInterval(intervalMonitorLisensi);
-      intervalMonitorLisensi = setInterval(() => {
-        if (!cekValiditasJWT(dapatkanAuthToken())) {
-          clearInterval(intervalMonitorLisensi);
-          hapusAuthSession();
-          tampilkanModalLoginMindHUB(() => inialisasiSistem());
-          return;
-        }
-        ambilStatusLisensiServer().then((res) => {
-          if (!res.valid && res.status !== 'active') tanganiStatusLisensi(res);
-        });
-      }, 60000);
-    } catch (e) {
+    const token = dapatkanAuthToken();
+    if (!token || !cekValiditasJWT(token)) {
+      hapusAuthSession();
       tampilkanModalLoginMindHUB(() => inialisasiSistem());
+      return;
     }
+
+    const loader = tampilkanLoadingScreen();
+    loader.updateProgress(25, 'Memeriksa integritas sesi MindHUB...');
+    await wait(220);
+    loader.updateProgress(60, 'Memverifikasi lisensi perangkat terenkripsi...');
+
+    const res = await ambilStatusLisensiServer();
+    if (res.status === 'error') {
+      loader.tampilkanGagal('Gagal memverifikasi lisensi ke server.');
+      return;
+    }
+
+    loader.updateProgress(100, 'Verifikasi berhasil!');
+    await wait(260);
+    const splashEl = document.getElementById('sipgn-splash-loading');
+    if (splashEl) splashEl.remove();
+
+    tanganiStatusLisensi(res);
+
+    if (intervalMonitorLisensi) clearInterval(intervalMonitorLisensi);
+    intervalMonitorLisensi = setInterval(async () => {
+      const cek = await ambilStatusLisensiServer();
+      if (!cek.valid && cek.status !== 'error') {
+        clearInterval(intervalMonitorLisensi);
+        const panel = document.getElementById('sipgn-autofill-panel');
+        if (panel) panel.remove();
+        tanganiStatusLisensi(cek);
+      }
+    }, 30000);
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => setTimeout(inialisasiSistem, 250));
+    document.addEventListener('DOMContentLoaded', inialisasiSistem);
   } else {
-    setTimeout(inialisasiSistem, 250);
+    inialisasiSistem();
   }
 })();

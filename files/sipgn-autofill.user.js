@@ -10,19 +10,19 @@
 // @grant        GM_getValue
 // @grant        GM_deleteValue
 // @grant        GM_xmlhttpRequest
-// @connect      mindspace-id.vercel.app
+// @connect      minduniverse.id
 // @connect      minduniverse.id
 // @connect      www.minduniverse.id
-// @updateURL    https://mindspace-id.vercel.app/files/sipgn-autofill.user.js
-// @downloadURL  https://mindspace-id.vercel.app/files/sipgn-autofill.user.js
+// @updateURL    https://minduniverse.id/files/sipgn-autofill.user.js
+// @downloadURL  https://minduniverse.id/files/sipgn-autofill.user.js
 // ==/UserScript==
 
 (function () {
   'use strict';
 
   /* ============================================================================
-- 0. CRYPTOGRAPHIC VAULT & INTEGRITY PROTECTION ENGINE (ANTI-TAMPER / ENCRYPTION)
-- ============================================================================ */
+   * 0. CRYPTOGRAPHIC VAULT & INTEGRITY PROTECTION ENGINE (ANTI-TAMPER / ENCRYPTION)
+   * ============================================================================ */
   const _0xVault = (() => {
     const _k = [0x4d, 0x49, 0x4e, 0x44, 0x53, 0x50, 0x41, 0x43, 0x45, 0x32, 0x30, 0x32, 0x36];
     const _enc = (str) => {
@@ -67,7 +67,7 @@
 
   // Encrypted Endpoint & Salt Constants
   const _CFG_VAULT = Object.freeze({
-    vApi: _0xVault.enc('https://mindspace-id.vercel.app/api/tokopay'),
+    vApi: _0xVault.enc('https://minduniverse.id/api/tokopay'),
     aApi: _0xVault.enc('https://www.minduniverse.id/api/config'),
     salt: _0xVault.enc('MINDSTUDIO2026')
   });
@@ -77,8 +77,8 @@
   const getSecretSalt = () => _0xVault.dec(_CFG_VAULT.salt);
 
   /* ============================================================================
-- 1. FAKE CAMERA ENGINE (GALERI KE KAMERA STREAM)
-- ============================================================================ */
+   * 1. FAKE CAMERA ENGINE (GALERI KE KAMERA STREAM)
+   * ============================================================================ */
   (function inisialisasiFakeCamera() {
     try {
       const canvas = document.createElement('canvas');
@@ -141,8 +141,8 @@
   })();
 
   /* ============================================================================
-- 2. KONFIGURASI & ENCRYPTED STORAGE KEYS
-- ============================================================================ */
+   * 2. KONFIGURASI & ENCRYPTED STORAGE KEYS
+   * ============================================================================ */
   const CURRENT_VERSION = (typeof GM_info !== 'undefined' && GM_info.script)
     ? GM_info.script.version
     : '2.0.2';
@@ -188,6 +188,11 @@
   let cloudSyncState = 'idle'; // 'idle' | 'syncing' | 'synced' | 'error'
   let activeSubmitCountdownCancel = null;
 
+  // [FIX] Guard tambahan anti-loop & anti-duplikasi
+  let sedangInisialisasi = false;
+  let modalUpdateSudahDitampilkan = false;
+  let pemantauHalamanAktif = false;
+
   function catatAktivitas(teks, tipe = 'info') {
     const waktu = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     activityLogs.unshift({ waktu, teks, tipe });
@@ -195,8 +200,8 @@
   }
 
   /* ============================================================================
-- 3. HELPER KEAMANAN, ENCRYPTED STORAGE, AUTH JWT & DEVICE LINKING
-- ============================================================================ */
+   * 3. HELPER KEAMANAN, ENCRYPTED STORAGE, AUTH JWT & DEVICE LINKING
+   * ============================================================================ */
   function escapeHtml(text) {
     if (text === null || text === undefined) return '';
     return String(text)
@@ -335,7 +340,7 @@
     try {
       const parsed = new URL(String(rawUrl || ''));
       if (parsed.protocol !== 'https:') return null;
-      const allowedHosts = ['mindspace-id.vercel.app', 'minduniverse.id', 'www.minduniverse.id'];
+      const allowedHosts = ['minduniverse.id', 'minduniverse.id', 'www.minduniverse.id'];
       if (!allowedHosts.includes(parsed.hostname)) return null;
       return parsed.href;
     } catch {
@@ -358,18 +363,22 @@
             const data = JSON.parse(res.responseText);
             const rel = data?.release || (data?.version ? data : null);
             if (rel && rel.version && bandingkanVersiSemver(rel.version, CURRENT_VERSION) > 0) {
-              const safeUrl = validasiUrlUpdateAman(rel.download_url) || 'https://mindspace-id.vercel.app/files/sipgn-autofill.user.js';
+              const safeUrl = validasiUrlUpdateAman(rel.download_url) || 'https://minduniverse.id/files/sipgn-autofill.user.js';
               availableUpdateRelease = {
                 version: String(rel.version).trim(),
                 download_url: safeUrl,
                 changelog: String(rel.changelog || 'Pembaruan stabilitas dan peningkatan performa otomatis.').trim()
               };
               catatAktivitas(`Pembaruan tersedia: v${availableUpdateRelease.version}`, 'info');
-              tampilkanToast(`Pembaruan v${escapeHtml(availableUpdateRelease.version)} tersedia!`, 'info', 4500);
 
-              setTimeout(() => {
-                tampilkanModalDetailUpdate();
-              }, 400);
+              // [FIX] Modal/toast otomatis hanya sekali per sesi halaman
+              if (!modalUpdateSudahDitampilkan) {
+                modalUpdateSudahDitampilkan = true;
+                tampilkanToast(`Pembaruan v${escapeHtml(availableUpdateRelease.version)} tersedia!`, 'info', 4500);
+                setTimeout(() => {
+                  tampilkanModalDetailUpdate();
+                }, 400);
+              }
 
               if (document.getElementById('sipgn-autofill-panel')) renderPanel();
               resolve(availableUpdateRelease);
@@ -391,7 +400,7 @@
   function tampilkanModalDetailUpdate() {
     const updateInfo = availableUpdateRelease || {
       version: '3.3',
-      download_url: 'https://mindspace-id.vercel.app/files/sipgn-autofill.user.js',
+      download_url: 'https://minduniverse.id/files/sipgn-autofill.user.js',
       changelog: '✨ Peningkatan stabilitas sistem - Optimalisasi antarmuka Bento Glassmorphism - Pembaruan modul automasi penugasan KPM - Peningkatan performa secara menyeluruh.'
     };
 
@@ -697,8 +706,8 @@
   }
 
   /* ============================================================================
-- 4. ULTRA-PREMIUM CYBER-AURORA BENTO DESIGN SYSTEM (v2.0.2)
-- ============================================================================ */
+   * 4. ULTRA-PREMIUM CYBER-AURORA BENTO DESIGN SYSTEM (v2.0.2)
+   * ============================================================================ */
   function pasangDesignSystemCSS() {
     if (!document.getElementById('ms-font-jakarta')) {
       const link = document.createElement('link');
@@ -1057,13 +1066,10 @@
     return window.innerWidth <= 640 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   }
 
+  // [FIX] Sebelumnya memindai getComputedStyle seluruh elemen body (sangat berat di SPA).
+  // Sekarang memakai nilai z-index maksimum yang tetap.
   function dapatkanTopZIndex() {
-    let highest = 2147483640;
-    document.querySelectorAll('body *').forEach((el) => {
-      const z = parseInt(window.getComputedStyle(el).zIndex, 10);
-      if (!isNaN(z) && z > highest) highest = z;
-    });
-    return highest + 10;
+    return 2147483647;
   }
 
   function bantuAppendKeBody(element) {
@@ -1078,8 +1084,8 @@
   }
 
   /* ============================================================================
-- 5. STATE, PREFERENCE, MASTER ARMADA & DRAGGABLE POSITION HELPERS
-- ============================================================================ */
+   * 5. STATE, PREFERENCE, MASTER ARMADA & DRAGGABLE POSITION HELPERS
+   * ============================================================================ */
   function dapatkanBoolPref(gmKey, defaultVal = false) {
     try {
       const val = GM_getValue(gmKey, defaultVal);
@@ -1099,7 +1105,7 @@
   const simpanJitterMode = (val) => simpanBoolPref(JITTER_MODE_KEY, val);
   const dapatkanRealtimeClock = () => dapatkanBoolPref(REALTIME_CLOCK_KEY, false);
   const simpanRealtimeClock = (val) => simpanBoolPref(REALTIME_CLOCK_KEY, val);
-  const dapatkanAutoAdvance = () => dapatkanBoolPref(AUTO_ADVANCE_KEY, true);
+  const dapatkanAutoAdvance = () => dapatkanBoolPref(AUTO_ADVANCE_KEY, false);
   const simpanAutoAdvance = (val) => simpanBoolPref(AUTO_ADVANCE_KEY, val);
   const dapatkanAutoSubmit = () => dapatkanBoolPref(AUTO_SUBMIT_KEY, false);
   const simpanAutoSubmit = (val) => simpanBoolPref(AUTO_SUBMIT_KEY, val);
@@ -1320,8 +1326,8 @@
   }
 
   /* ============================================================================
-- 6. MODAL DIALOGS (LOGIN, WELCOME, STATUS, VOUCHER, KPM EDITOR, COMMAND PALETTE)
-- ============================================================================ */
+   * 6. MODAL DIALOGS (LOGIN, WELCOME, STATUS, VOUCHER, KPM EDITOR, COMMAND PALETTE)
+   * ============================================================================ */
   function buatOverlayModal(idModal) {
     pasangDesignSystemCSS();
     const lama = document.getElementById(idModal);
@@ -1512,13 +1518,13 @@
           feedbackEl.style.color = 'var(--ms-rose)';
           feedbackEl.textContent = resAuth.error;
           btnSubmit.disabled = false;
-          btnSubmit.textContent = '🔑 Masuk ke Halaman Utama';
+          btnSubmit.textContent = '🔑 Login Akun';
         }
       } catch (err) {
         feedbackEl.style.color = 'var(--ms-rose)';
         feedbackEl.textContent = typeof err === 'string' ? err : 'Terjadi kesalahan koneksi.';
         btnSubmit.disabled = false;
-        btnSubmit.textContent = '🔑 Masuk ke Halaman Utama';
+        btnSubmit.textContent = '🔑 Login Akun';
       }
     };
 
@@ -1539,7 +1545,7 @@
           <div style="width: 100%; height: 100%; border-radius: 50%; background: rgba(56,189,248,0.12); display: flex; align-items: center; justify-content: center; font-size: 28px;">⚡</div>
         </div>
         <div style="font-size: 19px; font-weight: 800; background: linear-gradient(135deg, #38bdf8, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">SIPGN Autofill POP</div>
-        <div style="font-size: 11px; color: var(--ms-text-muted); font-family: var(--ms-font-mono); margin-bottom: 14px;">v${CURRENT_VERSION}</br></br>${escapeHtml(sapaan)}</div>
+        <div style="font-size: 11px; color: var(--ms-text-muted); font-family: var(--ms-font-mono); margin-bottom: 14px;">v${CURRENT_VERSION}<br><br>${escapeHtml(sapaan)}</div>
 
         <div class="ms-bento" style="padding: 12px; margin-bottom: 18px;">
           <div id="sipgn-splash-status" style="font-size: 11.5px; font-weight: 600; color: #cbd5e1; margin-bottom: 8px;">Menginisialisasi Encrypted Vault...</div>
@@ -1765,8 +1771,8 @@
   }
 
   /* ============================================================================
-- 7. ENCRYPTED DATA KPM VAULT, CSV IMPORT/EXPORT & AUTO CLOUD SYNC
-- ============================================================================ */
+   * 7. ENCRYPTED DATA KPM VAULT, CSV IMPORT/EXPORT & AUTO CLOUD SYNC
+   * ============================================================================ */
   const DATA_AWAL = [
     {
       sekolah: 'SMAN 1 MEDAN',
@@ -2366,8 +2372,8 @@
   }
 
   /* ============================================================================
-- 8. ENGINE AUTOFILL DOM, AUTO-SUBMIT COUNTDOWN & REACT/SPA INPUT INJECTION
-- ============================================================================ */
+   * 8. ENGINE AUTOFILL DOM, AUTO-SUBMIT COUNTDOWN & REACT/SPA INPUT INJECTION
+   * ============================================================================ */
   function cekHalamanTugasBaru() {
     return location.pathname.includes('/distribution/new');
   }
@@ -2537,6 +2543,86 @@
     return isAuto;
   }
 
+  function setNativeSelectValue(selectEl, optionEl) {
+    if (!selectEl || !optionEl) return;
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value')?.set;
+    if (setter) setter.call(selectEl, optionEl.value);
+    else selectEl.value = optionEl.value;
+    selectEl.dispatchEvent(new Event('input', { bubbles: true }));
+    selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  async function pilihWorkOrderPalingAtas() {
+    const isPlaceholderOption = (opt) => {
+      if (!opt || opt.disabled) return true;
+      const val = String(opt.value || '').trim();
+      const txt = String(opt.textContent || '').replace(/\s+/g, ' ').trim();
+      return !val || /^[-—–\s]*pilih\s*work\s*order[-—–\s]*$/i.test(txt);
+    };
+
+    // 1) Native <select> element ("— Pilih Work Order —")
+    const nativeSelect = await tungguElemen(() => {
+      const selects = [...document.querySelectorAll('select')].filter(
+        (s) => !s.closest('#sipgn-autofill-panel') && !s.closest('.ms-ui-root') && s.disabled === false
+      );
+      return selects.find((s) => {
+        const meta = `${s.name || ''} ${s.id || ''} ${s.getAttribute('aria-label') || ''}`.toLowerCase();
+        const optsText = [...s.options].map((o) => o.textContent || '').join(' ');
+        return /work\s*order/i.test(meta) || /pilih\s*work\s*order|wo-/i.test(optsText);
+      }) || null;
+    }, 3500, 150);
+
+    if (nativeSelect) {
+      const validOptions = [...nativeSelect.options].filter((o) => !isPlaceholderOption(o));
+      if (validOptions.length > 0) {
+        const topOption = validOptions[0];
+        try { nativeSelect.focus(); nativeSelect.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
+        setNativeSelectValue(nativeSelect, topOption);
+        try { nativeSelect.dispatchEvent(new Event('blur', { bubbles: true })); } catch (e) {}
+        catatAktivitas(`Pilih Work Order teratas: ${topOption.textContent.trim()}`, 'success');
+        return true;
+      }
+    }
+
+    // 2) Custom dropdown / combobox / listbox ("— Pilih Work Order —")
+    const triggerEl = await tungguElemen(() => {
+      const candidates = [...document.querySelectorAll('button, [role="combobox"], [role="button"], div')].filter((el) => {
+        if (el.closest('#sipgn-autofill-panel') || el.closest('.ms-ui-root') || el.offsetParent === null) return false;
+        if (el.querySelector('button, [role="combobox"], input, select')) return false;
+        const txt = (el.textContent || '').replace(/\s+/g, ' ').trim();
+        return /pilih\s*work\s*order/i.test(txt) && txt.length <= 80;
+      });
+      return candidates[0] || null;
+    }, 2500, 150);
+
+    if (!triggerEl) return false;
+
+    await klikElemenPrecise(triggerEl);
+    await wait(220);
+
+    const topOptionEl = await tungguElemen(() => {
+      const optionNodes = [...document.querySelectorAll('[role="option"], li, [role="menuitem"], div[class*="option"], button')].filter((el) => {
+        if (el.closest('#sipgn-autofill-panel') || el.closest('.ms-ui-root') || el.offsetParent === null) return false;
+        if (el === triggerEl || el.contains(triggerEl)) return false;
+        if (el.querySelector('[role="option"], li')) return false;
+        const txt = (el.textContent || '').replace(/\s+/g, ' ').trim();
+        if (!txt || txt.length > 220) return false;
+        if (/^[-—–\s]*pilih\s*work\s*order[-—–\s]*$/i.test(txt)) return false;
+        if (/work\s*order\s*tersedia/i.test(txt)) return false;
+        const ariaDisabled = el.getAttribute('aria-disabled') === 'true' || el.hasAttribute('disabled');
+        return !ariaDisabled;
+      });
+      return optionNodes[0] || null;
+    }, 2500, 100);
+
+    if (!topOptionEl) return false;
+
+    const labelWO = (topOptionEl.textContent || '').replace(/\s+/g, ' ').trim();
+    await klikElemenPrecise(topOptionEl);
+    catatAktivitas(`Pilih Work Order teratas: ${labelWO}`, 'success');
+    return true;
+  }
+
   async function isiLokasiKPM(namaSekolah) {
     const input = document.querySelector('input[placeholder*="Cari nama KPM"]');
     if (!input) return false;
@@ -2657,6 +2743,8 @@
 
     try {
       tampilkanToast(`Mengisi penugasan: <b>${escapeHtml(data.sekolah)}</b>...`, 'info', 2500);
+      await pilihWorkOrderPalingAtas();
+      await smartWait(350, 600);
       await isiLokasiKPM(data.sekolah);
       await smartWait(450, 750);
       await isiRitase(data.ritase);
@@ -2949,49 +3037,48 @@
     el.click();
   }
 
+  async function setSpinnerValue(labelKolom, target, maxIterasi = 40) {
+    const kolom = cariKolomSpinner(labelKolom);
+    if (!kolom) return false;
 
-async function setSpinnerValue(labelKolom, target, maxIterasi = 40) {
-  const kolom = cariKolomSpinner(labelKolom);
-  if (!kolom) return false;
+    const tombolAtas = cariTombolPanah(kolom, 'up');
+    const tombolBawah = cariTombolPanah(kolom, 'down');
 
-  const tombolAtas = cariTombolPanah(kolom, 'up');
-  const tombolBawah = cariTombolPanah(kolom, 'down');
-
-  let nilaiSekarang = await tungguNilaiStabil(kolom);
-  if (nilaiSekarang === null) return false;
-  if (nilaiSekarang === target) return true;
-
-  if (scrollKeNilai(kolom, target)) {
-    nilaiSekarang = await tungguNilaiStabil(kolom);
+    let nilaiSekarang = await tungguNilaiStabil(kolom);
+    if (nilaiSekarang === null) return false;
     if (nilaiSekarang === target) return true;
-  }
 
-  const divTarget = cariDivNilaiExact(kolom, target);
-  if (divTarget) {
-    await klikElemenPrecise(divTarget);
-    const hasilKlik = await tungguSpinnerSelesai(kolom, nilaiSekarang);
+    if (scrollKeNilai(kolom, target)) {
+      nilaiSekarang = await tungguNilaiStabil(kolom);
+      if (nilaiSekarang === target) return true;
+    }
 
-    if (hasilKlik === target) return true;
-    if (hasilKlik !== null) nilaiSekarang = hasilKlik;
-  }
+    const divTarget = cariDivNilaiExact(kolom, target);
+    if (divTarget) {
+      await klikElemenPrecise(divTarget);
+      const hasilKlik = await tungguSpinnerSelesai(kolom, nilaiSekarang);
 
-  const putaran = labelKolom === 'Jam' ? 24 : 60;
-  const langkahNaik = (target - nilaiSekarang + putaran) % putaran;
-  const langkahTurun = (nilaiSekarang - target + putaran) % putaran;
+      if (hasilKlik === target) return true;
+      if (hasilKlik !== null) nilaiSekarang = hasilKlik;
+    }
 
-  const jumlahKlik = Math.min(langkahNaik, langkahTurun);
+    const putaran = labelKolom === 'Jam' ? 24 : 60;
+    const langkahNaik = (target - nilaiSekarang + putaran) % putaran;
+    const langkahTurun = (nilaiSekarang - target + putaran) % putaran;
+
+    const jumlahKlik = Math.min(langkahNaik, langkahTurun);
 
     const tombol = langkahNaik <= langkahTurun ? tombolBawah : tombolAtas;
-  if (!tombol || jumlahKlik > maxIterasi) return false;
+    if (!tombol || jumlahKlik > maxIterasi) return false;
 
-  for (let i = 0; i < jumlahKlik; i++) {
-    tombol.click();
-    await wait(getRandomDelay(35, 75));
+    for (let i = 0; i < jumlahKlik; i++) {
+      tombol.click();
+      await wait(getRandomDelay(35, 75));
+    }
+    await wait(60);
+    nilaiSekarang = bacaNilaiAktif(kolom);
+    return nilaiSekarang === target;
   }
-  await wait(60);
-  nilaiSekarang = bacaNilaiAktif(kolom);
-  return nilaiSekarang === target;
-}
 
   async function bacaKolomStabil(label) {
     const kolom = cariKolomSpinner(label);
@@ -3052,66 +3139,65 @@ async function setSpinnerValue(labelKolom, target, maxIterasi = 40) {
     return semuaKandidat.length === 1 ? semuaKandidat : [];
   }
 
+  async function kunciWaktuViaInput(jamMenitStr, namaField = 'Waktu Keberangkatan') {
+    const kandidat = cariInputWaktu(namaField);
+    if (kandidat.length === 0) return false;
 
-async function kunciWaktuViaInput(jamMenitStr, namaField = 'Waktu Keberangkatan') {
-  const kandidat = cariInputWaktu(namaField);
-  if (kandidat.length === 0) return false;
+    const sekarang = new Date();
 
-  const sekarang = new Date();
+    const tanggalISO = [
+      sekarang.getFullYear(),
+      String(sekarang.getMonth() + 1).padStart(2, '0'),
+      String(sekarang.getDate()).padStart(2, '0')
+    ].join('-');
 
-  const tanggalISO = [
-    sekarang.getFullYear(),
-    String(sekarang.getMonth() + 1).padStart(2, '0'),
-    String(sekarang.getDate()).padStart(2, '0')
-  ].join('-');
+    const tanggalTampilan = [
+      String(sekarang.getDate()).padStart(2, '0'),
+      String(sekarang.getMonth() + 1).padStart(2, '0'),
+      sekarang.getFullYear()
+    ].join('/');
 
-  const tanggalTampilan = [
-    String(sekarang.getDate()).padStart(2, '0'),
-    String(sekarang.getMonth() + 1).padStart(2, '0'),
-    sekarang.getFullYear()
-  ].join('/');
+    for (const inp of kandidat) {
+      const tipe = (inp.type || '').toLowerCase();
 
-  for (const inp of kandidat) {
-    const tipe = (inp.type || '').toLowerCase();
+      // Input time hanya menyimpan jam, bukan tanggal.
+      // Jangan menganggap tanggal sudah berhasil diatur.
+      if (tipe === 'time') continue;
 
-    // Input time hanya menyimpan jam, bukan tanggal.
-    // Jangan menganggap tanggal sudah berhasil diatur.
-    if (tipe === 'time') continue;
+      let nilaiBaru;
 
-    let nilaiBaru;
+      if (tipe === 'datetime-local') {
+        nilaiBaru = `${tanggalISO}T${jamMenitStr}`;
+      } else {
+        nilaiBaru = `${tanggalTampilan}, ${jamMenitStr.replace(':', '.')}`;
+      }
 
-    if (tipe === 'datetime-local') {
-      nilaiBaru = `${tanggalISO}T${jamMenitStr}`;
-    } else {
-      nilaiBaru = `${tanggalTampilan}, ${jamMenitStr.replace(':', '.')}`;
+      setNativeValue(inp, nilaiBaru);
+      inp.dispatchEvent(new Event('input', { bubbles: true }));
+      inp.dispatchEvent(new Event('change', { bubbles: true }));
+      inp.dispatchEvent(new Event('blur', { bubbles: true }));
+
+      await wait(350);
+
+      const nilaiAktual = String(inp.value || '');
+      const trigger = cariTriggerWaktuKeberangkatan(namaField);
+      const teksTrigger = trigger?.textContent || '';
+
+      const jamCocok =
+        nilaiAktual.includes(jamMenitStr) ||
+        teksTrigger.includes(jamMenitStr) ||
+        teksTrigger.includes(jamMenitStr.replace(':', '.'));
+
+      const tanggalCocok =
+        nilaiAktual.includes(tanggalISO) ||
+        nilaiAktual.includes(tanggalTampilan) ||
+        teksTrigger.includes(tanggalTampilan);
+
+      if (jamCocok && tanggalCocok) return true;
     }
 
-    setNativeValue(inp, nilaiBaru);
-    inp.dispatchEvent(new Event('input', { bubbles: true }));
-    inp.dispatchEvent(new Event('change', { bubbles: true }));
-    inp.dispatchEvent(new Event('blur', { bubbles: true }));
-
-    await wait(350);
-
-    const nilaiAktual = String(inp.value || '');
-    const trigger = cariTriggerWaktuKeberangkatan(namaField);
-    const teksTrigger = trigger?.textContent || '';
-
-    const jamCocok =
-      nilaiAktual.includes(jamMenitStr) ||
-      teksTrigger.includes(jamMenitStr) ||
-      teksTrigger.includes(jamMenitStr.replace(':', '.'));
-
-    const tanggalCocok =
-      nilaiAktual.includes(tanggalISO) ||
-      nilaiAktual.includes(tanggalTampilan) ||
-      teksTrigger.includes(tanggalTampilan);
-
-    if (jamCocok && tanggalCocok) return true;
+    return false;
   }
-
-  return false;
-}
 
   async function pilihTanggalHariIni() {
     const now = new Date();
@@ -3187,66 +3273,66 @@ async function kunciWaktuViaInput(jamMenitStr, namaField = 'Waktu Keberangkatan'
     return true;
   }
 
-async function aturWaktuKeberangkatan(jamMenitStr, namaField = 'Waktu Keberangkatan') {
-  const jamNormal = terapkanRealTimeDanJitter(jamMenitStr);
-  if (!jamNormal) return false;
-  const [jamTarget, menitTarget] = jamNormal.split(':').map(Number);
+  async function aturWaktuKeberangkatan(jamMenitStr, namaField = 'Waktu Keberangkatan') {
+    const jamNormal = terapkanRealTimeDanJitter(jamMenitStr);
+    if (!jamNormal) return false;
+    const [jamTarget, menitTarget] = jamNormal.split(':').map(Number);
 
-  await tutupDialogWaktuJikaTerbuka();
+    await tutupDialogWaktuJikaTerbuka();
 
-  // Buka picker
-  let kolomJam = cariKolomSpinner('Jam');
-  if (!kolomJam) {
-    const trigger = cariTriggerWaktuKeberangkatan(namaField);
-    if (!trigger) return false;
-
-    trigger.focus?.();
-    trigger.click();
-    kolomJam = await tungguElemen(() => cariKolomSpinner('Jam'), 1200, 75);
+    // Buka picker
+    let kolomJam = cariKolomSpinner('Jam');
     if (!kolomJam) {
-      await klikElemenPrecise(trigger);
-      kolomJam = await tungguElemen(() => cariKolomSpinner('Jam'), 1900, 100);
-    }
-    if (!kolomJam) return false;
-  }
+      const trigger = cariTriggerWaktuKeberangkatan(namaField);
+      if (!trigger) return false;
 
-  // Pilih tanggal: sama seperti versi lama (tombol "Sekarang", dicari di seluruh halaman,
-  // hanya jika kolom belum berisi tanggal, dan TIDAK menggagalkan proses bila tidak ada)
-  const triggerAktif = cariTriggerWaktuKeberangkatan(namaField);
-  if (!teksBerisiTanggalWaktuSIPGN(triggerAktif?.textContent || '')) {
-    const tombolSekarang = [...document.querySelectorAll('button')].find((btn) =>
-      btn.offsetParent !== null && /^(sekarang|hari ini)$/i.test(btn.textContent.replace(/\s+/g, ' ').trim())
-    );
-    if (tombolSekarang) {
-      await klikElemenPrecise(tombolSekarang);
+      trigger.focus?.();
+      trigger.click();
+      kolomJam = await tungguElemen(() => cariKolomSpinner('Jam'), 1200, 75);
+      if (!kolomJam) {
+        await klikElemenPrecise(trigger);
+        kolomJam = await tungguElemen(() => cariKolomSpinner('Jam'), 1900, 100);
+      }
+      if (!kolomJam) return false;
+    }
+
+    // Pilih tanggal: tombol "Sekarang", dicari di seluruh halaman,
+    // hanya jika kolom belum berisi tanggal, dan TIDAK menggagalkan proses bila tidak ada
+    const triggerAktif = cariTriggerWaktuKeberangkatan(namaField);
+    if (!teksBerisiTanggalWaktuSIPGN(triggerAktif?.textContent || '')) {
+      const tombolSekarang = [...document.querySelectorAll('button')].find((btn) =>
+        btn.offsetParent !== null && /^(sekarang|hari ini)$/i.test(btn.textContent.replace(/\s+/g, ' ').trim())
+      );
+      if (tombolSekarang) {
+        await klikElemenPrecise(tombolSekarang);
+        await wait(400);
+      } else {
+        console.warn('[Autofill] Tombol "Sekarang" tidak ditemukan');
+      }
+    }
+
+    // Atur jam & menit (maks 3 percobaan)
+    for (let percobaan = 1; percobaan <= 3; percobaan++) {
+      await setSpinnerValue('Jam', jamTarget);
+      await smartWait(150, 300);
+      await setSpinnerValue('Menit', menitTarget);
+      await smartWait(150, 300);
+
+      const jamAkhir = await bacaKolomStabil('Jam');
+      const menitAkhir = await bacaKolomStabil('Menit');
+
+      if (jamAkhir === jamTarget && menitAkhir === menitTarget) {
+        const ok = await simpanPickerWaktu(jamNormal, namaField);
+        if (!ok) console.warn('[Autofill] simpanPickerWaktu gagal');
+        return ok;
+      }
       await wait(400);
-    } else {
-      console.warn('[Autofill] Tombol "Sekarang" tidak ditemukan');
     }
+
+    console.warn('[Autofill] Spinner gagal mencapai', jamNormal);
+    await tutupDialogWaktuJikaTerbuka();
+    return false;
   }
-
-  // Atur jam & menit (maks 3 percobaan, seperti versi lama)
-  for (let percobaan = 1; percobaan <= 3; percobaan++) {
-    await setSpinnerValue('Jam', jamTarget);
-    await smartWait(150, 300);
-    await setSpinnerValue('Menit', menitTarget);
-    await smartWait(150, 300);
-
-    const jamAkhir = await bacaKolomStabil('Jam');
-    const menitAkhir = await bacaKolomStabil('Menit');
-
-    if (jamAkhir === jamTarget && menitAkhir === menitTarget) {
-      const ok = await simpanPickerWaktu(jamNormal, namaField);
-      if (!ok) console.warn('[Autofill] simpanPickerWaktu gagal');
-      return ok;
-    }
-    await wait(400);
-  }
-
-  console.warn('[Autofill] Spinner gagal mencapai', jamNormal);
-  await tutupDialogWaktuJikaTerbuka();
-  return false;
-}
 
   function cariInputJumlahOmpreng(mode = 'pengambilan') {
     const labelTargetText = mode === 'pencucian' ? 'Jumlah Ompreng Dicuci' : 'Jumlah Ompreng';
@@ -3384,8 +3470,8 @@ async function aturWaktuKeberangkatan(jamMenitStr, namaField = 'Waktu Keberangka
   }
 
   /* ============================================================================
-- 9. ULTRA-PREMIUM BENTO WORKSPACE RENDERER (v2.0.2)
-- ============================================================================ */
+   * 9. ULTRA-PREMIUM BENTO WORKSPACE RENDERER (v2.0.2)
+   * ============================================================================ */
   function buatSVGProgressRing(persen, ukuran = 48, stroke = 4.5) {
     const r = (ukuran - stroke) / 2;
     const keliling = 2 * Math.PI * r;
@@ -3409,6 +3495,13 @@ async function aturWaktuKeberangkatan(jamMenitStr, namaField = 'Waktu Keberangka
   function renderPanel() {
     try {
       pasangDesignSystemCSS();
+      // [FIX] Simpan posisi scroll panel lama agar tidak melompat ke atas saat dirender ulang
+      const panelLama = document.getElementById('sipgn-autofill-panel');
+      const scrollLama = panelLama ? panelLama.scrollTop : 0;
+      setTimeout(() => {
+        const p = document.getElementById('sipgn-autofill-panel');
+        if (p && scrollLama) p.scrollTop = scrollLama;
+      }, 0);
       ['sipgn-autofill-panel', 'sipgn-fab-trigger', 'sipgn-mobile-backdrop'].forEach((id) => {
         const el = document.getElementById(id);
         if (el) el.remove();
@@ -3438,6 +3531,7 @@ async function aturWaktuKeberangkatan(jamMenitStr, namaField = 'Waktu Keberangka
       if (mobileMode) {
         const backdrop = document.createElement('div');
         backdrop.id = 'sipgn-mobile-backdrop';
+        backdrop.className = 'ms-ui-root';
         backdrop.style.cssText = 'position:fixed; inset:0; background:rgba(3,6,13,0.78); backdrop-filter:blur(10px); z-index:2147483646;';
         backdrop.onclick = () => { mobilePanelOpen = false; renderPanel(); };
         bantuAppendKeBody(backdrop);
@@ -3829,7 +3923,7 @@ async function aturWaktuKeberangkatan(jamMenitStr, namaField = 'Waktu Keberangka
         b2.className = 'ms-btn ms-btn-emerald';
         b2.style.cssText = 'flex:1; padding:10px;';
         b2.disabled = !kpmAktif || isAutomating;
-        b2.textContent = '🏁 Set Tiba';
+        b2.textContent = '📦 Set Ompreng Tiba';
         b2.onclick = async () => {
           if (isAutomating) return;
           isAutomating = true;
@@ -3868,7 +3962,7 @@ async function aturWaktuKeberangkatan(jamMenitStr, namaField = 'Waktu Keberangka
       btn.className = 'ms-btn ms-btn-emerald';
       btn.style.cssText = 'width:100%; padding:10px;';
       btn.disabled = !kpmAktif || isAutomating;
-      btn.textContent = '🔄 Set Ompreng Kembali SPPG';
+      btn.textContent = '🔄 Set Ompreng Kembali ke SPPG';
       btn.onclick = async () => {
         if (isAutomating) return;
         isAutomating = true;
@@ -4283,281 +4377,318 @@ async function aturWaktuKeberangkatan(jamMenitStr, namaField = 'Waktu Keberangka
     backupCard.querySelector('#ms-bk-file').onclick = () => fileInp.click();
     fileInp.onchange = () => { importBackupData(fileInp.files?.[0]); fileInp.value = ''; };
     backupCard.querySelector('#ms-bk-cloud').onclick = importCloudData;
-    backupCard.querySelector('#ms-check-update-btn').onclick = async (e) => {
+    backupCard.querySelector('#ms-check-update-btn').onclick = () => {
       if (availableUpdateRelease) {
         tampilkanModalDetailUpdate();
         return;
       }
-      const btn = e.currentTarget;
-      btn.disabled = true;
-      btn.textContent = '⏳ Mengecek...';
-      const rel = await cekUpdateAplikasiInApp();
-      btn.disabled = false;
-      btn.textContent = rel ? `⬆️ Update v${rel.version}` : '🔄 Cek Update';
-      if (rel) tampilkanModalDetailUpdate();
-      else tampilkanToast(`Anda sudah menggunakan versi terbaru (v${CURRENT_VERSION}).`, 'success');
+      tampilkanToast('Memeriksa pembaruan aplikasi...', 'info', 2000);
+      cekUpdateAplikasiInApp().then((rel) => {
+        if (!rel) tampilkanToast(`Versi saat ini (v${CURRENT_VERSION}) sudah paling baru.`, 'success');
+      });
     };
-    backupCard.querySelector('#ms-reset-pos-btn').onclick = () => {
-      resetPosisiPanel();
-      renderPanel();
-      tampilkanToast('Posisi panel dikembalikan ke default.', 'info');
-    };
+    backupCard.querySelector('#ms-reset-pos-btn').onclick = () => { resetPosisiPanel(); renderPanel(); tampilkanToast('Posisi panel direset ke kanan atas.', 'info'); };
     container.appendChild(backupCard);
 
     const btnLogout = document.createElement('button');
     btnLogout.className = 'ms-btn ms-btn-danger';
     btnLogout.style.cssText = 'width:100%; padding:9.5px;';
-    btnLogout.textContent = '🚪 Keluar Akun MindHUB';
+    btnLogout.textContent = '🚪 Keluar dari Akun MindHUB';
     btnLogout.onclick = () => {
-      tampilkanModalKonfirmasiModern('Keluar Akun', 'Akhiri sesi login MindHUB pada perangkat ini?', () => {
+      tampilkanModalKonfirmasiModern('Konfirmasi Logout', 'Keluar dari sesi akun MindHUB pada perangkat ini?', () => {
         hapusAuthSession();
-        cachedServerStatus = null;
-        isScriptInitialized = false;
-        const p = document.getElementById('sipgn-autofill-panel');
-        if (p) p.remove();
-        tampilkanModalLoginMindHUB(() => inialisasiSistem());
+        location.reload();
       });
     };
     container.appendChild(btnLogout);
   }
 
   /* ============================================================================
-- 10. KEYBOARD SHORTCUTS, AUTO-ADVANCE LISTENER, SPA OBSERVER & LIFECYCLE
-- ============================================================================ */
-  // Fitur 2: Detektor Klik Tombol Simpan SIPGN untuk Auto-Advance Queue
-  function pasangDetektorSimpanAutoAdvance() {
-    document.addEventListener('click', (e) => {
-      if (!dapatkanAutoAdvance()) return;
-      const btn = e.target.closest('button');
-      if (!btn || btn.closest('#sipgn-autofill-panel') || btn.closest('.ms-ui-root')) return;
-      const teks = btn.textContent.replace(/\s+/g, ' ').trim();
-      if (/^(simpan|submit|kirim|buat tugas|simpan penugasan)$/i.test(teks) || btn.type === 'submit') {
-        setTimeout(() => {
-          const berpindah = pilihKPMBelumBerikutnya(true);
-          if (berpindah) {
-            catatAktivitas('Auto-Advance Queue ke KPM berikutnya', 'info');
-          }
-        }, 900);
-      }
-    }, true);
-  }
+   * 10. VALIDASI LISENSI REAL-TIME SERVER & LIFECYCLE OBSERVER
+   * ============================================================================ */
+  function cekStatusLisensiServer(devId) {
+    return new Promise((resolve, reject) => {
+      const token = dapatkanAuthToken();
+      const userId = dapatkanUserIdAktif();
+      const authUser = dapatkanAuthUser();
+      const headers = { 'Cache-Control': 'no-cache, no-store' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  function pasangKeyboardShortcuts() {
-    window.addEventListener('keydown', (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        tampilkanCommandPalette();
-      } else if (e.key === 'Escape') {
-        const cmdModal = document.getElementById('sipgn-command-palette');
-        if (cmdModal) cmdModal.remove();
-        if (activeSubmitCountdownCancel) activeSubmitCountdownCancel();
-      }
-    });
-  }
+      const qs = new URLSearchParams({
+        action: 'check_status',
+        device_id: devId,
+        user_id: userId || '',
+        username: authUser?.username || '',
+        _t: String(Date.now())
+      }).toString();
 
-  function aktifkanPengubahKameraKeGaleri() {
-    const ubah = () => {
-      document.querySelectorAll('input[type="file"]').forEach((input) => {
-        if (input.hasAttribute('capture')) input.removeAttribute('capture');
-        const acc = input.getAttribute('accept');
-        if (!acc || acc.includes('camera')) input.setAttribute('accept', 'image/*');
+      GM_xmlhttpRequest({
+        method: 'GET',
+        url: `${getVercelApiUrl()}?${qs}`,
+        headers: headers,
+        onload: (res) => {
+          try { resolve(JSON.parse(res.responseText)); }
+          catch (e) { reject('Respon tidak valid'); }
+        },
+        onerror: () => reject('Gagal terhubung ke server lisensi')
       });
-    };
-    ubah();
-    const obs = new MutationObserver(ubah);
-    if (document.body || document.documentElement) {
-      obs.observe(document.body || document.documentElement, { childList: true, subtree: true });
-    }
-  }
-
-  function pasangDetektorNavigasiSPA() {
-    let lastPath = location.pathname;
-    const check = () => {
-      if (location.pathname !== lastPath) {
-        lastPath = location.pathname;
-        renderPanel();
-      }
-    };
-    const origPush = history.pushState;
-    const origReplace = history.replaceState;
-    history.pushState = function (...args) { origPush.apply(this, args); check(); };
-    history.replaceState = function (...args) { origReplace.apply(this, args); check(); };
-    window.addEventListener('popstate', check);
-    setInterval(check, 900);
-  }
-
-  function pasangDetektorPerubahanForm() {
-    const labels = [
-      'Waktu Keberangkatan', 'Waktu Diterima di Tujuan', 'Jumlah Ompreng',
-      'Waktu Dijadwalkan Pengambilan', 'Waktu Ompreng Kembali di SPPG',
-      'Jumlah Ompreng Dicuci', 'Waktu Mulai Cuci'
-    ];
-    const sig = () => [...document.querySelectorAll('label')]
-      .filter((el) => !el.closest('#sipgn-autofill-panel') && el.offsetParent !== null)
-      .map((el) => el.textContent.replace(/\s+/g, ' ').replace('*', '').trim())
-      .filter((t) => labels.includes(t))
-      .sort()
-      .join('|');
-
-    let prev = sig();
-    let timer = null;
-    const obs = new MutationObserver(() => {
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => {
-        const curr = sig();
-        if (curr !== prev) { prev = curr; renderPanel(); }
-      }, 180);
     });
-    if (document.body) obs.observe(document.body, { childList: true, subtree: true });
   }
 
   function mulaiJalankanSkrip() {
-    if (!isScriptInitialized) {
-      isScriptInitialized = true;
-      aktifkanPengubahKameraKeGaleri();
-      pasangKeyboardShortcuts();
-      pasangDetektorSimpanAutoAdvance();
-      pasangDetektorNavigasiSPA();
-      pasangDetektorPerubahanForm();
-    }
-    renderPanel();
-    cekUpdateAplikasiInApp();
-  }
+    if (isScriptInitialized) { renderPanel(); return; }
+    isScriptInitialized = true;
 
-  function ambilStatusLisensiServer() {
     const devId = dapatkanDeviceID();
-    const token = dapatkanAuthToken();
-    const userId = dapatkanUserIdAktif();
-    const sig = _0xVault.sign(`${devId}|${userId || ''}`);
-    const headers = {
-      'Cache-Control': 'no-cache, no-store',
-      'X-MS-Integrity': sig
-    };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-
-    return new Promise((resolve) => {
-      GM_xmlhttpRequest({
-        method: 'GET',
-        url: `${getVercelApiUrl()}?action=check_license&device_id=${encodeURIComponent(devId)}${userId ? `&user_id=${encodeURIComponent(userId)}` : ''}&_t=${Date.now()}`,
-        headers,
-        onload: (res) => {
-          try {
-            if (res.status === 401 || res.status === 403) {
-              hapusAuthSession();
-              return resolve({ status: 'unauthenticated', valid: false });
-            }
-            const data = JSON.parse(res.responseText);
-            if (data && (data.unauthenticated || data.code === 'UNAUTHENTICATED')) {
-              hapusAuthSession();
-              return resolve({ status: 'unauthenticated', valid: false });
-            }
-            cachedServerStatus = data;
-            const serverUserId = data.user_id || data.account_id || data.owner_id || null;
-            if (data.is_linked === true || data.linked === true || (serverUserId && (!userId || String(serverUserId) === String(userId)))) {
-              const idSimpan = serverUserId || userId;
-              if (idSimpan) simpanStatusTautanLokal(idSimpan, true);
-              cachedServerStatus.is_linked = true;
-              cachedServerStatus.linked = true;
-            }
-            if (data?.sppg_name) simpanNamaSPPG(data.sppg_name);
-            if (data?.exp_date) currentDatabaseExpDate = data.exp_date;
-            resolve({
-              status: data.valid ? 'active' : (data.status || 'expired'),
-              valid: !!data.valid,
-              msg: data.msg || data.message || ''
-            });
-          } catch (e) {
-            resolve({ status: 'error', valid: false });
-          }
-        },
-        onerror: () => resolve({ status: 'error', valid: false })
-      });
-    });
-  }
-
-  function tanganiStatusLisensi(res) {
-    if (res.status === 'unauthenticated') {
-      tampilkanModalLoginMindHUB(() => inialisasiSistem());
-    } else if (res.valid || res.status === 'active') {
-      if (!dapatkanNamaSPPG()) tampilkanModalWelcomeSPPG(() => mulaiJalankanSkrip());
-      else mulaiJalankanSkrip();
-    } else if (res.status === 'hold') {
-      tampilkanModalStatusSitus('Akses Lisensi Ditangguhkan', res.msg || 'Perangkat Anda sedang ditangguhkan oleh administrator.', 'hold');
-    } else if (res.status === 'revoked') {
-      tampilkanModalStatusSitus('Akses Lisensi Dicabut', res.msg || 'Akses perangkat telah dicabut secara permanen.', 'revoked');
-    } else if (res.status === 'unregistered') {
-      const overlay = buatOverlayModal('sipgn-trial-modal');
-      overlay.innerHTML = `
-        <div class="ms-aurora-shell ms-modal-box" style="padding:26px; border-radius:24px; width:380px; max-width:92vw; text-align:center;">
-          <div style="font-size:34px; margin-bottom:10px;">🎁</div>
-          <h3 style="margin:0 0 6px; font-size:18px; font-weight:800;">Aktivasi Free Trial 3 Hari</h3>
-          <p style="font-size:12px; color:var(--ms-text-muted); margin:0 0 18px;">Aktifkan masa percobaan gratis untuk mulai menggunakan SIPGN Autofill.</p>
-          <button id="ms-btn-claim-trial" class="ms-btn ms-btn-aurora" style="width:100%; padding:12px; font-size:13px;">🚀 Aktifkan Trial Sekarang</button>
-        </div>
-      `;
-      bantuAppendKeBody(overlay);
-      document.getElementById('ms-btn-claim-trial').onclick = async () => {
-        const btn = document.getElementById('ms-btn-claim-trial');
-        btn.disabled = true; btn.textContent = '⏳ Mengaktifkan...';
-        try {
-          const tRes = await klaimFreeTrialVercel();
-          if (tRes.success) {
-            overlay.remove();
-            eksekusiSuksesPembayaran(3, dapatkanDeviceID(), tRes.exp_date);
-          } else {
-            tampilkanToast(tRes.error || 'Gagal mengaktifkan trial.', 'error');
-            btn.disabled = false; btn.textContent = '🚀 Aktifkan Trial Sekarang';
-          }
-        } catch (e) {
-          tampilkanToast('Gagal menghubungi server.', 'error');
-          btn.disabled = false; btn.textContent = '🚀 Aktifkan Trial Sekarang';
-        }
-      };
+    if (!dapatkanNamaSPPG()) {
+      tampilkanModalWelcomeSPPG(() => { renderPanel(); pantauPerubahanHalaman(); });
     } else {
-      tampilkanModalStatusSitus('Masa Aktif Lisensi Berakhir', res.msg || 'Masa aktif lisensi Anda telah habis. Masukkan voucher perpanjangan di bawah ini.', 'expired');
-    }
-  }
-
-  async function inialisasiSistem() {
-    const token = dapatkanAuthToken();
-    if (!token || !cekValiditasJWT(token)) {
-      hapusAuthSession();
-      tampilkanModalLoginMindHUB(() => inialisasiSistem());
-      return;
+      renderPanel();
+      pantauPerubahanHalaman();
     }
 
-    const loader = tampilkanLoadingScreen();
-    loader.updateProgress(25, 'Memeriksa integritas sesi MindHUB...');
-    await wait(220);
-    loader.updateProgress(60, 'Memverifikasi lisensi perangkat terenkripsi...');
-
-    const res = await ambilStatusLisensiServer();
-    if (res.status === 'error') {
-      loader.tampilkanGagal('Gagal memverifikasi lisensi ke server.');
-      return;
-    }
-
-    loader.updateProgress(100, 'Verifikasi berhasil!');
-    await wait(260);
-    const splashEl = document.getElementById('sipgn-splash-loading');
-    if (splashEl) splashEl.remove();
-
-    tanganiStatusLisensi(res);
+    cekUpdateAplikasiInApp();
 
     if (intervalMonitorLisensi) clearInterval(intervalMonitorLisensi);
     intervalMonitorLisensi = setInterval(async () => {
-      const cek = await ambilStatusLisensiServer();
-      if (!cek.valid && cek.status !== 'error') {
-        clearInterval(intervalMonitorLisensi);
-        const panel = document.getElementById('sipgn-autofill-panel');
-        if (panel) panel.remove();
-        tanganiStatusLisensi(cek);
-      }
+      try {
+        const res = await cekStatusLisensiServer(devId);
+        if (!res) return;
+        cachedServerStatus = res;
+        if (res.is_revoked || res.status === 'revoked' || res.status === 'banned') {
+          clearInterval(intervalMonitorLisensi);
+          tampilkanModalStatusSitus('Akses Lisensi Dicabut', res.reason || 'Akses dicabut oleh administrator.', 'revoked');
+        } else if (res.is_hold || res.status === 'hold' || res.status === 'suspended') {
+          tampilkanModalStatusSitus('Lisensi Ditangguhkan (HOLD)', res.reason || 'Lisensi ditangguhkan sementara.', 'hold');
+        } else if (res.is_expired || res.status === 'expired') {
+          tampilkanModalStatusSitus('Masa Aktif Berakhir', 'Masa aktif lisensi perangkat ini telah berakhir.', 'expired');
+        }
+      } catch (e) {}
     }, 30000);
   }
 
+  /* ----------------------------------------------------------------------------
+   * [FIX UTAMA] Pemantau halaman SPA tanpa loop render tak berujung.
+   *
+   * Masalah sebelumnya: renderPanel() menghapus & membuat ulang panel -> memicu
+   * MutationObserver -> dianggap "perubahan luar" (target mutasi = body, bukan
+   * panel) -> jadwalkanRender() -> renderPanel() lagi -> loop tanpa henti.
+   *
+   * Solusi: abaikan semua mutasi yang hanya menambah/menghapus/mengubah elemen
+   * milik skrip ini, serta beri throttle minimum antar-render.
+   * -------------------------------------------------------------------------- */
+  const IDS_MILIK_SKRIP = new Set([
+    'sipgn-autofill-panel', 'sipgn-fab-trigger', 'sipgn-mobile-backdrop',
+    'ms-toast-container', 'ms-autosubmit-banner', 'ms-design-system-style', 'ms-font-jakarta'
+  ]);
+
+  function milikSkrip(node) {
+    if (!node) return false;
+    // Node teks/komentar: nilai berdasarkan induknya
+    if (node.nodeType !== 1) return milikSkrip(node.parentElement);
+    if (node.id && IDS_MILIK_SKRIP.has(node.id)) return true;
+    if (node.id && /^(sipgn-|ms-)/.test(node.id)) return true;
+    if (node.classList && node.classList.contains('ms-ui-root')) return true;
+    return !!(node.closest && node.closest('.ms-ui-root, #sipgn-autofill-panel'));
+  }
+
+  function pantauPerubahanHalaman() {
+    if (pemantauHalamanAktif) return; // cegah observer ganda
+    pemantauHalamanAktif = true;
+
+    let urlTerakhir = location.href;
+    let timerRender = null;
+    let renderTerakhir = 0;
+    const JEDA_MINIMUM_RENDER = 600; // ms
+
+    // [FIX] "Tanda halaman": hanya render ulang panel jika tampilan halaman benar-benar
+    // berganti (URL / form yang aktif), bukan setiap kali DOM situs berubah kecil
+    // (mis. picker waktu dibuka, dropdown, animasi).
+    const dapatkanTandaHalaman = () => {
+      const adaLabel = (kata) => [...document.querySelectorAll('label')].some((el) =>
+        !el.closest('#sipgn-autofill-panel') && !el.closest('.ms-ui-root') &&
+        el.offsetParent !== null && el.textContent.includes(kata));
+      return [
+        location.pathname,
+        adaLabel('Waktu Keberangkatan'),
+        adaLabel('Waktu Diterima di Tujuan'),
+        adaLabel('Waktu Ompreng Kembali di SPPG'),
+        adaLabel('Jumlah Ompreng'),
+        adaLabel('Dicuci'),
+        adaLabel('Waktu Mulai Cuci'),
+        adaLabel('Waktu Dijadwalkan Pengambilan')
+      ].join('|');
+    };
+    let tandaHalamanTerakhir = dapatkanTandaHalaman();
+
+    const jalankanRenderTerjadwal = () => {
+      timerRender = null;
+
+      // Jangan menyentuh panel selagi otomatisasi berjalan (tombol sedang "⏳...")
+      if (isAutomating) return;
+
+      // Tidak ada perubahan tampilan halaman → tidak perlu render ulang
+      const tandaBaru = dapatkanTandaHalaman();
+      if (tandaBaru === tandaHalamanTerakhir) return;
+      tandaHalamanTerakhir = tandaBaru;
+
+      renderTerakhir = Date.now();
+
+      if (
+        dapatkanAutoAdvance() &&
+        !isAutomating &&
+        indexTerpilih >= 0 &&
+        dataPenugasan[indexTerpilih] &&
+        dataPenugasan[indexTerpilih].statusProses !== 'belum'
+      ) {
+        const isFormSubmited = !cekHalamanTugasBaru() &&
+          ![...document.querySelectorAll('label')].some((el) =>
+            !el.closest('#sipgn-autofill-panel') &&
+            el.offsetParent !== null &&
+            /Waktu Keberangkatan|Waktu Diterima di Tujuan|Waktu Ompreng Kembali di SPPG|Jumlah Ompreng|Jumlah Ompreng Dicuci/i.test(el.textContent)
+          );
+        if (isFormSubmited) {
+          pilihKPMBelumBerikutnya(false); // sudah memanggil renderPanel() sendiri
+          return;
+        }
+      }
+      renderPanel();
+    };
+
+    const jadwalkanRender = () => {
+      if (timerRender) return; // sudah ada render terjadwal, jangan numpuk
+      const sisaJeda = Math.max(0, JEDA_MINIMUM_RENDER - (Date.now() - renderTerakhir));
+      timerRender = setTimeout(jalankanRenderTerjadwal, Math.max(250, sisaJeda));
+    };
+
+    const observer = new MutationObserver((mutations) => {
+      const adaPerubahanLuar = mutations.some((m) => {
+        // 1) Mutasi yang terjadi di dalam elemen milik skrip → abaikan
+        if (milikSkrip(m.target)) return false;
+
+        // 2) Mutasi di induk (mis. body) yang hanya menambah/menghapus elemen skrip → abaikan
+        const nodes = [...m.addedNodes, ...m.removedNodes];
+        if (nodes.length > 0 && nodes.every(milikSkrip)) return false;
+
+        return true;
+      });
+      if (!adaPerubahanLuar) return;
+      if (location.href !== urlTerakhir) urlTerakhir = location.href;
+      jadwalkanRender();
+    });
+
+    const targetObservasi = document.body || document.documentElement;
+    if (targetObservasi) {
+      observer.observe(targetObservasi, { childList: true, subtree: true });
+    }
+    window.addEventListener('popstate', jadwalkanRender);
+    window.addEventListener('hashchange', jadwalkanRender);
+    // Resize mengubah mode mobile/desktop, jadi harus selalu merender ulang
+    window.addEventListener('resize', () => {
+      tandaHalamanTerakhir = '';
+      jadwalkanRender();
+    });
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey || e.altKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      if (isScriptInitialized) tampilkanCommandPalette();
+    } else if (e.key === 'Escape') {
+      const cmd = document.getElementById('sipgn-command-palette');
+      if (cmd) cmd.remove();
+    }
+  });
+
+  async function inialisasiSistem() {
+    // [FIX] Cegah inisialisasi ganda yang berjalan bersamaan
+    if (sedangInisialisasi) return;
+    sedangInisialisasi = true;
+
+    try {
+      const devId = dapatkanDeviceID();
+      const ui = tampilkanLoadingScreen(null);
+
+      try {
+        ui.updateProgress(25, 'Memeriksa sesi autentikasi MindHUB...');
+        await wait(250);
+
+        const token = dapatkanAuthToken();
+        if (!token || !cekValiditasJWT(token)) {
+          const loadingEl = document.getElementById('sipgn-splash-loading');
+          if (loadingEl) loadingEl.remove();
+          sedangInisialisasi = false; // lepas guard agar callback login bisa memulai ulang
+          tampilkanModalLoginMindHUB(() => inialisasiSistem());
+          return;
+        }
+
+        ui.updateProgress(55, 'Memverifikasi status lisensi & perangkat...');
+        const statusRes = await cekStatusLisensiServer(devId);
+        cachedServerStatus = statusRes;
+
+        if (!statusRes || typeof statusRes !== 'object') {
+          ui.tampilkanGagal('Respon server lisensi tidak valid.');
+          return;
+        }
+        if (statusRes.user_id || statusRes.account_id) {
+          const uid = statusRes.user_id || statusRes.account_id;
+          simpanAuthSession(token, { id: uid, user_id: uid });
+        }
+        if (statusRes.is_linked || statusRes.linked) {
+          const uid = statusRes.user_id || statusRes.account_id || dapatkanUserIdAktif();
+          if (uid) simpanStatusTautanLokal(uid, true);
+        }
+
+        if (statusRes.is_revoked || statusRes.status === 'revoked' || statusRes.status === 'banned') {
+          const loadingEl = document.getElementById('sipgn-splash-loading');
+          if (loadingEl) loadingEl.remove();
+          tampilkanModalStatusSitus('Akses Lisensi Dicabut', statusRes.reason || 'Lisensi perangkat ini telah dicabut oleh administrator.', 'revoked');
+          return;
+        }
+        if (statusRes.is_hold || statusRes.status === 'hold' || statusRes.status === 'suspended') {
+          const loadingEl = document.getElementById('sipgn-splash-loading');
+          if (loadingEl) loadingEl.remove();
+          tampilkanModalStatusSitus('Lisensi Ditangguhkan (HOLD)', statusRes.reason || 'Lisensi perangkat ini sedang ditangguhkan sementara.', 'hold');
+          return;
+        }
+
+        if (statusRes.exp_date) {
+          currentDatabaseExpDate = statusRes.exp_date;
+          secureSetGM(LICENSE_STORAGE_KEY, buatLicenseKey(statusRes.exp_date, devId, 'ServerVerified'));
+        }
+
+        const sisaHari = hitungSisaHari(currentDatabaseExpDate);
+        const isExpired = Boolean(statusRes.is_expired || statusRes.status === 'expired' || (sisaHari !== null && sisaHari < 0));
+
+        if (isExpired) {
+          const loadingEl = document.getElementById('sipgn-splash-loading');
+          if (loadingEl) loadingEl.remove();
+          tampilkanModalStatusSitus('Masa Aktif Berakhir', 'Masa aktif lisensi perangkat ini telah berakhir. Klaim voucher untuk memperpanjang.', 'expired');
+          return;
+        }
+
+        ui.updateProgress(90, 'Menyiapkan workspace...');
+        await wait(250);
+        ui.siapLanjut();
+
+        const btnLanjut = document.getElementById('sipgn-btn-splash-lanjutkan');
+        if (btnLanjut) {
+          btnLanjut.onclick = () => {
+            const loadingEl = document.getElementById('sipgn-splash-loading');
+            if (loadingEl) loadingEl.remove();
+            mulaiJalankanSkrip();
+          };
+        }
+      } catch (err) {
+        ui.tampilkanGagal(typeof err === 'string' ? err : 'Gagal terhubung ke server lisensi.');
+      }
+    } finally {
+      sedangInisialisasi = false;
+    }
+  }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', inialisasiSistem);
+    document.addEventListener('DOMContentLoaded', inialisasiSistem, { once: true });
   } else {
     inialisasiSistem();
   }

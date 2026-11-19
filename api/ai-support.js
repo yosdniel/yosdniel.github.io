@@ -1,5 +1,4 @@
 import crypto from 'crypto';
-import https from 'https';
 
 function setCorsHeaders(req, res) {
   const origin = req.headers.origin || '*';
@@ -76,37 +75,6 @@ function verifyMindHUBJwt(token, secret) {
   } catch (err) {
     return { valid: false, error: `Gagal mem-parsing token JWT: ${err.message}` };
   }
-}
-
-function postJsonHttps(urlString, payloadObj) {
-  return new Promise((resolve, reject) => {
-    const urlObj = new URL(urlString);
-    const bodyData = JSON.stringify(payloadObj);
-
-    const req = https.request(
-      {
-        hostname: urlObj.hostname,
-        path: urlObj.pathname + urlObj.search,
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(bodyData),
-        },
-      },
-      (res) => {
-        let raw = '';
-        res.on('data', (chunk) => (raw += chunk));
-        res.on('end', () => resolve({ status: res.statusCode, text: raw }));
-      }
-    );
-
-    req.on('error', (err) => reject(err));
-    req.setTimeout(18000, () => {
-      req.destroy(new Error('Request ke Gemini API timeout (18s)'));
-    });
-    req.write(bodyData);
-    req.end();
-  });
 }
 
 const rateLimitMap = new Map();
@@ -282,25 +250,39 @@ C. **Fitur Ekstra & Shortcut:**
     const modelName = (process.env.GEMINI_MODEL || 'gemini-2.5-flash').trim();
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelName)}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY.trim())}`;
 
-    const geminiRes = await postJsonHttps(geminiUrl, {
-      systemInstruction: {
-        parts: [{ text: systemInstruction }],
-      },
-      contents: [
-        {
-          role: 'user',
-          parts: [{ text: prompt.trim().slice(0, 2000) }],
-        },
-      ],
-      generationConfig: {
-        temperature: 0.55,
-        maxOutputTokens: 800,
-      },
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 16000);
 
+    let geminiRes;
+    try {
+      geminiRes = await fetch(geminiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [{ text: systemInstruction }],
+          },
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: prompt.trim().slice(0, 2000) }],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.55,
+            maxOutputTokens: 800,
+          },
+        }),
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
+    const rawText = await geminiRes.text();
     let geminiData = {};
     try {
-      geminiData = JSON.parse(geminiRes.text);
+      geminiData = JSON.parse(rawText);
     } catch (parseErr) {
       return res.status(502).json({
         success: false,
@@ -308,7 +290,7 @@ C. **Fitur Ekstra & Shortcut:**
       });
     }
 
-    if (geminiRes.status < 200 || geminiRes.status >= 300) {
+    if (!geminiRes.ok) {
       return res.status(502).json({
         success: false,
         error: geminiData?.error?.message || `Gemini API Error (HTTP ${geminiRes.status})`,
@@ -326,9 +308,10 @@ C. **Fitur Ekstra & Shortcut:**
       reply: replyText,
     });
   } catch (error) {
-    return res.status(500).json({
+    const isAbort = error && error.name === 'AbortError';
+    return res.status(isAbort ? 504 : 500).json({
       success: false,
-      error: `Server Exception: ${error.message}`,
+      error: isAbort ? 'Koneksi ke Gemini API timeout (16s).' : `Server Exception: ${error.message}`,
     });
   }
 }

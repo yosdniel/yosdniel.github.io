@@ -325,7 +325,7 @@ C. **Fitur Unggulan Tambahan, Validasi & Pintasan Kerja:**
         },
       ],
       generationConfig: {
-        temperature: 0.55,
+        temperature: 0.5,
         maxOutputTokens: 320,
       },
     };

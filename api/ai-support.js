@@ -1,5 +1,5 @@
-const crypto = require('crypto');
-const https = require('https');
+import crypto from 'crypto';
+import https from 'https';
 
 function setCorsHeaders(req, res) {
   const origin = req.headers.origin || '*';
@@ -128,7 +128,7 @@ function checkRateLimit(deviceId, maxReq = 25, windowMs = 60000) {
   return true;
 }
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   try {
     setCorsHeaders(req, res);
 
@@ -331,4 +331,4 @@ C. **Fitur Ekstra & Shortcut:**
       error: `Server Exception: ${error.message}`,
     });
   }
-};
+}

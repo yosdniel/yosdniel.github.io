@@ -97,12 +97,13 @@ function checkRateLimit(deviceId, maxReq = 25, windowMs = 60000) {
 }
 
 function buildFallbackModels(envModel) {
+  const rawEnv = typeof envModel === 'string' ? envModel.trim().replace(/^models\//i, '') : '';
   const candidates = [
-    typeof envModel === 'string' ? envModel.trim() : '',
-    'gemini-2.5-flash',
-    'gemini-2.5-flash-lite',
+    'gemini-3.8-flash',
     'gemini-3.5-flash-lite',
     'gemini-3.1-flash-lite',
+    rawEnv,
+    'gemini-2.5-flash-lite',
   ].filter(Boolean);
 
   return [...new Set(candidates)];
@@ -119,7 +120,8 @@ async function callGeminiWithCascade(apiKey, models, requestBody, totalTimeoutMs
       break;
     }
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelName)}:generateContent?key=${encodeURIComponent(apiKey.trim())}`;
+    const cleanModel = String(modelName).replace(/^models\//i, '').trim();
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(cleanModel)}:generateContent?key=${encodeURIComponent(apiKey.trim())}`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), Math.min(remainingMs, 9000));
 
@@ -135,10 +137,10 @@ async function callGeminiWithCascade(apiKey, models, requestBody, totalTimeoutMs
       clearTimeout(timeoutId);
       if (netErr && netErr.name === 'AbortError') {
         lastFailStatus = 504;
-        lastFailMessage = `Timeout saat menghubungi model ${modelName}.`;
+        lastFailMessage = `Timeout saat menghubungi model ${cleanModel}.`;
       } else {
         lastFailStatus = 502;
-        lastFailMessage = `Kesalahan jaringan ke model ${modelName}: ${netErr.message}`;
+        lastFailMessage = `Kesalahan jaringan ke model ${cleanModel}: ${netErr.message}`;
       }
       continue;
     } finally {
@@ -151,25 +153,27 @@ async function callGeminiWithCascade(apiKey, models, requestBody, totalTimeoutMs
       geminiData = JSON.parse(rawText);
     } catch (parseErr) {
       lastFailStatus = 502;
-      lastFailMessage = `Model ${modelName} mengembalikan respon non-JSON (HTTP ${geminiRes.status})`;
+      lastFailMessage = `Model ${cleanModel} mengembalikan respon non-JSON (HTTP ${geminiRes.status})`;
       continue;
     }
 
     if (geminiRes.ok) {
-      return { ok: true, model: modelName, data: geminiData };
+      return { ok: true, model: cleanModel, data: geminiData };
     }
 
     const upstreamErrMsg = geminiData?.error?.message || `Gemini API Error (HTTP ${geminiRes.status})`;
-    const isHighDemand =
+    const isFallbackEligible =
       geminiRes.status === 503 ||
       geminiRes.status === 429 ||
       geminiRes.status === 500 ||
-      /high demand|overloaded|unavailable|quota|capacity/i.test(upstreamErrMsg);
+      geminiRes.status === 404 ||
+      geminiRes.status === 400 ||
+      /high demand|overloaded|unavailable|quota|capacity|no longer available|not found|not supported/i.test(upstreamErrMsg);
 
     lastFailStatus = geminiRes.status;
     lastFailMessage = upstreamErrMsg;
 
-    if (isHighDemand) {
+    if (isFallbackEligible) {
       continue;
     }
 
@@ -208,7 +212,7 @@ export default async function handler(req, res) {
         env_configured: {
           GEMINI_API_KEY: Boolean(GEMINI_API_KEY),
           JWT_SECRET: Boolean(JWT_SECRET),
-          GEMINI_MODEL: modelList[0] || 'gemini-2.5-flash',
+          GEMINI_MODEL: modelList[0] || 'gemini-3.8-flash',
           FALLBACK_MODELS: modelList,
         },
       });

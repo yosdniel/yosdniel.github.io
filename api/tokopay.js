@@ -583,10 +583,11 @@ export default async function handler(req, res) {
   // ==========================================
   if (action === 'get_backup') {
     if (!device_id) return res.status(400).json({ success: false, error: 'Device ID wajib diisi.' });
-    if (!jwtUid) return res.status(401).json({ success: false, error: 'Sesi login tidak valid.' });
+    const isAdminReq = !!process.env.ADMIN_API_KEY && String(req.headers?.['x-admin-key'] || '') === process.env.ADMIN_API_KEY;
+    if (!isAdminReq && !jwtUid) return res.status(401).json({ success: false, error: 'Sesi login tidak valid.' });
     const cleanDevId = String(device_id).trim().toUpperCase();
 
-    if (!(await userOwnsDevice(SUPABASE_URL, SUPABASE_KEY, cleanDevId, jwtUid))) {
+    if (!isAdminReq && !(await userOwnsDevice(SUPABASE_URL, SUPABASE_KEY, cleanDevId, jwtUid))) {
       return res.status(403).json({ success: false, error: 'Perangkat ini tidak tertaut ke akun Anda.' });
     }
 
@@ -884,6 +885,19 @@ export default async function handler(req, res) {
       }
 
       return res.status(200).json({ success: true, message: 'Lisensi berhasil diperbarui.' });
+    }
+
+    // DELETE LICENSE (ADMIN)
+    if (body.action === 'delete_license') {
+      if (!requireAdmin(req, res, 'delete_license')) return;
+      if (!body.device_id) return res.status(400).json({ success: false, error: 'Device ID wajib diisi.' });
+      const dev = encodeURIComponent(String(body.device_id).trim());
+      const dRes = await fetch(`${SUPABASE_URL}/rest/v1/licenses?device_id=eq.${dev}`, {
+        method: 'DELETE', headers: H({ Prefer: 'return=minimal' })
+      });
+      if (!dRes.ok) return res.status(500).json({ success: false, error: 'Gagal menghapus lisensi.' });
+      fetch(`${SUPABASE_URL}/rest/v1/backups?device_id=eq.${dev}`, { method: 'DELETE', headers: H({ Prefer: 'return=minimal' }) }).catch(() => {});
+      return res.status(200).json({ success: true, message: 'Lisensi dihapus.' });
     }
 
     // 5. SAVE PACKAGES (ADMIN)

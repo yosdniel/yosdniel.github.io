@@ -116,7 +116,7 @@ export default async function handler(req, res) {
         env_configured: {
           GEMINI_API_KEY: Boolean(GEMINI_API_KEY),
           JWT_SECRET: Boolean(JWT_SECRET),
-          GEMINI_MODEL: (process.env.GEMINI_MODEL || 'gemini-3.8-flash').trim(),
+          GEMINI_MODEL: (process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite').trim(),
         },
       });
     }

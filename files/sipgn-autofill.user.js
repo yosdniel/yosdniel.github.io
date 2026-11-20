@@ -1169,7 +1169,7 @@
     if (!nama && !plat) return;
     const list = muatMasterArmada();
     const exists = list.some(
-      (a) => a.namaKurir.toLowerCase() === nama.toLowerCase() && a.platNomor.toUpperCase() === plat
+      (a) => String(a.namaKurir || '').toLowerCase() === nama.toLowerCase() && String(a.platNomor || '').toUpperCase() === plat
     );
     if (!exists) {
       list.push({ namaKurir: nama, platNomor: plat });
@@ -1579,7 +1579,7 @@
         return [];
       }
       previewBox.innerHTML = `
-        <div class="ms-bento" style="padding:10px; max-height:150px; overflow-y:auto;" class="ms-scroll">
+        <div class="ms-bento ms-scroll" style="padding:10px; max-height:150px; overflow-y:auto;">
           <div style="font-size:10.5px; font-weight:800; color:var(--ms-emerald); margin-bottom:6px;">✅ Terdeteksi ${parsed.length} KPM (Jadwal Otomatis Disusun AI):</div>
           ${parsed.map((p) => `
             <div style="font-size:11px; padding:4px 0; border-bottom:1px dashed var(--ms-border); display:flex; justify-content:space-between;">
@@ -3239,23 +3239,86 @@
     return true;
   }
 
-  async function isiKurirDanPlat(namaKurir, platNomor) {
-    const semuaInput = [...document.querySelectorAll('input')].filter(
-      (inp) => !inp.closest('#sipgn-autofill-panel') && inp.type !== 'hidden' && inp.type !== 'checkbox' && inp.offsetParent !== null
+  /* ----------------------------------------------------------------------------
+   * [PERBAIKAN] Pencarian input berdasarkan teks LABEL.
+   * Form "Status Pengambilan" memakai placeholder "Contoh: B 9999 XYZ" untuk plat,
+   * sehingga pencarian lama (placeholder/name/id) tidak menemukannya.
+   * ---------------------------------------------------------------------------- */
+  function cariInputDariLabel(daftarTeksLabel) {
+    const inputValid = (el) =>
+      el && el.tagName === 'INPUT' &&
+      !el.closest('#sipgn-autofill-panel') && !el.closest('.ms-ui-root') &&
+      !el.disabled && !el.readOnly && el.offsetParent !== null &&
+      el.type !== 'hidden' && el.type !== 'checkbox' && el.type !== 'radio';
+
+    const labels = [...document.querySelectorAll('label')].filter(
+      (el) => !el.closest('#sipgn-autofill-panel') && !el.closest('.ms-ui-root') && el.offsetParent !== null
     );
 
-    let inputKurir = semuaInput.find((inp) => {
-      const s = `${inp.placeholder} ${inp.name} ${inp.id}`.toLowerCase();
-      return s.includes('kurir') || s.includes('driver');
-    }) || aiCariInputDenganFuzzy(['nama kurir', 'pengemudi', 'driver pengantar'], ['text']);
+    for (const teks of daftarTeksLabel) {
+      const target = String(teks).toLowerCase();
+      const label = labels.find((el) =>
+        el.textContent.replace(/\s+/g, ' ').replace(/\*/g, '').trim().toLowerCase().includes(target)
+      );
+      if (!label) continue;
 
-    let inputPlat = semuaInput.find((inp) => {
-      const s = `${inp.placeholder} ${inp.name} ${inp.id}`.toLowerCase();
-      return s.includes('1234') || s.includes('plat') || s.includes('nopol') || s.includes('kendaraan');
-    }) || aiCariInputDenganFuzzy(['plat nomor', 'nomor polisi', 'nopol kendaraan'], ['text']);
+      // 1) label[for] -> id input
+      if (label.htmlFor) {
+        const byFor = document.getElementById(label.htmlFor);
+        if (inputValid(byFor)) return byFor;
+      }
 
-    if (inputKurir && namaKurir) { await setNativeValueHuman(inputKurir, namaKurir, 20, 50); await smartWait(180, 350); }
-    if (inputPlat && platNomor) { await setNativeValueHuman(inputPlat, platNomor, 20, 50); await smartWait(180, 350); }
+      // 2) input di dalam kontainer terdekat label
+      let kontainer = label.parentElement;
+      for (let d = 0; d < 2 && kontainer && kontainer !== document.body; d++) {
+        const inp = [...kontainer.querySelectorAll('input')].find(inputValid);
+        if (inp) return inp;
+        kontainer = kontainer.parentElement;
+      }
+    }
+    return null;
+  }
+
+  async function isiKurirDanPlat(namaKurir, platNomor) {
+    const semuaInput = [...document.querySelectorAll('input')].filter(
+      (inp) => !inp.closest('#sipgn-autofill-panel') && !inp.closest('.ms-ui-root') && inp.type !== 'hidden' && inp.type !== 'checkbox' && inp.offsetParent !== null
+    );
+
+    // 1) Prioritas: berdasarkan teks label
+    let inputKurir = cariInputDariLabel(['nama kurir pengambil', 'nama kurir', 'nama driver', 'pengemudi']);
+    let inputPlat = cariInputDariLabel(['plat kendaraan pengambil', 'plat kendaraan', 'plat nomor', 'nomor polisi', 'nopol']);
+
+    // 2) Cadangan: placeholder / name / id
+    if (!inputKurir) {
+      inputKurir = semuaInput.find((inp) => {
+        const s = `${inp.placeholder} ${inp.name} ${inp.id}`.toLowerCase();
+        return s.includes('kurir') || s.includes('driver') || s.includes('courier');
+      }) || null;
+    }
+    if (!inputPlat) {
+      inputPlat = semuaInput.find((inp) => {
+        const s = `${inp.placeholder} ${inp.name} ${inp.id}`.toLowerCase();
+        return s.includes('1234') || s.includes('9999') || s.includes('xyz') ||
+          s.includes('plat') || s.includes('nopol') || s.includes('kendaraan') ||
+          s.includes('vehicle') || s.includes('plate');
+      }) || null;
+    }
+
+    // 3) Cadangan terakhir: AI fuzzy
+    if (!inputKurir) inputKurir = aiCariInputDenganFuzzy(['nama kurir', 'pengemudi', 'driver pengantar'], ['text']);
+    if (!inputPlat) inputPlat = aiCariInputDenganFuzzy(['plat kendaraan', 'plat nomor', 'nomor polisi', 'nopol kendaraan'], ['text']);
+
+    if (inputKurir && namaKurir) {
+      await setNativeValueHuman(inputKurir, namaKurir, 20, 50);
+      await smartWait(180, 350);
+    }
+    if (inputPlat && platNomor) {
+      await setNativeValueHuman(inputPlat, platNomor, 20, 50);
+      await smartWait(180, 350);
+    } else if (!inputPlat && platNomor) {
+      catatAktivitas('Kolom Plat Kendaraan tidak ditemukan di halaman ini', 'error');
+      tampilkanToast('Kolom Plat Kendaraan tidak ditemukan.', 'warning', 2800);
+    }
   }
 
   async function isiPenugasan(index) {
@@ -3458,8 +3521,8 @@
     const semuaDiv = kolom.querySelectorAll('div');
     const aktif = [...semuaDiv].find(
       (div) =>
-        div.className.includes('font-bold') &&
-        div.className.includes('text-white') &&
+        String(div.className || '').includes('font-bold') &&
+        String(div.className || '').includes('text-white') &&
         /^\d+$/.test(div.textContent.trim())
     );
     if (aktif) return parseInt(aktif.textContent.trim(), 10);
@@ -4101,11 +4164,11 @@
       ];
 
       const pills = [];
-      if (Number(kpmAktif.porsiBesar) > 0) pills.push(`Besar: <b>${kpmAktif.porsiBesar}</b>`);
-      if (Number(kpmAktif.porsiKecil) > 0) pills.push(`Kecil: <b>${kpmAktif.porsiKecil}</b>`);
-      if (Number(kpmAktif.porsiBalita) > 0) pills.push(`Balita: <b>${kpmAktif.porsiBalita}</b>`);
-      if (Number(kpmAktif.porsiIbuMenyusui) > 0) pills.push(`Busui: <b>${kpmAktif.porsiIbuMenyusui}</b>`);
-      if (Number(kpmAktif.porsiIbuHamil) > 0) pills.push(`Bumil: <b>${kpmAktif.porsiIbuHamil}</b>`);
+      if (Number(kpmAktif.porsiBesar) > 0) pills.push(`Besar: <b>${escapeHtml(kpmAktif.porsiBesar)}</b>`);
+      if (Number(kpmAktif.porsiKecil) > 0) pills.push(`Kecil: <b>${escapeHtml(kpmAktif.porsiKecil)}</b>`);
+      if (Number(kpmAktif.porsiBalita) > 0) pills.push(`Balita: <b>${escapeHtml(kpmAktif.porsiBalita)}</b>`);
+      if (Number(kpmAktif.porsiIbuMenyusui) > 0) pills.push(`Busui: <b>${escapeHtml(kpmAktif.porsiIbuMenyusui)}</b>`);
+      if (Number(kpmAktif.porsiIbuHamil) > 0) pills.push(`Bumil: <b>${escapeHtml(kpmAktif.porsiIbuHamil)}</b>`);
 
       const konflikList = periksaKonflikPreFlight(kpmAktif);
       const selisihObj = hitungSelisihOmpreng(kpmAktif);
@@ -4456,13 +4519,13 @@
     let filtered = dataPenugasan
       .map((item, originalIdx) => ({ item, originalIdx }))
       .filter(({ item }) => {
-        const matchSearch = !searchQuery || item.sekolah.toLowerCase().includes(searchQuery.toLowerCase()) || (item.namaKurir || '').toLowerCase().includes(searchQuery.toLowerCase());
+        const matchSearch = !searchQuery || String(item.sekolah || '').toLowerCase().includes(searchQuery.toLowerCase()) || (item.namaKurir || '').toLowerCase().includes(searchQuery.toLowerCase());
         const matchFilter = filterStatus === 'semua' || (item.statusProses || 'belum') === filterStatus;
         return matchSearch && matchFilter;
       });
 
     if (sortMode === 'nama') {
-      filtered.sort((a, b) => a.item.sekolah.localeCompare(b.item.sekolah));
+      filtered.sort((a, b) => String(a.item.sekolah || '').localeCompare(String(b.item.sekolah || '')));
     } else if (sortMode === 'porsi') {
       filtered.sort((a, b) => hitungTotalPorsi(b.item) - hitungTotalPorsi(a.item));
     } else if (sortMode === 'ritase') {
@@ -4656,8 +4719,22 @@
 
     chatCard.appendChild(messagesBox);
 
+    const kirimPertanyaanKeAI = async (teksPrompt) => {
+      const q = String(teksPrompt || '').trim();
+      if (!q || aiChatThinking) return;
+      aiChatHistory.push({ role: 'user', text: q });
+      aiChatThinking = true;
+      renderPanel();
+
+      const balasan = await tanyaMindspaceAI(q);
+      aiChatHistory.push({ role: 'assistant', text: balasan });
+      aiChatThinking = false;
+      renderPanel();
+    };
+
     // Quick Prompts Chips
     const chipsRow = document.createElement('div');
+    chipsRow.className = 'ms-scroll';
     chipsRow.style.cssText = 'display:flex; gap:4px; overflow-x:auto; padding-bottom:2px;';
     const quickPrompts = [
       { label: '🔍 Audit Konflik KPM', text: 'Audit dan cek konflik jadwal semua KPM saya sekarang' },
@@ -4690,19 +4767,6 @@
       if (box) box.scrollTop = box.scrollHeight;
     }, 10);
 
-    const kirimPertanyaanKeAI = async (teksPrompt) => {
-      const q = String(teksPrompt || '').trim();
-      if (!q || aiChatThinking) return;
-      aiChatHistory.push({ role: 'user', text: q });
-      aiChatThinking = true;
-      renderPanel();
-
-      const balasan = await tanyaMindspaceAI(q);
-      aiChatHistory.push({ role: 'assistant', text: balasan });
-      aiChatThinking = false;
-      renderPanel();
-    };
-
     const inpEl = inputRow.querySelector('#ms-ai-chat-input');
     const sendBtn = inputRow.querySelector('#ms-ai-chat-send');
     sendBtn.onclick = () => kirimPertanyaanKeAI(inpEl.value);
@@ -4717,7 +4781,6 @@
     const expStr = currentDatabaseExpDate ? formatTanggalIndo(currentDatabaseExpDate) : '-';
     const sisaHari = currentDatabaseExpDate ? hitungSisaHari(currentDatabaseExpDate) : null;
     const authUser = dapatkanAuthUser();
-    const namaSPPG = dapatkanNamaSPPG();
     const isLinked = Boolean(cachedServerStatus?.is_linked || cachedServerStatus?.linked || cekStatusTautanLokal(dapatkanUserIdAktif()));
 
     const updateCard = document.createElement('div');
@@ -4771,7 +4834,7 @@
       </div>
       <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; margin-bottom:5px;">
         <span style="color:var(--ms-text-muted);">Device ID:</span>
-        <span id="ms-copy-devid" style="font-family:var(--ms-font-mono); color:var(--ms-amber); font-weight:700; cursor:pointer;" title="Klik untuk salin">${devId} 📋</span>
+        <span id="ms-copy-devid" style="font-family:var(--ms-font-mono); color:var(--ms-amber); font-weight:700; cursor:pointer;" title="Klik untuk salin">${escapeHtml(devId)} 📋</span>
       </div>
       <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:9px;">
         <span style="color:var(--ms-text-muted);">Masa Aktif:</span>
@@ -5116,13 +5179,13 @@
    * 12. PROTEKSI ANTI-COPY / KLIK KANAN & SHORTCUT KEYBOARD (CTRL+K / ESC)
    * ============================================================================ */
   document.addEventListener('contextmenu', (e) => {
-    if (e.target.closest('#sipgn-autofill-panel') || e.target.closest('.ms-ui-root')) {
+    if (e.target.closest && (e.target.closest('#sipgn-autofill-panel') || e.target.closest('.ms-ui-root'))) {
       e.preventDefault();
     }
   });
 
   document.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey || e.altKey) && e.key.toLowerCase() === 'k') {
+    if ((e.ctrlKey || e.metaKey || e.altKey) && String(e.key || '').toLowerCase() === 'k') {
       if (isScriptInitialized) {
         e.preventDefault();
         tampilkanCommandPalette();
